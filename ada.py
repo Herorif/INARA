@@ -32,16 +32,13 @@ MODEL = "models/gemini-2.5-flash-native-audio-preview-09-2025"
 DEFAULT_MODE = "camera"
 
 load_dotenv()
-client = genai.Client(http_options={"api_version": "v1alpha"}, api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(http_options={"api_version": "v1beta"}, api_key=os.getenv("GEMINI_API_KEY"))
 
+tools = [{'google_search': {}}]
 config = types.LiveConnectConfig(
     response_modalities=["AUDIO"],
     system_instruction="You are a helpful assistant named Ada and answer in a friendly tone.",
-    thinking_config=types.ThinkingConfig(
-        thinking_budget=1024,
-        include_thoughts=True
-    ),
-    enable_affective_dialog=True,
+    tools=tools,
     speech_config=types.SpeechConfig(
         voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(

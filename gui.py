@@ -22,11 +22,13 @@ pyautogui.PAUSE = 0
 # PySide6 Imports
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QFrame, QScrollArea, QPushButton,
-                             QGraphicsDropShadowEffect, QSizePolicy, QProgressBar)
+                             QGraphicsDropShadowEffect, QSizePolicy, QProgressBar, QLineEdit,
+                             QListWidget, QListWidgetItem, QAbstractItemView, QInputDialog, QMessageBox,
+                             QSplitter, QTextEdit)
 from PySide6.QtCore import (Qt, QTimer, QPointF, Signal, QSize, QPropertyAnimation, 
-                            QEasingCurve, QThread, Slot, QObject, QEvent, QPoint)
+                            QEasingCurve, QThread, Slot, QObject, QEvent, QPoint, QDir, QFileInfo)
 from PySide6.QtGui import (QPainter, QColor, QPen, QRadialGradient, QBrush, 
-                         QFont, QLinearGradient, QPainterPath, QGradient, QImage, QPixmap, QPolygonF)
+                         QFont, QLinearGradient, QPainterPath, QGradient, QImage, QPixmap, QPolygonF, QIcon)
 
 from visualizer import VisualizerWidget
 import ada
@@ -90,15 +92,18 @@ class GuiAudioLoop(ada.AudioLoop):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stop_event = asyncio.Event()
+        self.text_queue = asyncio.Queue()
 
     async def send_text(self):
-        # Override to avoid blocking input()
-        await self.stop_event.wait()
-        # When stopped, we can just return or send a quit signal if needed
-        # But since we are cancelling tasks in run(), this might be enough.
+        while True:
+            text = await self.text_queue.get()
+            if text is None:
+                break
+            await self.session.send(input=text, end_of_turn=True)
         
     def stop(self):
         self.stop_event.set()
+        self.text_queue.put_nowait(None)
 
 class RippleWidget(QWidget):
     def __init__(self, parent=None, center=QPoint()):
@@ -244,6 +249,203 @@ class VideoThread(QThread):
         self._running = False
         self.wait()
 
+class FileManagerWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.current_path = os.getcwd()
+        self.setup_ui()
+        self.load_path(self.current_path)
+
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        # --- Toolbar ---
+        toolbar_layout = QHBoxLayout()
+        
+        # Back Button
+        self.btn_back = QPushButton("..")
+        self.btn_back.setFixedSize(40, 30)
+        self.btn_back.clicked.connect(self.go_up)
+        self.style_button(self.btn_back)
+        toolbar_layout.addWidget(self.btn_back)
+
+        # Path Label
+        self.lbl_path = QLabel(self.current_path)
+        self.lbl_path.setStyleSheet(f"color: {THEME['text']}; font-family: 'Menlo'; font-size: 12px;")
+        toolbar_layout.addWidget(self.lbl_path)
+        
+        toolbar_layout.addStretch()
+
+        # New Folder / File Buttons
+        self.btn_new_folder = QPushButton("+ Folder")
+        self.btn_new_folder.clicked.connect(self.create_folder)
+        self.style_button(self.btn_new_folder)
+        toolbar_layout.addWidget(self.btn_new_folder)
+
+        self.btn_new_file = QPushButton("+ File")
+        self.btn_new_file.clicked.connect(self.create_file)
+        self.style_button(self.btn_new_file)
+        toolbar_layout.addWidget(self.btn_new_file)
+
+        layout.addLayout(toolbar_layout)
+
+        # --- Splitter for List and Preview ---
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.setHandleWidth(2)
+        splitter.setStyleSheet(f"QSplitter::handle {{ background-color: {THEME['cyan_dim']}; }}")
+
+        # File List
+        self.file_list = QListWidget()
+        self.file_list.setStyleSheet(f"""
+            QListWidget {{
+                background-color: rgba(0, 0, 0, 50);
+                border: 1px solid {THEME['cyan_dim']};
+                border-radius: 4px;
+                color: {THEME['text']};
+                font-family: 'Menlo';
+                font-size: 14px;
+            }}
+            QListWidget::item {{
+                padding: 10px;
+            }}
+            QListWidget::item:selected {{
+                background-color: {THEME['cyan_dim']};
+                color: white;
+            }}
+            QListWidget::item:hover {{
+                background-color: rgba(21, 94, 117, 0.5);
+            }}
+        """)
+        self.file_list.itemClicked.connect(self.on_item_clicked)
+        self.file_list.itemDoubleClicked.connect(self.on_item_double_clicked)
+        splitter.addWidget(self.file_list)
+
+        # File Preview
+        self.preview_area = QTextEdit()
+        self.preview_area.setReadOnly(True)
+        self.preview_area.setPlaceholderText("Select a file to preview...")
+        self.preview_area.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: rgba(0, 0, 0, 50);
+                border: 1px solid {THEME['cyan_dim']};
+                border-radius: 4px;
+                color: {THEME['text']};
+                font-family: 'Menlo';
+                font-size: 12px;
+            }}
+        """)
+        splitter.addWidget(self.preview_area)
+        
+        # Set initial sizes (List 40%, Preview 60%)
+        splitter.setSizes([300, 500])
+
+        layout.addWidget(splitter)
+
+    def style_button(self, btn):
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['cyan_dim']};
+                color: {THEME['text']};
+                border: none;
+                border-radius: 4px;
+                padding: 5px 10px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['cyan']};
+                color: black;
+            }}
+            QPushButton:pressed {{
+                background-color: {THEME['cyan_glow']};
+            }}
+        """)
+
+    def load_path(self, path):
+        self.current_path = path
+        self.lbl_path.setText(path)
+        self.file_list.clear()
+        self.preview_area.clear()
+
+        try:
+            entries = os.listdir(path)
+            # Sort: Directories first, then files
+            entries.sort(key=lambda x: (not os.path.isdir(os.path.join(path, x)), x.lower()))
+
+            for entry in entries:
+                full_path = os.path.join(path, entry)
+                item = QListWidgetItem(entry)
+                
+                if os.path.isdir(full_path):
+                    item.setForeground(QColor(THEME['cyan']))
+                    item.setText(f"[DIR] {entry}")
+                    item.setData(Qt.UserRole, "dir")
+                else:
+                    item.setForeground(QColor(THEME['text']))
+                    item.setData(Qt.UserRole, "file")
+                
+                # Make items large enough for hand tracking
+                item.setSizeHint(QSize(0, 40))
+                self.file_list.addItem(item)
+                
+        except Exception as e:
+            print(f"Error loading path: {e}")
+
+    def on_item_clicked(self, item):
+        name = item.text().replace("[DIR] ", "")
+        full_path = os.path.join(self.current_path, name)
+        
+        if os.path.isfile(full_path):
+            self.preview_file(full_path)
+
+    def on_item_double_clicked(self, item):
+        # Double click to enter directory
+        name = item.text().replace("[DIR] ", "")
+        full_path = os.path.join(self.current_path, name)
+        
+        if os.path.isdir(full_path):
+            self.load_path(full_path)
+
+    def go_up(self):
+        parent = os.path.dirname(self.current_path)
+        if parent and os.path.exists(parent):
+            self.load_path(parent)
+
+    def create_folder(self):
+        name, ok = QInputDialog.getText(self, "New Folder", "Folder Name:")
+        if ok and name:
+            try:
+                os.mkdir(os.path.join(self.current_path, name))
+                self.load_path(self.current_path)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e))
+
+    def create_file(self):
+        name, ok = QInputDialog.getText(self, "New File", "File Name:")
+        if ok and name:
+            try:
+                with open(os.path.join(self.current_path, name), 'w') as f:
+                    pass # Create empty file
+                self.load_path(self.current_path)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e))
+
+    def preview_file(self, path):
+        try:
+            # Limit file size for preview
+            if os.path.getsize(path) > 1024 * 1024: # 1MB limit
+                self.preview_area.setText("File too large to preview.")
+                return
+
+            with open(path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                self.preview_area.setText(content)
+        except UnicodeDecodeError:
+            self.preview_area.setText("Binary file - cannot preview.")
+        except Exception as e:
+            self.preview_area.setText(f"Error reading file: {e}")
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -266,13 +468,54 @@ class MainWindow(QMainWindow):
         self.main_layout.addLayout(content_layout)
 
         # --- VISUALIZER AREA ---
+        # Create a splitter for Visualizer and File Manager
+        main_splitter = QSplitter(Qt.Vertical)
+        main_splitter.setHandleWidth(2)
+        main_splitter.setStyleSheet(f"QSplitter::handle {{ background-color: {THEME['cyan_dim']}; }}")
+        
         self.visualizer = VisualizerWidget()
-        content_layout.addWidget(self.visualizer)
+        main_splitter.addWidget(self.visualizer)
+        
+        # --- FILE MANAGER ---
+        self.file_manager = FileManagerWidget()
+        main_splitter.addWidget(self.file_manager)
+        
+        # Set initial sizes (Visualizer 40%, File Manager 60%)
+        main_splitter.setSizes([200, 400])
+        
+        content_layout.addWidget(main_splitter)
 
         footer_line = QFrame()
         footer_line.setFixedHeight(2)
         footer_line.setStyleSheet(f"background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 black, stop:0.5 {THEME['cyan_dim']}, stop:1 black);")
         self.main_layout.addWidget(footer_line)
+
+        # --- INPUT AREA ---
+        input_container = QWidget()
+        input_layout = QHBoxLayout(input_container)
+        input_layout.setContentsMargins(20, 10, 20, 20)
+        
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText("Type a message...")
+        self.input_field.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: rgba(0, 0, 0, 50);
+                border: 1px solid {THEME['cyan_dim']};
+                border-radius: 4px;
+                color: {THEME['text']};
+                padding: 8px;
+                font-family: 'Menlo';
+                selection-background-color: {THEME['cyan_dim']};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME['cyan']};
+                background-color: rgba(0, 0, 0, 100);
+            }}
+        """)
+        self.input_field.returnPressed.connect(self.send_message)
+        input_layout.addWidget(self.input_field)
+        
+        self.main_layout.addWidget(input_container)
 
         # --- VIDEO OVERLAY ---
         self.video_label = QLabel(self)
@@ -413,6 +656,7 @@ class MainWindow(QMainWindow):
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            self.loop = loop
             
             self.audio_loop = GuiAudioLoop(
                 video_mode="none",
@@ -464,6 +708,14 @@ class MainWindow(QMainWindow):
     @Slot(bytes)
     def update_audio(self, data):
         self.visualizer.update_audio_data(data)
+
+    @Slot()
+    def send_message(self):
+        text = self.input_field.text()
+        if text:
+            self.input_field.clear()
+            if hasattr(self, 'loop') and hasattr(self, 'audio_loop'):
+                self.loop.call_soon_threadsafe(self.audio_loop.text_queue.put_nowait, text)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
