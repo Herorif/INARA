@@ -1,24 +1,30 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
-const Visualizer = ({ audioData, isListening, intensity = 0 }) => {
+const Visualizer = ({ audioData, isListening, intensity = 0, width = 600, height = 400 }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
+
+        // Ensure canvas internal resolution matches display size for sharpness
+        canvas.width = width;
+        canvas.height = height;
+
         const ctx = canvas.getContext('2d');
         let animationId;
 
         const draw = () => {
-            const width = canvas.width;
-            const height = canvas.height;
-            const centerX = width / 2;
-            const centerY = height / 2;
-            // Dynamic Radius: Base 150 + Expansion based on intensity
-            const radius = 150 + (intensity * 40);
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w / 2;
+            const centerY = h / 2;
+            // Dynamic Radius based on smaller dimension
+            const baseRadius = Math.min(w, h) * 0.25;
+            const radius = baseRadius + (intensity * 40);
 
-            ctx.clearRect(0, 0, width, height);
+            ctx.clearRect(0, 0, w, h);
 
             // Base Circle (Glow)
             ctx.beginPath();
@@ -57,16 +63,17 @@ const Visualizer = ({ audioData, isListening, intensity = 0 }) => {
 
         draw();
         return () => cancelAnimationFrame(animationId);
-    }, [audioData, isListening]);
+    }, [audioData, isListening, width, height]);
 
     return (
-        <div className="relative">
+        <div className="relative" style={{ width, height }}>
             {/* Central Logo/Text */}
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                 <motion.div
                     animate={{ scale: isListening ? [1, 1.1, 1] : 1 }}
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    className="text-cyan-100 font-bold text-4xl tracking-widest drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]"
+                    className="text-cyan-100 font-bold tracking-widest drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]"
+                    style={{ fontSize: Math.min(width, height) * 0.1 }}
                 >
                     A.D.A
                 </motion.div>
@@ -74,9 +81,7 @@ const Visualizer = ({ audioData, isListening, intensity = 0 }) => {
 
             <canvas
                 ref={canvasRef}
-                width={800}
-                height={800}
-                className="w-[600px] h-[600px]"
+                style={{ width: '100%', height: '100%' }}
             />
         </div>
     );

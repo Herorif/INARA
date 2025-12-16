@@ -57,8 +57,17 @@ function App() {
         cad: { x: window.innerWidth / 2 + 300, y: window.innerHeight / 2 },
         browser: { x: window.innerWidth / 2 - 300, y: window.innerHeight / 2 },
         kasa: { x: window.innerWidth / 2 + 350, y: window.innerHeight / 2 - 100 },
-        tools: { x: window.innerWidth / 2, y: window.innerHeight - 30 }
+        tools: { x: window.innerWidth / 2, y: window.innerHeight - 100 } // Fixed bottom OFFSET
+    });
 
+    const [elementSizes, setElementSizes] = useState({
+        visualizer: { w: 600, h: 400 },
+        chat: { w: 600, h: 250 },
+        tools: { w: 500, h: 80 }, // Approx
+        cad: { w: 500, h: 500 },
+        browser: { w: 600, h: 450 },
+        video: { w: 320, h: 180 },
+        kasa: { w: 300, h: 400 } // Approx
     });
     const [activeDragElement, setActiveDragElement] = useState(null);
 
@@ -115,22 +124,66 @@ function App() {
         const centerElements = () => {
             const width = window.innerWidth;
             const height = window.innerHeight;
-            const visualizerHeight = 400; // Match the style height
-            const gap = 30; // Space between visualizer and chat
+
+            // Calculate available vertical space
+            // Tools is fixed at bottom ~100px space
+            const toolsY = height - 100;
+            // ToolsModule uses translate(-50%, -50%). So its Center Y.
+            // Let's reserve bottom 140px for tools to be safe and float it nicely.
+            const toolsCenterY = height - 100;
+
+            const gap = 20;
+
+            // Chat: Anchor is Top-Center (translate(-50%, 0)).
+            // We want Chat Bottom to be above Tools Top.
+            // Tools Top = toolsCenterY - (ToolsHeight/2) approx 40 = height - 140;
+            const chatBottomLimit = height - 140;
+
+            // Dynamic Height Calculation to fit screen
+            // Standard Heights
+            let vizH = 400;
+            let chatH = 250;
+            const topBarHeight = 60;
+
+            // Total needed: TopBar + Viz + Gap + Chat + Gap + Tools (140 reserved)
+            const totalNeeded = topBarHeight + vizH + gap + chatH + gap + 140;
+
+            if (height < totalNeeded) {
+                // Scale down
+                const available = height - topBarHeight - 140 - (gap * 2);
+                // Allocate 60% to Viz, 40% to Chat
+                vizH = available * 0.6;
+                chatH = available * 0.4;
+            }
+
+            // Positions
+            // Visualizer (Center Anchored)
+            // Top of Viz = TopBarHeight. Center = TopBarHeight + VizH/2
+            const vizY = topBarHeight + (vizH / 2); // Removed buffer
+
+            // Chat (Top Anchored)
+            // Top of Chat = TopBarHeight + VizH + Gap
+            const chatY = topBarHeight + vizH + gap;
+
+            setElementSizes(prev => ({
+                ...prev,
+                visualizer: { w: Math.min(600, width * 0.8), h: vizH },
+                chat: { w: Math.min(600, width * 0.9), h: chatH }
+            }));
 
             setElementPositions(prev => ({
                 ...prev,
                 visualizer: {
                     x: width / 2,
-                    y: (height / 2) - 180
+                    y: vizY
                 },
                 chat: {
                     x: width / 2,
-                    y: ((height / 2) - 180) + (visualizerHeight / 2) + gap
+                    y: chatY
                 },
                 tools: {
                     x: width / 2,
-                    y: height - 100 // Center bottom
+                    y: toolsCenterY
                 }
             }));
         };
@@ -777,14 +830,50 @@ function App() {
         }
     };
 
+    // Updated Bounds Checking Logic
     const updateElementPosition = (id, dx, dy) => {
-        setElementPositions(prev => ({
-            ...prev,
-            [id]: {
-                x: prev[id].x + dx,
-                y: prev[id].y + dy
+        setElementPositions(prev => {
+            const currentPos = prev[id];
+            const size = elementSizes[id] || { w: 100, h: 100 }; // Fallback
+            let newX = currentPos.x + dx;
+            let newY = currentPos.y + dy;
+
+            // Bounds Logic
+            // Depends on anchor point.
+            // Visualizer, Tools, Cad, Browser, Kasa: translate(-50%, -50%) -> Center Anchor
+            // Chat: translate(-50%, 0) -> Top-Center Anchor
+            // Video: Top-Left Anchor (default div)
+
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const margin = 0; // Strict bounds
+
+            if (id === 'chat') {
+                // Anchor: Top-Center (x is center, y is top)
+                // X Bounds: size.w/2 <= x <= width - size.w/2
+                newX = Math.max(size.w / 2 + margin, Math.min(width - size.w / 2 - margin, newX));
+                // Y Bounds: 0 <= y <= height - size.h
+                newY = Math.max(margin, Math.min(height - size.h - margin, newY));
+
+            } else if (id === 'video') {
+                // Anchor: Top-Left
+                newX = Math.max(margin, Math.min(width - size.w - margin, newX));
+                newY = Math.max(margin, Math.min(height - size.h - margin, newY));
+
+            } else {
+                // Anchor: Center
+                newX = Math.max(size.w / 2 + margin, Math.min(width - size.w / 2 - margin, newX));
+                newY = Math.max(size.h / 2 + margin, Math.min(height - size.h / 2 - margin, newY));
             }
-        }));
+
+            return {
+                ...prev,
+                [id]: {
+                    x: newX,
+                    y: newY
+                }
+            };
+        });
     };
 
     // Calculate Average Audio Amplitude for Background Pulse
@@ -891,13 +980,19 @@ function App() {
                         left: elementPositions.visualizer.x,
                         top: elementPositions.visualizer.y,
                         transform: 'translate(-50%, -50%)',
-                        width: '600px', // Fixed size for modular mode
-                        height: '400px'
+                        width: elementSizes.visualizer.w,
+                        height: elementSizes.visualizer.h
                     }}
                 >
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay z-10"></div>
                     <div className="relative z-20">
-                        <Visualizer audioData={aiAudioData} isListening={isConnected && !isMuted} intensity={audioAmp} />
+                        <Visualizer
+                            audioData={aiAudioData}
+                            isListening={isConnected && !isMuted}
+                            intensity={audioAmp}
+                            width={elementSizes.visualizer.w}
+                            height={elementSizes.visualizer.h}
+                        />
                     </div>
                     {isModularMode && <div className={`absolute top-2 right-2 text-xs font-bold tracking-widest z-20 ${activeDragElement === 'visualizer' ? 'text-green-500' : 'text-yellow-500/50'}`}>VISUALIZER</div>}
                 </div>
@@ -1037,6 +1132,8 @@ function App() {
                     isModularMode={isModularMode}
                     activeDragElement={activeDragElement}
                     position={elementPositions.chat}
+                    width={elementSizes.chat.w}
+                    height={elementSizes.chat.h}
                 />
 
                 {/* Footer Controls / Tools Module */}
