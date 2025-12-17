@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 
+// Use ANGLE D3D11 backend - more stable on Windows while keeping WebGL working
+// This fixes "GPU state invalid after WaitForGetOffsetInRange" error
+app.commandLine.appendSwitch('use-angle', 'd3d11');
+app.commandLine.appendSwitch('enable-features', 'Vulkan');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+
 let mainWindow;
 let pythonProcess;
 
@@ -16,17 +22,41 @@ function createWindow() {
         backgroundColor: '#000000',
         frame: false, // Frameless for custom UI
         titleBarStyle: 'hidden',
+        show: false, // Don't show until ready
     });
 
     // In dev, load Vite server. In prod, load index.html
     const isDev = process.env.NODE_ENV !== 'production';
 
-    if (isDev) {
-        mainWindow.loadURL('http://localhost:5173');
-        mainWindow.webContents.openDevTools();
-    } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-    }
+    const loadFrontend = (retries = 3) => {
+        const url = isDev ? 'http://localhost:5173' : null;
+        const loadPromise = isDev
+            ? mainWindow.loadURL(url)
+            : mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+
+        loadPromise
+            .then(() => {
+                console.log('Frontend loaded successfully!');
+                windowWasShown = true;
+                mainWindow.show();
+                if (isDev) {
+                    mainWindow.webContents.openDevTools();
+                }
+            })
+            .catch((err) => {
+                console.error(`Failed to load frontend: ${err.message}`);
+                if (retries > 0) {
+                    console.log(`Retrying in 1 second... (${retries} retries left)`);
+                    setTimeout(() => loadFrontend(retries - 1), 1000);
+                } else {
+                    console.error('Failed to load frontend after all retries. Keeping window open.');
+                    windowWasShown = true;
+                    mainWindow.show(); // Show anyway so user sees something
+                }
+            });
+    };
+
+    loadFrontend();
 
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -128,12 +158,33 @@ function waitForBackend() {
     });
 }
 
+let windowWasShown = false;
+
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    // Only quit if the window was actually shown at least once
+    // This prevents quitting during startup if window creation fails
+    if (process.platform !== 'darwin' && windowWasShown) {
+        app.quit();
+    } else if (!windowWasShown) {
+        console.log('Window was never shown - keeping app alive to allow retries');
+    }
 });
 
 app.on('will-quit', () => {
+    console.log('App closing... Killing Python backend.');
     if (pythonProcess) {
-        pythonProcess.kill();
+        if (process.platform === 'win32') {
+            // Windows: Force kill the process tree synchronously
+            try {
+                const { execSync } = require('child_process');
+                execSync(`taskkill /pid ${pythonProcess.pid} /f /t`);
+            } catch (e) {
+                console.error('Failed to kill python process:', e.message);
+            }
+        } else {
+            // Unix: SIGKILL
+            pythonProcess.kill('SIGKILL');
+        }
+        pythonProcess = null;
     }
 });

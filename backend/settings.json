@@ -1,0 +1,21 @@
+{
+    "face_auth_enabled": false,
+    "tool_permissions": {
+        "generate_cad": true,
+        "run_web_agent": true,
+        "write_file": false,
+        "read_directory": false,
+        "read_file": false,
+        "create_project": false,
+        "switch_project": false,
+        "list_projects": false,
+        "create_directory": false,
+        "iterate_cad": false,
+        "print_stl": false,
+        "discover_printers": false,
+        "control_light": false,
+        "list_smart_devices": false
+    },
+    "printers": [],
+    "camera_flipped": false
+}

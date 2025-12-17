@@ -73,8 +73,15 @@ function App() {
     const [micAudioData, setMicAudioData] = useState(new Array(32).fill(0));
     const [fps, setFps] = useState(0);
 
-    const [devices, setDevices] = useState([]);
-    const [selectedDeviceId, setSelectedDeviceId] = useState('');
+    // Device states - microphones, speakers, webcams
+    const [micDevices, setMicDevices] = useState([]);
+    const [speakerDevices, setSpeakerDevices] = useState([]);
+    const [webcamDevices, setWebcamDevices] = useState([]);
+
+    // Selected device IDs - restored from localStorage
+    const [selectedMicId, setSelectedMicId] = useState(() => localStorage.getItem('selectedMicId') || '');
+    const [selectedSpeakerId, setSelectedSpeakerId] = useState(() => localStorage.getItem('selectedSpeakerId') || '');
+    const [selectedWebcamId, setSelectedWebcamId] = useState(() => localStorage.getItem('selectedWebcamId') || '');
     const [showSettings, setShowSettings] = useState(false);
     const [currentProject, setCurrentProject] = useState('default');
 
@@ -283,7 +290,7 @@ function App() {
     // Auto-Connect Model on Start (Only after Auth and devices loaded)
     useEffect(() => {
         // Only auto-connect once: when socket connected, authenticated, and devices loaded
-        if (isConnected && isAuthenticated && socketConnected && devices.length > 0 && !hasAutoConnectedRef.current) {
+        if (isConnected && isAuthenticated && socketConnected && micDevices.length > 0 && !hasAutoConnectedRef.current) {
             hasAutoConnectedRef.current = true;
 
             // Trigger Kasa and Printer Discovery
@@ -292,17 +299,20 @@ function App() {
 
             // Connect to model with small delay for socket stability
             const timer = setTimeout(() => {
-                const index = devices.findIndex(d => d.deviceId === selectedDeviceId);
-                console.log("Auto-connecting to model with device index:", index);
+                const index = micDevices.findIndex(d => d.deviceId === selectedMicId);
+                const queryDevice = micDevices.find(d => d.deviceId === selectedMicId);
+                const deviceName = queryDevice ? queryDevice.label : null;
+                console.log("Auto-connecting to model with device:", deviceName, "Index:", index);
+
                 setStatus('Connecting...');
                 socket.emit('start_audio', {
                     device_index: index >= 0 ? index : null,
+                    device_name: deviceName,
                     muted: isMuted
                 });
             }, 500);
-            return () => clearTimeout(timer);
         }
-    }, [isConnected, isAuthenticated, socketConnected, devices, selectedDeviceId]);
+    }, [isConnected, isAuthenticated, socketConnected, micDevices, selectedMicId]);
 
     useEffect(() => {
         // Socket IO Setup
@@ -527,11 +537,39 @@ function App() {
 
 
 
-        // Get Audio Devices
+        // Get All Media Devices (Microphones, Speakers, Webcams)
         navigator.mediaDevices.enumerateDevices().then(devs => {
             const audioInputs = devs.filter(d => d.kind === 'audioinput');
-            setDevices(audioInputs);
-            if (audioInputs.length > 0) setSelectedDeviceId(audioInputs[0].deviceId);
+            const audioOutputs = devs.filter(d => d.kind === 'audiooutput');
+            const videoInputs = devs.filter(d => d.kind === 'videoinput');
+
+            setMicDevices(audioInputs);
+            setSpeakerDevices(audioOutputs);
+            setWebcamDevices(videoInputs);
+
+            // Restore saved microphone or use first available
+            const savedMicId = localStorage.getItem('selectedMicId');
+            if (savedMicId && audioInputs.some(d => d.deviceId === savedMicId)) {
+                setSelectedMicId(savedMicId);
+            } else if (audioInputs.length > 0) {
+                setSelectedMicId(audioInputs[0].deviceId);
+            }
+
+            // Restore saved speaker or use first available
+            const savedSpeakerId = localStorage.getItem('selectedSpeakerId');
+            if (savedSpeakerId && audioOutputs.some(d => d.deviceId === savedSpeakerId)) {
+                setSelectedSpeakerId(savedSpeakerId);
+            } else if (audioOutputs.length > 0) {
+                setSelectedSpeakerId(audioOutputs[0].deviceId);
+            }
+
+            // Restore saved webcam or use first available
+            const savedWebcamId = localStorage.getItem('selectedWebcamId');
+            if (savedWebcamId && videoInputs.some(d => d.deviceId === savedWebcamId)) {
+                setSelectedWebcamId(savedWebcamId);
+            } else if (videoInputs.length > 0) {
+                setSelectedWebcamId(videoInputs[0].deviceId);
+            }
         });
 
         // Initialize Hand Landmarker
@@ -603,12 +641,34 @@ function App() {
         }
     }, []);
 
+    // Persist device selections to localStorage when they change
+    useEffect(() => {
+        if (selectedMicId) {
+            localStorage.setItem('selectedMicId', selectedMicId);
+            console.log('[Settings] Saved microphone:', selectedMicId);
+        }
+    }, [selectedMicId]);
+
+    useEffect(() => {
+        if (selectedSpeakerId) {
+            localStorage.setItem('selectedSpeakerId', selectedSpeakerId);
+            console.log('[Settings] Saved speaker:', selectedSpeakerId);
+        }
+    }, [selectedSpeakerId]);
+
+    useEffect(() => {
+        if (selectedWebcamId) {
+            localStorage.setItem('selectedWebcamId', selectedWebcamId);
+            console.log('[Settings] Saved webcam:', selectedWebcamId);
+        }
+    }, [selectedWebcamId]);
+
     // Start/Stop Mic Visualizer
     useEffect(() => {
-        if (selectedDeviceId) {
-            startMicVisualizer(selectedDeviceId);
+        if (selectedMicId) {
+            startMicVisualizer(selectedMicId);
         }
-    }, [selectedDeviceId]);
+    }, [selectedMicId]);
 
     const startMicVisualizer = async (deviceId) => {
         stopMicVisualizer();
@@ -646,8 +706,21 @@ function App() {
 
     const startVideo = async () => {
         try {
-            // Request 16:9 aspect ratio
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { aspectRatio: 16 / 9, width: { ideal: 1280 } } });
+            // Request 1080p resolution with selected webcam
+            const constraints = {
+                video: {
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    aspectRatio: 16 / 9
+                }
+            };
+
+            // Use selected webcam if available
+            if (selectedWebcamId) {
+                constraints.video.deviceId = { exact: selectedWebcamId };
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 videoRef.current.play();
@@ -656,7 +729,7 @@ function App() {
             setIsVideoOn(true);
             isVideoOnRef.current = true; // Update ref for loop
 
-            console.log("Starting video loop...");
+            console.log("Starting video loop with webcam:", selectedWebcamId || "default");
             requestAnimationFrame(predictWebcam);
 
         } catch (err) {
@@ -979,7 +1052,7 @@ function App() {
             setIsConnected(false);
             setIsMuted(false); // Reset mute state
         } else {
-            const index = devices.findIndex(d => d.deviceId === selectedDeviceId);
+            const index = micDevices.findIndex(d => d.deviceId === selectedMicId);
             socket.emit('start_audio', { device_index: index >= 0 ? index : null });
             setIsConnected(true);
             setIsMuted(false); // Start unmuted
@@ -1395,7 +1468,7 @@ function App() {
                     style={{ zIndex: 20 }}
                 >
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none mix-blend-overlay"></div>
-                    {/* 16:9 Aspect Ratio Container */}
+                    {/* Compact Display Container (1080p Source) */}
                     <div className="relative border border-cyan-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.1)] w-80 aspect-video bg-black/80">
                         {/* Hidden Video Element (Source) */}
                         <video ref={videoRef} autoPlay muted className="absolute inset-0 w-full h-full object-cover opacity-0" />
@@ -1415,9 +1488,15 @@ function App() {
                 {showSettings && (
                     <SettingsWindow
                         socket={socket}
-                        devices={devices}
-                        selectedDeviceId={selectedDeviceId}
-                        setSelectedDeviceId={setSelectedDeviceId}
+                        micDevices={micDevices}
+                        speakerDevices={speakerDevices}
+                        webcamDevices={webcamDevices}
+                        selectedMicId={selectedMicId}
+                        setSelectedMicId={setSelectedMicId}
+                        selectedSpeakerId={selectedSpeakerId}
+                        setSelectedSpeakerId={setSelectedSpeakerId}
+                        selectedWebcamId={selectedWebcamId}
+                        setSelectedWebcamId={setSelectedWebcamId}
                         cursorSensitivity={cursorSensitivity}
                         setCursorSensitivity={setCursorSensitivity}
                         isCameraFlipped={isCameraFlipped}

@@ -21,6 +21,25 @@ sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
 app_socketio = socketio.ASGIApp(sio, app)
 
+import signal
+
+# --- SHUTDOWN HANDLER ---
+def signal_handler(sig, frame):
+    print(f"\n[SERVER] Caught signal {sig}. Exiting gracefully...")
+    # Clean up audio loop
+    if audio_loop:
+        try:
+            print("[SERVER] Stopping Audio Loop...")
+            audio_loop.stop() 
+        except:
+            pass
+    # Force kill
+    print("[SERVER] Force exiting...")
+    os._exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
 # Global state
 audio_loop = None
 loop_task = None
@@ -141,9 +160,14 @@ async def start_audio(sid, data=None):
     print("Starting Audio Loop...")
     
     device_index = None
-    if data and 'device_index' in data:
-        device_index = data['device_index']
-        print(f"Using input device index: {device_index}")
+    device_name = None
+    if data:
+        if 'device_index' in data:
+            device_index = data['device_index']
+        if 'device_name' in data:
+            device_name = data['device_name']
+            
+    print(f"Using input device: Name='{device_name}', Index={device_index}")
     
     if audio_loop:
         if loop_task and (loop_task.done() or loop_task.cancelled()):
@@ -220,7 +244,8 @@ async def start_audio(sid, data=None):
             on_cad_thought=on_cad_thought,
             on_project_update=on_project_update,
 
-            input_device_index=device_index
+            input_device_index=device_index,
+            input_device_name=device_name
         )
         print("AudioLoop initialized successfully.")
 
@@ -233,9 +258,7 @@ async def start_audio(sid, data=None):
             audio_loop.set_paused(True)
 
         print("Creating asyncio task for AudioLoop.run()")
-        loop_task = asyncio.create_task(audio_loop.run(
-            start_message="System: User successfully authenticated via facial recognition. Access granted. Greet the user."
-        ))
+        loop_task = asyncio.create_task(audio_loop.run())
         
         # Add a done callback to catch silent failures in the loop
         def handle_loop_exit(task):

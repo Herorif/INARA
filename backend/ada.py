@@ -208,7 +208,7 @@ from kasa_agent import KasaAgent
 from printer_agent import PrinterAgent
 
 class AudioLoop:
-    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, input_device_index=None, output_device_index=None):
+    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, input_device_index=None, input_device_name=None, output_device_index=None):
         self.video_mode = video_mode
         self.on_audio_data = on_audio_data
         self.on_video_frame = on_video_frame
@@ -220,6 +220,7 @@ class AudioLoop:
         self.on_cad_thought = on_cad_thought
         self.on_project_update = on_project_update
         self.input_device_index = input_device_index
+        self.input_device_name = input_device_name
         self.output_device_index = output_device_index
 
         self.audio_in_queue = None
@@ -307,6 +308,18 @@ class AudioLoop:
         else:
             print(f"[ADA DEBUG] [WARN] Confirmation Request {request_id} not found in pending dict. Keys: {list(self._pending_confirmations.keys())}")
 
+    def clear_audio_queue(self):
+        """Clears the queue of pending audio chunks to stop playback immediately."""
+        try:
+            count = 0
+            while not self.audio_in_queue.empty():
+                self.audio_in_queue.get_nowait()
+                count += 1
+            if count > 0:
+                print(f"[ADA DEBUG] [AUDIO] Cleared {count} chunks from playback queue due to interruption.")
+        except Exception as e:
+            print(f"[ADA DEBUG] [ERR] Failed to clear audio queue: {e}")
+
     async def send_frame(self, frame_data):
         if not self.out_queue:
             return
@@ -316,6 +329,15 @@ class AudioLoop:
         else:
             b64_data = frame_data # Assume string/b64 already if not bytes
             
+        # Manage Queue for Real-Time: If full, drop oldest to make room for newest
+        if self.out_queue.full():
+            try:
+                # Remove oldest item (head of queue)
+                self.out_queue.get_nowait()
+                print("[ADA DEBUG] [VIDEO] Dropped old frame to maintain real-time.")
+            except asyncio.QueueEmpty:
+                pass
+        
         await self.out_queue.put({"mime_type": "image/jpeg", "data": b64_data})
 
     async def send_realtime(self):
@@ -326,16 +348,44 @@ class AudioLoop:
     async def listen_audio(self):
         mic_info = pya.get_default_input_device_info()
 
-        # Validate Device Index
+        # Resolve Input Device by Name if provided
         resolved_input_device_index = None
-        if self.input_device_index is not None:
+        
+        if self.input_device_name:
+            print(f"[ADA] Attempting to find input device matching: '{self.input_device_name}'")
+            count = pya.get_device_count()
+            best_match = None
+            
+            for i in range(count):
+                try:
+                    info = pya.get_device_info_by_index(i)
+                    if info['maxInputChannels'] > 0:
+                        name = info.get('name', '')
+                        # Simple case-insensitive check
+                        if self.input_device_name.lower() in name.lower() or name.lower() in self.input_device_name.lower():
+                             print(f"   Candidate {i}: {name}")
+                             # Prioritize exact match or very close match if possible, but first match is okay for now
+                             resolved_input_device_index = i
+                             best_match = name
+                             break
+                except Exception:
+                    continue
+            
+            if resolved_input_device_index is not None:
+                print(f"[ADA] Resolved input device '{self.input_device_name}' to index {resolved_input_device_index} ({best_match})")
+            else:
+                print(f"[ADA] Could not find device matching '{self.input_device_name}'. Checking index...")
+
+        # Fallback to index if Name lookup failed or wasn't provided
+        if resolved_input_device_index is None and self.input_device_index is not None:
              try:
                  resolved_input_device_index = int(self.input_device_index)
                  print(f"[ADA] Requesting Input Device Index: {resolved_input_device_index}")
              except ValueError:
                  print(f"[ADA] Invalid device index '{self.input_device_index}', reverting to default.")
                  resolved_input_device_index = None
-        else:
+
+        if resolved_input_device_index is None:
              print("[ADA] Using Default Input Device")
 
         try:
@@ -559,6 +609,9 @@ class AudioLoop:
                                     
                                     # Only send if there's new text
                                     if delta:
+                                        # User is speaking, so interrupt model playback!
+                                        self.clear_audio_queue()
+
                                         # Send to frontend (Streaming)
                                         if self.on_transcription:
                                              self.on_transcription({"sender": "User", "text": delta})

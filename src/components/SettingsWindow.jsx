@@ -20,9 +20,15 @@ const TOOLS = [
 
 const SettingsWindow = ({
     socket,
-    devices,
-    selectedDeviceId,
-    setSelectedDeviceId,
+    micDevices,
+    speakerDevices,
+    webcamDevices,
+    selectedMicId,
+    setSelectedMicId,
+    selectedSpeakerId,
+    setSelectedSpeakerId,
+    selectedWebcamId,
+    setSelectedWebcamId,
     cursorSensitivity,
     setCursorSensitivity,
     isCameraFlipped,
@@ -107,17 +113,49 @@ const SettingsWindow = ({
                 </div>
             </div>
 
-            {/* Audio Section */}
-            <div className="mb-6">
-                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Audio Input</h3>
+            {/* Microphone Section */}
+            <div className="mb-4">
+                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Microphone</h3>
                 <select
-                    value={selectedDeviceId}
-                    onChange={(e) => setSelectedDeviceId(e.target.value)}
+                    value={selectedMicId}
+                    onChange={(e) => setSelectedMicId(e.target.value)}
                     className="w-full bg-gray-900 border border-cyan-800 rounded p-2 text-xs text-cyan-100 focus:border-cyan-400 outline-none"
                 >
-                    {devices.map((device, i) => (
+                    {micDevices.map((device, i) => (
                         <option key={device.deviceId} value={device.deviceId}>
                             {device.label || `Microphone ${i + 1}`}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Speaker Section */}
+            <div className="mb-4">
+                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Speaker</h3>
+                <select
+                    value={selectedSpeakerId}
+                    onChange={(e) => setSelectedSpeakerId(e.target.value)}
+                    className="w-full bg-gray-900 border border-cyan-800 rounded p-2 text-xs text-cyan-100 focus:border-cyan-400 outline-none"
+                >
+                    {speakerDevices.map((device, i) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                            {device.label || `Speaker ${i + 1}`}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Webcam Section */}
+            <div className="mb-6">
+                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Webcam</h3>
+                <select
+                    value={selectedWebcamId}
+                    onChange={(e) => setSelectedWebcamId(e.target.value)}
+                    className="w-full bg-gray-900 border border-cyan-800 rounded p-2 text-xs text-cyan-100 focus:border-cyan-400 outline-none"
+                >
+                    {webcamDevices.map((device, i) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                            {device.label || `Camera ${i + 1}`}
                         </option>
                     ))}
                 </select>
