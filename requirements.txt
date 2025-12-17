@@ -1,0 +1,18 @@
+fastapi
+uvicorn
+python-socketio
+python-multipart
+# Google GenAI SDK (v1beta)
+google-genai
+# Computer Vision & Audio
+opencv-python
+pyaudio
+pillow
+mss
+# Browser Automation
+playwright
+# Smart Home
+python-kasa
+# Utilities
+python-dotenv
+numpy<2
