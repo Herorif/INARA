@@ -8,11 +8,37 @@
 
 > **A.D.A** = **A**dvanced **D**esign **A**ssistant
 
-ADA V2 is a sophisticated AI assistant designed for multimodal interaction, running on a dual-environment architecture to bridge the gap between real-time vision, voice, and parametric CAD engineering. It combines Google's Gemini 2.0 Native Audio with computer vision, gesture control, and 3D CAD generation in a unified Electron desktop application.
+ADA V2 is a sophisticated AI assistant designed for multimodal interaction, running on a dual-environment architecture to bridge the gap between real-time vision, voice, and parametric CAD engineering. It combines Google's Gemini 2.5 Native Audio with computer vision, gesture control, and 3D CAD generation in a unified Electron desktop application.
 
 ---
 
-## �️ Architecture Overview
+## 🌟 Capabilities at a Glance
+
+| Feature | Description | Technology |
+|---------|-------------|------------|
+| **🗣️ Low-Latency Voice** | Real-time conversation with interrupt handling | Gemini 2.5 Native Audio |
+| **🧊 Parametric CAD** | Editable 3D model generation from voice prompts | `build123d` → STL |
+| **🖐️ Minority Report UI** | Gesture-controlled window manipulation | MediaPipe Hand Tracking |
+| **👁️ Face Authentication** | Secure local biometric login | `face_recognition` + `dlib` |
+| **🌐 Web Agent** | Autonomous browser automation | Playwright + Chromium |
+| **🏠 Smart Home** | Voice control for TP-Link Kasa devices | `python-kasa` |
+| **📁 Project Memory** | Persistent context across sessions | File-based JSON storage |
+
+### 🖐️ Gesture Control Details
+
+ADA's "Minority Report" interface uses your webcam to detect hand gestures:
+
+| Gesture | Action |
+|---------|--------|
+| 🤏 **Pinch** (thumb + index) | "Select" and grab a UI window to drag it |
+| ✋ **Open Palm** | Release the window |
+| 👆 **Point Up** | Snap window to predetermined position |
+
+> **Tip**: Enable the video feed window to see the hand tracking overlay.
+
+---
+
+## 🏗️ Architecture Overview
 
 ```mermaid
 graph TB
@@ -50,32 +76,6 @@ graph TB
     BUILD123D --> STL
     STL -->|file| THREE
 ```
-
----
-
-## �🌟 Capabilities at a Glance
-
-| Feature | Description | Technology |
-|---------|-------------|------------|
-| **🗣️ Low-Latency Voice** | Real-time conversation with interrupt handling | Gemini 2.5 Native Audio |
-| **🧊 Parametric CAD** | Editable 3D model generation from voice prompts | `build123d` → STL |
-| **🖐️ Minority Report UI** | Gesture-controlled window manipulation | MediaPipe Hand Tracking |
-| **👁️ Face Authentication** | Secure local biometric login | `face_recognition` + `dlib` |
-| **🌐 Web Agent** | Autonomous browser automation | Playwright + Chromium |
-| **🏠 Smart Home** | Voice control for TP-Link Kasa devices | `python-kasa` |
-| **📁 Project Memory** | Persistent context across sessions | File-based JSON storage |
-
-### 🖐️ Gesture Control Details
-
-ADA's "Minority Report" interface uses your webcam to detect hand gestures:
-
-| Gesture | Action |
-|---------|--------|
-| ✊ **Closed Fist** | "Grab" a UI window to drag it |
-| ✋ **Open Palm** | "Release" the window |
-| 👆 **Point Up** | Snap window to predetermined position |
-
-> **Tip**: Enable the video feed window to see the hand tracking overlay.
 
 ---
 
@@ -412,7 +412,7 @@ ada_v2/
 
 | Limitation | Details |
 |------------|---------|
-| **macOS Recommended** | Tested primarily on macOS 14+. Windows support is experimental. |
+| **macOS & Windows** | Tested on macOS 14+ and Windows 10/11. Linux is untested. |
 | **Camera Required** | Face auth and gesture control need a working webcam. |
 | **Gemini API Quota** | Free tier has rate limits; heavy CAD iteration may hit limits. |
 | **Network Dependency** | Requires internet for Gemini API (no offline mode). |
