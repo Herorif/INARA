@@ -1,4 +1,4 @@
-# I.N.A.R.A - It's Not A Random Acronym, Personal Assistant
+# I.N.A.R.A - It's Not A Random Acronym
 
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11-blue?logo=python)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)
@@ -6,7 +6,7 @@
 ![Gemini](https://img.shields.io/badge/Google%20Gemini-Native%20Audio-4285F4?logo=google)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-> **A.D.A** = **A**dvanced **D**esign **A**ssistant
+> **I.N.A.R.A** = **I**t's **N**ot **A** **R**andom **A**cronym
 
 ADA V2 is a sophisticated AI assistant designed for multimodal interaction. It combines Google's Gemini 2.5 Native Audio with computer vision, gesture control, and 3D CAD generation in a Electron desktop application.
 
