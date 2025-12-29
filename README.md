@@ -1,4 +1,4 @@
-# A.D.A V2 - Advanced Design Assistant
+# I.N.A.R.A - It's Not A Random Acronym, Personal Assistant
 
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11-blue?logo=python)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)
