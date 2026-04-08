@@ -1,437 +1,259 @@
-# I.N.A.R.A - It's Not A Random Acronym
+# I.N.A.R.A — It's Not A Random Acronym
 
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11-blue?logo=python)
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)
 ![Electron](https://img.shields.io/badge/Electron-28-47848F?logo=electron)
-![Gemini](https://img.shields.io/badge/Google%20Gemini-Native%20Audio-4285F4?logo=google)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-> **I.N.A.R.A** = **I**t's **N**ot **A** **R**andom **A**cronym
+> Your own AI that lives on your desktop, controls your house, designs your parts, runs your browser, and prints your prototypes — all by voice.
 
-INARA is a sophisticated AI assistant designed for multimodal interaction. It combines Google's Gemini 2.5 Native Audio with computer vision, gesture control, and 3D CAD generation in a Electron desktop application.
+INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system — with eyes, ears, hands, and opinions.
+
+Talk to it. It talks back. Tell it to design a gear. It generates a 3D model, slices it, and sends it to your printer. Tell it to dim the lights. Done. Tell it to go find something on Amazon. It opens a browser and does it.
 
 ---
 
-## 🌟 Capabilities at a Glance
+## 🌟 What It Can Do
 
-| Feature | Description | Technology |
-|---------|-------------|------------|
-| **🗣️ Low-Latency Voice** | Real-time conversation with interrupt handling | Gemini 2.5 Native Audio |
-| **🧊 Parametric CAD** | Editable 3D model generation from voice prompts | `build123d` → STL |
-| **🖨️ 3D Printing** | Slicing and wireless print job submission | OrcaSlicer + Moonraker/OctoPrint |
-| **🖐️ Minority Report UI** | Gesture-controlled window manipulation | MediaPipe Hand Tracking |
-| **👁️ Face Authentication** | Secure local biometric login | MediaPipe Face Landmarker |
-| **🌐 Web Agent** | Autonomous browser automation | Playwright + Chromium |
-| **🏠 Smart Home** | Voice control for TP-Link Kasa devices | `python-kasa` |
-| **📁 Project Memory** | Persistent context across sessions | File-based JSON storage |
+| Feature | Description | Tech |
+|---------|-------------|------|
+| 🗣️ **Real-Time Voice** | Low-latency conversation with interrupt handling and wake word | Gemini Native Audio |
+| 🧊 **Parametric CAD** | Generate and iterate 3D models from natural language | `build123d` → STL |
+| 🖨️ **3D Print Pipeline** | Auto-slice and send to printers over your network | OrcaSlicer + Moonraker/OctoPrint |
+| 🖐️ **Gesture Control** | Minority Report-style window manipulation via hand tracking | MediaPipe |
+| 🌐 **Web Agent** | Autonomous browser — navigates, clicks, types, reads | Playwright + Chromium |
+| 🏠 **Smart Home** | Voice control for TP-Link Kasa lights, plugs, switches | `python-kasa` |
+| 👁️ **Face Auth** | Biometric login — local only, nothing leaves your machine | MediaPipe Face Landmarks |
+| 📁 **Project Memory** | Persistent context across sessions and conversations | File-based storage |
 
-### 🖐️ Gesture Control Details
+### 🖐️ Gesture Control
 
-ADA's "Minority Report" interface uses your webcam to detect hand gestures:
+INARA's Minority Report interface uses your webcam for hands-free window control:
 
 | Gesture | Action |
 |---------|--------|
-| 🤏 **Pinch** | Confirm action / click |
-| ✋ **Open Palm** | Release the window |
-| ✊ **Close Fist** | "Select" and grab a UI window to drag it |
+| ✊ **Closed Fist** | Grab and drag a UI window |
+| 🤏 **Pinch** | Confirm / click |
+| ✋ **Open Palm** | Release |
 
-> **Tip**: Enable the video feed window to see the hand tracking overlay.
+### 🔮 Coming Soon
+
+| Module | Description |
+|--------|-------------|
+| 📞 **Phone Calls** | Outbound/inbound call handling through voice |
+| ⏰ **Reminders & Scheduling** | Time-aware task management and calendar integration |
+| 🖥️ **Desktop Productivity** | App launching, file operations, system control |
+| 👁️ **Vision & Device Control** | Screen reading, camera-based interaction, device orchestration |
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture
 
 ```mermaid
 graph TB
-    subgraph Frontend ["Frontend (Electron + React)"]
+    subgraph Frontend ["🖥️ Frontend — Electron + React"]
         UI[React UI]
         THREE[Three.js 3D Viewer]
         GESTURE[MediaPipe Gestures]
         SOCKET_C[Socket.IO Client]
     end
-    
-    subgraph Backend ["Backend (Python 3.11 + FastAPI)"]
-        SERVER[server.py<br/>Socket.IO Server]
-        ADA[ada.py<br/>Gemini Live API]
-        WEB[web_agent.py<br/>Playwright Browser]
-        CAD[cad_agent.py<br/>CAD + build123d]
-        PRINTER[printer_agent.py<br/>3D Printing + OrcaSlicer]
-        KASA[kasa_agent.py<br/>Smart Home]
-        AUTH[authenticator.py<br/>MediaPipe Face Auth]
-        PM[project_manager.py<br/>Project Context]
+
+    subgraph Backend ["⚙️ Backend — Python + FastAPI"]
+        SERVER[core/server.py<br/>Socket.IO Relay]
+        BUS[core/event_bus.py<br/>Async Pub/Sub]
+        LLM[llm/router.py<br/>Multi-Provider LLM]
+        CAD[agents/cad_agent.py<br/>CAD Generation]
+        WEB[agents/web_agent.py<br/>Browser Automation]
+        PRINTER[agents/printer_agent.py<br/>3D Printing]
+        KASA[agents/kasa_agent.py<br/>Smart Home]
+        AUTH[agents/auth_agent.py<br/>Face Auth]
     end
-    
+
     UI --> SOCKET_C
     SOCKET_C <--> SERVER
-    SERVER --> ADA
-    ADA --> WEB
-    ADA --> CAD
-    ADA --> KASA
+    SERVER --> BUS
+    BUS --> LLM
+    LLM --> CAD
+    LLM --> WEB
+    BUS --> KASA
+    BUS --> PRINTER
     SERVER --> AUTH
-    SERVER --> PM
-    SERVER --> PRINTER
-    CAD -->|STL file| THREE
-    CAD -->|STL file| PRINTER
+    CAD -->|STL| THREE
+    CAD -->|STL| PRINTER
 ```
+
+Every agent implements `BaseAgent`. Every LLM call goes through the provider abstraction. Nothing is hardwired to a single vendor — swap Gemini for Claude, or run both.
 
 ---
 
-## ⚡ TL;DR Quick Start (Experienced Developers)
+## ⚡ Quick Start
 
-<details>
-<summary>Click to expand quick setup commands</summary>
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- conda (recommended) or virtualenv
+
+### Setup
 
 ```bash
-# 1. Clone and enter
-git clone https://github.com/nazirlouis/ada_v2.git && cd ada_v2
+# Clone
+git clone https://github.com/Herorif/inara.git && cd inara
 
-# 2. Create Python environment (Python 3.11)
-conda create -n ada_v2 python=3.11 -y && conda activate ada_v2
-brew install portaudio  # macOS only (for PyAudio)
+# Python environment
+conda create -n inara python=3.11 -y && conda activate inara
+brew install portaudio  # macOS only
 pip install -r requirements.txt
 playwright install chromium
 
-# 3. Setup frontend
+# Frontend
 npm install
 
-# 4. Create .env file
+# API keys
 echo "GEMINI_API_KEY=your_key_here" > .env
-
-# 5. Run!
-conda activate ada_v2 && npm run dev
 ```
 
-</details>
+### 🚀 Run
 
----
-
-## 🛠️ Installation Requirements
-
-### 🆕 Absolute Beginner Setup (Start Here)
-If you have never coded before, follow these steps first!
-
-**Step 1: Install Visual Studio Code (The Editor)**
-- Download and install [VS Code](https://code.visualstudio.com/). This is where you will write code and run commands.
-
-**Step 2: Install Anaconda (The Manager)**
-- Download [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (a lightweight version of Anaconda).
-- This tool allows us to create isolated "playgrounds" (environments) for our code so different projects don't break each other.
-- **Windows Users**: During install, check "Add Anaconda to my PATH environment variable" (even if it says not recommended, it makes things easier for beginners).
-
-**Step 3: Install Git (The Downloader)**
-- **Windows**: Download [Git for Windows](https://git-scm.com/download/win).
-- **Mac**: Open the "Terminal" app (Cmd+Space, type Terminal) and type `git`. If not installed, it will ask to install developer tools—say yes.
-
-**Step 4: Get the Code**
-1. Open your terminal (or Command Prompt on Windows).
-2. Type this command and hit Enter:
-   ```bash
-   git clone https://github.com/nazirlouis/ada_v2.git
-   ```
-3. This creates a folder named `ada_v2`.
-
-**Step 5: Open in VS Code**
-1. Open VS Code.
-2. Go to **File > Open Folder**.
-3. Select the `ada_v2` folder you just downloaded.
-4. Open the internal terminal: Press `Ctrl + ~` (tilde) or go to **Terminal > New Terminal**.
-
----
-
-### ⚠️ Technical Prerequisites
-Once you have the basics above, continue here.
-
-### 1. System Dependencies
-
-**MacOS:**
+**Single command:**
 ```bash
-# Audio Input/Output support (PyAudio)
-brew install portaudio
+conda activate inara && npm run dev
 ```
 
-**Windows:**
-- No additional system dependencies required!
-
-### 2. Python Environment
-Create a single Python 3.11 environment:
+**Or split terminals (recommended — you'll want to see the logs):**
 
 ```bash
-conda create -n ada_v2 python=3.11
-conda activate ada_v2
+# Terminal 1 — Backend
+conda activate inara
+python backend/core/server.py
 
-# Install all dependencies
-pip install -r requirements.txt
-
-# Install Playwright browsers
-playwright install chromium
-```
-
-### 3. Frontend Setup
-Requires **Node.js 18+** and **npm**. Download from [nodejs.org](https://nodejs.org/) if not installed.
-
-```bash
-# Verify Node is installed
-node --version  # Should show v18.x or higher
-
-# Install frontend dependencies
-npm install
-```
-
-### 4. 🔐 Face Authentication Setup
-To use the secure voice features, ADA needs to know what you look like.
-
-1. Take a clear photo of your face (or use an existing one).
-2. Rename the file to `reference.jpg`.
-3. Drag and drop this file into the `ada_v2/backend` folder.
-4. (Optional) You can toggle this feature on/off in `settings.json` by changing `"face_auth_enabled": true/false`.
-
----
-
-## ⚙️ Configuration (`settings.json`)
-
-The system creates a `settings.json` file on first run. You can modify this to change behavior:
-
-| Key | Type | Description |
-| :--- | :--- | :--- |
-| `face_auth_enabled` | `bool` | If `true`, blocks all AI interaction until your face is recognized via the camera. |
-| `tool_permissions` | `obj` | Controls manual approval for specific tools. |
-| `tool_permissions.generate_cad` | `bool` | If `true`, requires you to click "Confirm" on the UI before generating CAD. |
-| `tool_permissions.run_web_agent` | `bool` | If `true`, requires confirmation before opening the browser agent. |
-| `tool_permissions.write_file` | `bool` | **Critical**: Requires confirmation before the AI writes code/files to disk. |
-
----
-
-### 5. 🖨️ 3D Printer Setup
-ADA V2 can slice STL files and send them directly to your 3D printer.
-
-**Supported Hardware:**
-- **Klipper/Moonraker** (Creality K1, Voron, etc.)
-- **OctoPrint** instances
-- **PrusaLink** (Experimental)
-
-**Step 1: Install Slicer**
-ADA uses **OrcaSlicer** (recommended) or PrusaSlicer to generate G-code.
-1. Download and install [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer).
-2. Run it once to ensure profiles are created.
-3. ADA automatically detects the installation path.
-
-**Step 2: Connect Printer**
-1. Ensure your printer and computer are on the **same Wi-Fi network**.
-2. Open the **Printer Window** in ADA (Cube icon).
-3. ADA automatically scans for printers using mDNS.
-4. **Manual Connection**: If your printer isn't found, use the "Add Printer" button and enter the IP address (e.g., `192.168.1.50`).
-
----
-
-### 6. 🔑 Gemini API Key Setup
-ADA uses Google's Gemini API for voice and intelligence. You need a free API key.
-
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. Sign in with your Google account.
-3. Click **"Create API Key"** and copy the generated key.
-4. Create a file named `.env` in the `ada_v2` folder (same level as `README.md`).
-5. Add this line to the file:
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   ```
-6. Replace `your_api_key_here` with the key you copied.
-
-> **Note**: Keep this key private! Never commit your `.env` file to Git.
-
----
-
-## 🚀 Running ADA V2
-
-You have two options to run the app. Ensure your `ada_v2` environment is active!
-
-### Option 1: The "Easy" Way (Single Terminal)
-The app is smart enough to start the backend for you.
-1. Open your terminal in the `ada_v2` folder.
-2. Activate your environment: `conda activate ada_v2`
-3. Run:
-   ```bash
-   npm run dev
-   ```
-4. The backend will start automatically in the background.
-
-### Option 2: The "Developer" Way (Two Terminals)
-Use this if you want to see the Python logs (recommended for debugging).
-
-**Terminal 1 (Backend):**
-```bash
-conda activate ada_v2
-python backend/server.py
-```
-
-**Terminal 2 (Frontend):**
-```bash
-# Environment doesn't matter here, but keep it simple
+# Terminal 2 — Frontend
 npm run dev
 ```
 
 ---
 
-## ✅ First Flight Checklist (Things to Test)
+## ✅ First Flight Checklist
 
-1. **Voice Check**: Say "Hello Ada". She should respond.
-2. **Vision Check**: Look at the camera. If Face Auth is on, the lock screen should unlock.
-3. **CAD Check**: Open the CAD window and say "Create a cube". Watch the logs.
-4. **Web Check**: Open the Browser window and say "Go to Google".
-5. **Smart Home**: If you have Kasa devices, say "Turn on the lights".
+Once it's running, try these:
 
----
-
-## ▶️ Commands & Tools Reference
-
-### 🗣️ Voice Commands
-- "Switch project to [Name]"
-- "Create a new project called [Name]"
-- "Turn on the [Room] light"
-- "Make the light [Color]"
-- "Pause audio" / "Stop audio"
-
-### 🧊 3D CAD
-- **Prompt**: "Create a 3D model of a hex bolt."
-- **Iterate**: "Make the head thinner." (Requires previous context)
-- **Files**: Saves to `projects/[ProjectName]/output.stl`.
-
-### 🌐 Web Agent
-- **Prompt**: "Go to Amazon and find a USB-C cable under $10."
-- **Note**: The agent will auto-scroll, click, and type. Do not interfere with the browser window while it runs.
-
-### 🖨️ Printing & Slicing
-- **Auto-Discovery**: ADA automatically finds printers on your network.
-- **Slicing**: Click "Slice & Print" on any generated 3D model.
-- **Profiles**: ADA intelligently selects the correct OrcaSlicer profile based on your printer's name (e.g., "Creality K1").
+1. 🗣️ **Voice** — Say "Hello INARA". She should respond.
+2. 👁️ **Face Auth** — Look at the camera. If enabled, the lock screen should unlock.
+3. 🧊 **CAD** — Open the CAD window and say "Create a cube". Watch it generate.
+4. 🌐 **Web** — Open the Browser window and say "Go to Google".
+5. 🏠 **Smart Home** — If you have Kasa devices, say "Turn on the lights".
+6. 🖨️ **Print** — Generate a model, then say "Print it".
 
 ---
 
-## ❓ Troubleshooting FAQ
+## ⚙️ Configuration
 
-### Camera not working / Permission denied (Mac)
-**Symptoms**: Error about camera access, or video feed shows black.
+Settings live in `backend/settings.json` (auto-created on first run).
 
-**Solution**:
-1. Go to **System Preferences > Privacy & Security > Camera**.
-2. Ensure your terminal app (e.g., Terminal, iTerm, VS Code) has camera access enabled.
-3. Restart the app after granting permission.
+| Key | Type | Description |
+|-----|------|-------------|
+| `face_auth_enabled` | `bool` | Require face recognition before interaction |
+| `tool_permissions.generate_cad` | `bool` | Require confirmation before CAD generation |
+| `tool_permissions.run_web_agent` | `bool` | Require confirmation before browser automation |
+| `tool_permissions.write_file` | `bool` | Require confirmation before writing files to disk |
+| `printers` | `array` | Saved printer configurations |
+| `kasa_devices` | `array` | Saved smart home devices |
 
----
+### 🔑 API Keys
 
-### `GEMINI_API_KEY` not found / Authentication Error
-**Symptoms**: Backend crashes on startup with "API key not found".
+Create a `.env` file in the project root:
 
-**Solution**:
-1. Make sure your `.env` file is in the root `ada_v2` folder (not inside `backend/`).
-2. Verify the format is exactly: `GEMINI_API_KEY=your_key` (no quotes, no spaces).
-3. Restart the backend after editing the file.
+```env
+GEMINI_API_KEY=your_gemini_key
+ANTHROPIC_API_KEY=your_claude_key
+```
 
----
-
-### WebSocket connection errors (1011)
-**Symptoms**: `websockets.exceptions.ConnectionClosedError: 1011 (internal error)`.
-
-**Solution**:
-This is a server-side issue from the Gemini API. Simply reconnect by clicking the connect button or saying "Hello Ada" again. If it persists, check your internet connection or try again later.
+- Gemini key → [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Claude key → [Anthropic Console](https://console.anthropic.com/)
 
 ---
 
-## 📸 What It Looks Like
+## 🔧 Hardware Setup
 
-*Coming soon! Screenshots and demo videos will be added here.*
+### 🖨️ 3D Printers
+
+Supports **Klipper/Moonraker**, **OctoPrint**, and **PrusaLink**. Printers are auto-discovered via mDNS on your local network, or can be added manually by IP.
+
+Requires [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer) installed for slicing. INARA auto-detects the installation path and selects the right profile based on your printer model.
+
+### 🏠 Smart Home
+
+TP-Link Kasa devices are discovered automatically on your network. Control lights (on/off, brightness, color), plugs, and switches — by voice or through the UI.
+
+### 🔐 Face Authentication
+
+1. Take a clear photo of your face.
+2. Save it as `reference.jpg` in the `backend/` directory.
+3. Toggle with `face_auth_enabled` in settings.
+
+All processing is local. Nothing is uploaded. Nothing is stored externally.
 
 ---
 
 ## 📂 Project Structure
 
 ```
-ada_v2/
-├── backend/                    # Python server & AI logic
-│   ├── ada.py                  # Gemini Live API integration
-│   ├── server.py               # FastAPI + Socket.IO server
-│   ├── cad_agent.py            # CAD generation orchestrator
-│   ├── printer_agent.py        # 3D printer discovery & slicing
-│   ├── web_agent.py            # Playwright browser automation
-│   ├── kasa_agent.py           # TP-Link smart home control
-│   ├── authenticator.py        # MediaPipe face auth logic
-│   ├── project_manager.py      # Project context management
-│   ├── tools.py                # Tool definitions for Gemini
-│   └── reference.jpg           # Your face photo (add this!)
-├── src/                        # React frontend
-│   ├── App.jsx                 # Main application component
-│   ├── components/             # UI components (11 files)
-│   └── index.css               # Global styles
-├── electron/                   # Electron main process
-│   └── main.js                 # Window & IPC setup
-├── projects/                   # User project data (auto-created)
-├── .env                        # API keys (create this!)
-├── requirements.txt            # Python dependencies
-├── package.json                # Node.js dependencies
-└── README.md                   # You are here!
+inara/
+├── backend/
+│   ├── core/                  # Server, event bus, config, tool registry
+│   ├── llm/                   # LLM abstraction (Gemini, Claude, router)
+│   ├── agents/                # Agent framework (CAD, web, printer, kasa, auth)
+│   ├── voice/                 # Voice pipeline (in progress)
+│   ├── inara.py               # Legacy voice integration
+│   ├── server.py              # Legacy server (reference)
+│   ├── printer_agent.py       # Printer discovery & slicing engine
+│   ├── kasa_agent.py          # Kasa device control engine
+│   ├── cad_agent.py           # CAD generation engine
+│   ├── authenticator.py       # Face auth engine
+│   ├── project_manager.py     # Project context management
+│   └── requirements.txt       # Python dependencies
+├── src/                       # React frontend
+│   ├── App.jsx                # Main application shell
+│   └── components/            # UI components
+├── electron/                  # Electron main process
+│   └── main.js                # Window & IPC setup
+├── tests/                     # Test suite
+├── .env                       # API keys (create this)
+├── package.json               # Node.js dependencies
+└── README.md
 ```
 
 ---
 
-## ⚠️ Known Limitations
+## 🔒 Security
 
-| Limitation | Details |
-|------------|---------|
-| **macOS & Windows** | Tested on macOS 14+ and Windows 10/11. Linux is untested. |
-| **Camera Required** | Face auth and gesture control need a working webcam. |
-| **Gemini API Quota** | Free tier has rate limits; heavy CAD iteration may hit limits. |
-| **Network Dependency** | Requires internet for Gemini API (no offline mode). |
-| **Single User** | Face auth recognizes one person (the `reference.jpg`). |
+| Aspect | Implementation |
+|--------|----------------|
+| **API Keys** | Stored in `.env`, excluded from version control |
+| **Face Data** | Processed locally, never transmitted |
+| **Tool Confirmations** | Write/CAD/Web actions can require user approval |
+| **Project Data** | Everything stays on your machine |
+
+> ⚠️ Never share your `.env` file or `reference.jpg`. These contain credentials and biometric data.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Here's how:
-
-1. **Fork** the repository.
-2. **Create a branch**: `git checkout -b feature/amazing-feature`
-3. **Commit** your changes: `git commit -m 'Add amazing feature'`
-4. **Push** to the branch: `git push origin feature/amazing-feature`
-5. **Open a Pull Request** with a clear description.
-
-### Development Tips
-
-- Run the backend separately (`python backend/server.py`) to see Python logs.
-- Use `npm run dev` without Electron during frontend development (faster reload).
-- The `projects/` folder contains user data—don't commit it to Git.
-
----
-
-## 🔒 Security Considerations
-
-| Aspect | Implementation |
-|--------|----------------|
-| **API Keys** | Stored in `.env`, never committed to Git. |
-| **Face Data** | Processed locally, never uploaded. |
-| **Tool Confirmations** | Write/CAD/Web actions can require user approval. |
-| **No Cloud Storage** | All project data stays on your machine. |
-
-> [!WARNING]
-> Never share your `.env` file or `reference.jpg`. These contain sensitive credentials and biometric data.
-
----
-
-## 🙏 Acknowledgments
-
-- **[Google Gemini](https://deepmind.google/technologies/gemini/)** — Native Audio API for real-time voice
-- **[build123d](https://github.com/gumyr/build123d)** — Modern parametric CAD library
-- **[MediaPipe](https://developers.google.com/mediapipe)** — Hand tracking, gesture recognition, and face authentication
-- **[Playwright](https://playwright.dev/)** — Reliable browser automation
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes
+4. Open a pull request with a clear description
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  <strong>Built with 🤖 by Nazir Louis</strong><br>
-  <em>Bridging AI, CAD, and Vision in a Single Interface</em>
+  <strong>Built by Herorif</strong><br>
+  <em>If it's not autonomous, it's not finished.</em>
 </p>

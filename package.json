@@ -1,7 +1,7 @@
 {
-  "name": "ada-v2",
+  "name": "inara",
   "version": "1.0.0",
-  "description": "A.D.A V2 - AI Assistant",
+  "description": "INARA — General-Purpose AI Agent Platform",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && npx electron .\"",

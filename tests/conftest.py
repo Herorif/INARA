@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for ada_v2 tests.
+Pytest configuration and shared fixtures for INARA tests.
 """
 import pytest
 import sys

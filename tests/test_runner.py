@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Master Test Runner for ada_v2.
+Master Test Runner for INARA.
 
 Usage:
     python tests/test_runner.py              # Run all tests
@@ -19,7 +19,7 @@ MODULES = {
     "cad": "test_cad_agent.py",
     "web": "test_web_agent.py",
     "auth": "test_authenticator.py",
-    "tools": "test_ada_tools.py",
+    "tools": "test_inara_tools.py",
 }
 
 TESTS_DIR = Path(__file__).parent
@@ -61,7 +61,7 @@ def run_tests(modules: list = None, quick: bool = False, verbose: bool = True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ada_v2 Test Runner")
+    parser = argparse.ArgumentParser(description="INARA Test Runner")
     parser.add_argument(
         "--module", "-m",
         type=str,
