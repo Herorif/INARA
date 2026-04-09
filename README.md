@@ -15,7 +15,7 @@ It's Not A Random Acronym
 
 INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
 
-Talk to it. It talks back. Tell it to design a gear. It generates a 3D model, slices it, and sends it to your printer. Tell it to dim the lights. Done. Tell it to go find something on Amazon. It opens a browser and does it.
+You can talk to it and get a response. Ask it to design a gear and it can create a 3D model, prepare it for printing, and send it to your printer. Tell it to dim the lights and it handles it. Ask it to look something up on Amazon and it opens a browser and searches for you.
 
 ---
 
