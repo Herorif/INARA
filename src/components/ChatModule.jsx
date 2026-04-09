@@ -1,39 +1,37 @@
 import React, { useEffect, useRef } from 'react';
+import useStore from '../store';
 
 const ChatModule = ({
-    messages,
-    inputValue,
-    setInputValue,
-    handleSend,
     isModularMode,
     activeDragElement,
     position,
-    width = 672, // default max-w-2xl
+    width = 672,
     height,
     onMouseDown
 }) => {
+    const messages = useStore(s => s.messages);
+    const inputValue = useStore(s => s.inputValue);
+    const setInputValue = useStore(s => s.setInputValue);
+    const handleSend = useStore(s => s.handleSend);
+
     const messagesEndRef = useRef(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
     useEffect(() => {
-        scrollToBottom();
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     return (
         <div
             id="chat"
             onMouseDown={onMouseDown}
-            className={`absolute px-6 py-4 pointer-events-auto transition-all duration-200 
+            className={`absolute px-6 py-4 pointer-events-auto transition-all duration-200
             backdrop-blur-xl bg-black/40 border border-white/10 shadow-2xl rounded-2xl
             ${isModularMode ? (activeDragElement === 'chat' ? 'ring-2 ring-green-500' : 'ring-1 ring-yellow-500/30') : ''}
         `}
             style={{
                 left: position.x,
                 top: position.y,
-                transform: 'translate(-50%, 0)', // Aligned top-center
+                transform: 'translate(-50%, 0)',
                 width: width,
                 height: height
             }}
