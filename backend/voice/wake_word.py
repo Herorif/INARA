@@ -1,12 +1,14 @@
 """
-Voice Activity Detection  - RMS-based speech detection with pluggable wake word support.
+Voice Activity Detection and Wake Word Detection.
 
-Currently uses a simple RMS threshold to detect speech onset/offset.
-Designed to be extended with a real wake word engine (Porcupine, Snowboy, etc.)
-when INARA graduates to always-on listening.
+- VoiceActivityDetector: RMS-based speech onset/offset detection.
+- WakeWordDetector: OpenWakeWord-based wake word detection for "Hey INARA".
+  Uses "hey_jarvis" as a built-in proxy model until a custom "hey_inara"
+  model is trained via OpenWakeWord's training pipeline.
 """
 
 import time
+import numpy as np
 from dataclasses import dataclass, field
 from typing import Optional, Callable
 
@@ -103,41 +105,83 @@ class VoiceActivityDetector:
 
 
 # ---------------------------------------------------------------------------
-# Wake Word Detector (placeholder for future implementation)
+# Wake Word Detector (OpenWakeWord)
 # ---------------------------------------------------------------------------
 
 class WakeWordDetector:
     """
-    Placeholder for wake word detection.
+    Wake word detection using OpenWakeWord.
 
-    When implemented, this will listen for "INARA" and only activate
-    the voice pipeline on detection. For now, the pipeline is always
-    active when started (push-to-talk or continuous mode).
+    Listens for "Hey INARA" using the built-in "hey_jarvis" model as a
+    proxy (closest phonetic match). A custom "hey_inara" model can be
+    trained later via OpenWakeWord's training pipeline and passed in
+    via the `wake_words` parameter.
 
-    Future implementation options:
-    - Picovoice Porcupine (custom wake word, runs locally)
-    - OpenWakeWord (open-source, runs locally)
-    - Whisper-based keyword spotting
+    Audio format: 16-bit PCM, 16kHz mono (OpenWakeWord's expected input).
     """
 
-    def __init__(self, wake_word: str = "inara"):
-        self.wake_word = wake_word
+    def __init__(
+        self,
+        wake_words: Optional[list[str]] = None,
+        threshold: float = 0.5,
+    ):
+        self._threshold = threshold
         self._active = False
+        self._model = None
+        self._wake_words = wake_words
+
+        # Callback fired on wake word detection with the detected model name
+        self.on_wake: Optional[Callable[[str], None]] = None
+
+        self._init_model()
+
+    def _init_model(self):
+        """Lazy-load OpenWakeWord model."""
+        try:
+            from openwakeword.model import Model
+            self._model = Model(
+                wakeword_models=self._wake_words or ["hey_jarvis"],
+                inference_framework="onnx",
+            )
+            print(f"[INARA] [WAKE] OpenWakeWord loaded. Models: {self._wake_words or ['hey_jarvis']}")
+        except ImportError:
+            print("[INARA] [WAKE] openwakeword not installed. Wake word detection disabled.")
+            self._model = None
+        except Exception as e:
+            print(f"[INARA] [WAKE] Failed to load OpenWakeWord: {e}")
+            self._model = None
 
     @property
     def is_active(self) -> bool:
         """Whether the wake word has been detected and pipeline should be listening."""
         return self._active
 
+    @property
+    def available(self) -> bool:
+        """Whether the wake word engine is loaded and ready."""
+        return self._model is not None
+
     def process(self, audio_chunk: bytes) -> bool:
         """
         Process audio chunk for wake word detection.
         Returns True if wake word was detected in this chunk.
 
-        Currently a no-op  - always returns False.
-        The pipeline runs in always-on mode until this is implemented.
+        Expects 16-bit PCM audio at 16kHz mono.
         """
-        # TODO: Integrate wake word engine
+        if self._model is None:
+            return False
+
+        audio_array = np.frombuffer(audio_chunk, dtype=np.int16)
+        prediction = self._model.predict(audio_array)
+
+        for name, score in prediction.items():
+            if score > self._threshold:
+                self._active = True
+                print(f"[INARA] [WAKE] Detected '{name}' (score: {score:.3f})")
+                if self.on_wake:
+                    self.on_wake(name)
+                return True
+
         return False
 
     def activate(self):
@@ -147,7 +191,11 @@ class WakeWordDetector:
     def deactivate(self):
         """Return to listening-for-wake-word state."""
         self._active = False
+        if self._model:
+            self._model.reset()
 
     def reset(self):
         """Reset detector state."""
         self._active = False
+        if self._model:
+            self._model.reset()
