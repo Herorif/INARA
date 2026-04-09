@@ -18,6 +18,8 @@ zeroconf>=0.131.0
 aiohttp>=3.9.0
 # LLM Providers
 anthropic
+# Wake Word Detection
+openwakeword
 # Utilities
 python-dotenv
 numpy
