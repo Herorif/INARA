@@ -13,7 +13,7 @@ It's Not A Random Acronym
 
 > Your own AI that lives on your desktop, controls your house, designs your parts, runs your browser, and prints your prototypes - all by voice.
 
-INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system - with eyes, ears, hands, and opinions.
+INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
 
 Talk to it. It talks back. Tell it to design a gear. It generates a 3D model, slices it, and sends it to your printer. Tell it to dim the lights. Done. Tell it to go find something on Amazon. It opens a browser and does it.
 
