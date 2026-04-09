@@ -32,6 +32,11 @@ DEFAULT_SETTINGS = {
     "printers": [],
     "kasa_devices": [],
     "camera_flipped": False,
+    "voice": {
+        "wake_word_enabled": False,
+        "wake_timeout": 30,
+        "greetings_enabled": True,
+    },
 }
 
 
