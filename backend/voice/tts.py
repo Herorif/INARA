@@ -1,11 +1,11 @@
 """
-Text-to-Speech / Audio Output Manager — handles playback, interrupts, and output routing.
+Text-to-Speech / Audio Output Manager  - handles playback, interrupts, and output routing.
 
 Sits between the voice provider (which generates audio) and the audio hardware
 (which plays it). Manages the playback queue and handles barge-in (user
 interrupts INARA mid-sentence).
 
-Provider-agnostic — works with any source that produces PCM audio chunks.
+Provider-agnostic  - works with any source that produces PCM audio chunks.
 """
 
 import asyncio
@@ -20,7 +20,7 @@ from voice.audio_io import AudioOutput, clear_queue
 
 class SpeechOutputManager:
     """
-    Manages INARA's audio output — playback queue, interrupt handling,
+    Manages INARA's audio output  - playback queue, interrupt handling,
     and audio data routing.
 
     The voice pipeline pushes PCM audio chunks into the playback queue.
@@ -63,18 +63,18 @@ class SpeechOutputManager:
 
     def interrupt(self):
         """
-        Interrupt current playback — clear the queue immediately.
+        Interrupt current playback  - clear the queue immediately.
 
         Called when user speech is detected (barge-in). INARA stops
         talking so the user can be heard.
         """
         cleared = clear_queue(self._queue)
         if cleared > 0:
-            print(f"[INARA] [TTS] Interrupted — cleared {cleared} audio chunks.")
+            print(f"[INARA] [TTS] Interrupted  - cleared {cleared} audio chunks.")
 
     async def play_loop(self):
         """
-        Main playback loop — continuously plays audio from the queue.
+        Main playback loop  - continuously plays audio from the queue.
         Blocks until cancelled. Run as an asyncio task.
         """
         await self._output.open()
@@ -107,7 +107,7 @@ class SpeechOutputManager:
 # These are used when setting up the voice provider (Gemini Native Audio, etc.)
 
 INARA_SYSTEM_INSTRUCTION = (
-    "Your name is INARA \u2014 It's Not A Random Acronym. "
+    "Your name is INARA - It's Not A Random Acronym. "
     "You are a composed, slightly dry, butler-style AI assistant. "
     "Your creator is Herorif, and you address him as 'Sir'. "
     "When answering, respond using complete and concise sentences "
@@ -115,6 +115,6 @@ INARA_SYSTEM_INSTRUCTION = (
     "You are capable, direct, and quietly confident."
 )
 
-# Gemini voice presets — "Kore" is a composed female voice that fits INARA's personality.
+# Gemini voice presets  - "Kore" is a composed female voice that fits INARA's personality.
 # Other options: "Puck" (energetic), "Charon" (deep), "Fenrir" (warm), "Aoede" (bright)
 INARA_VOICE_NAME = "Kore"

@@ -1,5 +1,5 @@
 """
-Printer Agent — wraps the existing PrinterAgent with the BaseAgent interface.
+Printer Agent  - wraps the existing PrinterAgent with the BaseAgent interface.
 
 The underlying printer_agent.py is well-structured and LLM-independent.
 This wrapper registers its tools and routes tool calls.
@@ -72,10 +72,10 @@ class PrinterControlAgent(BaseAgent):
         printer_list = []
         for p in printers:
             printer_list.append({
-                "name": p.name,
-                "ip": p.ip,
-                "type": p.printer_type.value if p.printer_type else "unknown",
-                "has_camera": p.camera_url is not None,
+                "name": p.get("name", "unknown"),
+                "ip": p.get("ip", p.get("host", "")),
+                "type": p.get("type", "unknown"),
+                "has_camera": p.get("camera_url") is not None,
             })
         self._bus.emit_nowait(Event(
             type=Events.PRINTER_LIST,

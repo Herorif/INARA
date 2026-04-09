@@ -1,7 +1,7 @@
 {
   "name": "inara",
   "version": "1.0.0",
-  "description": "INARA — General-Purpose AI Agent Platform",
+  "description": "INARA - General-Purpose AI Agent Platform",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && npx electron .\"",

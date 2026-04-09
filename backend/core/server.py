@@ -1,5 +1,5 @@
 """
-INARA Server — FastAPI + Socket.IO with dependency injection.
+INARA Server  - FastAPI + Socket.IO with dependency injection.
 
 This replaces the old server.py. It's a thin relay between the frontend
 (Socket.IO) and the backend agents (via EventBus). No global state,
@@ -20,6 +20,8 @@ if sys.platform == "win32":
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+from contextlib import asynccontextmanager
 
 import socketio
 import uvicorn
@@ -79,7 +81,26 @@ agents = {
 
 # Socket.IO + FastAPI
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
-app = FastAPI()
+
+
+@asynccontextmanager
+async def lifespan(application):
+    print("[INARA] Starting up...")
+    await kasa_agent.initialize()
+    for p in config.printers:
+        printer_agent.inner.add_printer_manually(
+            name=p.get("name", p["host"]),
+            host=p["host"],
+            port=p.get("port", 80),
+            printer_type=p.get("type", "moonraker"),
+            camera_url=p.get("camera_url"),
+        )
+    asyncio.create_task(_monitor_printers())
+    print("[INARA] Ready.")
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 app_socketio = socketio.ASGIApp(sio, app)
 
 
@@ -114,25 +135,6 @@ async def _bridge_event(event: Event):
 bus.on_all(_bridge_event)
 
 
-# ---------------------------------------------------------------------------
-# Lifecycle
-# ---------------------------------------------------------------------------
-
-@app.on_event("startup")
-async def startup():
-    print("[INARA] Starting up...")
-    await kasa_agent.initialize()
-    # Load saved printers
-    for p in config.printers:
-        printer_agent.inner.add_printer_manually(
-            name=p.get("name", p["host"]),
-            host=p["host"],
-            port=p.get("port", 80),
-            printer_type=p.get("type", "moonraker"),
-            camera_url=p.get("camera_url"),
-        )
-    asyncio.create_task(_monitor_printers())
-    print("[INARA] Ready.")
 
 
 @app.get("/status")
@@ -169,7 +171,7 @@ async def _monitor_printers():
 
 
 # ---------------------------------------------------------------------------
-# Socket.IO events — thin relay to agents
+# Socket.IO events  - thin relay to agents
 # ---------------------------------------------------------------------------
 
 @sio.event

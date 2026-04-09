@@ -165,7 +165,7 @@ class TestToolPermissions:
 
 
 class TestAgentImports:
-    """Test agent module imports in ada.py."""
+    """Test agent module imports in inara.py."""
     
     def test_cad_agent_import(self):
         """Test CadAgent is imported."""
