@@ -16,8 +16,9 @@ function createWindow() {
         width: 1920,
         height: 1080,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false, // For simple IPC/Socket.IO usage
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js'),
         },
         backgroundColor: '#000000',
         frame: false, // Frameless for custom UI
