@@ -17,7 +17,7 @@ INARA is a modular AI agent platform built for real-world control. Not a chatbot
 
 You can talk to it and get a response. Ask it to design a gear and it can create a 3D model, prepare it for printing, and send it to your printer. Tell it to dim the lights and it handles it. Ask it to look something up on Amazon and it opens a browser and searches for you.
 
-![Image](https://github.com/user-attachments/assets/4200b505-95db-4bf8-a325-9ef85fab06f7)
+![Image](https://github.com/user-attachments/assets/b821478c-6283-4d8e-87c2-c01949998f47)
 ---
 
 ## What It Can Do
