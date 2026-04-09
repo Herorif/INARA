@@ -38,6 +38,7 @@ from agents.kasa_agent import KasaSmartHomeAgent
 from agents.printer_agent import PrinterControlAgent
 from agents.auth_agent import AuthAgent
 from project_manager import ProjectManager
+from voice.pipeline import VoicePipeline
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +79,10 @@ agents = {
     printer_agent.name: printer_agent,
     auth_agent.name: auth_agent,
 }
+
+# Voice pipeline state
+voice_pipeline: VoicePipeline | None = None
+voice_task: asyncio.Task | None = None
 
 # Socket.IO + FastAPI
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
@@ -123,6 +128,7 @@ async def _bridge_event(event: Event):
         Events.AUTH_STATUS: "auth_status",
         Events.AUTH_FRAME: "auth_frame",
         Events.PROJECT_CHANGED: "project_update",
+        Events.TOOL_CALL_REQUESTED: "tool_confirmation_request",
         Events.ERROR: "error",
         Events.STATUS: "status",
         Events.VOICE_TRANSCRIPTION: "transcription",
@@ -192,26 +198,57 @@ async def disconnect(sid):
     print(f"[INARA] Client disconnected: {sid}")
 
 
-# --- Audio (placeholder until voice pipeline is built) ---
+# --- Voice Pipeline ---
 
 @sio.event
 async def start_audio(sid, data=None):
-    """Start voice session. Currently a placeholder for Phase 2 voice pipeline."""
-    await sio.emit("status", {"msg": "INARA Started (voice pipeline pending)"})
+    """Start the voice pipeline — connects mic to Gemini Live API."""
+    global voice_pipeline, voice_task
+
+    if voice_task and not voice_task.done():
+        await sio.emit("status", {"msg": "INARA is already running"})
+        return
+
+    voice_config = config.get("voice", {})
+    voice_pipeline = VoicePipeline(
+        event_bus=bus,
+        tools=tool_registry.to_gemini_format(),
+        wake_word_enabled=voice_config.get("wake_word_enabled", False),
+        wake_timeout=voice_config.get("wake_timeout", 30),
+        greetings_enabled=voice_config.get("greetings_enabled", True),
+    )
+    voice_pipeline.update_permissions(config.tool_permissions)
+
+    voice_task = asyncio.create_task(
+        voice_pipeline.run(start_message="Greet the user briefly.")
+    )
+    await sio.emit("status", {"msg": "INARA Started"})
 
 
 @sio.event
 async def stop_audio(sid):
+    global voice_pipeline, voice_task
+
+    if voice_pipeline:
+        voice_pipeline.stop()
+    if voice_task and not voice_task.done():
+        voice_task.cancel()
+    voice_pipeline = None
+    voice_task = None
     await sio.emit("status", {"msg": "INARA Stopped"})
 
 
 @sio.event
 async def pause_audio(sid):
+    if voice_pipeline:
+        voice_pipeline.set_paused(True)
     await sio.emit("status", {"msg": "Audio Paused"})
 
 
 @sio.event
 async def resume_audio(sid):
+    if voice_pipeline:
+        voice_pipeline.set_paused(False)
     await sio.emit("status", {"msg": "Audio Resumed"})
 
 
@@ -222,6 +259,11 @@ async def confirm_tool(sid, data):
     request_id = data.get("id")
     confirmed = data.get("confirmed", False)
     print(f"[INARA] Tool confirmation {request_id}: {confirmed}")
+
+    # Resolve the pending confirmation in the voice pipeline
+    if voice_pipeline:
+        voice_pipeline.resolve_tool_confirmation(request_id, confirmed)
+
     await bus.emit(Event(
         type=Events.TOOL_CALL_CONFIRMED if confirmed else Events.TOOL_CALL_DENIED,
         data={"id": request_id, "confirmed": confirmed},
@@ -417,21 +459,32 @@ async def update_tool_permissions(sid, data):
     await sio.emit("tool_permissions", config.tool_permissions)
 
 
-# --- User text input (placeholder for voice pipeline) ---
+# --- User text input ---
 
 @sio.event
 async def user_input(sid, data):
     text = data.get("text", "")
-    if text:
-        project_manager.log_chat("User", text)
-        # TODO: Route to LLM when voice pipeline is built
-        await sio.emit("status", {"msg": "Text input received (voice pipeline pending)"})
+    if not text:
+        return
+    project_manager.log_chat("User", text)
+
+    if voice_pipeline and voice_pipeline._session:
+        # Send text directly to active Gemini session
+        try:
+            await voice_pipeline._session.send(input=text, end_of_turn=True)
+        except Exception as e:
+            print(f"[INARA] Failed to send text to pipeline: {e}")
+            await sio.emit("error", {"msg": f"Failed to send text: {e}"})
+    else:
+        await sio.emit("status", {"msg": "Voice pipeline not active. Start INARA first."})
 
 
 @sio.event
 async def video_frame(sid, data):
-    # TODO: Route to voice provider when pipeline is built
-    pass
+    if voice_pipeline:
+        image = data.get("image", "")
+        if image:
+            await voice_pipeline.send_frame(image)
 
 
 # --- Memory ---
@@ -468,7 +521,13 @@ async def upload_memory(sid, data):
     memory_text = data.get("memory", "")
     if not memory_text:
         return
-    # TODO: Send to LLM context when voice pipeline is built
+
+    if voice_pipeline and voice_pipeline._session:
+        try:
+            context = f"The user has loaded the following memory/context:\n\n{memory_text}"
+            await voice_pipeline._session.send(input=context, end_of_turn=True)
+        except Exception as e:
+            print(f"[INARA] Failed to send memory to pipeline: {e}")
     await sio.emit("status", {"msg": "Memory Loaded into Context"})
 
 
@@ -476,7 +535,14 @@ async def upload_memory(sid, data):
 
 @sio.event
 async def shutdown(sid, data=None):
+    global voice_pipeline, voice_task
     print("[INARA] Shutdown signal received")
+    if voice_pipeline:
+        voice_pipeline.stop()
+    if voice_task and not voice_task.done():
+        voice_task.cancel()
+    voice_pipeline = None
+    voice_task = None
     auth_agent.stop_auth()
     await router.close_all()
     os._exit(0)
