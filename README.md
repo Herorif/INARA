@@ -1,9 +1,9 @@
 ```
- ___  _  _    _    ___    _   
-|_ _|| \| |  /_\  | _ \  /_\  
- | | | .` | / _ \ |   / / _ \ 
-|___||_|\_|/_/ \_\|_|_\/_/ \_\
-It's Not A Random Acronym
+  ___  _  _    _    ___    _   
+ |_ _|| \| |  /_\  | _ \  /_\  
+  | | | .` | / _ \ |   / / _ \ 
+ |___||_|\_|/_/ \_\|_|_\/_/ \_\
+-=It's Not A Random Acronym=-
 ```
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
