@@ -1,11 +1,11 @@
 """
-Speech-to-Text — Transcription processing and chat buffering.
+Speech-to-Text  - Transcription processing and chat buffering.
 
 Handles the delta calculation for streaming transcription (Gemini sends
 cumulative text, we extract the new portion) and manages the chat buffer
 for logging conversations to the project manager.
 
-Provider-agnostic — works with any transcription source that delivers
+Provider-agnostic  - works with any transcription source that delivers
 cumulative or chunked text.
 """
 
@@ -21,7 +21,7 @@ class TranscriptionProcessor:
     """
     Processes streaming transcription text and extracts deltas.
 
-    Gemini's Live API sends cumulative transcription — each update contains
+    Gemini's Live API sends cumulative transcription  - each update contains
     the full text so far, not just the new part. This class tracks the last
     seen text and extracts only the new portion (the delta).
 
@@ -71,7 +71,7 @@ class ChatBuffer:
     """
     Aggregates streaming transcription chunks into complete messages.
 
-    The voice pipeline receives transcription in small deltas — this buffer
+    The voice pipeline receives transcription in small deltas  - this buffer
     collects them by sender and flushes complete messages when the sender
     changes or when explicitly requested.
 
@@ -98,7 +98,7 @@ class ChatBuffer:
         buffer is flushed first.
         """
         if self._sender != sender:
-            # Sender changed — flush previous
+            # Sender changed  - flush previous
             self.flush()
             self._sender = sender
             self._text = text
@@ -165,7 +165,7 @@ class TranscriptionManager:
         if delta is None:
             return None
 
-        # User is speaking — notify for interrupt handling
+        # User is speaking  - notify for interrupt handling
         if self._on_user_speech:
             self._on_user_speech()
 
@@ -204,7 +204,7 @@ class TranscriptionManager:
         self._output_proc.reset()
 
     def reset(self):
-        """Full reset — discard everything."""
+        """Full reset  - discard everything."""
         self._buffer.reset()
         self._input_proc.reset()
         self._output_proc.reset()

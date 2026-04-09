@@ -1,12 +1,12 @@
 """
-INARA Voice Module — real-time voice conversation pipeline.
+INARA Voice Module  - real-time voice conversation pipeline.
 
 Components:
-    audio_io    — Hardware I/O (mic, speaker, camera)
-    wake_word   — Voice activity detection & wake word
-    stt         — Speech-to-text / transcription processing
-    tts         — Text-to-speech / audio output management
-    pipeline    — Main orchestrator (Gemini Live API integration)
+    audio_io     - Hardware I/O (mic, speaker, camera)
+    wake_word    - Voice activity detection & wake word
+    stt          - Speech-to-text / transcription processing
+    tts          - Text-to-speech / audio output management
+    pipeline     - Main orchestrator (Gemini Live API integration)
 """
 
 from voice.pipeline import VoicePipeline

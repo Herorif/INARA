@@ -1,5 +1,5 @@
 """
-LLM Router — routes tasks to the appropriate provider.
+LLM Router  - routes tasks to the appropriate provider.
 
 Allows INARA to use different LLMs for different capabilities:
 - Gemini for real-time voice (Native Audio)

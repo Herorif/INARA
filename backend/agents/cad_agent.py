@@ -1,5 +1,5 @@
 """
-CAD Agent — generates and iterates on 3D models using build123d.
+CAD Agent  - generates and iterates on 3D models using build123d.
 
 Refactored to use the LLM abstraction layer instead of direct Gemini calls.
 Deduplicated generate/iterate into a single code generation pipeline.
@@ -127,7 +127,7 @@ class CadAgent(BaseAgent):
         script_path = os.path.join(work_dir, "current_design.py")
 
         if not os.path.exists(script_path):
-            # No existing design — fall back to fresh generation
+            # No existing design  - fall back to fresh generation
             return await self._generate(prompt, output_dir)
 
         with open(script_path, "r") as f:

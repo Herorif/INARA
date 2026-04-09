@@ -1,5 +1,5 @@
 """
-Web Agent — autonomous browser automation using Playwright.
+Web Agent  - autonomous browser automation using Playwright.
 
 Refactored to use the LLM abstraction layer. The Playwright browser
 automation logic is preserved; only the LLM interaction is swapped.

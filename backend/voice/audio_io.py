@@ -1,8 +1,8 @@
 """
-Audio I/O — PyAudio stream management, device enumeration, and video capture.
+Audio I/O  - PyAudio stream management, device enumeration, and video capture.
 
 Handles all hardware interaction: microphone input, speaker output, camera frames.
-Provider-agnostic — knows nothing about Gemini or any LLM.
+Provider-agnostic  - knows nothing about Gemini or any LLM.
 """
 
 import asyncio

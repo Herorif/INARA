@@ -188,7 +188,7 @@ config = types.LiveConnectConfig(
     # We switch these from [] to {} to enable them with default settings
     output_audio_transcription={}, 
     input_audio_transcription={},
-    system_instruction="Your name is INARA — It's Not A Random Acronym. "
+    system_instruction="Your name is INARA  - It's Not A Random Acronym. "
         "You are a composed, slightly dry, butler-style AI assistant. "
         "Your creator is Herorif, and you address him as 'Sir'. "
         "When answering, respond using complete and concise sentences to keep a quick pacing and keep the conversation flowing. "

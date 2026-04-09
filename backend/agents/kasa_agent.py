@@ -1,5 +1,5 @@
 """
-Kasa Smart Home Agent — wraps the existing KasaAgent with the BaseAgent interface.
+Kasa Smart Home Agent  - wraps the existing KasaAgent with the BaseAgent interface.
 
 The underlying kasa_agent.py is clean and LLM-independent.
 This wrapper registers its tools and routes tool calls.

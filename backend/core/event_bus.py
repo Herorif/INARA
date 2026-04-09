@@ -65,7 +65,7 @@ class EventBus:
             loop = asyncio.get_running_loop()
             loop.create_task(self.emit(event))
         except RuntimeError:
-            # No running loop — silently drop
+            # No running loop  - silently drop
             pass
 
 

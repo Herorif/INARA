@@ -1,5 +1,5 @@
 """
-Face Authentication Agent — wraps the existing FaceAuthenticator.
+Face Authentication Agent  - wraps the existing FaceAuthenticator.
 
 Fixes the macOS-only CAP_AVFOUNDATION bug by using platform-appropriate backend.
 """
@@ -33,7 +33,7 @@ class AuthAgent(BaseAgent):
         return "Face authentication using MediaPipe face landmarks"
 
     def get_tools(self) -> list[Tool]:
-        # Auth is not tool-callable by the LLM — it's a system service
+        # Auth is not tool-callable by the LLM  - it's a system service
         return []
 
     async def handle_tool_call(self, tool_name: str, args: dict[str, Any], **context) -> AgentResult:

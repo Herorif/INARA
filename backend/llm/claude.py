@@ -173,7 +173,7 @@ class ClaudeProvider(BaseLLMProvider):
                     if event.delta.type == "text_delta":
                         yield LLMResponse(text=event.delta.text, is_partial=True)
                     elif event.delta.type == "input_json_delta":
-                        # Tool input streaming — accumulate externally if needed
+                        # Tool input streaming  - accumulate externally if needed
                         pass
                 elif event.type == "content_block_start":
                     if event.content_block.type == "tool_use":

@@ -2,6 +2,7 @@
     "face_auth_enabled": false,
     "tool_permissions": {
         "generate_cad": true,
+        "iterate_cad": false,
         "run_web_agent": true,
         "write_file": false,
         "read_directory": false,
@@ -9,12 +10,12 @@
         "create_project": false,
         "switch_project": false,
         "list_projects": false,
-        "create_directory": false,
-        "iterate_cad": false,
-        "print_stl": false,
-        "discover_printers": false,
+        "list_smart_devices": false,
         "control_light": false,
-        "list_smart_devices": false
+        "discover_printers": false,
+        "print_stl": false,
+        "get_print_status": true,
+        "create_directory": false
     },
     "printers": [
         {
@@ -32,22 +33,6 @@
             "camera_url": null
         }
     ],
-    "kasa_devices": [
-        {
-            "ip": "10.0.0.49",
-            "alias": "Right Room Light",
-            "model": "KL135"
-        },
-        {
-            "ip": "10.0.0.52",
-            "alias": "Left Office Light ",
-            "model": "KL135"
-        },
-        {
-            "ip": "10.0.0.83",
-            "alias": "Right Office Light",
-            "model": "KL135"
-        }
-    ],
+    "kasa_devices": [],
     "camera_flipped": false
 }

@@ -1,5 +1,5 @@
 """
-Voice Activity Detection — RMS-based speech detection with pluggable wake word support.
+Voice Activity Detection  - RMS-based speech detection with pluggable wake word support.
 
 Currently uses a simple RMS threshold to detect speech onset/offset.
 Designed to be extended with a real wake word engine (Porcupine, Snowboy, etc.)
@@ -134,7 +134,7 @@ class WakeWordDetector:
         Process audio chunk for wake word detection.
         Returns True if wake word was detected in this chunk.
 
-        Currently a no-op — always returns False.
+        Currently a no-op  - always returns False.
         The pipeline runs in always-on mode until this is implemented.
         """
         # TODO: Integrate wake word engine

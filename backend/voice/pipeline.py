@@ -1,5 +1,5 @@
 """
-Voice Pipeline — Orchestrates the full voice conversation loop.
+Voice Pipeline  - Orchestrates the full voice conversation loop.
 
 Connects the audio I/O layer, VAD, transcription processing, and the
 Gemini Live API into a single coherent pipeline:
@@ -61,7 +61,7 @@ class VoicePipeline:
     5. Handles tool calls (dispatched via EventBus)
     6. Reconnects automatically on connection loss
 
-    All frontend communication goes through the EventBus — no callbacks.
+    All frontend communication goes through the EventBus  - no callbacks.
     Tool calls are dispatched to agents via the bus, not handled inline.
     """
 
@@ -285,11 +285,11 @@ class VoicePipeline:
             if self._out_queue:
                 await self._out_queue.put({"data": chunk, "mime_type": "audio/pcm"})
 
-            # Run VAD — may trigger video frame send on speech start
+            # Run VAD  - may trigger video frame send on speech start
             self._vad.process(chunk)
 
     async def _receive_loop(self):
-        """Receives responses from Gemini — audio, transcription, tool calls."""
+        """Receives responses from Gemini  - audio, transcription, tool calls."""
         try:
             while True:
                 turn = self._session.receive()
@@ -402,14 +402,14 @@ class VoicePipeline:
         args = fc.args or {}
         print(f"[INARA] [VOICE] [TOOL] Dispatching: '{name}'")
 
-        # Emit tool call event — agents subscribed on the bus will handle it
+        # Emit tool call event  - agents subscribed on the bus will handle it
         self._bus.emit_nowait(Event(
             type=Events.TOOL_CALL_REQUESTED,
             data={"tool": name, "args": args, "source": "voice"},
             source="voice",
         ))
 
-        # Tools that run async (fire and forget — result comes back via events)
+        # Tools that run async (fire and forget  - result comes back via events)
         async_tools = {"generate_cad", "iterate_cad", "run_web_agent"}
         if name in async_tools:
             return f"{name} started. Do not reply to this message."
@@ -508,7 +508,7 @@ class VoicePipeline:
     # -----------------------------------------------------------------------
 
     def _on_audio_data(self, data: bytes):
-        """Called when audio data is about to be played — forward to frontend."""
+        """Called when audio data is about to be played  - forward to frontend."""
         self._bus.emit_nowait(Event(
             type=Events.VOICE_AUDIO_OUT,
             data={"audio": data},
@@ -516,7 +516,7 @@ class VoicePipeline:
         ))
 
     def _on_speech_start(self):
-        """Called when VAD detects user started speaking — send buffered video frame."""
+        """Called when VAD detects user started speaking  - send buffered video frame."""
         if self._latest_frame and self._out_queue:
             try:
                 self._out_queue.put_nowait(self._latest_frame)
@@ -524,7 +524,7 @@ class VoicePipeline:
                 pass
 
     def _on_user_speech(self):
-        """Called when user transcription is detected — interrupt INARA's output."""
+        """Called when user transcription is detected  - interrupt INARA's output."""
         self._speech_out.interrupt()
 
     def _emit_transcription(self, data: dict):
@@ -545,7 +545,7 @@ class VoicePipeline:
     # -----------------------------------------------------------------------
 
     async def _handle_startup(self, start_message: Optional[str]):
-        """Handle first connection — send greeting and sync project state."""
+        """Handle first connection  - send greeting and sync project state."""
         if start_message and self._session:
             print(f"[INARA] [VOICE] Sending start message...")
             await self._session.send(input=start_message, end_of_turn=True)
@@ -558,7 +558,7 @@ class VoicePipeline:
             ))
 
     async def _handle_reconnect(self):
-        """Handle reconnection — restore context from chat history."""
+        """Handle reconnection  - restore context from chat history."""
         print("[INARA] [VOICE] Connection restored. Restoring context...")
 
         if not self._project_manager or not self._session:
