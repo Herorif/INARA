@@ -1,7 +1,7 @@
 ```
-  ___  _  _    _    ___    _   
- |_ _|| \| |  /_\  | _ \  /_\  
-  | | | .` | / _ \ |   / / _ \ 
+  ___  _  _    _    ___    _
+ |_ _|| \| |  /_\  | _ \  /_\
+  | | | .` | / _ \ |   / / _ \
  |___||_|\_|/_/ \_\|_|_\/_/ \_\
 -=It's Not A Random Acronym=-
 ```
@@ -21,34 +21,34 @@ You can talk to it and get a response. Ask it to design a gear and it can create
 
 ## What It Can Do
 
-| Feature | Description | Tech |
-|---------|-------------|------|
-| 🗣️ **Real-Time Voice** | Low-latency conversation with interrupt handling and wake word | Gemini Native Audio |
-| 🧊 **Parametric CAD** | Generate and iterate 3D models from natural language | `build123d` -> STL |
-| 🖨️ **3D Print Pipeline** | Auto-slice and send to printers over your network | OrcaSlicer + Moonraker/OctoPrint |
-| 🖐️ **Gesture Control** | Minority Report-style window manipulation via hand tracking | MediaPipe |
-| 🌐 **Web Agent** | Autonomous browser - navigates, clicks, types, reads | Playwright + Chromium |
-| 🏠 **Smart Home** | Voice control for TP-Link Kasa lights, plugs, switches | `python-kasa` |
-| 👁️ **Face Auth** | Biometric login - local only, nothing leaves your machine | MediaPipe Face Landmarks |
-| 📁 **Project Memory** | Persistent context across sessions and conversations | File-based storage |
+| Feature                  | Description                                                    | Tech                             |
+| ------------------------ | -------------------------------------------------------------- | -------------------------------- |
+| 🗣️ **Real-Time Voice**   | Low-latency conversation with interrupt handling and wake word | Gemini Native Audio              |
+| 🧊 **Parametric CAD**    | Generate and iterate 3D models from natural language           | `build123d` -> STL               |
+| 🖨️ **3D Print Pipeline** | Auto-slice and send to printers over your network              | OrcaSlicer + Moonraker/OctoPrint |
+| 🖐️ **Gesture Control**   | Minority Report-style window manipulation via hand tracking    | MediaPipe                        |
+| 🌐 **Web Agent**         | Autonomous browser - navigates, clicks, types, reads           | Playwright + Chromium            |
+| 🏠 **Smart Home**        | Voice control for TP-Link Kasa lights, plugs, switches         | `python-kasa`                    |
+| 👁️ **Face Auth**         | Biometric login - local only, nothing leaves your machine      | MediaPipe Face Landmarks         |
+| 📁 **Project Memory**    | Persistent context across sessions and conversations           | File-based storage               |
 
 ### 🖐️ Gesture Control
 
 INARA's Minority Report interface uses your webcam for hands-free window control:
 
-| Gesture | Action |
-|---------|--------|
+| Gesture            | Action                    |
+| ------------------ | ------------------------- |
 | ✊ **Closed Fist** | Grab and drag a UI window |
-| 🤏 **Pinch** | Confirm / click |
-| ✋ **Open Palm** | Release |
+| 🤏 **Pinch**       | Confirm / click           |
+| ✋ **Open Palm**   | Release                   |
 
 ### 🔮 Coming Soon
 
-| Module | Description |
-|--------|-------------|
-| 📞 **Phone Calls** | Outbound/inbound call handling through voice |
-| ⏰ **Reminders & Scheduling** | Time-aware task management and calendar integration |
-| 🖥️ **Desktop Productivity** | App launching, file operations, system control |
+| Module                         | Description                                                    |
+| ------------------------------ | -------------------------------------------------------------- |
+| 📞 **Phone Calls**             | Outbound/inbound call handling through voice                   |
+| ⏰ **Reminders & Scheduling**  | Time-aware task management and calendar integration            |
+| 🖥️ **Desktop Productivity**    | App launching, file operations, system control                 |
 | 👁️ **Vision & Device Control** | Screen reading, camera-based interaction, device orchestration |
 
 ---
@@ -131,6 +131,7 @@ echo "GEMINI_API_KEY=your_key_here" > .env
 ### 🚀 Run
 
 **Single command:**
+
 ```bash
 npm run dev
 ```
@@ -166,14 +167,14 @@ Once it's running, try these:
 
 Settings live in `backend/settings.json` (auto-created on first run).
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `face_auth_enabled` | `bool` | Require face recognition before interaction |
-| `tool_permissions.generate_cad` | `bool` | Require confirmation before CAD generation |
-| `tool_permissions.run_web_agent` | `bool` | Require confirmation before browser automation |
-| `tool_permissions.write_file` | `bool` | Require confirmation before writing files to disk |
-| `printers` | `array` | Saved printer configurations |
-| `kasa_devices` | `array` | Saved smart home devices |
+| Key                              | Type    | Description                                       |
+| -------------------------------- | ------- | ------------------------------------------------- |
+| `face_auth_enabled`              | `bool`  | Require face recognition before interaction       |
+| `tool_permissions.generate_cad`  | `bool`  | Require confirmation before CAD generation        |
+| `tool_permissions.run_web_agent` | `bool`  | Require confirmation before browser automation    |
+| `tool_permissions.write_file`    | `bool`  | Require confirmation before writing files to disk |
+| `printers`                       | `array` | Saved printer configurations                      |
+| `kasa_devices`                   | `array` | Saved smart home devices                          |
 
 ### 🔑 API Keys
 
@@ -242,12 +243,12 @@ inara/
 
 ## 🔒 Security
 
-| Aspect | Implementation |
-|--------|----------------|
-| **API Keys** | Stored in `.env`, excluded from version control |
-| **Face Data** | Processed locally, never transmitted |
+| Aspect                 | Implementation                                  |
+| ---------------------- | ----------------------------------------------- |
+| **API Keys**           | Stored in `.env`, excluded from version control |
+| **Face Data**          | Processed locally, never transmitted            |
 | **Tool Confirmations** | Write/CAD/Web actions can require user approval |
-| **Project Data** | Everything stays on your machine |
+| **Project Data**       | Everything stays on your machine                |
 
 > Never share your `.env` file or `reference.jpg`. These contain credentials and biometric data.
 
@@ -270,5 +271,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <p align="center">
   <strong>Built by Herorif</strong><br>
-  <em>If it's not autonomous, it's not finished.</em>
+  <em>I love you 3000</em>
 </p>
