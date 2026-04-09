@@ -31,7 +31,8 @@ from google.genai import types
 
 from core.event_bus import EventBus, Event, Events
 from voice.audio_io import AudioInput, AudioOutput, VideoCapture, clear_queue
-from voice.wake_word import VoiceActivityDetector
+from voice.wake_word import VoiceActivityDetector, WakeWordDetector
+from voice.greetings import GreetingDetector
 from voice.stt import TranscriptionManager
 from voice.tts import SpeechOutputManager, INARA_SYSTEM_INSTRUCTION, INARA_VOICE_NAME
 
@@ -74,6 +75,9 @@ class VoicePipeline:
         output_device_index: Optional[int] = None,
         tools: Optional[list] = None,
         system_instruction: Optional[str] = None,
+        wake_word_enabled: bool = False,
+        wake_timeout: float = 30.0,
+        greetings_enabled: bool = True,
     ):
         self._bus = event_bus
         self._video_mode = video_mode
@@ -91,6 +95,21 @@ class VoicePipeline:
         # VAD
         self._vad = VoiceActivityDetector()
         self._vad.on_speech_start = self._on_speech_start
+
+        # Wake word detection
+        self._wake_mode = wake_word_enabled
+        self._wake_active = False
+        self._wake_timeout_secs = wake_timeout
+        self._wake_timer_task: Optional[asyncio.Task] = None
+        self._wake_detector: Optional[WakeWordDetector] = None
+        if self._wake_mode:
+            self._wake_detector = WakeWordDetector()
+            self._wake_detector.on_wake = self._on_wake_detected
+
+        # Greeting detection
+        self._greetings_enabled = greetings_enabled
+        self._greeting_detector = GreetingDetector() if greetings_enabled else None
+        self._greeting_detected_this_turn = False
 
         # Video
         self._video = VideoCapture() if video_mode == "camera" else None
@@ -111,6 +130,9 @@ class VoicePipeline:
         # Tool confirmation
         self._permissions: dict[str, bool] = {}
         self._pending_confirmations: dict[str, asyncio.Future] = {}
+
+        # Pause state
+        self._paused = False
 
         # Project manager
         self._project_manager = None
@@ -276,17 +298,38 @@ class VoicePipeline:
             return
 
         while not self._stop_event.is_set():
+            if self._paused:
+                await asyncio.sleep(0.1)
+                continue
+
             chunk = await self._audio_in.read_chunk()
             if chunk is None:
                 await asyncio.sleep(0.1)
                 continue
 
-            # Send audio to Gemini
+            # Wake word mode: only feed audio to detector when idle
+            if self._wake_mode and not self._wake_active:
+                if self._wake_detector and self._wake_detector.process(chunk):
+                    self._wake_active = True
+                    self._wake_timeout_reset()
+                    self._bus.emit_nowait(Event(
+                        type=Events.STATUS,
+                        data={"msg": "Listening..."},
+                        source="voice",
+                    ))
+                    self._emit_listening_state("active")
+                continue
+
+            # Normal: send audio to Gemini
             if self._out_queue:
                 await self._out_queue.put({"data": chunk, "mime_type": "audio/pcm"})
 
             # Run VAD  - may trigger video frame send on speech start
             self._vad.process(chunk)
+
+            # In wake mode, reset timeout on speech activity
+            if self._wake_mode and self._vad.is_speaking:
+                self._wake_timeout_reset()
 
     async def _receive_loop(self):
         """Receives responses from Gemini  - audio, transcription, tool calls."""
@@ -321,6 +364,8 @@ class VoicePipeline:
             text = server_content.input_transcription.text
             if text:
                 self._transcription.process_input(text)
+                # Check for contextual greetings in user speech
+                self._check_greeting(text)
 
         if server_content.output_transcription:
             text = server_content.output_transcription.text
@@ -511,7 +556,7 @@ class VoicePipeline:
         """Called when audio data is about to be played  - forward to frontend."""
         self._bus.emit_nowait(Event(
             type=Events.VOICE_AUDIO_OUT,
-            data={"audio": data},
+            data={"data": data},
             source="voice",
         ))
 
@@ -541,11 +586,81 @@ class VoicePipeline:
             self._project_manager.log_chat(sender, text)
 
     # -----------------------------------------------------------------------
+    # Internal: Wake Word
+    # -----------------------------------------------------------------------
+
+    def _on_wake_detected(self, model_name: str):
+        """Called when wake word detector fires."""
+        print(f"[INARA] [WAKE] Wake word detected: {model_name}")
+        self._wake_active = True
+        self._greeting_detected_this_turn = False
+        self._wake_timeout_reset()
+
+    def _wake_timeout_reset(self):
+        """Reset the wake word inactivity timer."""
+        if self._wake_timer_task and not self._wake_timer_task.done():
+            self._wake_timer_task.cancel()
+        try:
+            loop = asyncio.get_running_loop()
+            self._wake_timer_task = loop.create_task(self._wake_timeout_expired())
+        except RuntimeError:
+            pass
+
+    async def _wake_timeout_expired(self):
+        """Deactivate listening after silence timeout."""
+        await asyncio.sleep(self._wake_timeout_secs)
+        if self._wake_active:
+            print(f"[INARA] [WAKE] Timeout ({self._wake_timeout_secs}s). Returning to idle.")
+            self._wake_active = False
+            if self._wake_detector:
+                self._wake_detector.deactivate()
+            self._emit_listening_state("idle")
+
+    def _emit_listening_state(self, state: str):
+        """Emit listening state change to frontend ('idle', 'wake_listening', 'active')."""
+        self._bus.emit_nowait(Event(
+            type=Events.STATUS,
+            data={"msg": f"listening_state:{state}"},
+            source="voice",
+        ))
+
+    # -----------------------------------------------------------------------
+    # Internal: Greeting Detection
+    # -----------------------------------------------------------------------
+
+    def _check_greeting(self, transcribed_text: str):
+        """Check transcribed user speech for contextual greetings."""
+        if not self._greetings_enabled or not self._greeting_detector:
+            return
+        if self._greeting_detected_this_turn:
+            return
+
+        result = self._greeting_detector.detect(transcribed_text)
+        if result:
+            self._greeting_detected_this_turn = True
+            print(f"[INARA] [GREETING] Detected: {result['name']}")
+            # Inject greeting context into the Gemini session
+            if self._session:
+                context = result["context"]
+                try:
+                    asyncio.get_running_loop().create_task(
+                        self._session.send(input=context, end_of_turn=False)
+                    )
+                except RuntimeError:
+                    pass
+
+    # -----------------------------------------------------------------------
     # Internal: Startup & Reconnect
     # -----------------------------------------------------------------------
 
     async def _handle_startup(self, start_message: Optional[str]):
         """Handle first connection  - send greeting and sync project state."""
+        # Emit initial listening state
+        if self._wake_mode:
+            self._emit_listening_state("idle")
+        else:
+            self._emit_listening_state("active")
+
         if start_message and self._session:
             print(f"[INARA] [VOICE] Sending start message...")
             await self._session.send(input=start_message, end_of_turn=True)
