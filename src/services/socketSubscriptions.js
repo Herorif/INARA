@@ -22,11 +22,18 @@ export function initSocketListeners() {
 
     // --- Status ---
     unsubs.push(onSocket('status', (data) => {
+        // Handle listening state changes from wake word system
+        if (data.msg && data.msg.startsWith('listening_state:')) {
+            const state = data.msg.split(':')[1];
+            useStore.setState({ listeningState: state });
+            return;
+        }
+
         s().addMessage('System', data.msg);
         if (data.msg.includes('INARA Started')) {
             useStore.setState({ status: 'Model Connected' });
         } else if (data.msg === 'INARA Stopped') {
-            useStore.setState({ status: 'Connected' });
+            useStore.setState({ status: 'Connected', listeningState: 'idle' });
         }
     }));
 

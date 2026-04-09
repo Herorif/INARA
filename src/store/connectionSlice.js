@@ -10,6 +10,7 @@ export const createConnectionSlice = (set, get) => ({
     isConnected: true,
     isMuted: true,
     currentProject: 'default',
+    listeningState: 'idle', // 'idle' | 'wake_listening' | 'active'
 
     // Actions
     setStatus: (status) => set({ status }),
