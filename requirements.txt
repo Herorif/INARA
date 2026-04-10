@@ -22,6 +22,8 @@ anthropic
 openwakeword
 # Audio resampling (high-quality, required for telephony 8kHz↔16kHz/24kHz conversion)
 soxr
+# Telephony
+twilio
 # Utilities
 python-dotenv
 numpy
