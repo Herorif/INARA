@@ -28,6 +28,9 @@ DEFAULT_SETTINGS = {
         "discover_printers": True,
         "print_stl": True,
         "get_print_status": True,
+        "make_phone_call": True,
+        "end_phone_call": False,
+        "get_call_status": False,
     },
     "printers": [],
     "kasa_devices": [],
@@ -36,6 +39,22 @@ DEFAULT_SETTINGS = {
         "wake_word_enabled": False,
         "wake_timeout": 30,
         "greetings_enabled": True,
+    },
+    "telephony": {
+        "provider": "none",     # "none" | "twilio" | "pjsip"
+        "auto_answer": False,
+        "twilio": {
+            "account_sid": "",
+            "auth_token": "",
+            "phone_number": "",
+            "webhook_base_url": "",
+        },
+        "pjsip": {
+            "sip_server": "",
+            "sip_username": "",
+            "sip_password": "",
+            "sip_port": 5060,
+        },
     },
 }
 
@@ -135,3 +154,7 @@ class Config:
     @property
     def camera_flipped(self) -> bool:
         return self._data.get("camera_flipped", False)
+
+    @property
+    def telephony_provider(self) -> str:
+        return self._data.get("telephony", {}).get("provider", "none")

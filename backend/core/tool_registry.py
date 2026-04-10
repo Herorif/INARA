@@ -129,4 +129,29 @@ def create_default_registry() -> ToolRegistry:
         ],
     ))
 
+    # --- Phone Calls ---
+    registry.register(Tool(
+        name="make_phone_call",
+        description="Places an outbound phone call to a number. INARA will converse on the call.",
+        parameters=[
+            ToolParameter("number", ToolParameterType.STRING, "The phone number to call (E.164 format, e.g. +15551234567)."),
+            ToolParameter("purpose", ToolParameterType.STRING, "Optional context for the call (e.g. 'order pizza', 'check on delivery').", required=False),
+        ],
+        non_blocking=True,
+    ))
+    registry.register(Tool(
+        name="end_phone_call",
+        description="Hangs up an active phone call.",
+        parameters=[
+            ToolParameter("call_id", ToolParameterType.STRING, "The ID of the call to end."),
+        ],
+    ))
+    registry.register(Tool(
+        name="get_call_status",
+        description="Gets the current status of a phone call.",
+        parameters=[
+            ToolParameter("call_id", ToolParameterType.STRING, "The ID of the call to check."),
+        ],
+    ))
+
     return registry
