@@ -113,6 +113,12 @@ class Events:
     CALL_ENDED = "call.ended"
     CALL_STATUS = "call.status"
 
+    # Reminders & routines
+    REMINDER_TRIGGERED = "reminder.triggered"
+    REMINDER_CREATED   = "reminder.created"
+    REMINDER_CANCELLED = "reminder.cancelled"
+    ROUTINE_EXECUTED   = "routine.executed"
+
     # System
     ERROR = "system.error"
     STATUS = "system.status"
