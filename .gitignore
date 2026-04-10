@@ -35,3 +35,6 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# Ignore local GLiM state
+references/glim-state.json

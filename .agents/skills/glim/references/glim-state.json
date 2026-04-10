@@ -1,0 +1,15 @@
+{
+  "project_name": "YourProject",
+  "phase": "4C",
+  "stats": {
+    "vibe": 75,
+    "entropy": 45,
+    "last_roll": null
+  },
+  "history": [
+    {
+      "event": "GLiM Integrated at Phase 4C",
+      "timestamp": "2026-04-10"
+    }
+  ]
+}
