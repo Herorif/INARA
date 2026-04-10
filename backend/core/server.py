@@ -37,6 +37,7 @@ from agents.web_agent import WebAgent
 from agents.kasa_agent import KasaSmartHomeAgent
 from agents.printer_agent import PrinterControlAgent
 from agents.auth_agent import AuthAgent
+from agents.phone_agent import PhoneAgent
 from project_manager import ProjectManager
 from voice.pipeline import VoicePipeline
 
@@ -80,6 +81,27 @@ agents = {
     auth_agent.name: auth_agent,
 }
 
+# Phone agent (only instantiated when a telephony provider is configured)
+phone_agent: PhoneAgent | None = None
+
+if config.telephony_provider != "none":
+    if config.telephony_provider == "twilio":
+        from telephony.twilio_provider import TwilioProvider
+        _telephony_provider = TwilioProvider()
+    elif config.telephony_provider == "pjsip":
+        from telephony.pjsip_provider import PJSIPProvider
+        _telephony_provider = PJSIPProvider()
+    else:
+        _telephony_provider = None
+
+    if _telephony_provider:
+        phone_agent = PhoneAgent(
+            event_bus=bus,
+            provider=_telephony_provider,
+            tools=tool_registry.to_gemini_format(),
+        )
+        agents[phone_agent.name] = phone_agent
+
 # Voice pipeline state
 voice_pipeline: VoicePipeline | None = None
 voice_task: asyncio.Task | None = None
@@ -101,8 +123,16 @@ async def lifespan(application):
             camera_url=p.get("camera_url"),
         )
     asyncio.create_task(_monitor_printers())
+
+    if phone_agent:
+        await phone_agent.initialize()
+        print(f"[INARA] Phone agent ready ({config.telephony_provider}).")
+
     print("[INARA] Ready.")
     yield
+
+    if phone_agent:
+        await phone_agent.shutdown()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -129,6 +159,10 @@ async def _bridge_event(event: Event):
         Events.AUTH_FRAME: "auth_frame",
         Events.PROJECT_CHANGED: "project_update",
         Events.TOOL_CALL_REQUESTED: "tool_confirmation_request",
+        Events.CALL_INCOMING: "call_incoming",
+        Events.CALL_CONNECTED: "call_connected",
+        Events.CALL_ENDED: "call_ended",
+        Events.CALL_STATUS: "call_status",
         Events.ERROR: "error",
         Events.STATUS: "status",
         Events.VOICE_TRANSCRIPTION: "transcription",
@@ -219,6 +253,10 @@ async def start_audio(sid, data=None):
     )
     voice_pipeline.update_permissions(config.tool_permissions)
 
+    # Give phone agent a reference for audio ducking
+    if phone_agent:
+        phone_agent.set_local_pipeline(voice_pipeline)
+
     voice_task = asyncio.create_task(
         voice_pipeline.run(start_message="Greet the user briefly.")
     )
@@ -268,6 +306,22 @@ async def confirm_tool(sid, data):
         type=Events.TOOL_CALL_CONFIRMED if confirmed else Events.TOOL_CALL_DENIED,
         data={"id": request_id, "confirmed": confirmed},
     ))
+
+
+# --- Phone Calls ---
+
+@sio.event
+async def answer_call(sid, data):
+    call_id = data.get("call_id", "")
+    if phone_agent and call_id:
+        await phone_agent.answer_call(call_id)
+
+
+@sio.event
+async def reject_call(sid, data):
+    call_id = data.get("call_id", "")
+    if phone_agent and call_id:
+        await phone_agent.reject_call(call_id)
 
 
 # --- CAD ---
@@ -543,6 +597,8 @@ async def shutdown(sid, data=None):
         voice_task.cancel()
     voice_pipeline = None
     voice_task = None
+    if phone_agent:
+        await phone_agent.shutdown()
     auth_agent.stop_auth()
     await router.close_all()
     os._exit(0)
