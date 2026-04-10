@@ -38,6 +38,8 @@ from agents.kasa_agent import KasaSmartHomeAgent
 from agents.printer_agent import PrinterControlAgent
 from agents.auth_agent import AuthAgent
 from agents.phone_agent import PhoneAgent
+from agents.scheduler_agent import SchedulerAgent
+from core.reminder_store import ReminderStore
 from project_manager import ProjectManager
 from voice.pipeline import VoicePipeline
 
@@ -80,6 +82,11 @@ agents = {
     printer_agent.name: printer_agent,
     auth_agent.name: auth_agent,
 }
+
+# Reminder store + scheduler agent (always active)
+reminder_store = ReminderStore()
+scheduler_agent = SchedulerAgent(event_bus=bus, reminder_store=reminder_store)
+agents[scheduler_agent.name] = scheduler_agent
 
 # Phone agent (only instantiated when a telephony provider is configured)
 phone_agent: PhoneAgent | None = None
@@ -140,6 +147,10 @@ async def lifespan(application):
         await phone_agent.initialize()
         print(f"[INARA] Phone agent ready ({config.telephony_provider}).")
 
+    if config.reminders_enabled:
+        asyncio.create_task(_check_reminders())
+        print("[INARA] Reminder loop started.")
+
     print("[INARA] Ready.")
     yield
 
@@ -179,6 +190,9 @@ async def _bridge_event(event: Event):
         Events.CALL_CONNECTED: "call_connected",
         Events.CALL_ENDED: "call_ended",
         Events.CALL_STATUS: "call_status",
+        Events.REMINDER_TRIGGERED: "reminder_triggered",
+        Events.REMINDER_CREATED: "reminder_created",
+        Events.REMINDER_CANCELLED: "reminder_cancelled",
         Events.ERROR: "error",
         Events.STATUS: "status",
         Events.VOICE_TRANSCRIPTION: "transcription",
@@ -201,6 +215,43 @@ async def status():
 # ---------------------------------------------------------------------------
 # Background tasks
 # ---------------------------------------------------------------------------
+
+async def _check_reminders():
+    """Periodically fire due reminders and announce them via the voice pipeline."""
+    while True:
+        try:
+            due = reminder_store.get_due_reminders()
+            for reminder in due:
+                reminder_store.mark_triggered(reminder.id)
+
+                bus.emit_nowait(Event(
+                    type=Events.REMINDER_TRIGGERED,
+                    data=reminder.to_dict(),
+                    source="scheduler",
+                ))
+                print(f"[INARA] Reminder fired: '{reminder.task}'")
+
+                # Speak it via the active Gemini session
+                if config.reminders_announce_voice and voice_pipeline and voice_pipeline._session:
+                    try:
+                        await voice_pipeline._session.send(
+                            input=f"Reminder: {reminder.task}. Please inform the user now.",
+                            end_of_turn=True,
+                        )
+                    except Exception as e:
+                        print(f"[INARA] Failed to announce reminder: {e}")
+
+                # Reschedule recurring reminders
+                if reminder.recurring:
+                    reminder_store.reschedule_recurring(reminder)
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"[INARA] Reminder check error: {e}")
+
+        await asyncio.sleep(config.reminders_check_interval)
+
 
 async def _monitor_printers():
     """Periodically poll printer status."""
