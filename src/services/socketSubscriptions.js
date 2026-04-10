@@ -150,6 +150,22 @@ export function initSocketListeners() {
         s().updateCallStatus(data);
     }));
 
+    // --- Reminders ---
+    unsubs.push(onSocket('reminder_triggered', (data) => {
+        console.log('[REMINDER] Fired:', data);
+        useStore.setState({ activeAlert: { id: data.id, task: data.task } });
+        // Auto-open reminder window so the user sees it
+        useStore.setState({ showReminderWindow: true });
+    }));
+
+    unsubs.push(onSocket('reminder_created', (data) => {
+        s().addReminder(data);
+    }));
+
+    unsubs.push(onSocket('reminder_cancelled', (data) => {
+        s().removeReminder(data.id);
+    }));
+
     // --- Kasa ---
     unsubs.push(onSocket('kasa_devices', (devices) => {
         console.log('Kasa Devices:', devices);

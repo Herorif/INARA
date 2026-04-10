@@ -18,6 +18,8 @@ import AuthLock from './components/AuthLock';
 import KasaWindow from './components/KasaWindow';
 import PrinterWindow from './components/PrinterWindow';
 import PhoneWindow from './components/PhoneWindow';
+import ReminderWindow from './components/ReminderWindow';
+import ReminderAlert from './components/ReminderAlert';
 import SettingsWindow from './components/SettingsWindow';
 
 function App() {
@@ -44,6 +46,7 @@ function App() {
     const showKasaWindow = useStore(s => s.showKasaWindow);
     const showPrinterWindow = useStore(s => s.showPrinterWindow);
     const showPhoneWindow = useStore(s => s.showPhoneWindow);
+    const showReminderWindow = useStore(s => s.showReminderWindow);
     const isModularMode = useStore(s => s.isModularMode);
     const activeDragElement = useStore(s => s.activeDragElement);
     const elementPositions = useStore(s => s.elementPositions);
@@ -407,6 +410,12 @@ function App() {
                     <PhoneWindow position={elementPositions.phone} onClose={() => useStore.setState({ showPhoneWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'phone')} activeDragElement={activeDragElement} zIndex={getZIndex('phone')} />
                 )}
 
+                {/* Reminders */}
+                {showReminderWindow && (
+                    <ReminderWindow position={elementPositions.reminder} onClose={() => useStore.setState({ showReminderWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'reminder')} activeDragElement={activeDragElement} zIndex={getZIndex('reminder')} />
+                )}
+
+                <ReminderAlert />
                 <ConfirmationPopup />
             </div>
         </div>

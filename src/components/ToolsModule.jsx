@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box, Phone } from 'lucide-react';
+import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box, Phone, Clock } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
 
@@ -24,8 +24,13 @@ const ToolsModule = ({ position, onMouseDown }) => {
     const showCadWindow = useStore(s => s.showCadWindow);
     const showBrowserWindow = useStore(s => s.showBrowserWindow);
     const showPhoneWindow = useStore(s => s.showPhoneWindow);
+    const showReminderWindow = useStore(s => s.showReminderWindow);
     const kasaDevices = useStore(s => s.kasaDevices);
     const activeCalls = useStore(s => s.activeCalls);
+    const reminders = useStore(s => s.reminders);
+    const overdueCount = reminders.filter(r =>
+        (r.status === 'pending' || r.status === 'snoozed') && r.trigger_at * 1000 < Date.now()
+    ).length;
 
     const togglePower = useStore(s => s.togglePower);
     const toggleMute = useStore(s => s.toggleMute);
@@ -148,6 +153,24 @@ const ToolsModule = ({ position, onMouseDown }) => {
                             : 'border-cyan-900 text-cyan-700 hover:border-blue-500 hover:text-blue-500'}`}
                     >
                         <Globe size={24} />
+                    </button>
+                </Tip>
+
+                <Tip label="REMINDERS">
+                    <button
+                        onClick={() => useStore.setState(s => ({ showReminderWindow: !s.showReminderWindow }))}
+                        className={`p-3 rounded-full border-2 transition-all duration-300 ${showReminderWindow
+                            ? 'border-amber-400 bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 shadow-[0_0_15px_rgba(251,191,36,0.3)]'
+                            : overdueCount > 0
+                                ? 'border-red-500 bg-red-500/10 text-red-400 animate-pulse'
+                                : 'border-cyan-900 text-cyan-700 hover:border-amber-500 hover:text-amber-400'}`}
+                    >
+                        <Clock size={24} />
+                        {overdueCount > 0 && (
+                            <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center translate-x-1 -translate-y-1">
+                                {overdueCount}
+                            </span>
+                        )}
                     </button>
                 </Tip>
 

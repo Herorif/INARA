@@ -33,6 +33,11 @@ export const CALL_CONNECTED = 'call_connected';
 export const CALL_ENDED = 'call_ended';
 export const CALL_STATUS = 'call_status';
 
+// Reminders (incoming)
+export const REMINDER_TRIGGERED = 'reminder_triggered';
+export const REMINDER_CREATED   = 'reminder_created';
+export const REMINDER_CANCELLED = 'reminder_cancelled';
+
 // Outgoing (client -> server)
 export const START_AUDIO = 'start_audio';
 export const STOP_AUDIO = 'stop_audio';

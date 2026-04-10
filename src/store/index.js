@@ -11,6 +11,7 @@ import { createKasaSlice } from './kasaSlice';
 import { createPrinterSlice } from './printerSlice';
 import { createVideoSlice } from './videoSlice';
 import { createPhoneSlice } from './phoneSlice';
+import { createReminderSlice } from './reminderSlice';
 
 const useStore = create((...args) => ({
     ...createConnectionSlice(...args),
@@ -24,6 +25,7 @@ const useStore = create((...args) => ({
     ...createPrinterSlice(...args),
     ...createVideoSlice(...args),
     ...createPhoneSlice(...args),
+    ...createReminderSlice(...args),
 }));
 
 export default useStore;
