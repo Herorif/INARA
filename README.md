@@ -266,7 +266,9 @@ inara/
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Copyright 2026 Harif
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
