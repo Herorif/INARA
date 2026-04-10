@@ -24,6 +24,10 @@ openwakeword
 soxr
 # Telephony
 twilio
+# pjsua2 — PJSIP Python bindings for homelab SIP (optional, system-level install)
+# Cannot be installed via pip. Must be built from PJSIP source or use Docker.
+# See: backend/telephony/pjsip_provider.py for build instructions.
+# pjsua2
 # Utilities
 python-dotenv
 numpy
