@@ -107,6 +107,12 @@ class Events:
     # Project
     PROJECT_CHANGED = "project.changed"
 
+    # Phone calls
+    CALL_INCOMING = "call.incoming"
+    CALL_CONNECTED = "call.connected"
+    CALL_ENDED = "call.ended"
+    CALL_STATUS = "call.status"
+
     # System
     ERROR = "system.error"
     STATUS = "system.status"
