@@ -83,6 +83,7 @@ agents = {
 
 # Phone agent (only instantiated when a telephony provider is configured)
 phone_agent: PhoneAgent | None = None
+_pending_twilio_router = None
 
 if config.telephony_provider != "none":
     if config.telephony_provider == "twilio":
@@ -101,6 +102,17 @@ if config.telephony_provider != "none":
             tools=tool_registry.to_gemini_format(),
         )
         agents[phone_agent.name] = phone_agent
+
+        # Register Twilio webhook + WebSocket routes
+        if config.telephony_provider == "twilio":
+            from telephony.twilio_routes import create_twilio_router
+            _webhook_base = config.get("telephony.twilio.webhook_base_url", "")
+            _twilio_router = create_twilio_router(_telephony_provider, _webhook_base)
+            # app is defined below — router registration happens after app creation
+            # We store it and mount it in the lifespan instead
+            _pending_twilio_router = _twilio_router
+        else:
+            _pending_twilio_router = None
 
 # Voice pipeline state
 voice_pipeline: VoicePipeline | None = None
@@ -137,6 +149,10 @@ async def lifespan(application):
 
 app = FastAPI(lifespan=lifespan)
 app_socketio = socketio.ASGIApp(sio, app)
+
+# Mount Twilio routes if configured
+if _pending_twilio_router:
+    app.include_router(_pending_twilio_router)
 
 
 # ---------------------------------------------------------------------------
