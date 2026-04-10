@@ -324,6 +324,9 @@ async def start_audio(sid, data=None):
     if phone_agent:
         phone_agent.set_local_pipeline(voice_pipeline)
 
+    # Give voice pipeline access to reminder store for routine injection
+    voice_pipeline.set_reminder_store(reminder_store)
+
     voice_task = asyncio.create_task(
         voice_pipeline.run(start_message="Greet the user briefly.")
     )

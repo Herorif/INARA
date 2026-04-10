@@ -137,6 +137,9 @@ class VoicePipeline:
         # Project manager
         self._project_manager = None
 
+        # Reminder store (optional — set via set_reminder_store after construction)
+        self._reminder_store = None
+
         # Gemini config
         self._tools = tools or []
         self._system_instruction = system_instruction or INARA_SYSTEM_INSTRUCTION
@@ -220,6 +223,10 @@ class VoicePipeline:
         """Update tool permission settings."""
         self._permissions.update(permissions)
         print(f"[INARA] [VOICE] Permissions updated: {permissions}")
+
+    def set_reminder_store(self, store):
+        """Attach the ReminderStore so greetings can trigger routines."""
+        self._reminder_store = store
 
     def resolve_tool_confirmation(self, request_id: str, confirmed: bool):
         """Resolve a pending tool confirmation from the frontend."""
@@ -629,25 +636,54 @@ class VoicePipeline:
     # -----------------------------------------------------------------------
 
     def _check_greeting(self, transcribed_text: str):
-        """Check transcribed user speech for contextual greetings."""
+        """Check transcribed user speech for contextual greetings.
+
+        If a routine is defined for this greeting, its actions are injected
+        into the Gemini session alongside the greeting context so INARA
+        executes them naturally within the same response turn.
+        """
         if not self._greetings_enabled or not self._greeting_detector:
             return
         if self._greeting_detected_this_turn:
             return
 
         result = self._greeting_detector.detect(transcribed_text)
-        if result:
-            self._greeting_detected_this_turn = True
-            print(f"[INARA] [GREETING] Detected: {result['name']}")
-            # Inject greeting context into the Gemini session
-            if self._session:
-                context = result["context"]
-                try:
-                    asyncio.get_running_loop().create_task(
-                        self._session.send(input=context, end_of_turn=False)
-                    )
-                except RuntimeError:
-                    pass
+        if not result:
+            return
+
+        self._greeting_detected_this_turn = True
+        greeting_name = result["name"]
+        print(f"[INARA] [GREETING] Detected: {greeting_name}")
+
+        context = result["context"]
+
+        # Check for a matching routine in the store
+        if self._reminder_store:
+            trigger_key = f"greeting:{greeting_name}"
+            routine = self._reminder_store.get_routine_by_trigger(trigger_key)
+            if routine:
+                action_lines = "\n".join(
+                    f"{i + 1}. {action}" for i, action in enumerate(routine.actions)
+                )
+                context = (
+                    f"{context}\n\n"
+                    f"Also execute the '{routine.name}' routine automatically:\n"
+                    f"{action_lines}"
+                )
+                print(f"[INARA] [GREETING] Injecting routine '{routine.name}' ({len(routine.actions)} actions)")
+                self._bus.emit_nowait(Event(
+                    type=Events.ROUTINE_EXECUTED,
+                    data={"routine": routine.name, "trigger": trigger_key},
+                    source="voice",
+                ))
+
+        if self._session:
+            try:
+                asyncio.get_running_loop().create_task(
+                    self._session.send(input=context, end_of_turn=False)
+                )
+            except RuntimeError:
+                pass
 
     # -----------------------------------------------------------------------
     # Internal: Startup & Reconnect
