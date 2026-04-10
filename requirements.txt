@@ -36,3 +36,9 @@ pydantic
 mediapipe
 # CAD Generation
 build123d
+# Desktop Agent
+psutil
+pyperclip
+# pywin32 — Windows window management (optional, graceful fallback if missing)
+# Install with: pip install pywin32
+# pywin32

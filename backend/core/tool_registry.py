@@ -154,6 +154,62 @@ def create_default_registry() -> ToolRegistry:
         ],
     ))
 
+    # --- Desktop Control ---
+    registry.register(Tool(
+        name="get_system_info",
+        description="Returns current CPU, memory, disk, battery, and top process usage.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="launch_app",
+        description="Opens an application by friendly name (e.g. 'chrome', 'vscode', 'spotify', 'terminal').",
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "The app to open."),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_running_apps",
+        description="Lists the top running processes sorted by memory usage.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="focus_window",
+        description="Brings an open window to the foreground by its title or app name.",
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "Window title or app name to focus."),
+        ],
+    ))
+    registry.register(Tool(
+        name="take_screenshot",
+        description=(
+            "Takes a screenshot of the current screen and uses vision AI to describe what is visible. "
+            "Use when the user asks what's on screen or needs visual context."
+        ),
+        parameters=[
+            ToolParameter("prompt", ToolParameterType.STRING, "Optional specific question about what to look for.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="search_files",
+        description="Searches for files matching a name pattern on the user's machine. Returns up to 20 paths.",
+        parameters=[
+            ToolParameter("query", ToolParameterType.STRING, "Filename or glob pattern (e.g. 'resume*.docx', '*.pdf')."),
+            ToolParameter("directory", ToolParameterType.STRING, "Directory to search. Defaults to user home folder.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="read_clipboard",
+        description="Reads and returns the current text content of the system clipboard.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="write_clipboard",
+        description="Writes text to the system clipboard.",
+        parameters=[
+            ToolParameter("text", ToolParameterType.STRING, "The text to copy to clipboard."),
+        ],
+    ))
+
     # --- Reminders & Routines ---
     registry.register(Tool(
         name="create_reminder",

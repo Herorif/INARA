@@ -119,6 +119,10 @@ class Events:
     REMINDER_CANCELLED = "reminder.cancelled"
     ROUTINE_EXECUTED   = "routine.executed"
 
+    # Desktop
+    DESKTOP_SCREENSHOT  = "desktop.screenshot"
+    DESKTOP_SYSTEM_INFO = "desktop.system_info"
+
     # System
     ERROR = "system.error"
     STATUS = "system.status"

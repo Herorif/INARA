@@ -31,6 +31,14 @@ DEFAULT_SETTINGS = {
         "make_phone_call": True,
         "end_phone_call": False,
         "get_call_status": False,
+        "get_system_info":   False,
+        "launch_app":        True,
+        "list_running_apps": False,
+        "focus_window":      True,
+        "take_screenshot":   True,
+        "search_files":      False,
+        "read_clipboard":    True,
+        "write_clipboard":   True,
         "create_reminder": True,
         "list_reminders": False,
         "cancel_reminder": False,
@@ -45,6 +53,12 @@ DEFAULT_SETTINGS = {
         "wake_word_enabled": False,
         "wake_timeout": 30,
         "greetings_enabled": True,
+    },
+    "desktop": {
+        "enabled":              True,
+        "custom_apps":          {},         # user-defined name → command overrides
+        "screenshot_max_width": 1280,
+        "file_search_root":     "~",        # default directory for search_files
     },
     "reminders": {
         "enabled": True,
@@ -170,6 +184,14 @@ class Config:
     @property
     def telephony_provider(self) -> str:
         return self._data.get("telephony", {}).get("provider", "none")
+
+    @property
+    def desktop_enabled(self) -> bool:
+        return self._data.get("desktop", {}).get("enabled", True)
+
+    @property
+    def desktop_config(self) -> dict:
+        return self._data.get("desktop", {})
 
     @property
     def reminders_enabled(self) -> bool:
