@@ -20,6 +20,8 @@ aiohttp>=3.9.0
 anthropic
 # Wake Word Detection
 openwakeword
+# Audio resampling (high-quality, required for telephony 8kHz↔16kHz/24kHz conversion)
+soxr
 # Utilities
 python-dotenv
 numpy
