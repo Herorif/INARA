@@ -39,6 +39,7 @@ from agents.printer_agent import PrinterControlAgent
 from agents.auth_agent import AuthAgent
 from agents.phone_agent import PhoneAgent
 from agents.scheduler_agent import SchedulerAgent
+from agents.desktop_agent import DesktopAgent
 from core.reminder_store import ReminderStore
 from project_manager import ProjectManager
 from voice.pipeline import VoicePipeline
@@ -82,6 +83,16 @@ agents = {
     printer_agent.name: printer_agent,
     auth_agent.name: auth_agent,
 }
+
+# Desktop agent (always active — gives INARA machine awareness)
+_desktop_cfg = config.desktop_config
+desktop_agent = DesktopAgent(
+    event_bus=bus,
+    custom_apps=_desktop_cfg.get("custom_apps", {}),
+    screenshot_max_width=_desktop_cfg.get("screenshot_max_width", 1280),
+    file_search_root=_desktop_cfg.get("file_search_root", "~"),
+)
+agents[desktop_agent.name] = desktop_agent
 
 # Reminder store + scheduler agent (always active)
 reminder_store = ReminderStore()
@@ -193,6 +204,8 @@ async def _bridge_event(event: Event):
         Events.REMINDER_TRIGGERED: "reminder_triggered",
         Events.REMINDER_CREATED: "reminder_created",
         Events.REMINDER_CANCELLED: "reminder_cancelled",
+        Events.DESKTOP_SCREENSHOT:  "desktop_screenshot",
+        Events.DESKTOP_SYSTEM_INFO: "desktop_system_info",
         Events.ERROR: "error",
         Events.STATUS: "status",
         Events.VOICE_TRANSCRIPTION: "transcription",
