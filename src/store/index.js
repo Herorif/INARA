@@ -12,6 +12,7 @@ import { createPrinterSlice } from './printerSlice';
 import { createVideoSlice } from './videoSlice';
 import { createPhoneSlice } from './phoneSlice';
 import { createReminderSlice } from './reminderSlice';
+import { createDesktopSlice } from './desktopSlice';
 
 const useStore = create((...args) => ({
     ...createConnectionSlice(...args),
@@ -26,6 +27,7 @@ const useStore = create((...args) => ({
     ...createVideoSlice(...args),
     ...createPhoneSlice(...args),
     ...createReminderSlice(...args),
+    ...createDesktopSlice(...args),
 }));
 
 export default useStore;

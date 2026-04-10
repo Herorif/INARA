@@ -19,6 +19,7 @@ export const createUiSlice = (set, get) => ({
         printer: { x: window.innerWidth / 2 - 350, y: window.innerHeight / 2 - 100 },
         phone: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
         reminder: { x: window.innerWidth / 2 + 200, y: window.innerHeight / 2 - 150 },
+        desktop: { x: window.innerWidth / 2 - 200, y: window.innerHeight / 2 - 100 },
         tools: { x: window.innerWidth / 2, y: window.innerHeight - 100 },
     },
 
@@ -33,10 +34,11 @@ export const createUiSlice = (set, get) => ({
         printer: { w: 380, h: 380 },
         phone: { w: 340, h: 480 },
         reminder: { w: 340, h: 460 },
+        desktop: { w: 380, h: 500 },
     },
 
     activeDragElement: null,
-    zIndexOrder: ['visualizer', 'chat', 'tools', 'video', 'cad', 'browser', 'kasa', 'printer', 'phone', 'reminder'],
+    zIndexOrder: ['visualizer', 'chat', 'tools', 'video', 'cad', 'browser', 'kasa', 'printer', 'phone', 'reminder', 'desktop'],
 
     setShowSettings: (val) => set({ showSettings: val }),
     setShowCadWindow: (val) => set({ showCadWindow: val }),

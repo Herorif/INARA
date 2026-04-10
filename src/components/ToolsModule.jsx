@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box, Phone, Clock } from 'lucide-react';
+import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box, Phone, Clock, Monitor } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
 
@@ -25,6 +25,7 @@ const ToolsModule = ({ position, onMouseDown }) => {
     const showBrowserWindow = useStore(s => s.showBrowserWindow);
     const showPhoneWindow = useStore(s => s.showPhoneWindow);
     const showReminderWindow = useStore(s => s.showReminderWindow);
+    const showDesktopWindow  = useStore(s => s.showDesktopWindow);
     const kasaDevices = useStore(s => s.kasaDevices);
     const activeCalls = useStore(s => s.activeCalls);
     const reminders = useStore(s => s.reminders);
@@ -153,6 +154,17 @@ const ToolsModule = ({ position, onMouseDown }) => {
                             : 'border-cyan-900 text-cyan-700 hover:border-blue-500 hover:text-blue-500'}`}
                     >
                         <Globe size={24} />
+                    </button>
+                </Tip>
+
+                <Tip label="DESKTOP">
+                    <button
+                        onClick={() => useStore.setState(s => ({ showDesktopWindow: !s.showDesktopWindow }))}
+                        className={`p-3 rounded-full border-2 transition-all duration-300 ${showDesktopWindow
+                            ? 'border-cyan-400 bg-cyan-400/10 text-cyan-400 hover:bg-cyan-400/20 shadow-[0_0_15px_rgba(34,211,238,0.3)]'
+                            : 'border-cyan-900 text-cyan-700 hover:border-cyan-500 hover:text-cyan-500'}`}
+                    >
+                        <Monitor size={24} />
                     </button>
                 </Tip>
 

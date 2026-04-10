@@ -19,6 +19,7 @@ import KasaWindow from './components/KasaWindow';
 import PrinterWindow from './components/PrinterWindow';
 import PhoneWindow from './components/PhoneWindow';
 import ReminderWindow from './components/ReminderWindow';
+import DesktopWindow from './components/DesktopWindow';
 import ReminderAlert from './components/ReminderAlert';
 import SettingsWindow from './components/SettingsWindow';
 
@@ -47,6 +48,7 @@ function App() {
     const showPrinterWindow = useStore(s => s.showPrinterWindow);
     const showPhoneWindow = useStore(s => s.showPhoneWindow);
     const showReminderWindow = useStore(s => s.showReminderWindow);
+    const showDesktopWindow  = useStore(s => s.showDesktopWindow);
     const isModularMode = useStore(s => s.isModularMode);
     const activeDragElement = useStore(s => s.activeDragElement);
     const elementPositions = useStore(s => s.elementPositions);
@@ -408,6 +410,11 @@ function App() {
                 {/* Phone */}
                 {showPhoneWindow && (
                     <PhoneWindow position={elementPositions.phone} onClose={() => useStore.setState({ showPhoneWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'phone')} activeDragElement={activeDragElement} zIndex={getZIndex('phone')} />
+                )}
+
+                {/* Desktop */}
+                {showDesktopWindow && (
+                    <DesktopWindow position={elementPositions.desktop} onClose={() => useStore.setState({ showDesktopWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'desktop')} activeDragElement={activeDragElement} zIndex={getZIndex('desktop')} />
                 )}
 
                 {/* Reminders */}

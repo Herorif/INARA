@@ -150,6 +150,16 @@ export function initSocketListeners() {
         s().updateCallStatus(data);
     }));
 
+    // --- Desktop ---
+    unsubs.push(onSocket('desktop_system_info', (data) => {
+        useStore.setState({ systemInfo: data });
+        if (data.processes) useStore.setState({ runningApps: data.processes });
+    }));
+
+    unsubs.push(onSocket('desktop_screenshot', (data) => {
+        if (data.image) useStore.setState({ lastScreenshot: data.image });
+    }));
+
     // --- Reminders ---
     unsubs.push(onSocket('reminder_triggered', (data) => {
         console.log('[REMINDER] Fired:', data);
