@@ -1,14 +1,28 @@
 {
-  "project_name": "YourProject",
-  "phase": "4C",
+  "project_name": "INARA",
+  "phase": "4G",
   "stats": {
-    "vibe": 75,
-    "entropy": 45,
-    "last_roll": null
+    "vibe": 83,
+    "entropy": 43,
+    "last_roll": {
+      "roll": 16,
+      "dc": 10,
+      "result": "SUCCESS",
+      "context": "Oracle re-roll after UI refinement pass. Vibe restored to 83.",
+      "timestamp": "2026-04-10"
+    }
   },
   "history": [
     {
       "event": "GLiM Integrated at Phase 4C",
+      "timestamp": "2026-04-10"
+    },
+    {
+      "event": "Phase 4G complete. Oracle roll FAILED (4 vs DC 10). Vibe below 80 threshold.",
+      "timestamp": "2026-04-10"
+    },
+    {
+      "event": "UI refinement pass: PhoneWindow (number formatting, live timer, missed call state, timestamps, polished empty state, fixed pulse animation), ToolsModule (tooltips on all buttons, badge positioning fixed). Vibe 75 -> 83. Oracle re-roll SUCCESS (16 vs DC 10). Cleared to proceed to Phase 5.",
       "timestamp": "2026-04-10"
     }
   ]

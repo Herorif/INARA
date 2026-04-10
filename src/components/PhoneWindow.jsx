@@ -1,7 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Phone, PhoneOff, PhoneIncoming, PhoneMissed, Delete, Clock } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+const formatNumber = (num) => {
+    if (!num) return 'Unknown';
+    const digits = num.replace(/\D/g, '');
+    if (digits.length === 11 && digits[0] === '1') {
+        return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    }
+    if (digits.length === 10) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+    return num;
+};
+
+const formatElapsed = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+};
+
+const formatTime = (unixTs) => {
+    if (!unixTs) return '';
+    const d = new Date(unixTs * 1000);
+    const now = new Date();
+    const diffDays = Math.floor((now - d) / 86400000);
+    if (diffDays === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return 'Yesterday';
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
+
+const isMissed = (call) =>
+    call.direction === 'inbound' && (!call.duration || call.duration < 5);
 
 // ---------------------------------------------------------------------------
 // Dial Pad Button
@@ -27,15 +61,17 @@ const DIAL_KEYS = [
 // Incoming Call Banner
 // ---------------------------------------------------------------------------
 const IncomingCallBanner = ({ call, onAnswer, onReject }) => (
-    <div className="mx-3 mb-3 p-3 rounded-xl border border-green-500/40 bg-green-500/10 animate-pulse">
-        <div className="flex items-center gap-2 mb-2">
-            <PhoneIncoming size={16} className="text-green-400" />
-            <span className="text-xs font-bold tracking-widest text-green-400">INCOMING CALL</span>
+    <div className="mx-3 mb-3 p-3 rounded-xl border border-green-500/40 bg-green-500/5 relative overflow-hidden">
+        {/* Subtle pulsing ring on border only */}
+        <div className="absolute inset-0 rounded-xl border border-green-400/60 animate-pulse pointer-events-none" />
+        <div className="flex items-center gap-2 mb-2 relative z-10">
+            <PhoneIncoming size={14} className="text-green-400 animate-bounce" />
+            <span className="text-[10px] font-bold tracking-widest text-green-400">INCOMING CALL</span>
         </div>
-        <div className="text-sm font-bold text-white mb-3 font-mono tracking-wider">
-            {call.remote_number}
+        <div className="text-sm font-bold text-white mb-3 font-mono tracking-wider relative z-10">
+            {formatNumber(call.remote_number)}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 relative z-10">
             <button
                 onClick={() => onAnswer(call.call_id)}
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-green-500/20 border border-green-500/50 text-green-400 hover:bg-green-500/30 transition-all text-xs font-bold tracking-widest"
@@ -53,45 +89,74 @@ const IncomingCallBanner = ({ call, onAnswer, onReject }) => (
 );
 
 // ---------------------------------------------------------------------------
-// Active Call Row
+// Active Call Row — live timer
 // ---------------------------------------------------------------------------
-const ActiveCallRow = ({ call, onHangUp }) => (
-    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5">
-        <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <div>
-                <div className="text-xs font-bold text-cyan-200 tracking-wider font-mono">
-                    {call.remote_number}
+const ActiveCallRow = ({ call, onHangUp }) => {
+    const [elapsed, setElapsed] = useState(0);
+
+    useEffect(() => {
+        const base = call.started_at ? Math.floor(Date.now() / 1000 - call.started_at) : 0;
+        setElapsed(Math.max(0, base));
+        const id = setInterval(() => setElapsed(s => s + 1), 1000);
+        return () => clearInterval(id);
+    }, [call.started_at]);
+
+    return (
+        <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5">
+            <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
+                <div>
+                    <div className="text-xs font-bold text-cyan-200 tracking-wider font-mono">
+                        {formatNumber(call.remote_number)}
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-cyan-600 mt-0.5">
+                        <Clock size={9} />
+                        <span className="font-mono">{formatElapsed(elapsed)}</span>
+                        <span className="capitalize ml-1">{call.direction}</span>
+                    </div>
                 </div>
-                <div className="text-[10px] text-cyan-600 capitalize">{call.direction}</div>
             </div>
+            <button
+                onClick={() => onHangUp(call.call_id)}
+                className="p-2 rounded-lg bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 active:scale-95 transition-all"
+            >
+                <PhoneOff size={14} />
+            </button>
         </div>
-        <button
-            onClick={() => onHangUp(call.call_id)}
-            className="p-2 rounded-lg bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 transition-all"
-        >
-            <PhoneOff size={14} />
-        </button>
-    </div>
-);
+    );
+};
 
 // ---------------------------------------------------------------------------
 // History Row
 // ---------------------------------------------------------------------------
 const HistoryRow = ({ call }) => {
-    const icon = call.direction === 'inbound'
-        ? <PhoneIncoming size={12} className="text-cyan-400" />
-        : <Phone size={12} className="text-purple-400" />;
-    const durationStr = call.duration ? `${Math.round(call.duration)}s` : '';
+    const missed = isMissed(call);
+    const durationStr = call.duration && call.duration >= 5 ? formatElapsed(Math.round(call.duration)) : null;
+
+    const icon = missed
+        ? <PhoneMissed size={12} className="text-red-400 shrink-0" />
+        : call.direction === 'inbound'
+            ? <PhoneIncoming size={12} className="text-cyan-400 shrink-0" />
+            : <Phone size={12} className="text-purple-400 shrink-0" />;
 
     return (
-        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
-            <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
+            <div className="flex items-center gap-2 min-w-0">
                 {icon}
-                <span className="text-xs font-mono text-cyan-300">{call.remote_number}</span>
+                <div className="min-w-0">
+                    <div className={`text-xs font-mono truncate ${missed ? 'text-red-300' : 'text-cyan-300'}`}>
+                        {formatNumber(call.remote_number)}
+                    </div>
+                    {missed && <div className="text-[9px] text-red-500 tracking-widest">MISSED</div>}
+                </div>
             </div>
-            <div className="flex items-center gap-1 text-[10px] text-cyan-700">
-                {durationStr && <><Clock size={9} /> {durationStr}</>}
+            <div className="flex flex-col items-end gap-0.5 shrink-0 ml-2">
+                {durationStr && (
+                    <div className="flex items-center gap-1 text-[10px] text-cyan-700 font-mono">
+                        <Clock size={8} /> {durationStr}
+                    </div>
+                )}
+                <div className="text-[9px] text-cyan-800">{formatTime(call.ended_at)}</div>
             </div>
         </div>
     );
@@ -120,6 +185,8 @@ const PhoneWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement
     const handleAnswer = (call_id) => emitSocket('answer_call', { call_id });
     const handleReject = (call_id) => emitSocket('reject_call', { call_id });
     const handleHangUp = (call_id) => emitSocket('user_input', { text: `End call ${call_id}` });
+
+    const missedCount = callHistory.filter(isMissed).length;
 
     return (
         <div
@@ -185,12 +252,17 @@ const PhoneWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement
                         <button
                             key={t}
                             onClick={() => setTab(t)}
-                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold tracking-widest transition-all
+                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold tracking-widest transition-all relative
                                 ${tab === t
                                     ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400'
                                     : 'border border-transparent text-cyan-700 hover:text-cyan-500'}`}
                         >
                             {t.toUpperCase()}
+                            {t === 'history' && missedCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
+                                    {missedCount}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -235,7 +307,10 @@ const PhoneWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement
                 {tab === 'history' && (
                     <div className="px-1">
                         {callHistory.length === 0 ? (
-                            <div className="text-center text-cyan-800 text-xs py-8 tracking-widest">NO CALL HISTORY</div>
+                            <div className="flex flex-col items-center justify-center py-10 gap-2">
+                                <PhoneOff size={24} className="text-cyan-900" />
+                                <span className="text-cyan-800 text-xs tracking-widest">NO CALL HISTORY</span>
+                            </div>
                         ) : (
                             callHistory.map((call, i) => (
                                 <HistoryRow key={call.call_id || i} call={call} />
