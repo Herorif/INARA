@@ -130,6 +130,26 @@ export function initSocketListeners() {
         }));
     }));
 
+    // --- Phone Calls ---
+    unsubs.push(onSocket('call_incoming', (data) => {
+        console.log('[CALL] Incoming:', data);
+        useStore.setState({ incomingCall: data, showPhoneWindow: true });
+    }));
+
+    unsubs.push(onSocket('call_connected', (data) => {
+        console.log('[CALL] Connected:', data);
+        s().addActiveCall(data);
+    }));
+
+    unsubs.push(onSocket('call_ended', (data) => {
+        console.log('[CALL] Ended:', data);
+        s().removeActiveCall(data);
+    }));
+
+    unsubs.push(onSocket('call_status', (data) => {
+        s().updateCallStatus(data);
+    }));
+
     // --- Kasa ---
     unsubs.push(onSocket('kasa_devices', (devices) => {
         console.log('Kasa Devices:', devices);

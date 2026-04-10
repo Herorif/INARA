@@ -27,6 +27,12 @@ export const SLICING_PROGRESS = 'slicing_progress';
 export const PRINT_STATUS_UPDATE = 'print_status_update';
 export const PRINT_RESULT = 'print_result';
 
+// Phone calls (incoming)
+export const CALL_INCOMING = 'call_incoming';
+export const CALL_CONNECTED = 'call_connected';
+export const CALL_ENDED = 'call_ended';
+export const CALL_STATUS = 'call_status';
+
 // Outgoing (client -> server)
 export const START_AUDIO = 'start_audio';
 export const STOP_AUDIO = 'stop_audio';
@@ -46,3 +52,5 @@ export const ITERATE_CAD = 'iterate_cad';
 export const PROMPT_WEB_AGENT = 'prompt_web_agent';
 export const UPLOAD_MEMORY = 'upload_memory';
 export const SHUTDOWN = 'shutdown';
+export const ANSWER_CALL = 'answer_call';
+export const REJECT_CALL = 'reject_call';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box } from 'lucide-react';
+import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box, Phone } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
 
@@ -13,8 +13,10 @@ const ToolsModule = ({ position, onMouseDown }) => {
     const showPrinterWindow = useStore(s => s.showPrinterWindow);
     const showCadWindow = useStore(s => s.showCadWindow);
     const showBrowserWindow = useStore(s => s.showBrowserWindow);
+    const showPhoneWindow = useStore(s => s.showPhoneWindow);
     const activeDragElement = useStore(s => s.activeDragElement);
     const kasaDevices = useStore(s => s.kasaDevices);
+    const activeCalls = useStore(s => s.activeCalls);
 
     const togglePower = useStore(s => s.togglePower);
     const toggleMute = useStore(s => s.toggleMute);
@@ -99,6 +101,20 @@ const ToolsModule = ({ position, onMouseDown }) => {
                         ? 'border-blue-400 bg-blue-400/10 text-blue-400 hover:bg-blue-400/20 shadow-[0_0_15px_rgba(96,165,250,0.3)]'
                         : 'border-cyan-900 text-cyan-700 hover:border-blue-500 hover:text-blue-500'}`}>
                     <Globe size={24} />
+                </button>
+
+                <button onClick={() => useStore.setState(s => ({ showPhoneWindow: !s.showPhoneWindow }))}
+                    className={`relative p-3 rounded-full border-2 transition-all duration-300 ${showPhoneWindow
+                        ? 'border-green-400 bg-green-400/10 text-green-400 hover:bg-green-400/20 shadow-[0_0_15px_rgba(74,222,128,0.3)]'
+                        : activeCalls.length > 0
+                            ? 'border-green-500 bg-green-500/10 text-green-500 animate-pulse'
+                            : 'border-cyan-900 text-cyan-700 hover:border-green-500 hover:text-green-500'}`}>
+                    <Phone size={24} />
+                    {activeCalls.length > 0 && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 text-black text-[9px] font-bold flex items-center justify-center">
+                            {activeCalls.length}
+                        </span>
+                    )}
                 </button>
             </div>
         </div>

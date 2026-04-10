@@ -17,6 +17,7 @@ import ConfirmationPopup from './components/ConfirmationPopup';
 import AuthLock from './components/AuthLock';
 import KasaWindow from './components/KasaWindow';
 import PrinterWindow from './components/PrinterWindow';
+import PhoneWindow from './components/PhoneWindow';
 import SettingsWindow from './components/SettingsWindow';
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
     const showBrowserWindow = useStore(s => s.showBrowserWindow);
     const showKasaWindow = useStore(s => s.showKasaWindow);
     const showPrinterWindow = useStore(s => s.showPrinterWindow);
+    const showPhoneWindow = useStore(s => s.showPhoneWindow);
     const isModularMode = useStore(s => s.isModularMode);
     const activeDragElement = useStore(s => s.activeDragElement);
     const elementPositions = useStore(s => s.elementPositions);
@@ -398,6 +400,11 @@ function App() {
                 {/* Printer */}
                 {showPrinterWindow && (
                     <PrinterWindow position={elementPositions.printer} onClose={() => useStore.setState({ showPrinterWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'printer')} activeDragElement={activeDragElement} zIndex={getZIndex('printer')} />
+                )}
+
+                {/* Phone */}
+                {showPhoneWindow && (
+                    <PhoneWindow position={elementPositions.phone} onClose={() => useStore.setState({ showPhoneWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'phone')} activeDragElement={activeDragElement} zIndex={getZIndex('phone')} />
                 )}
 
                 <ConfirmationPopup />

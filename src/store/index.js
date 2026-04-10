@@ -10,6 +10,7 @@ import { createBrowserSlice } from './browserSlice';
 import { createKasaSlice } from './kasaSlice';
 import { createPrinterSlice } from './printerSlice';
 import { createVideoSlice } from './videoSlice';
+import { createPhoneSlice } from './phoneSlice';
 
 const useStore = create((...args) => ({
     ...createConnectionSlice(...args),
@@ -22,6 +23,7 @@ const useStore = create((...args) => ({
     ...createKasaSlice(...args),
     ...createPrinterSlice(...args),
     ...createVideoSlice(...args),
+    ...createPhoneSlice(...args),
 }));
 
 export default useStore;
