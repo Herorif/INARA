@@ -31,6 +31,12 @@ DEFAULT_SETTINGS = {
         "make_phone_call": True,
         "end_phone_call": False,
         "get_call_status": False,
+        "create_reminder": True,
+        "list_reminders": False,
+        "cancel_reminder": False,
+        "snooze_reminder": False,
+        "create_routine": True,
+        "list_routines": False,
     },
     "printers": [],
     "kasa_devices": [],
@@ -39,6 +45,12 @@ DEFAULT_SETTINGS = {
         "wake_word_enabled": False,
         "wake_timeout": 30,
         "greetings_enabled": True,
+    },
+    "reminders": {
+        "enabled": True,
+        "check_interval": 15,       # seconds between due-reminder polls
+        "announce_voice": True,     # INARA speaks the reminder aloud
+        "announce_sound": True,     # frontend plays notification sound
     },
     "telephony": {
         "provider": "none",     # "none" | "twilio" | "pjsip"
@@ -158,3 +170,15 @@ class Config:
     @property
     def telephony_provider(self) -> str:
         return self._data.get("telephony", {}).get("provider", "none")
+
+    @property
+    def reminders_enabled(self) -> bool:
+        return self._data.get("reminders", {}).get("enabled", True)
+
+    @property
+    def reminders_check_interval(self) -> int:
+        return int(self._data.get("reminders", {}).get("check_interval", 15))
+
+    @property
+    def reminders_announce_voice(self) -> bool:
+        return self._data.get("reminders", {}).get("announce_voice", True)

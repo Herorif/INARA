@@ -154,4 +154,60 @@ def create_default_registry() -> ToolRegistry:
         ],
     ))
 
+    # --- Reminders & Routines ---
+    registry.register(Tool(
+        name="create_reminder",
+        description=(
+            "Creates a reminder that fires at a specific time. "
+            "Pass 'when' as an ISO-8601 datetime string (e.g. '2026-04-12T09:00:00') "
+            "or natural language (e.g. 'in 20 minutes', 'tomorrow at 3pm'). "
+            "For recurring reminders pass 'recurring' as 'daily', 'weekly', or 'weekdays'."
+        ),
+        parameters=[
+            ToolParameter("task", ToolParameterType.STRING, "What to remind the user about."),
+            ToolParameter("when", ToolParameterType.STRING, "When to fire the reminder (ISO datetime or natural language)."),
+            ToolParameter("recurring", ToolParameterType.STRING, "Recurrence: 'daily', 'weekly', or 'weekdays'. Omit for one-time.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_reminders",
+        description="Lists reminders. Use filter='today' for today's, 'overdue' for past-due, or 'all' for everything pending.",
+        parameters=[
+            ToolParameter("filter", ToolParameterType.STRING, "Filter: 'today', 'overdue', or 'all' (default).", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="cancel_reminder",
+        description="Cancels a reminder so it will not fire. Use the ID shown in list_reminders (first 8 characters are enough).",
+        parameters=[
+            ToolParameter("reminder_id", ToolParameterType.STRING, "The reminder ID or its 8-character prefix."),
+        ],
+    ))
+    registry.register(Tool(
+        name="snooze_reminder",
+        description="Snoozes a reminder, rescheduling it to fire again after the given number of minutes.",
+        parameters=[
+            ToolParameter("reminder_id", ToolParameterType.STRING, "The reminder ID or its 8-character prefix."),
+            ToolParameter("minutes", ToolParameterType.INTEGER, "How many minutes to snooze for."),
+        ],
+    ))
+    registry.register(Tool(
+        name="create_routine",
+        description=(
+            "Creates a named routine that runs automatically on a greeting trigger. "
+            "Trigger values: 'greeting:good_morning', 'greeting:im_home', "
+            "'greeting:goodnight', 'greeting:leaving', or 'manual'."
+        ),
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "Short name for the routine (e.g. 'Morning Routine')."),
+            ToolParameter("trigger", ToolParameterType.STRING, "When this routine fires (e.g. 'greeting:good_morning')."),
+            ToolParameter("actions", ToolParameterType.STRING, "Comma-separated list of actions for INARA to perform."),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_routines",
+        description="Lists all defined routines and whether they are enabled.",
+        parameters=[],
+    ))
+
     return registry
