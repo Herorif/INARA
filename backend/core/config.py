@@ -45,6 +45,16 @@ DEFAULT_SETTINGS = {
         "snooze_reminder": False,
         "create_routine": True,
         "list_routines": False,
+        # Vision
+        "describe_camera":  True,
+        "detect_presence":  False,
+        "watch_for":        True,
+        "stop_watching":    False,
+        "list_watches":     False,
+        # Devices
+        "list_all_devices":  False,
+        "control_device":    True,
+        "get_device_state":  False,
     },
     "printers": [],
     "kasa_devices": [],
@@ -65,6 +75,15 @@ DEFAULT_SETTINGS = {
         "check_interval": 15,       # seconds between due-reminder polls
         "announce_voice": True,     # INARA speaks the reminder aloud
         "announce_sound": True,     # frontend plays notification sound
+    },
+    "vision": {
+        "enabled":          True,
+        "watch_interval":   5,      # seconds between watch condition checks
+    },
+    "home_assistant": {
+        "enabled": False,
+        "url":     "",              # e.g. "http://homeassistant.local:8123"
+        "token":   "",              # Long-lived access token from HA profile
     },
     "telephony": {
         "provider": "none",     # "none" | "twilio" | "pjsip"
@@ -204,3 +223,20 @@ class Config:
     @property
     def reminders_announce_voice(self) -> bool:
         return self._data.get("reminders", {}).get("announce_voice", True)
+
+    @property
+    def vision_enabled(self) -> bool:
+        return self._data.get("vision", {}).get("enabled", True)
+
+    @property
+    def vision_watch_interval(self) -> float:
+        return float(self._data.get("vision", {}).get("watch_interval", 5))
+
+    @property
+    def ha_config(self) -> dict:
+        return self._data.get("home_assistant", {})
+
+    @property
+    def ha_enabled(self) -> bool:
+        cfg = self._data.get("home_assistant", {})
+        return bool(cfg.get("enabled") and cfg.get("url") and cfg.get("token"))

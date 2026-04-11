@@ -266,4 +266,79 @@ def create_default_registry() -> ToolRegistry:
         parameters=[],
     ))
 
+    # --- Vision ---
+    registry.register(Tool(
+        name="describe_camera",
+        description=(
+            "Takes the current camera frame and describes what INARA sees. "
+            "Use when the user asks 'What do you see?' or wants visual feedback from the camera. "
+            "Optionally pass a focused question."
+        ),
+        parameters=[
+            ToolParameter("question", ToolParameterType.STRING, "Optional specific question about the scene.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="detect_presence",
+        description="Checks whether any person is visible in the current camera view.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="watch_for",
+        description=(
+            "Starts continuously monitoring the camera for a specific event or object "
+            "and will alert the user when detected. "
+            "Examples: 'package delivery', 'person at the door', 'cat on desk'."
+        ),
+        parameters=[
+            ToolParameter("description", ToolParameterType.STRING, "What to watch for."),
+            ToolParameter("watch_id", ToolParameterType.STRING, "Short ID used to cancel this watch later.", required=False),
+        ],
+        non_blocking=True,
+    ))
+    registry.register(Tool(
+        name="stop_watching",
+        description="Stops a previously registered camera watch condition.",
+        parameters=[
+            ToolParameter("watch_id", ToolParameterType.STRING, "The watch ID to remove."),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_watches",
+        description="Lists all active camera watch conditions.",
+        parameters=[],
+    ))
+
+    # --- Unified Devices (Kasa + Home Assistant) ---
+    registry.register(Tool(
+        name="list_all_devices",
+        description=(
+            "Lists all smart home devices across all connected protocols "
+            "(TP-Link Kasa and Home Assistant). Returns device IDs needed for control_device."
+        ),
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="control_device",
+        description=(
+            "Controls a smart home device. Works for Kasa and Home Assistant devices. "
+            "Actions: 'turn_on', 'turn_off', 'toggle', 'set'. "
+            "Use list_all_devices to get the device_id first."
+        ),
+        parameters=[
+            ToolParameter("device_id", ToolParameterType.STRING, "Device ID or IP from list_all_devices."),
+            ToolParameter("action", ToolParameterType.STRING, "Action: 'turn_on', 'turn_off', 'toggle', or 'set'."),
+            ToolParameter("brightness", ToolParameterType.INTEGER, "Brightness 0-100 (for lights).", required=False),
+            ToolParameter("color", ToolParameterType.STRING, "Color name or 'warm' (for lights).", required=False),
+            ToolParameter("temperature", ToolParameterType.NUMBER, "Target temperature for climate devices.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="get_device_state",
+        description="Returns the current state and attributes of a specific device.",
+        parameters=[
+            ToolParameter("device_id", ToolParameterType.STRING, "Device ID or IP."),
+        ],
+    ))
+
     return registry

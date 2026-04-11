@@ -40,9 +40,12 @@ from agents.auth_agent import AuthAgent
 from agents.phone_agent import PhoneAgent
 from agents.scheduler_agent import SchedulerAgent
 from agents.desktop_agent import DesktopAgent
+from agents.vision_agent import VisionAgent
+from agents.device_agent import DeviceAgent
 from core.reminder_store import ReminderStore
 from project_manager import ProjectManager
 from voice.pipeline import VoicePipeline
+from vision.vision_loop import VisionLoop
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +101,26 @@ agents[desktop_agent.name] = desktop_agent
 reminder_store = ReminderStore()
 scheduler_agent = SchedulerAgent(event_bus=bus, reminder_store=reminder_store)
 agents[scheduler_agent.name] = scheduler_agent
+
+# Vision loop + VisionAgent (always active when vision enabled)
+vision_loop: VisionLoop | None = None
+vision_task: asyncio.Task | None = None
+vision_agent: VisionAgent | None = None
+
+if config.vision_enabled:
+    vision_loop = VisionLoop(event_bus=bus, interval=config.vision_watch_interval)
+    vision_agent = VisionAgent(event_bus=bus, vision_loop=vision_loop)
+    agents[vision_agent.name] = vision_agent
+
+# DeviceAgent — unifies Kasa + Home Assistant
+ha_bridge = None
+if config.ha_enabled:
+    from devices.homeassistant import HomeAssistantBridge
+    _ha_cfg = config.ha_config
+    ha_bridge = HomeAssistantBridge(url=_ha_cfg["url"], token=_ha_cfg["token"])
+
+device_agent = DeviceAgent(event_bus=bus, kasa_agent=kasa_agent, ha_bridge=ha_bridge)
+agents[device_agent.name] = device_agent
 
 # Phone agent (only instantiated when a telephony provider is configured)
 phone_agent: PhoneAgent | None = None
@@ -162,11 +185,22 @@ async def lifespan(application):
         asyncio.create_task(_check_reminders())
         print("[INARA] Reminder loop started.")
 
+    if vision_agent:
+        await vision_agent.initialize()
+        vision_task_ref = asyncio.create_task(vision_loop.run())
+        print("[INARA] Vision loop started.")
+
+    await device_agent.initialize()
+
     print("[INARA] Ready.")
     yield
 
     if phone_agent:
         await phone_agent.shutdown()
+    if vision_loop:
+        vision_loop.stop()
+    if ha_bridge:
+        await ha_bridge.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -206,6 +240,11 @@ async def _bridge_event(event: Event):
         Events.REMINDER_CANCELLED: "reminder_cancelled",
         Events.DESKTOP_SCREENSHOT:  "desktop_screenshot",
         Events.DESKTOP_SYSTEM_INFO: "desktop_system_info",
+        Events.VISION_ALERT:       "vision_alert",
+        Events.VISION_DESCRIPTION: "vision_description",
+        Events.VISION_PRESENCE:    "vision_presence",
+        Events.DEVICE_LIST:        "device_list",
+        Events.DEVICE_CONTROL:     "device_control",
         Events.ERROR: "error",
         Events.STATUS: "status",
         Events.VOICE_TRANSCRIPTION: "transcription",
@@ -618,10 +657,18 @@ async def user_input(sid, data):
 
 @sio.event
 async def video_frame(sid, data):
+    image = data.get("image", "")
+    if not image:
+        return
     if voice_pipeline:
-        image = data.get("image", "")
-        if image:
-            await voice_pipeline.send_frame(image)
+        await voice_pipeline.send_frame(image)
+    # Feed the vision loop so watch conditions have a current frame
+    if vision_loop:
+        try:
+            import base64 as _b64
+            vision_loop.set_frame(_b64.b64decode(image))
+        except Exception:
+            pass
 
 
 # --- Memory ---
@@ -682,6 +729,8 @@ async def shutdown(sid, data=None):
     voice_task = None
     if phone_agent:
         await phone_agent.shutdown()
+    if vision_loop:
+        vision_loop.stop()
     auth_agent.stop_auth()
     await router.close_all()
     os._exit(0)

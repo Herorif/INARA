@@ -123,6 +123,16 @@ class Events:
     DESKTOP_SCREENSHOT  = "desktop.screenshot"
     DESKTOP_SYSTEM_INFO = "desktop.system_info"
 
+    # Vision
+    VISION_DESCRIPTION = "vision.description"
+    VISION_ALERT       = "vision.alert"
+    VISION_PRESENCE    = "vision.presence"
+
+    # Devices (unified Kasa + HA)
+    DEVICE_LIST    = "device.list"
+    DEVICE_STATE   = "device.state"
+    DEVICE_CONTROL = "device.control"
+
     # System
     ERROR = "system.error"
     STATUS = "system.status"
