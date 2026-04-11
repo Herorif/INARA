@@ -22,6 +22,8 @@ import ReminderWindow from './components/ReminderWindow';
 import DesktopWindow from './components/DesktopWindow';
 import ReminderAlert from './components/ReminderAlert';
 import SettingsWindow from './components/SettingsWindow';
+import VisionWindow from './components/VisionWindow';
+import DeviceWindow from './components/DeviceWindow';
 
 function App() {
     // --- Store selectors ---
@@ -49,6 +51,8 @@ function App() {
     const showPhoneWindow = useStore(s => s.showPhoneWindow);
     const showReminderWindow = useStore(s => s.showReminderWindow);
     const showDesktopWindow  = useStore(s => s.showDesktopWindow);
+    const showVisionWindow   = useStore(s => s.showVisionWindow);
+    const showDeviceWindow   = useStore(s => s.showDeviceWindow);
     const isModularMode = useStore(s => s.isModularMode);
     const activeDragElement = useStore(s => s.activeDragElement);
     const elementPositions = useStore(s => s.elementPositions);
@@ -420,6 +424,16 @@ function App() {
                 {/* Reminders */}
                 {showReminderWindow && (
                     <ReminderWindow position={elementPositions.reminder} onClose={() => useStore.setState({ showReminderWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'reminder')} activeDragElement={activeDragElement} zIndex={getZIndex('reminder')} />
+                )}
+
+                {/* Vision */}
+                {showVisionWindow && (
+                    <VisionWindow position={elementPositions.vision} onClose={() => useStore.setState({ showVisionWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'vision')} activeDragElement={activeDragElement} zIndex={getZIndex('vision')} />
+                )}
+
+                {/* Devices */}
+                {showDeviceWindow && (
+                    <DeviceWindow position={elementPositions.device} onClose={() => useStore.setState({ showDeviceWindow: false })} onMouseDown={(e) => handleMouseDown(e, 'device')} activeDragElement={activeDragElement} zIndex={getZIndex('device')} />
                 )}
 
                 <ReminderAlert />

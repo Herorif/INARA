@@ -228,6 +228,29 @@ export function initSocketListeners() {
         s().updatePrinterStatus(data);
     }));
 
+    // --- Vision ---
+    unsubs.push(onSocket('vision_alert', (data) => {
+        useStore.setState({ showVisionWindow: true });
+        s().addVisionAlert(data);
+    }));
+
+    unsubs.push(onSocket('vision_description', (data) => {
+        if (data.description) useStore.setState({ lastVisionDescription: data.description });
+    }));
+
+    unsubs.push(onSocket('vision_presence', (data) => {
+        useStore.setState({ presenceDetected: data.present });
+    }));
+
+    // --- Unified Devices ---
+    unsubs.push(onSocket('device_list', (data) => {
+        if (data.devices) useStore.setState({ allDevices: data.devices });
+    }));
+
+    unsubs.push(onSocket('device_control', (data) => {
+        if (data.device_id) s().updateDeviceState(data.device_id, { lastAction: data.action });
+    }));
+
     // Return cleanup
     return () => {
         unsubs.forEach(fn => fn());

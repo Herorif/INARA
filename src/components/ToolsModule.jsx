@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box, Phone, Clock, Monitor } from 'lucide-react';
+import { Mic, MicOff, Settings, Power, Video, VideoOff, Hand, Lightbulb, Printer, Globe, Box, Phone, Clock, Monitor, Eye, Cpu } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
 
@@ -26,6 +26,9 @@ const ToolsModule = ({ position, onMouseDown }) => {
     const showPhoneWindow = useStore(s => s.showPhoneWindow);
     const showReminderWindow = useStore(s => s.showReminderWindow);
     const showDesktopWindow  = useStore(s => s.showDesktopWindow);
+    const showVisionWindow   = useStore(s => s.showVisionWindow);
+    const showDeviceWindow   = useStore(s => s.showDeviceWindow);
+    const visionAlerts       = useStore(s => s.visionAlerts);
     const kasaDevices = useStore(s => s.kasaDevices);
     const activeCalls = useStore(s => s.activeCalls);
     const reminders = useStore(s => s.reminders);
@@ -183,6 +186,35 @@ const ToolsModule = ({ position, onMouseDown }) => {
                                 {overdueCount}
                             </span>
                         )}
+                    </button>
+                </Tip>
+
+                <Tip label="VISION">
+                    <button
+                        onClick={() => useStore.setState(s => ({ showVisionWindow: !s.showVisionWindow }))}
+                        className={`p-3 rounded-full border-2 transition-all duration-300 relative ${showVisionWindow
+                            ? 'border-purple-400 bg-purple-400/10 text-purple-400 hover:bg-purple-400/20 shadow-[0_0_15px_rgba(192,132,252,0.3)]'
+                            : visionAlerts.length > 0
+                                ? 'border-red-500 bg-red-500/10 text-red-400 animate-pulse'
+                                : 'border-cyan-900 text-cyan-700 hover:border-purple-500 hover:text-purple-400'}`}
+                    >
+                        <Eye size={24} />
+                        {visionAlerts.length > 0 && !showVisionWindow && (
+                            <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center translate-x-1 -translate-y-1">
+                                {visionAlerts.length > 9 ? '9+' : visionAlerts.length}
+                            </span>
+                        )}
+                    </button>
+                </Tip>
+
+                <Tip label="DEVICES">
+                    <button
+                        onClick={() => useStore.setState(s => ({ showDeviceWindow: !s.showDeviceWindow }))}
+                        className={`p-3 rounded-full border-2 transition-all duration-300 ${showDeviceWindow
+                            ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 shadow-[0_0_15px_rgba(250,204,21,0.3)]'
+                            : 'border-cyan-900 text-cyan-700 hover:border-yellow-500 hover:text-yellow-400'}`}
+                    >
+                        <Cpu size={24} />
                     </button>
                 </Tip>
 

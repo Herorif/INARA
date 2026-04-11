@@ -13,6 +13,8 @@ import { createVideoSlice } from './videoSlice';
 import { createPhoneSlice } from './phoneSlice';
 import { createReminderSlice } from './reminderSlice';
 import { createDesktopSlice } from './desktopSlice';
+import { createVisionSlice } from './visionSlice';
+import { createSmartHomeSlice } from './smartHomeSlice';
 
 const useStore = create((...args) => ({
     ...createConnectionSlice(...args),
@@ -28,6 +30,8 @@ const useStore = create((...args) => ({
     ...createPhoneSlice(...args),
     ...createReminderSlice(...args),
     ...createDesktopSlice(...args),
+    ...createVisionSlice(...args),
+    ...createSmartHomeSlice(...args),
 }));
 
 export default useStore;

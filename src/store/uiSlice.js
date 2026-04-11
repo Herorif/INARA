@@ -5,6 +5,8 @@ export const createUiSlice = (set, get) => ({
     showKasaWindow: false,
     showPrinterWindow: false,
     showPhoneWindow: false,
+    showVisionWindow: false,
+    showDeviceWindow: false,
     isModularMode: false,
     confirmationRequest: null,
     currentTime: new Date(),
@@ -20,6 +22,8 @@ export const createUiSlice = (set, get) => ({
         phone: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
         reminder: { x: window.innerWidth / 2 + 200, y: window.innerHeight / 2 - 150 },
         desktop: { x: window.innerWidth / 2 - 200, y: window.innerHeight / 2 - 100 },
+        vision: { x: window.innerWidth / 2 + 350, y: window.innerHeight / 2 + 100 },
+        device: { x: window.innerWidth / 2 - 350, y: window.innerHeight / 2 + 100 },
         tools: { x: window.innerWidth / 2, y: window.innerHeight - 100 },
     },
 
@@ -35,10 +39,12 @@ export const createUiSlice = (set, get) => ({
         phone: { w: 340, h: 480 },
         reminder: { w: 340, h: 460 },
         desktop: { w: 380, h: 500 },
+        vision: { w: 360, h: 440 },
+        device: { w: 360, h: 460 },
     },
 
     activeDragElement: null,
-    zIndexOrder: ['visualizer', 'chat', 'tools', 'video', 'cad', 'browser', 'kasa', 'printer', 'phone', 'reminder', 'desktop'],
+    zIndexOrder: ['visualizer', 'chat', 'tools', 'video', 'cad', 'browser', 'kasa', 'printer', 'phone', 'reminder', 'desktop', 'vision', 'device'],
 
     setShowSettings: (val) => set({ showSettings: val }),
     setShowCadWindow: (val) => set({ showCadWindow: val }),
