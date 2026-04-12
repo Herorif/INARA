@@ -12,6 +12,7 @@ import os
 import subprocess
 import json
 import platform
+import time
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -53,6 +54,7 @@ class PrintStatus:
     time_elapsed: Optional[str]
     filename: Optional[str]
     temperatures: Optional[Dict[str, Dict[str, float]]] = None
+    details: Optional[str] = None
     
     def to_dict(self) -> dict:
         return asdict(self)
@@ -106,7 +108,13 @@ class PrinterAgent:
         self.printers: Dict[str, Printer] = {}  # host -> Printer
         self.profiles_dir = profiles_dir
         self._zeroconf: Optional[Zeroconf] = None
-        self._error_tracker = set() # Track hosts with errors to prevent log spam
+        self._error_tracker = set() # Track hosts with active errors to prevent log spam
+        self._status_failures: Dict[str, int] = {}
+        self._next_status_poll_at: Dict[str, float] = {}
+        self._last_status: Dict[str, PrintStatus] = {}
+        self._online_poll_interval = 5.0
+        self._printing_poll_interval = 2.0
+        self._offline_backoff_steps = (5.0, 15.0, 30.0, 60.0)
         
         # Detect slicer path and profiles directory
         self.slicer_path = self._detect_slicer_path()
@@ -114,6 +122,69 @@ class PrinterAgent:
         
         # Ensure profiles directory exists
         os.makedirs(profiles_dir, exist_ok=True)
+
+    def get_slicer_status(self) -> Dict[str, Optional[str]]:
+        available = bool(self.slicer_path)
+        return {
+            "available": available,
+            "path": self.slicer_path,
+            "profiles_dir": self._orca_profiles_dir,
+            "message": (
+                f"Using slicer at {self.slicer_path}"
+                if available
+                else "Printing is unavailable until OrcaSlicer or PrusaSlicer is installed."
+            ),
+        }
+
+    def should_poll_printer(self, host: str) -> bool:
+        return time.monotonic() >= self._next_status_poll_at.get(host, 0.0)
+
+    def get_printer_list(self) -> List[Dict]:
+        printer_list = []
+        for host, printer in self.printers.items():
+            item = printer.to_dict()
+            status = self._last_status.get(host)
+            if status:
+                item["status"] = status.to_dict()
+            printer_list.append(item)
+        return printer_list
+
+    def _set_next_poll(self, host: str, delay: float) -> None:
+        self._next_status_poll_at[host] = time.monotonic() + max(delay, 0.0)
+
+    def _record_status_success(self, printer: Printer, status: PrintStatus) -> PrintStatus:
+        self._error_tracker.discard(printer.host)
+        self._status_failures[printer.host] = 0
+        self._last_status[printer.host] = status
+
+        state = (status.state or "").lower()
+        poll_delay = self._printing_poll_interval if state in {"printing", "paused"} else self._online_poll_interval
+        self._set_next_poll(printer.host, poll_delay)
+        return status
+
+    def _record_status_failure(self, printer: Printer, message: str) -> PrintStatus:
+        failures = self._status_failures.get(printer.host, 0) + 1
+        self._status_failures[printer.host] = failures
+
+        backoff_index = min(failures - 1, len(self._offline_backoff_steps) - 1)
+        self._set_next_poll(printer.host, self._offline_backoff_steps[backoff_index])
+
+        if printer.host not in self._error_tracker:
+            print(f"[PRINTER] {printer.name} is offline: {message}")
+            self._error_tracker.add(printer.host)
+
+        status = PrintStatus(
+            printer=printer.name,
+            state="offline",
+            progress_percent=0,
+            time_remaining=None,
+            time_elapsed=None,
+            filename=None,
+            temperatures={},
+            details=message,
+        )
+        self._last_status[printer.host] = status
+        return status
     
     def _detect_orca_profiles_dir(self) -> Optional[str]:
         """Detect OrcaSlicer profiles directory."""
@@ -346,7 +417,7 @@ class PrinterAgent:
              except Exception:
                 pass
         
-        print("[PRINTER] Warning: No Slicer (Orca/Prusa) found. Slicing will fail.")
+        print("[PRINTER] No slicer found. Discovery and status monitoring remain available, but printing is disabled.")
         return None
 
     async def discover_printers(self, timeout: float = 5.0) -> List[Dict]:
@@ -401,9 +472,10 @@ class PrinterAgent:
         for printer in listener.printers:
             # Avoid duplicates if we found same host on multiple services
             self.printers[printer.host] = printer
+            self._set_next_poll(printer.host, 0.0)
         
         print(f"[PRINTER] Discovery complete. Found {len(self.printers)} printers.")
-        return [p.to_dict() for p in self.printers.values()]
+        return self.get_printer_list()
 
     async def _probe_printer_type(self, host: str, port: int) -> PrinterType:
         """Probe a host to check if it's running Moonraker or OctoPrint."""
@@ -502,6 +574,7 @@ class PrinterAgent:
         ptype = PrinterType(printer_type) if printer_type in [e.value for e in PrinterType] else PrinterType.UNKNOWN
         printer = Printer(name=name, host=host, port=port, printer_type=ptype, api_key=api_key, camera_url=camera_url)
         self.printers[host] = printer
+        self._set_next_poll(host, 0.0)
         print(f"[PRINTER] Manually added: {name} at {host}:{port}")
         return printer
     
@@ -572,7 +645,9 @@ class PrinterAgent:
             Path to generated G-code file, or None on failure
         """
         if not self.slicer_path:
-            print("[PRINTER] Error: Slicer not found")
+            print("[PRINTER] Print request blocked: slicer not found.")
+            if progress_callback:
+                await progress_callback(0, "Printing unavailable: install OrcaSlicer or PrusaSlicer first.")
             return None
         
         # Robust path resolution
@@ -867,7 +942,8 @@ class PrinterAgent:
             headers["X-Api-Key"] = printer.api_key
         
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=3.0, connect=1.0)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 # Fetch Job Status
                 job_data = {}
                 async with session.get(job_url, headers=headers) as resp:
@@ -895,8 +971,8 @@ class PrinterAgent:
                 if job_data:
                     progress = job_data.get("progress", {})
                     job = job_data.get("job", {})
-                    
-                    return PrintStatus(
+
+                    status = PrintStatus(
                         printer=printer.name,
                         state=job_data.get("state", "unknown").lower(),
                         progress_percent=progress.get("completion") or 0,
@@ -905,24 +981,21 @@ class PrinterAgent:
                         filename=job.get("file", {}).get("name"),
                         temperatures=temps
                     )
-                else:
-                    return None
+                    return self._record_status_success(printer, status)
+                return self._record_status_failure(printer, "No status response from OctoPrint.")
 
         except Exception as e:
-            print(f"[PRINTER] OctoPrint status error: {e}")
-            return None
+            return self._record_status_failure(printer, str(e))
     
     async def _status_moonraker(self, printer: Printer) -> Optional[PrintStatus]:
         """Get status from Moonraker."""
         url = f"http://{printer.host}:{printer.port}/printer/objects/query?print_stats&display_status&heater_bed&extruder"
         
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=3.0, connect=1.0)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(url) as resp:
                     if resp.status == 200:
-                        # Clear error state on success
-                        self._error_tracker.discard(printer.host)
-                        
                         data = await resp.json()
                         status = data.get("result", {}).get("status", {})
                         stats = status.get("print_stats", {})
@@ -930,7 +1003,7 @@ class PrinterAgent:
                         extruder = status.get("extruder", {})
                         bed = status.get("heater_bed", {})
                         
-                        return PrintStatus(
+                        return self._record_status_success(printer, PrintStatus(
                             printer=printer.name,
                             state=stats.get("state", "unknown"),
                             progress_percent=(display.get("progress") or 0) * 100,
@@ -947,30 +1020,10 @@ class PrinterAgent:
                                     "target": bed.get("target", 0)
                                 }
                             }
-                        )
-                    else:
-                         if printer.host not in self._error_tracker:
-                            print(f"[PRINTER] Moonraker status failed ({resp.status})")
-                            self._error_tracker.add(printer.host)
-                         return None
+                        ))
+                    return self._record_status_failure(printer, f"Moonraker returned HTTP {resp.status}.")
         except Exception as e:
-            msg = str(e)
-            if printer.host not in self._error_tracker:
-                if "404" in msg:
-                     print(f"[PRINTER] Moonraker status failed (404) at {url}")
-                else:
-                     print(f"[PRINTER] Moonraker status failed: {e}")
-                self._error_tracker.add(printer.host)
-            
-            return PrintStatus(
-                printer=printer.name,
-                state=f"Error: {e}",
-                progress_percent=0,
-                time_remaining=None,
-                time_elapsed=None,
-                filename=None,
-                temperatures={}
-            )
+            return self._record_status_failure(printer, str(e))
 
     def _format_time(self, seconds: Optional[float]) -> Optional[str]:
         if seconds is None:
@@ -992,6 +1045,12 @@ class PrinterAgent:
         printer = self._resolve_printer(printer_name)
         if not printer:
             return {"status": "error", "message": f"Printer '{printer_name}' not found."}
+
+        if not self.slicer_path:
+            return {
+                "status": "error",
+                "message": "Printing is unavailable until OrcaSlicer or PrusaSlicer is installed.",
+            }
 
         # 2. Slice STL
         # Use printer name to auto-detect profiles if not provided

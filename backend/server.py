@@ -367,6 +367,10 @@ async def start_audio(sid, data=None):
                     printer_type=p.get("type", "moonraker"),
                     camera_url=p.get("camera_url")
                 )
+
+        if audio_loop and audio_loop.printer_agent:
+            await sio.emit('printer_system_status', audio_loop.printer_agent.get_slicer_status(), room=sid)
+            await sio.emit('printer_list', audio_loop.printer_agent.get_printer_list(), room=sid)
         
         # Start Printer Monitor
         asyncio.create_task(monitor_printers_loop())
@@ -394,7 +398,7 @@ async def monitor_printers_loop():
                 
             tasks = []
             for host, printer in agent.printers.items():
-                if printer.printer_type.value != "unknown":
+                if printer.printer_type.value != "unknown" and agent.should_poll_printer(host):
                     tasks.append(agent.get_print_status(host))
             
             if tasks:
@@ -783,8 +787,9 @@ async def discover_printers(sid, data=None):
             return
         
     try:
+        await sio.emit('printer_system_status', audio_loop.printer_agent.get_slicer_status(), room=sid)
         printers = await audio_loop.printer_agent.discover_printers()
-        await sio.emit('printer_list', printers)
+        await sio.emit('printer_list', audio_loop.printer_agent.get_printer_list())
         await sio.emit('status', {'msg': f"Found {len(printers)} printers"})
     except Exception as e:
         print(f"Error discovering printers: {e}")
@@ -859,7 +864,7 @@ async def add_printer(sid, data):
              print(f"Corrected type to {actual_type.value} on port {printer.port}")
              
         # Refresh list for everyone
-        printers = [p.to_dict() for p in audio_loop.printer_agent.printers.values()]
+        printers = audio_loop.printer_agent.get_printer_list()
         await sio.emit('printer_list', printers)
         await sio.emit('status', {'msg': f"Added printer: {name}"})
         
@@ -933,6 +938,8 @@ async def print_stl(sid, data):
         )
         
         await sio.emit('print_result', result)
+        if result.get('status') == 'error':
+            await sio.emit('error', {'msg': result.get('message', 'Print failed.')}, room=sid)
         await sio.emit('status', {'msg': f"Print Job: {result.get('status', 'unknown')}"})
         
     except Exception as e:

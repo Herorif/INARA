@@ -213,6 +213,10 @@ export function initSocketListeners() {
         s().setPrinterList(list);
     }));
 
+    unsubs.push(onSocket('printer_system_status', (data) => {
+        useStore.setState({ printerSystemStatus: data });
+    }));
+
     unsubs.push(onSocket('slicing_progress', (data) => {
         console.log('[SLICING] Progress:', data);
         useStore.setState({
@@ -235,7 +239,7 @@ export function initSocketListeners() {
                     state: data.state,
                 }
             });
-        } else if (data.state && ['idle', 'standby', 'complete'].includes(data.state.toLowerCase())) {
+        } else if (data.state && ['idle', 'standby', 'complete', 'offline'].includes(data.state.toLowerCase())) {
             useStore.setState({ activePrintStatus: null });
         }
         // Also update printer in list

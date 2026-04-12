@@ -12,17 +12,20 @@ const PrinterWindow = ({
 }) => {
     const printers = useStore(s => s.printerList);
     const slicingProgress = useStore(s => s.slicingStatus);
+    const printerSystemStatus = useStore(s => s.printerSystemStatus);
 
     const [isDiscovering, setIsDiscovering] = useState(false);
 
     useEffect(() => {
-        handleDiscover();
+        if (printers.length === 0) {
+            handleDiscover();
+        }
 
         const onPrintResult = (result) => {
-            if (result.success) {
-                useStore.setState({ slicingStatus: { percent: 100, message: 'Done', active: false } });
+            if (result.status === 'success') {
+                useStore.setState({ slicingStatus: { percent: 100, message: result.message || 'Done', active: false } });
             } else {
-                useStore.setState({ slicingStatus: { percent: 0, message: 'Failed', active: false } });
+                useStore.setState({ slicingStatus: { percent: 0, message: result.message || 'Failed', active: false } });
             }
         };
 
@@ -44,6 +47,7 @@ const PrinterWindow = ({
         if (!state) return 'text-gray-400';
         const s = state.toLowerCase();
         if (s.includes('print')) return 'text-green-400';
+        if (s.includes('offline')) return 'text-gray-400';
         if (s.includes('paus')) return 'text-yellow-400';
         if (s.includes('error') || s.includes('fail')) return 'text-red-400';
         return 'text-cyan-400';
@@ -86,6 +90,19 @@ const PrinterWindow = ({
             </div>
 
             <div className="p-4 max-h-[400px] overflow-y-auto custom-scrollbar">
+                {printerSystemStatus && (
+                    <div className={`mb-4 p-3 rounded-lg border text-[11px] ${
+                        printerSystemStatus.available
+                            ? 'bg-green-500/10 border-green-500/30 text-green-200'
+                            : 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                    }`}>
+                        <div className="font-bold uppercase tracking-wider text-[10px] mb-1">
+                            {printerSystemStatus.available ? 'Printing Ready' : 'Printing Unavailable'}
+                        </div>
+                        <div>{printerSystemStatus.message}</div>
+                    </div>
+                )}
+
                 <div className="mb-4 p-3 bg-white/5 border border-white/10 rounded-lg">
                     <div className="text-[10px] uppercase text-white/40 font-bold mb-2 tracking-wider">Manual Add</div>
                     <div className="flex flex-col gap-2">
@@ -196,6 +213,11 @@ const PrinterWindow = ({
 
                                 {printer.status && (
                                     <div className="space-y-2 mt-3 pt-3 border-t border-white/5">
+                                        {printer.status.details && (
+                                            <div className="text-[10px] text-white/45">
+                                                {printer.status.details}
+                                            </div>
+                                        )}
                                         {printer.status.progress_percent > 0 && (
                                             <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
                                                 <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${printer.status.progress_percent}%` }} />
