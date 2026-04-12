@@ -20,6 +20,7 @@ MODULES = {
     "web": "test_web_agent.py",
     "auth": "test_authenticator.py",
     "tools": "test_inara_tools.py",
+    "smoke": "test_legacy_runtime_smoke.py",
 }
 
 TESTS_DIR = Path(__file__).parent
@@ -27,6 +28,13 @@ TESTS_DIR = Path(__file__).parent
 
 def run_tests(modules: list = None, quick: bool = False, verbose: bool = True):
     """Run pytest with specified options."""
+    if modules == ["smoke"]:
+        cmd = [sys.executable, "-m", "unittest", "tests.test_legacy_runtime_smoke", "-v"]
+        print(f"\n{'='*60}")
+        print(f"Running: {' '.join(cmd)}")
+        print(f"{'='*60}\n")
+        return subprocess.run(cmd).returncode
+
     cmd = [sys.executable, "-m", "pytest"]
     
     if modules:
