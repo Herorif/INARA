@@ -25,6 +25,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import inara
 from authenticator import FaceAuthenticator
 from kasa_agent import KasaAgent
+from printer_agent import PrinterAgent
+from project_manager import ProjectManager
 
 # Create a Socket.IO server
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
@@ -55,7 +57,13 @@ audio_loop = None
 loop_task = None
 authenticator = None
 kasa_agent = KasaAgent()
+printer_agent = PrinterAgent()
+printer_monitor_task = None
 SETTINGS_FILE = "settings.json"
+
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(backend_dir)
+project_manager = ProjectManager(project_root)
 
 DEFAULT_SETTINGS = {
     "face_auth_enabled": False, # Default OFF as requested
@@ -137,6 +145,29 @@ authenticator = None
 kasa_agent = KasaAgent(known_devices=SETTINGS.get("kasa_devices"))
 # tool_permissions is now SETTINGS["tool_permissions"]
 
+
+def load_saved_printers_into_agent():
+    saved_printers = SETTINGS.get("printers", [])
+    if not saved_printers:
+        return
+
+    print(f"[SERVER] Loading {len(saved_printers)} saved printers...")
+    for p in saved_printers:
+        printer_agent.add_printer_manually(
+            name=p.get("name", p["host"]),
+            host=p["host"],
+            port=p.get("port", 80),
+            printer_type=p.get("type", "moonraker"),
+            camera_url=p.get("camera_url")
+        )
+
+
+def ensure_printer_monitor_running():
+    global printer_monitor_task
+    if printer_monitor_task and not printer_monitor_task.done():
+        return
+    printer_monitor_task = asyncio.create_task(monitor_printers_loop())
+
 @app.on_event("startup")
 async def startup_event():
     import sys
@@ -152,6 +183,8 @@ async def startup_event():
 
     print("[SERVER] Startup: Initializing Kasa Agent...")
     await kasa_agent.initialize()
+    load_saved_printers_into_agent()
+    ensure_printer_monitor_running()
 
 @app.get("/status")
 async def status():
@@ -161,6 +194,9 @@ async def status():
 async def connect(sid, environ):
     print(f"Client connected: {sid}")
     await sio.emit('status', {'msg': 'Connected to INARA Backend'}, room=sid)
+    await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
+    await sio.emit('printer_list', printer_agent.get_printer_list(), room=sid)
+    await sio.emit('project_update', {'project': project_manager.current_project}, room=sid)
 
     global authenticator
     face_auth_enabled = SETTINGS.get("face_auth_enabled", False)
@@ -323,7 +359,9 @@ async def start_audio(sid, data=None):
 
             input_device_index=device_index,
             input_device_name=device_name,
-            kasa_agent=kasa_agent
+            kasa_agent=kasa_agent,
+            printer_agent=printer_agent,
+            project_manager=project_manager,
         )
         print("AudioLoop initialized successfully.")
 
@@ -355,26 +393,9 @@ async def start_audio(sid, data=None):
         
         loop_task.add_done_callback(handle_loop_exit)
 
-        # Load saved printers
-        saved_printers = SETTINGS.get("printers", [])
-        if saved_printers and audio_loop.printer_agent:
-            print(f"[SERVER] Loading {len(saved_printers)} saved printers...")
-            for p in saved_printers:
-                audio_loop.printer_agent.add_printer_manually(
-                    name=p.get("name", p["host"]),
-                    host=p["host"],
-                    port=p.get("port", 80),
-                    printer_type=p.get("type", "moonraker"),
-                    camera_url=p.get("camera_url")
-                )
+        await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
+        await sio.emit('printer_list', printer_agent.get_printer_list(), room=sid)
 
-        if audio_loop and audio_loop.printer_agent:
-            await sio.emit('printer_system_status', audio_loop.printer_agent.get_slicer_status(), room=sid)
-            await sio.emit('printer_list', audio_loop.printer_agent.get_printer_list(), room=sid)
-        
-        # Start Printer Monitor
-        asyncio.create_task(monitor_printers_loop())
-        
     except Exception as e:
         print(f"CRITICAL ERROR STARTING INARA: {e}")
         import traceback
@@ -389,9 +410,9 @@ async def start_audio(sid, data=None):
 async def monitor_printers_loop():
     """Background task to query printer status periodically."""
     print("[SERVER] Starting Printer Monitor Loop")
-    while audio_loop and audio_loop.printer_agent:
+    while True:
         try:
-            agent = audio_loop.printer_agent
+            agent = printer_agent
             if not agent.printers:
                 await asyncio.sleep(5)
                 continue
@@ -459,7 +480,7 @@ async def confirm_tool(sid, data):
 @sio.event
 async def shutdown(sid, data=None):
     """Gracefully shutdown the server when the application closes."""
-    global audio_loop, loop_task, authenticator
+    global audio_loop, loop_task, authenticator, printer_monitor_task
     
     print("[SERVER] ========================================")
     print("[SERVER] SHUTDOWN SIGNAL RECEIVED FROM FRONTEND")
@@ -476,6 +497,11 @@ async def shutdown(sid, data=None):
         print("[SERVER] Cancelling loop task...")
         loop_task.cancel()
         loop_task = None
+
+    if printer_monitor_task and not printer_monitor_task.done():
+        print("[SERVER] Cancelling printer monitor...")
+        printer_monitor_task.cancel()
+        printer_monitor_task = None
     
     # Stop authenticator if running
     if authenticator:
@@ -763,33 +789,11 @@ async def prompt_web_agent(sid, data):
 @sio.event
 async def discover_printers(sid, data=None):
     print("Received discover_printers request")
-    
-    # If audio_loop isn't ready yet, return saved printers from settings
-    if not audio_loop or not audio_loop.printer_agent:
-        saved_printers = SETTINGS.get("printers", [])
-        if saved_printers:
-            # Convert saved printers to the expected format
-            printer_list = []
-            for p in saved_printers:
-                printer_list.append({
-                    "name": p.get("name", p["host"]),
-                    "host": p["host"],
-                    "port": p.get("port", 80),
-                    "printer_type": p.get("type", "unknown"),
-                    "camera_url": p.get("camera_url")
-                })
-            print(f"[SERVER] Returning {len(printer_list)} saved printers (audio_loop not ready)")
-            await sio.emit('printer_list', printer_list)
-            return
-        else:
-            await sio.emit('printer_list', [])
-            await sio.emit('status', {'msg': "Connect to INARA to enable printer discovery"})
-            return
-        
+
     try:
-        await sio.emit('printer_system_status', audio_loop.printer_agent.get_slicer_status(), room=sid)
-        printers = await audio_loop.printer_agent.discover_printers()
-        await sio.emit('printer_list', audio_loop.printer_agent.get_printer_list())
+        await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
+        printers = await printer_agent.discover_printers()
+        await sio.emit('printer_list', printer_agent.get_printer_list())
         await sio.emit('status', {'msg': f"Found {len(printers)} printers"})
     except Exception as e:
         print(f"Error discovering printers: {e}")
@@ -811,15 +815,11 @@ async def add_printer(sid, data):
         port = 80
     
     print(f"Received add_printer request: {host}:{port} ({ptype})")
-    
-    if not audio_loop or not audio_loop.printer_agent:
-        await sio.emit('error', {'msg': "Printer Agent not available"})
-        return
         
     try:
         # Add manually
         camera_url = data.get('camera_url')
-        printer = audio_loop.printer_agent.add_printer_manually(name, host, port=port, printer_type=ptype, camera_url=camera_url)
+        printer = printer_agent.add_printer_manually(name, host, port=port, printer_type=ptype, camera_url=camera_url)
         
         # Save to settings
         new_printer_config = {
@@ -851,7 +851,7 @@ async def add_printer(sid, data):
         
         actual_type = "unknown"
         for port in ports_to_try:
-             found_type = await audio_loop.printer_agent._probe_printer_type(host, port)
+             found_type = await printer_agent._probe_printer_type(host, port)
              if found_type.value != "unknown":
                  actual_type = found_type
                  # Update port if different
@@ -864,7 +864,7 @@ async def add_printer(sid, data):
              print(f"Corrected type to {actual_type.value} on port {printer.port}")
              
         # Refresh list for everyone
-        printers = audio_loop.printer_agent.get_printer_list()
+        printers = printer_agent.get_printer_list()
         await sio.emit('printer_list', printers)
         await sio.emit('status', {'msg': f"Added printer: {name}"})
         
@@ -876,10 +876,6 @@ async def add_printer(sid, data):
 async def print_stl(sid, data):
     print(f"Received print_stl request: {data}")
     # data: { stl_path: "path/to.stl" | "current", printer: "name_or_ip", profile: "optional" }
-    
-    if not audio_loop or not audio_loop.printer_agent:
-        await sio.emit('error', {'msg': "Printer Agent not available"})
-        return
         
     try:
         stl_path = data.get('stl_path', 'current')
@@ -893,13 +889,11 @@ async def print_stl(sid, data):
         await sio.emit('status', {'msg': f"Preparing print for {printer_name}..."})
         
         # Get current project path for resolution
-        current_project_path = None
-        if audio_loop and audio_loop.project_manager:
-            current_project_path = str(audio_loop.project_manager.get_current_project_path())
-            print(f"[SERVER DEBUG] Using project path: {current_project_path}")
+        current_project_path = str(project_manager.get_current_project_path())
+        print(f"[SERVER DEBUG] Using project path: {current_project_path}")
 
         # Resolve STL path before slicing so we can preview it
-        resolved_stl = audio_loop.printer_agent._resolve_file_path(stl_path, current_project_path)
+        resolved_stl = printer_agent._resolve_file_path(stl_path, current_project_path)
         
         if resolved_stl and os.path.exists(resolved_stl):
             # Open the STL in the CAD module for preview
@@ -929,7 +923,7 @@ async def print_stl(sid, data):
             if percent < 100:
                  await sio.emit('status', {'msg': f"Slicing: {percent}%"})
 
-        result = await audio_loop.printer_agent.print_stl(
+        result = await printer_agent.print_stl(
             stl_path, 
             printer_name, 
             profile,
@@ -950,12 +944,9 @@ async def print_stl(sid, data):
 async def get_slicer_profiles(sid, data=None):
     """Get available OrcaSlicer profiles for manual selection."""
     print("Received get_slicer_profiles request")
-    if not audio_loop or not audio_loop.printer_agent:
-        await sio.emit('error', {'msg': "Printer Agent not available"})
-        return
-    
     try:
-        profiles = audio_loop.printer_agent.get_available_profiles()
+        await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
+        profiles = printer_agent.get_available_profiles()
         await sio.emit('slicer_profiles', profiles)
     except Exception as e:
         print(f"Error getting slicer profiles: {e}")
