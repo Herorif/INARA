@@ -1,11 +1,14 @@
 """
-INARA Server  - FastAPI + Socket.IO with dependency injection.
+Archived experimental backend refactor.
 
-This replaces the old server.py. It's a thin relay between the frontend
-(Socket.IO) and the backend agents (via EventBus). No global state,
-no callback hell, no direct agent coupling.
+This module is retained as reference material for the unfinished event-bus
+server rewrite. It is not the supported desktop runtime.
 
-The old server.py is preserved as server_legacy.py for reference.
+Canonical runtime:
+    electron/main.js -> backend/server.py
+
+If you intentionally want to experiment with this path, set
+INARA_ALLOW_EXPERIMENTAL_CORE_SERVER=1 before starting it.
 """
 
 import sys
@@ -20,6 +23,14 @@ if sys.platform == "win32":
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+EXPERIMENTAL_CORE_SERVER_ALLOWED = os.getenv("INARA_ALLOW_EXPERIMENTAL_CORE_SERVER") == "1"
+
+if __name__ == "__main__" and not EXPERIMENTAL_CORE_SERVER_ALLOWED:
+    print("[INARA] backend/core/server.py is archived and not part of the supported runtime.")
+    print("[INARA] Use the canonical backend instead: python backend/server.py")
+    print("[INARA] Set INARA_ALLOW_EXPERIMENTAL_CORE_SERVER=1 only if you are explicitly working on this refactor.")
+    raise SystemExit(1)
 
 from contextlib import asynccontextmanager
 
@@ -165,6 +176,13 @@ sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 
 @asynccontextmanager
 async def lifespan(application):
+    if not EXPERIMENTAL_CORE_SERVER_ALLOWED:
+        raise RuntimeError(
+            "backend/core/server.py is archived and disabled. "
+            "Use backend/server.py or set INARA_ALLOW_EXPERIMENTAL_CORE_SERVER=1 "
+            "if you are intentionally testing the experimental refactor."
+        )
+
     print("[INARA] Starting up...")
     await kasa_agent.initialize()
     for p in config.printers:

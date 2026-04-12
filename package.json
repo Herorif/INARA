@@ -5,6 +5,7 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && npx electron .\"",
+    "backend:dev": "python backend/server.py",
     "build": "vite build",
     "start": "npx electron ."
   },

@@ -13,6 +13,8 @@
 
 > Your own AI that lives on your desktop, controls your house, designs your parts, runs your browser, and prints your prototypes - all by voice.
 
+> Supported runtime: `electron/main.js -> backend/server.py`. The `backend/core/` server refactor is archived reference code and is not the active app backend.
+
 INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
 
 You can talk to it and get a response. Ask it to design a gear and it can create a 3D model, prepare it for printing, and send it to your printer. Tell it to dim the lights and it handles it. Ask it to look something up on Amazon and it opens a browser and searches for you.
@@ -56,6 +58,12 @@ INARA's Minority Report interface uses your webcam for hands-free window control
 
 ## 🏗️ Architecture
 
+Current supported runtime:
+
+- Electron launches `backend/server.py`
+- `backend/server.py` owns the active Socket.IO contract used by the React app
+- `backend/core/` is an archived experimental refactor and is not used by `npm run dev`
+
 ```mermaid
 graph TB
     subgraph Frontend ["Frontend - Electron + React"]
@@ -66,30 +74,30 @@ graph TB
     end
 
     subgraph Backend ["Backend - Python + FastAPI"]
-        SERVER[core/server.py<br/>Socket.IO Relay]
-        BUS[core/event_bus.py<br/>Async Pub/Sub]
-        LLM[llm/router.py<br/>Multi-Provider LLM]
-        CAD[agents/cad_agent.py<br/>CAD Generation]
-        WEB[agents/web_agent.py<br/>Browser Automation]
-        PRINTER[agents/printer_agent.py<br/>3D Printing]
-        KASA[agents/kasa_agent.py<br/>Smart Home]
-        AUTH[agents/auth_agent.py<br/>Face Auth]
+        SERVER[backend/server.py<br/>Canonical Socket.IO Runtime]
+        LIVE[inara.py<br/>Gemini Live Voice Loop]
+        CAD[cad_agent.py<br/>CAD Generation]
+        WEB[web_agent.py<br/>Browser Automation]
+        PRINTER[printer_agent.py<br/>3D Printing]
+        KASA[kasa_agent.py<br/>Smart Home]
+        AUTH[authenticator.py<br/>Face Auth]
+        PROJECT[project_manager.py<br/>Project Context]
     end
 
     UI --> SOCKET_C
     SOCKET_C <--> SERVER
-    SERVER --> BUS
-    BUS --> LLM
-    LLM --> CAD
-    LLM --> WEB
-    BUS --> KASA
-    BUS --> PRINTER
+    SERVER --> LIVE
+    SERVER --> CAD
+    SERVER --> WEB
+    SERVER --> KASA
+    SERVER --> PRINTER
     SERVER --> AUTH
+    SERVER --> PROJECT
     CAD -->|STL| THREE
     CAD -->|STL| PRINTER
 ```
 
-Every agent implements `BaseAgent`. Every LLM call goes through the provider abstraction. Nothing is hardwired to a single vendor - swap Gemini for Claude, or run both.
+The repository still contains an unfinished event-bus rewrite under `backend/core/`, but the supported runtime and active backend contract live in `backend/server.py`.
 
 ---
 
@@ -141,10 +149,16 @@ npm run dev
 
 ```bash
 # Terminal 1 - Backend
-python backend/core/server.py
+python backend/server.py
 
 # Terminal 2 - Frontend
 npm run dev
+```
+
+Manual backend shortcut:
+
+```bash
+npm run backend:dev
 ```
 
 > Make sure your venv is activated in any terminal that runs Python.
