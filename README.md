@@ -3,336 +3,282 @@
  |_ _|| \| |  /_\  | _ \  /_\
   | | | .` | / _ \ |   / / _ \
  |___||_|\_|/_/ \_\|_|_\/_/ \_\
- -= It's Not A Random Acronym =-
+-=It's Not A Random Acronym=-
 ```
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)
 ![Electron](https://img.shields.io/badge/Electron-28-47848F?logo=electron)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-> Windows-first desktop AI operator for voice, CAD, browser automation, printers, and local devices.
+> Your own AI that lives on your desktop, controls your house, designs your parts, runs your browser, and prints your prototypes - all by voice.
 
-> Supported runtime: `electron/main.js -> backend/server.py`
->
-> `backend/core/` is archived experimental reference code. It is not the active app backend and is not used by `npm run dev`.
+> Supported runtime: `electron/main.js -> backend/server.py`. The `backend/core/` server refactor is archived reference code and is not the active app backend.
 
-INARA is a local-first Electron + React desktop app backed by a Python Socket.IO server. The current app is centered around a live Gemini-driven voice session, CAD generation, browser automation, printer control, smart-home discovery, and project-scoped state. It is not a generic framework in its current shipped form; it is a Windows-first personal operator focused on real local tooling.
+INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
+
+You can talk to it and get a response. Ask it to design a gear and it can create a 3D model, prepare it for printing, and send it to your printer. Tell it to dim the lights and it handles it. Ask it to look something up on Amazon and it opens a browser and searches for you.
 
 ![Image](https://github.com/user-attachments/assets/b821478c-6283-4d8e-87c2-c01949998f47)
+---
+
+## What It Can Do
+
+| Feature                  | Description                                                    | Tech                             |
+| ------------------------ | -------------------------------------------------------------- | -------------------------------- |
+| 🗣️ **Real-Time Voice**   | Low-latency conversation with interrupt handling and wake word | Gemini Native Audio              |
+| 🧊 **Parametric CAD**    | Generate and iterate 3D models from natural language           | `build123d` -> STL               |
+| 🖨️ **3D Print Pipeline** | Auto-slice and send to printers over your network              | OrcaSlicer + Moonraker/OctoPrint |
+| 🖐️ **Gesture Control**   | Minority Report-style window manipulation via hand tracking    | MediaPipe                        |
+| 🌐 **Web Agent**         | Autonomous browser - navigates, clicks, types, reads           | Playwright + Chromium            |
+| 🏠 **Smart Home**        | Voice control for TP-Link Kasa lights, plugs, switches         | `python-kasa`                    |
+| 👁️ **Face Auth**         | Biometric login - local only, nothing leaves your machine      | MediaPipe Face Landmarks         |
+| 📁 **Project Memory**    | Persistent context across sessions and conversations           | File-based storage               |
+
+### 🖐️ Gesture Control
+
+INARA's Minority Report interface uses your webcam for hands-free window control:
+
+| Gesture            | Action                    |
+| ------------------ | ------------------------- |
+| ✊ **Closed Fist** | Grab and drag a UI window |
+| 🤏 **Pinch**       | Confirm / click           |
+| ✋ **Open Palm**   | Release                   |
+
+### 🔮 Coming Soon
+
+| Module                         | Description                                                    |
+| ------------------------------ | -------------------------------------------------------------- |
+| 📞 **Phone Calls**             | Outbound/inbound call handling through voice                   |
+| ⏰ **Reminders & Scheduling**  | Time-aware task management and calendar integration            |
+| 🖥️ **Desktop Productivity**    | App launching, file operations, system control                 |
+| 👁️ **Vision & Device Control** | Screen reading, camera-based interaction, device orchestration |
 
 ---
 
-## Current Status
-
-### Working Now
-
-- Desktop app shell with Electron + React UI
-- Canonical backend runtime in `backend/server.py`
-- Explicit backend / AI / local-device connection states in the UI
-- Gemini-backed voice session startup and control
-- CAD generation and iteration flows
-- Browser automation through the web agent
-- Printer discovery, saved-printer loading, offline status handling, slicer-status reporting
-- TP-Link Kasa device discovery and control plumbing
-- Project-scoped chat and CAD artifact storage
-- Manual smoke coverage for the legacy desktop runtime
-
-### Working With Optional Setup
-
-- AI features require a valid `GEMINI_API_KEY`
-- Printing requires OrcaSlicer or PrusaSlicer plus reachable printers
-- Face authentication requires `backend/reference.jpg` and enabled settings
-- Smart-home features require reachable local Kasa devices
-- Hand-tracked UI control requires webcam access and MediaPipe runtime support
-
-### Partial / Experimental
-
-- Phone / telephony flows exist in the repo but are not the primary tested path
-- Reminders, vision, desktop tooling, and unified device control exist but are not documented here as fully productized features
-- `backend/core/` contains an unfinished event-bus rewrite that is intentionally quarantined from the supported runtime
-
----
-
-## What INARA Does
-
-- Starts a desktop UI and local backend for controlling AI and device workflows from one place
-- Runs a Gemini-backed voice session for conversational commands when AI is enabled
-- Generates and iterates parametric CAD models, then previews and routes them toward printing
-- Discovers printers, reports slicer readiness, monitors offline/online status, and submits print jobs
-- Runs a Playwright-based browser agent for guided or autonomous web tasks
-- Discovers and controls Kasa devices on the local network
-- Stores project context and long-term memory artifacts on disk
-
----
-
-## Architecture
+## 🏗️ Architecture
 
 Current supported runtime:
 
 - Electron launches `backend/server.py`
 - `backend/server.py` owns the active Socket.IO contract used by the React app
-- `inara.py` handles the Gemini live voice loop
-- Local printer and device features can remain available even when AI is unavailable
+- `backend/core/` is an archived experimental refactor and is not used by `npm run dev`
 
 ```mermaid
 graph TB
-    subgraph Frontend["Frontend - Electron + React"]
+    subgraph Frontend ["Frontend - Electron + React"]
         UI[React UI]
-        SOCKET[Socket.IO Client]
-        VIEWER[3D / Window UI]
+        THREE[Three.js 3D Viewer]
+        GESTURE[MediaPipe Gestures]
+        SOCKET_C[Socket.IO Client]
     end
 
-    subgraph Backend["Backend - Python"]
-        SERVER[backend/server.py]
-        LIVE[inara.py]
-        CAD[cad_agent.py]
-        WEB[web_agent.py]
-        PRINTER[printer_agent.py]
-        KASA[kasa_agent.py]
-        AUTH[authenticator.py]
-        PROJECT[project_manager.py]
+    subgraph Backend ["Backend - Python + FastAPI"]
+        SERVER[backend/server.py<br/>Canonical Socket.IO Runtime]
+        LIVE[inara.py<br/>Gemini Live Voice Loop]
+        CAD[cad_agent.py<br/>CAD Generation]
+        WEB[web_agent.py<br/>Browser Automation]
+        PRINTER[printer_agent.py<br/>3D Printing]
+        KASA[kasa_agent.py<br/>Smart Home]
+        AUTH[authenticator.py<br/>Face Auth]
+        PROJECT[project_manager.py<br/>Project Context]
     end
 
-    UI --> SOCKET
-    SOCKET <--> SERVER
+    UI --> SOCKET_C
+    SOCKET_C <--> SERVER
     SERVER --> LIVE
     SERVER --> CAD
     SERVER --> WEB
-    SERVER --> PRINTER
     SERVER --> KASA
+    SERVER --> PRINTER
     SERVER --> AUTH
     SERVER --> PROJECT
-    CAD --> VIEWER
-    CAD --> PRINTER
+    CAD -->|STL| THREE
+    CAD -->|STL| PRINTER
 ```
 
-Archived refactor:
-
-- `backend/core/` remains in the repository as reference material only
-- it is blocked from accidental startup unless `INARA_ALLOW_EXPERIMENTAL_CORE_SERVER=1` is set
+The repository still contains an unfinished event-bus rewrite under `backend/core/`, but the supported runtime and active backend contract live in `backend/server.py`.
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
 ### Prerequisites
 
 - Python 3.11+
 - Node.js 18+
-- Windows is the primary target environment
 
 ### Setup
 
 ```bash
 # Clone
-git clone https://github.com/Herorif/inara.git
-cd inara
+git clone https://github.com/Herorif/inara.git && cd inara
 
 # Python environment
 python -m venv .venv
 
-# Activate
+# Activate (pick your OS)
 # Linux/macOS:
 source .venv/bin/activate
 # Windows:
 .venv\Scripts\activate
 
-# Python dependencies
-pip install -r requirements.txt
+# macOS only - required for PyAudio
+# brew install portaudio
 
-# Browser automation runtime
+# Dependencies
+pip install -r requirements.txt
 playwright install chromium
 
 # Frontend
 npm install
+
+# API keys
+echo "GEMINI_API_KEY=your_key_here" > .env
 ```
 
-Create `.env` in the project root:
+### 🚀 Run
 
-```env
-GEMINI_API_KEY=your_gemini_key
-```
-
-Notes:
-
-- A missing or invalid Gemini key disables AI features cleanly
-- Local printer and device UI can still be available without a working Gemini key
-
-### Run
-
-Single command:
+**Single command:**
 
 ```bash
 npm run dev
 ```
 
-Manual backend command:
+**Or split terminals (recommended - you'll want to see the logs):**
+
+```bash
+# Terminal 1 - Backend
+python backend/server.py
+
+# Terminal 2 - Frontend
+npm run dev
+```
+
+Manual backend shortcut:
 
 ```bash
 npm run backend:dev
 ```
 
-Split terminals:
+> Make sure your venv is activated in any terminal that runs Python.
 
-```bash
-# Terminal 1
-python backend/server.py
+---
 
-# Terminal 2
-npm run dev
+## ✅ First Flight Checklist
+
+Once it's running, try these:
+
+1. 🗣️ **Voice** - Say "Hello INARA". She should respond.
+2. 👁️ **Face Auth** - Look at the camera. If enabled, the lock screen should unlock.
+3. 🧊 **CAD** - Open the CAD window and say "Create a cube". Watch it generate.
+4. 🌐 **Web** - Open the Browser window and say "Go to Google".
+5. 🏠 **Smart Home** - If you have Kasa devices, say "Turn on the lights".
+6. 🖨️ **Print** - Generate a model, then say "Print it".
+
+---
+
+## ⚙️ Configuration
+
+Settings live in `backend/settings.json` (auto-created on first run).
+
+| Key                              | Type    | Description                                       |
+| -------------------------------- | ------- | ------------------------------------------------- |
+| `face_auth_enabled`              | `bool`  | Require face recognition before interaction       |
+| `tool_permissions.generate_cad`  | `bool`  | Require confirmation before CAD generation        |
+| `tool_permissions.run_web_agent` | `bool`  | Require confirmation before browser automation    |
+| `tool_permissions.write_file`    | `bool`  | Require confirmation before writing files to disk |
+| `printers`                       | `array` | Saved printer configurations                      |
+| `kasa_devices`                   | `array` | Saved smart home devices                          |
+
+### 🔑 API Keys
+
+Create a `.env` file in the project root:
+
+```env
+GEMINI_API_KEY=your_gemini_key
+ANTHROPIC_API_KEY=your_claude_key
 ```
 
----
-
-## First Checks
-
-After startup, confirm:
-
-1. Electron reports the canonical backend runtime.
-2. The backend startup banner prints Gemini status, face-auth status, slicer status, and saved-printer count.
-3. The app opens idle instead of auto-starting AI.
-4. The top bar shows separate backend, AI, and local-device status badges.
-
-Then try:
-
-1. Press the power button to start the AI session.
-2. Open the CAD window and generate a simple model.
-3. Open the printer window and confirm slicer / printer status.
-4. Open the smart-home window and trigger discovery if you use Kasa devices.
-5. Run a simple web-agent task if Gemini is configured.
+- Gemini key -> [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Claude key -> [Anthropic Console](https://console.anthropic.com/)
 
 ---
 
-## Configuration
+## 🔧 Hardware Setup
 
-Runtime configuration lives in:
+### 🖨️ 3D Printers
 
-- `.env`
-- `backend/settings.json`
+Supports **Klipper/Moonraker**, **OctoPrint**, and **PrusaLink**. Printers are auto-discovered via mDNS on your local network, or can be added manually by IP.
 
-Important settings:
+Requires [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer) installed for slicing. INARA auto-detects the installation path and selects the right profile based on your printer model.
 
-- `face_auth_enabled`
-- `tool_permissions`
-- `printers`
-- `kasa_devices`
-- `camera_flipped`
+### 🏠 Smart Home
 
-Face authentication:
+TP-Link Kasa devices are discovered automatically on your network. Control lights (on/off, brightness, color), plugs, and switches - by voice or through the UI.
 
-1. Put a clear face image at `backend/reference.jpg`
-2. Enable `face_auth_enabled`
-3. If face auth is disabled, the app skips the reference-image requirement
+### 🔐 Face Authentication
 
-Printers:
+1. Take a clear photo of your face.
+2. Save it as `reference.jpg` in the `backend/` directory.
+3. Toggle with `face_auth_enabled` in settings.
 
-- Supported printer families include Moonraker / Klipper, OctoPrint, and PrusaLink flows in the codebase
-- Printing requires OrcaSlicer or PrusaSlicer to be installed
-- Saved printers load at backend startup and may show offline when unreachable
-
-Smart home:
-
-- Kasa devices are discovered from the local network and persisted back into `backend/settings.json`
+All processing is local. Nothing is uploaded. Nothing is stored externally.
 
 ---
 
-## Current Limitations
+## 📂 Project Structure
 
-- AI-dependent features do not work without a valid `GEMINI_API_KEY`
-- Browser automation and CAD generation are still tied to Gemini availability
-- Printing is unavailable without a detected slicer installation
-- Printers can remain listed while offline; that is expected behavior now
-- Some subsystems in the repo are broader than the currently hardened app path
-- `backend/core/` is not a supported runtime and should not be treated as the source of truth for the desktop app
-
----
-
-## Testing
-
-Automated smoke coverage for the supported runtime:
-
-```bash
-python -m unittest tests.test_legacy_runtime_smoke -v
 ```
-
-Or through the test runner:
-
-```bash
-python tests/test_runner.py --module=smoke
-```
-
-Frontend build check:
-
-```bash
-npm run build
-```
-
-Manual runtime checklist:
-
-- See [tests/legacy_runtime_manual_checklist.md](tests/legacy_runtime_manual_checklist.md)
-
-What the smoke suite covers:
-
-- invalid Gemini-key startup summary
-- `discover_kasa`
-- `discover_printers`
-- legacy web-agent prompt path
-- `save_memory`
-- archived `backend/core/server.py` quarantine
-
----
-
-## Project Structure
-
-```text
 inara/
-|-- backend/
-|   |-- server.py              # Canonical desktop backend runtime
-|   |-- inara.py               # Gemini live voice loop
-|   |-- cad_agent.py           # CAD generation and iteration
-|   |-- web_agent.py           # Browser automation
-|   |-- printer_agent.py       # Printer discovery / slicing / printing
-|   |-- kasa_agent.py          # TP-Link Kasa integration
-|   |-- authenticator.py       # Face-auth flow
-|   |-- project_manager.py     # Project context and artifact storage
-|   `-- core/                  # Archived experimental refactor
-|-- electron/
-|   `-- main.js                # Electron entrypoint
-|-- src/                       # React frontend
-|-- tests/                     # Smoke and module tests
-|-- package.json
-|-- requirements.txt
-`-- README.md
+├── backend/
+│   ├── core/                  # Server, event bus, config, tool registry
+│   ├── llm/                   # LLM abstraction (Gemini, Claude, router)
+│   ├── agents/                # Agent framework (CAD, web, printer, kasa, auth)
+│   ├── voice/                 # Voice pipeline (STT, TTS, VAD, audio I/O)
+│   ├── inara.py               # Voice integration (Gemini Live API)
+│   ├── printer_agent.py       # Printer discovery & slicing engine
+│   ├── kasa_agent.py          # Kasa device control engine
+│   ├── cad_agent.py           # CAD generation engine
+│   ├── authenticator.py       # Face auth engine
+│   └── project_manager.py     # Project context management
+├── src/                       # React frontend
+│   ├── App.jsx                # Main application shell
+│   └── components/            # UI components
+├── electron/                  # Electron main process
+│   └── main.js                # Window & IPC setup
+├── tests/                     # Test suite
+├── .env                       # API keys (create this)
+├── requirements.txt           # Python dependencies
+├── package.json               # Node.js dependencies
+└── README.md
 ```
 
 ---
 
-## Security
+## 🔒 Security
 
-- API keys live in `.env` and should never be committed
-- Face-auth reference images stay local
-- Tool permissions can require confirmation for sensitive actions
-- Project data and saved memory stay on the local machine unless you explicitly export or share them
+| Aspect                 | Implementation                                  |
+| ---------------------- | ----------------------------------------------- |
+| **API Keys**           | Stored in `.env`, excluded from version control |
+| **Face Data**          | Processed locally, never transmitted            |
+| **Tool Confirmations** | Write/CAD/Web actions can require user approval |
+| **Project Data**       | Everything stays on your machine                |
 
-Do not share:
-
-- `.env`
-- `backend/reference.jpg`
-- local project data you do not intend to publish
+> Never share your `.env` file or `reference.jpg`. These contain credentials and biometric data.
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repo
-2. Create a branch
-3. Make and verify your changes
-4. Open a pull request with a clear summary
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes
+4. Open a pull request with a clear description
 
 ---
 
-## License
+## 📄 License
 
 Copyright 2026 Harif
 
