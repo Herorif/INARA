@@ -75,6 +75,35 @@ DEFAULT_SETTINGS = {
 }
 
 SETTINGS = DEFAULT_SETTINGS.copy()
+AI_KEY_PLACEHOLDERS = {
+    "your_api_key_here",
+    "your_gemini_api_key_here",
+    "changeme",
+}
+
+
+def get_gemini_api_key():
+    return (os.getenv("GEMINI_API_KEY") or "").strip()
+
+
+def get_ai_preflight_error():
+    api_key = get_gemini_api_key()
+    if not api_key:
+        return "GEMINI_API_KEY is not set. Update your .env file."
+    if api_key.lower() in AI_KEY_PLACEHOLDERS:
+        return "GEMINI_API_KEY is still using the placeholder value in .env."
+    return None
+
+
+def is_api_key_error(error):
+    message = str(error)
+    lowered = message.lower()
+    return "API_KEY_INVALID" in message or "api key not valid" in lowered or "invalid api key" in lowered
+
+
+async def emit_ai_unavailable(sid, reason):
+    await sio.emit('status', {'msg': 'AI Unavailable'}, room=sid)
+    await sio.emit('error', {'msg': f"AI unavailable: {reason}"}, room=sid)
 
 def load_settings():
     global SETTINGS
@@ -134,6 +163,7 @@ async def connect(sid, environ):
     await sio.emit('status', {'msg': 'Connected to INARA Backend'}, room=sid)
 
     global authenticator
+    face_auth_enabled = SETTINGS.get("face_auth_enabled", False)
     
     # Callback for Auth Status
     async def on_auth_status(is_auth):
@@ -144,29 +174,25 @@ async def connect(sid, environ):
     async def on_auth_frame(frame_b64):
         await sio.emit('auth_frame', {'image': frame_b64})
 
-    # Initialize Authenticator if not already done
-    if authenticator is None:
-        authenticator = FaceAuthenticator(
-            reference_image_path="reference.jpg",
-            on_status_change=on_auth_status,
-            on_frame=on_auth_frame
-        )
-    
-    # Check if already authenticated or needs to start
-    if authenticator.authenticated:
-        await sio.emit('auth_status', {'authenticated': True})
-    else:
-        # Check Settings for Auth
-        if SETTINGS.get("face_auth_enabled", False):
+    if face_auth_enabled:
+        # Initialize Authenticator if not already done
+        if authenticator is None:
+            authenticator = FaceAuthenticator(
+                reference_image_path="reference.jpg",
+                on_status_change=on_auth_status,
+                on_frame=on_auth_frame
+            )
+
+        # Check if already authenticated or needs to start
+        if authenticator.authenticated:
+            await sio.emit('auth_status', {'authenticated': True})
+        else:
             await sio.emit('auth_status', {'authenticated': False})
             # Start the auth loop in background
             asyncio.create_task(authenticator.start_authentication_loop())
-        else:
-            # Bypass Auth
-            print("Face Auth Disabled. Auto-authenticating.")
-            # We don't change authenticator state to true to avoid confusion if re-enabled? 
-            # Or we should just tell client it's auth'd.
-            await sio.emit('auth_status', {'authenticated': True})
+    else:
+        print("Face Auth Disabled. Auto-authenticating.")
+        await sio.emit('auth_status', {'authenticated': True})
 
 @sio.event
 async def disconnect(sid):
@@ -183,6 +209,12 @@ async def start_audio(sid, data=None):
             print("Blocked start_audio: Not authenticated.")
             await sio.emit('error', {'msg': 'Authentication Required'})
             return
+
+    ai_preflight_error = get_ai_preflight_error()
+    if ai_preflight_error:
+        print(f"[SERVER] AI preflight failed: {ai_preflight_error}")
+        await emit_ai_unavailable(sid, ai_preflight_error)
+        return
 
     print("Starting Audio Loop...")
     
@@ -266,7 +298,11 @@ async def start_audio(sid, data=None):
     # Callback to send Error to frontend
     def on_error(msg):
         print(f"Sending Error to frontend: {msg}")
-        asyncio.create_task(sio.emit('error', {'msg': msg}))
+        asyncio.create_task(sio.emit('error', {'msg': msg}, room=sid))
+
+    def on_status(msg):
+        print(f"Sending Status to frontend: {msg}")
+        asyncio.create_task(sio.emit('status', {'msg': msg}, room=sid))
 
     # Initialize INARA
     try:
@@ -283,6 +319,7 @@ async def start_audio(sid, data=None):
             on_project_update=on_project_update,
             on_device_update=on_device_update,
             on_error=on_error,
+            on_status=on_status,
 
             input_device_index=device_index,
             input_device_name=device_name,
@@ -303,6 +340,7 @@ async def start_audio(sid, data=None):
         
         # Add a done callback to catch silent failures in the loop
         def handle_loop_exit(task):
+            global audio_loop, loop_task
             try:
                 task.result()
             except asyncio.CancelledError:
@@ -310,11 +348,12 @@ async def start_audio(sid, data=None):
             except Exception as e:
                 print(f"Audio Loop Crashed: {e}")
                 # You could emit 'error' here if you have context
+            finally:
+                if loop_task is task:
+                    loop_task = None
+                    audio_loop = None
         
         loop_task.add_done_callback(handle_loop_exit)
-        
-        print("Emitting 'INARA Started'")
-        await sio.emit('status', {'msg': 'INARA Started'})
 
         # Load saved printers
         saved_printers = SETTINGS.get("printers", [])
@@ -336,7 +375,10 @@ async def start_audio(sid, data=None):
         print(f"CRITICAL ERROR STARTING INARA: {e}")
         import traceback
         traceback.print_exc()
-        await sio.emit('error', {'msg': f"Failed to start: {str(e)}"})
+        if is_api_key_error(e):
+            await emit_ai_unavailable(sid, "API key not valid. Please update GEMINI_API_KEY.")
+        else:
+            await sio.emit('error', {'msg': f"Failed to start: {str(e)}"}, room=sid)
         audio_loop = None # Ensure we can try again
 
 
@@ -373,7 +415,7 @@ async def monitor_printers_loop():
         await asyncio.sleep(2) # Update every 2 seconds for responsiveness
 
 @sio.event
-async def stop_audio(sid):
+async def stop_audio(sid, data=None):
     global audio_loop
     if audio_loop:
         audio_loop.stop() 
@@ -382,7 +424,7 @@ async def stop_audio(sid):
         await sio.emit('status', {'msg': 'INARA Stopped'})
 
 @sio.event
-async def pause_audio(sid):
+async def pause_audio(sid, data=None):
     global audio_loop
     if audio_loop:
         audio_loop.set_paused(True)
@@ -390,7 +432,7 @@ async def pause_audio(sid):
         await sio.emit('status', {'msg': 'Audio Paused'})
 
 @sio.event
-async def resume_audio(sid):
+async def resume_audio(sid, data=None):
     global audio_loop
     if audio_loop:
         audio_loop.set_paused(False)
@@ -446,12 +488,19 @@ async def user_input(sid, data):
     text = data.get('text')
     print(f"[SERVER DEBUG] User input received: '{text}'")
     
+    ai_preflight_error = get_ai_preflight_error()
+    if ai_preflight_error:
+        await emit_ai_unavailable(sid, ai_preflight_error)
+        return
+
     if not audio_loop:
         print("[SERVER DEBUG] [Error] Audio loop is None. Cannot send text.")
+        await sio.emit('error', {'msg': 'Connect to INARA first.'}, room=sid)
         return
 
     if not audio_loop.session:
         print("[SERVER DEBUG] [Error] Session is None. Cannot send text.")
+        await sio.emit('error', {'msg': 'INARA is still connecting. Try again in a moment.'}, room=sid)
         return
 
     if text:
@@ -520,6 +569,7 @@ async def save_memory(sid, data):
             for msg in messages:
                 sender = msg.get('sender', 'Unknown')
                 text = msg.get('text', '')
+                f.write(f"{sender}: {text}\n")
         print(f"Conversation saved to {filename}")
         await sio.emit('status', {'msg': 'Memory Saved Successfully'})
 
@@ -559,7 +609,7 @@ async def upload_memory(sid, data):
         await sio.emit('error', {'msg': f"Failed to upload memory: {str(e)}"})
 
 @sio.event
-async def discover_kasa(sid):
+async def discover_kasa(sid, data=None):
     print(f"Received discover_kasa request")
     try:
         devices = await kasa_agent.discover_devices()
@@ -593,9 +643,14 @@ async def iterate_cad(sid, data):
     # data: { prompt: "make it bigger" }
     prompt = data.get('prompt')
     print(f"Received iterate_cad request: '{prompt}'")
+
+    ai_preflight_error = get_ai_preflight_error()
+    if ai_preflight_error:
+        await emit_ai_unavailable(sid, ai_preflight_error)
+        return
     
     if not audio_loop or not audio_loop.cad_agent:
-        await sio.emit('error', {'msg': "CAD Agent not available"})
+        await sio.emit('error', {'msg': "CAD Agent not available. Connect to INARA first."}, room=sid)
         return
 
     try:
@@ -630,9 +685,14 @@ async def generate_cad(sid, data):
     # data: { prompt: "make a cube" }
     prompt = data.get('prompt')
     print(f"Received generate_cad request: '{prompt}'")
+
+    ai_preflight_error = get_ai_preflight_error()
+    if ai_preflight_error:
+        await emit_ai_unavailable(sid, ai_preflight_error)
+        return
     
     if not audio_loop or not audio_loop.cad_agent:
-        await sio.emit('error', {'msg': "CAD Agent not available"})
+        await sio.emit('error', {'msg': "CAD Agent not available. Connect to INARA first."}, room=sid)
         return
 
     try:
@@ -668,34 +728,36 @@ async def prompt_web_agent(sid, data):
     # data: { prompt: "find xyz" }
     prompt = data.get('prompt')
     print(f"Received web agent prompt: '{prompt}'")
+
+    ai_preflight_error = get_ai_preflight_error()
+    if ai_preflight_error:
+        await emit_ai_unavailable(sid, ai_preflight_error)
+        return
     
     if not audio_loop or not audio_loop.web_agent:
-        await sio.emit('error', {'msg': "Web Agent not available"})
+        await sio.emit('error', {'msg': "Web Agent not available. Connect to INARA first."}, room=sid)
         return
 
     try:
         await sio.emit('status', {'msg': 'Web Agent running...'})
-        
-        # We assume web_agent has a run method or similar.
-        # This might block the loop if not strictly async or offloaded.
-        # Ideally web_agent.run is async.
-        # And it should emit 'browser_snap' and logs automatically via hooks if setup.
-        
-        # We might need to launch this as a task if it's long running?
-        # asyncio.create_task(audio_loop.web_agent.run(prompt))
-        # But we want to catch errors here.
-        
-        # Based on typical agent design, run() is the entry point.
-        await audio_loop.web_agent.run(prompt)
+
+        async def update_frontend(image_b64, log_text):
+            if audio_loop and audio_loop.on_web_data:
+                audio_loop.on_web_data({"image": image_b64, "log": log_text})
+
+        await audio_loop.web_agent.run_task(prompt, update_callback=update_frontend)
         
         await sio.emit('status', {'msg': 'Web Agent finished'})
         
     except Exception as e:
         print(f"Error running Web Agent: {e}")
-        await sio.emit('error', {'msg': f"Web Agent Error: {str(e)}"})
+        if is_api_key_error(e):
+            await emit_ai_unavailable(sid, "API key not valid. Please update GEMINI_API_KEY.")
+        else:
+            await sio.emit('error', {'msg': f"Web Agent Error: {str(e)}"}, room=sid)
 
 @sio.event
-async def discover_printers(sid):
+async def discover_printers(sid, data=None):
     print("Received discover_printers request")
     
     # If audio_loop isn't ready yet, return saved printers from settings
@@ -878,7 +940,7 @@ async def print_stl(sid, data):
         await sio.emit('error', {'msg': f"Print Failed: {str(e)}"})
 
 @sio.event
-async def get_slicer_profiles(sid):
+async def get_slicer_profiles(sid, data=None):
     """Get available OrcaSlicer profiles for manual selection."""
     print("Received get_slicer_profiles request")
     if not audio_loop or not audio_loop.printer_agent:
@@ -930,7 +992,7 @@ async def control_kasa(sid, data):
          await sio.emit('error', {'msg': f"Kasa Control Error: {str(e)}"})
 
 @sio.event
-async def get_settings(sid):
+async def get_settings(sid, data=None):
     await sio.emit('settings', SETTINGS)
 
 @sio.event
@@ -964,7 +1026,7 @@ async def update_settings(sid, data):
 
 # Deprecated/Mapped for compatibility if frontend still uses specific events
 @sio.event
-async def get_tool_permissions(sid):
+async def get_tool_permissions(sid, data=None):
     await sio.emit('tool_permissions', SETTINGS["tool_permissions"])
 
 @sio.event

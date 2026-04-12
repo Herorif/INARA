@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Minus, Power, Printer, Clock, X } from 'lucide-react';
+import { Minus, Printer, Clock, X } from 'lucide-react';
 
 import useStore from './store';
 import socket, { emitSocket } from './services/socket';
@@ -27,12 +27,9 @@ import DeviceWindow from './components/DeviceWindow';
 
 function App() {
     // --- Store selectors ---
-    const status = useStore(s => s.status);
-    const isAuthenticated = useStore(s => s.isAuthenticated);
     const isLockScreenVisible = useStore(s => s.isLockScreenVisible);
     const isConnected = useStore(s => s.isConnected);
     const isMuted = useStore(s => s.isMuted);
-    const socketConnected = useStore(s => s.socketConnected);
     const currentProject = useStore(s => s.currentProject);
 
     const aiAudioData = useStore(s => s.aiAudioData);
@@ -60,15 +57,11 @@ function App() {
     const currentTime = useStore(s => s.currentTime);
     const printerCount = useStore(s => s.printerCount);
     const kasaDevices = useStore(s => s.kasaDevices);
-    const micDevices = useStore(s => s.micDevices);
-    const selectedMicId = useStore(s => s.selectedMicId);
-
     const getZIndex = useStore(s => s.getZIndex);
     const bringToFront = useStore(s => s.bringToFront);
     const setElementPositions = useStore(s => s.setElementPositions);
     const setElementSizes = useStore(s => s.setElementSizes);
     const setActiveDragElement = useStore(s => s.setActiveDragElement);
-    const setStatus = useStore(s => s.setStatus);
 
     // --- Hooks ---
     useAudioVisualizer();
@@ -170,28 +163,6 @@ function App() {
             }
         });
     }, []);
-
-    // --- Auto-connect model ---
-    const hasAutoConnectedRef = useRef(false);
-    useEffect(() => {
-        if (isConnected && isAuthenticated && socketConnected && micDevices.length > 0 && !hasAutoConnectedRef.current) {
-            hasAutoConnectedRef.current = true;
-            emitSocket('discover_kasa');
-            emitSocket('discover_printers');
-
-            const timer = setTimeout(() => {
-                const index = micDevices.findIndex(d => d.deviceId === selectedMicId);
-                const device = micDevices.find(d => d.deviceId === selectedMicId);
-                setStatus('Connecting...');
-                emitSocket('start_audio', {
-                    device_index: index >= 0 ? index : null,
-                    device_name: device ? device.label : null,
-                    muted: isMuted,
-                });
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [isConnected, isAuthenticated, socketConnected, micDevices, selectedMicId, isMuted, setStatus]);
 
     // --- Initial socket check ---
     useEffect(() => {

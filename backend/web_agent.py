@@ -9,10 +9,7 @@ from google.genai import types
 
 # 1. Load API Key
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
-
-if not API_KEY:
-    raise ValueError("Please set GEMINI_API_KEY in your .env file")
+API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
 # 2. Configuration
 SCREEN_WIDTH = 1440
@@ -22,7 +19,7 @@ MODEL_ID = "gemini-2.5-computer-use-preview-10-2025"
 
 class WebAgent:
     def __init__(self):
-        self.client = genai.Client(api_key=API_KEY)
+        self.client = genai.Client(api_key=API_KEY) if API_KEY else None
         self.browser = None
         self.context = None
         self.page = None
@@ -189,6 +186,11 @@ class WebAgent:
         update_callback: async function(screenshot_b64: str, logs: str)
         Returns the final response from the agent.
         """
+        if not API_KEY:
+            raise ValueError("GEMINI_API_KEY is not set. Update your .env file.")
+        if self.client is None:
+            self.client = genai.Client(api_key=API_KEY)
+
         print(f"[START] WebAgent started. Goal: {prompt}")
         final_response = "Agent finished without a final summary."
 

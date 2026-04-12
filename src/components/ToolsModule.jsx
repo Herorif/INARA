@@ -14,6 +14,7 @@ const Tip = ({ label, children }) => (
 );
 
 const ToolsModule = ({ position, onMouseDown }) => {
+    const status = useStore(s => s.status);
     const isConnected = useStore(s => s.isConnected);
     const isMuted = useStore(s => s.isMuted);
     const isVideoOn = useStore(s => s.isVideoOn);
@@ -38,6 +39,7 @@ const ToolsModule = ({ position, onMouseDown }) => {
 
     const togglePower = useStore(s => s.togglePower);
     const toggleMute = useStore(s => s.toggleMute);
+    const isConnecting = status === 'Connecting...';
 
     return (
         <div
@@ -55,10 +57,13 @@ const ToolsModule = ({ position, onMouseDown }) => {
 
             <div className="flex justify-center gap-6 relative z-10">
 
-                <Tip label={isConnected ? 'DISCONNECT' : 'CONNECT'}>
+                <Tip label={isConnecting ? 'CONNECTING' : (isConnected ? 'DISCONNECT' : 'CONNECT')}>
                     <button
                         onClick={togglePower}
-                        className={`p-3 rounded-full border-2 transition-all duration-300 ${isConnected
+                        disabled={isConnecting}
+                        className={`p-3 rounded-full border-2 transition-all duration-300 ${isConnecting
+                            ? 'border-cyan-700 bg-cyan-700/10 text-cyan-500 cursor-wait'
+                            : isConnected
                             ? 'border-green-500 bg-green-500/10 text-green-500 hover:bg-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.3)]'
                             : 'border-gray-600 bg-gray-600/10 text-gray-500 hover:bg-gray-600/20'}`}
                     >

@@ -7,7 +7,7 @@ export const createConnectionSlice = (set, get) => ({
     isAuthenticated: localStorage.getItem('face_auth_enabled') !== 'true',
     isLockScreenVisible: localStorage.getItem('face_auth_enabled') === 'true',
     faceAuthEnabled: localStorage.getItem('face_auth_enabled') === 'true',
-    isConnected: true,
+    isConnected: false,
     isMuted: true,
     currentProject: 'default',
     listeningState: 'idle', // 'idle' | 'wake_listening' | 'active'
@@ -26,14 +26,25 @@ export const createConnectionSlice = (set, get) => ({
     setCurrentProject: (val) => set({ currentProject: val }),
 
     togglePower: () => {
-        const { isConnected, micDevices, selectedMicId } = get();
+        const { isConnected, socketConnected, micDevices, selectedMicId } = get();
         if (isConnected) {
             emitSocket('stop_audio');
-            set({ isConnected: false, isMuted: false });
+            set({ isConnected: false, isMuted: false, status: 'Connected', listeningState: 'idle' });
         } else {
+            if (!socketConnected) {
+                set({ status: 'Backend Disconnected' });
+                return;
+            }
+
             const index = micDevices.findIndex(d => d.deviceId === selectedMicId);
-            emitSocket('start_audio', { device_index: index >= 0 ? index : null });
-            set({ isConnected: true, isMuted: false });
+            const device = micDevices.find(d => d.deviceId === selectedMicId);
+
+            emitSocket('start_audio', {
+                device_index: index >= 0 ? index : null,
+                device_name: device ? device.label : null,
+                muted: false,
+            });
+            set({ status: 'Connecting...', isMuted: false });
         }
     },
 

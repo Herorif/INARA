@@ -17,7 +17,12 @@ export function initSocketListeners() {
     }));
 
     unsubs.push(onSocket('disconnect', () => {
-        useStore.setState({ status: 'Disconnected', socketConnected: false });
+        useStore.setState({
+            status: 'Disconnected',
+            socketConnected: false,
+            isConnected: false,
+            listeningState: 'idle',
+        });
     }));
 
     // --- Status ---
@@ -31,15 +36,24 @@ export function initSocketListeners() {
 
         s().addMessage('System', data.msg);
         if (data.msg.includes('INARA Started')) {
-            useStore.setState({ status: 'Model Connected' });
+            useStore.setState({ status: 'Model Connected', isConnected: true });
         } else if (data.msg === 'INARA Stopped') {
-            useStore.setState({ status: 'Connected', listeningState: 'idle' });
+            useStore.setState({ status: 'Connected', isConnected: false, isMuted: false, listeningState: 'idle' });
+        } else if (data.msg === 'Audio Paused') {
+            useStore.setState({ isMuted: true });
+        } else if (data.msg === 'Audio Resumed') {
+            useStore.setState({ isMuted: false });
+        } else if (data.msg === 'AI Unavailable') {
+            useStore.setState({ status: 'AI Unavailable', isConnected: false, listeningState: 'idle' });
         }
     }));
 
     unsubs.push(onSocket('error', (data) => {
         console.error('Socket Error:', data);
         s().addMessage('System', `Error: ${data.msg}`);
+        if (data.msg?.startsWith('AI unavailable:')) {
+            useStore.setState({ status: 'AI Unavailable', isConnected: false, listeningState: 'idle' });
+        }
     }));
 
     // --- Audio ---

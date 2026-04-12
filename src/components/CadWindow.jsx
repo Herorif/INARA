@@ -92,7 +92,7 @@ const CadWindow = ({ onClose }) => {
                     className="bg-cyan-500/20 hover:bg-cyan-500/50 text-cyan-400 text-xs px-2 py-1 rounded border border-cyan-500/30 backdrop-blur-sm">
                     ITERATE
                 </button>
-                <button onClick={() => emitSocket('request_print_window')}
+                <button onClick={() => useStore.setState({ showPrinterWindow: true })}
                     className="bg-green-500/20 hover:bg-green-500/50 text-green-400 text-xs px-2 py-1 rounded border border-green-500/30 backdrop-blur-sm flex items-center gap-1">
                     <Printer size={12} /> PRINT
                 </button>

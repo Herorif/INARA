@@ -36,6 +36,12 @@ DEFAULT_MODE = "camera"
 load_dotenv()
 client = genai.Client(http_options={"api_version": "v1beta"}, api_key=os.getenv("GEMINI_API_KEY"))
 
+
+def is_invalid_api_key_error(error):
+    message = str(error)
+    lowered = message.lower()
+    return "API_KEY_INVALID" in message or "api key not valid" in lowered or "invalid api key" in lowered
+
 # Function definitions
 generate_cad = {
     "name": "generate_cad",
@@ -211,7 +217,7 @@ from kasa_agent import KasaAgent
 from printer_agent import PrinterAgent
 
 class AudioLoop:
-    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None):
+    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, on_status=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None):
         self.video_mode = video_mode
         self.on_audio_data = on_audio_data
         self.on_video_frame = on_video_frame
@@ -224,6 +230,7 @@ class AudioLoop:
         self.on_project_update = on_project_update
         self.on_device_update = on_device_update
         self.on_error = on_error
+        self.on_status = on_status
         self.input_device_index = input_device_index
         self.input_device_name = input_device_name
         self.output_device_index = output_device_index
@@ -1186,6 +1193,9 @@ class AudioLoop:
                     self.audio_in_queue = asyncio.Queue()
                     self.out_queue = asyncio.Queue(maxsize=10)
 
+                    if self.on_status:
+                        self.on_status("INARA Started")
+
                     tg.create_task(self.send_realtime())
                     tg.create_task(self.listen_audio())
                     # tg.create_task(self._process_video_queue()) # Removed in favor of VAD
@@ -1248,6 +1258,13 @@ class AudioLoop:
             except Exception as e:
                 # This catches the ExceptionGroup from TaskGroup or direct exceptions
                 print(f"[INARA DEBUG] [ERR] Connection Error: {e}")
+
+                if is_invalid_api_key_error(e):
+                    if self.on_status:
+                        self.on_status("AI Unavailable")
+                    if self.on_error:
+                        self.on_error("AI unavailable: API key not valid. Please update GEMINI_API_KEY.")
+                    break
                 
                 if self.stop_event.is_set():
                     break

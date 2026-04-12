@@ -14,6 +14,10 @@ export const onSocket = (event, handler) => {
 
 /** Emit a socket event. */
 export const emitSocket = (event, data) => {
+    if (typeof data === 'undefined') {
+        socket.emit(event);
+        return;
+    }
     socket.emit(event, data);
 };
 
