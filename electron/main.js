@@ -1,6 +1,11 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const http = require('http');
+const net = require('net');
+
+const EXPECTED_BACKEND_RUNTIME = 'legacy-desktop-backend';
+const EXPECTED_BACKEND_ENTRYPOINT = 'backend/server.py';
 
 // Use ANGLE D3D11 backend - more stable on Windows while keeping WebGL working
 // This fixes "GPU state invalid after WaitForGetOffsetInRange" error
@@ -66,6 +71,7 @@ function createWindow() {
 
 function startPythonBackend() {
     const scriptPath = path.join(__dirname, '../backend/server.py');
+    console.log(`[BOOT] Starting canonical backend runtime: ${EXPECTED_BACKEND_RUNTIME} (${EXPECTED_BACKEND_ENTRYPOINT})`);
     console.log(`Starting Python backend: ${scriptPath}`);
 
     // Assuming 'python' is in PATH. In prod, this would be the executable.
@@ -80,6 +86,21 @@ function startPythonBackend() {
     pythonProcess.stderr.on('data', (data) => {
         console.error(`[Python Error]: ${data}`);
     });
+}
+
+function logBackendIdentity(statusPayload) {
+    if (!statusPayload || typeof statusPayload !== 'object') {
+        console.warn('[BOOT] Backend responded without runtime metadata.');
+        return;
+    }
+
+    const runtime = statusPayload.runtime || 'unknown';
+    const entrypoint = statusPayload.entrypoint || 'unknown';
+    console.log(`[BOOT] Active backend runtime detected: ${runtime} (${entrypoint})`);
+
+    if (runtime !== EXPECTED_BACKEND_RUNTIME || entrypoint !== EXPECTED_BACKEND_ENTRYPOINT) {
+        console.warn(`[BOOT] Expected ${EXPECTED_BACKEND_RUNTIME} (${EXPECTED_BACKEND_ENTRYPOINT}) but found ${runtime} (${entrypoint}).`);
+    }
 }
 
 app.whenReady().then(() => {
@@ -103,13 +124,19 @@ app.whenReady().then(() => {
 
     checkBackendPort(8000).then((isTaken) => {
         if (isTaken) {
-            console.log('Port 8000 is taken. Assuming backend is already running manually.');
-            waitForBackend().then(createWindow);
+            console.log('[BOOT] Port 8000 is already in use. Probing the active backend runtime.');
+            waitForBackend().then((statusPayload) => {
+                logBackendIdentity(statusPayload);
+                createWindow();
+            });
         } else {
             startPythonBackend();
             // Give it a moment to start, then wait for health check
             setTimeout(() => {
-                waitForBackend().then(createWindow);
+                waitForBackend().then((statusPayload) => {
+                    logBackendIdentity(statusPayload);
+                    createWindow();
+                });
             }, 1000);
         }
     });
@@ -121,7 +148,6 @@ app.whenReady().then(() => {
 
 function checkBackendPort(port) {
     return new Promise((resolve) => {
-        const net = require('net');
         const server = net.createServer();
         server.once('error', (err) => {
             if (err.code === 'EADDRINUSE') {
@@ -141,11 +167,23 @@ function checkBackendPort(port) {
 function waitForBackend() {
     return new Promise((resolve) => {
         const check = () => {
-            const http = require('http');
             http.get('http://127.0.0.1:8000/status', (res) => {
                 if (res.statusCode === 200) {
-                    console.log('Backend is ready!');
-                    resolve();
+                    let rawBody = '';
+                    res.setEncoding('utf8');
+                    res.on('data', (chunk) => {
+                        rawBody += chunk;
+                    });
+                    res.on('end', () => {
+                        let payload = null;
+                        try {
+                            payload = rawBody ? JSON.parse(rawBody) : null;
+                        } catch (err) {
+                            console.warn(`[BOOT] Failed to parse backend status payload: ${err.message}`);
+                        }
+                        console.log('Backend is ready!');
+                        resolve(payload);
+                    });
                 } else {
                     console.log('Backend not ready, retrying...');
                     setTimeout(check, 1000);

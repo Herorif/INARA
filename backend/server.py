@@ -32,6 +32,8 @@ from project_manager import ProjectManager
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
 app_socketio = socketio.ASGIApp(sio, app)
+ACTIVE_RUNTIME = "legacy-desktop-backend"
+ACTIVE_ENTRYPOINT = "backend/server.py"
 
 import signal
 
@@ -113,6 +115,51 @@ async def emit_ai_unavailable(sid, reason):
     await sio.emit('status', {'msg': 'AI Unavailable'}, room=sid)
     await sio.emit('error', {'msg': f"AI unavailable: {reason}"}, room=sid)
 
+
+def get_runtime_summary():
+    ai_preflight_error = get_ai_preflight_error()
+    reference_image_path = Path(backend_dir) / "reference.jpg"
+    face_auth_enabled = SETTINGS.get("face_auth_enabled", False)
+    slicer_status = printer_agent.get_slicer_status()
+
+    if ai_preflight_error:
+        ai_status = f"blocked ({ai_preflight_error})"
+    else:
+        ai_status = "configured"
+
+    if not face_auth_enabled:
+        face_auth_status = "disabled"
+    elif reference_image_path.exists():
+        face_auth_status = f"enabled (reference: {reference_image_path.name})"
+    else:
+        face_auth_status = f"enabled (missing {reference_image_path.name})"
+
+    slicer_state = "ready" if slicer_status["available"] else "missing"
+
+    return {
+        "status": "running",
+        "service": "INARA Backend",
+        "runtime": ACTIVE_RUNTIME,
+        "entrypoint": ACTIVE_ENTRYPOINT,
+        "ai_status": ai_status,
+        "face_auth_status": face_auth_status,
+        "slicer_status": slicer_state,
+        "slicer_message": slicer_status["message"],
+        "saved_printers": len(SETTINGS.get("printers", [])),
+    }
+
+
+def print_startup_summary():
+    summary = get_runtime_summary()
+    print("[SERVER] ========================================")
+    print(f"[SERVER] Active Runtime : {summary['runtime']}")
+    print(f"[SERVER] Entrypoint     : {summary['entrypoint']}")
+    print(f"[SERVER] Gemini API     : {summary['ai_status']}")
+    print(f"[SERVER] Face Auth      : {summary['face_auth_status']}")
+    print(f"[SERVER] Slicer         : {summary['slicer_status']} ({summary['slicer_message']})")
+    print(f"[SERVER] Saved Printers : {summary['saved_printers']}")
+    print("[SERVER] ========================================")
+
 def load_settings():
     global SETTINGS
     if os.path.exists(SETTINGS_FILE):
@@ -185,10 +232,11 @@ async def startup_event():
     await kasa_agent.initialize()
     load_saved_printers_into_agent()
     ensure_printer_monitor_running()
+    print_startup_summary()
 
 @app.get("/status")
 async def status():
-    return {"status": "running", "service": "INARA Backend"}
+    return get_runtime_summary()
 
 @sio.event
 async def connect(sid, environ):
