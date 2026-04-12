@@ -14,8 +14,10 @@ const Tip = ({ label, children }) => (
 );
 
 const ToolsModule = ({ position, onMouseDown }) => {
-    const status = useStore(s => s.status);
-    const isConnected = useStore(s => s.isConnected);
+    const backendConnected = useStore(s => s.backendConnected);
+    const aiConnected = useStore(s => s.aiConnected);
+    const aiConnecting = useStore(s => s.aiConnecting);
+    const aiUnavailable = useStore(s => s.aiUnavailable);
     const isMuted = useStore(s => s.isMuted);
     const isVideoOn = useStore(s => s.isVideoOn);
     const isHandTrackingEnabled = useStore(s => s.isHandTrackingEnabled);
@@ -39,7 +41,15 @@ const ToolsModule = ({ position, onMouseDown }) => {
 
     const togglePower = useStore(s => s.togglePower);
     const toggleMute = useStore(s => s.toggleMute);
-    const isConnecting = status === 'Connecting...';
+    const powerLabel = !backendConnected
+        ? 'BACKEND OFFLINE'
+        : aiConnecting
+            ? 'CONNECTING AI'
+            : aiConnected
+                ? 'DISCONNECT AI'
+                : aiUnavailable
+                    ? 'RETRY AI'
+                    : 'CONNECT AI';
 
     return (
         <div
@@ -57,14 +67,18 @@ const ToolsModule = ({ position, onMouseDown }) => {
 
             <div className="flex justify-center gap-6 relative z-10">
 
-                <Tip label={isConnecting ? 'CONNECTING' : (isConnected ? 'DISCONNECT' : 'CONNECT')}>
+                <Tip label={powerLabel}>
                     <button
                         onClick={togglePower}
-                        disabled={isConnecting}
-                        className={`p-3 rounded-full border-2 transition-all duration-300 ${isConnecting
+                        disabled={!backendConnected || aiConnecting}
+                        className={`p-3 rounded-full border-2 transition-all duration-300 ${!backendConnected
+                            ? 'border-gray-800 bg-gray-900/30 text-gray-700 cursor-not-allowed'
+                            : aiConnecting
                             ? 'border-cyan-700 bg-cyan-700/10 text-cyan-500 cursor-wait'
-                            : isConnected
+                            : aiConnected
                             ? 'border-green-500 bg-green-500/10 text-green-500 hover:bg-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.3)]'
+                            : aiUnavailable
+                            ? 'border-red-500 bg-red-500/10 text-red-400 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
                             : 'border-gray-600 bg-gray-600/10 text-gray-500 hover:bg-gray-600/20'}`}
                     >
                         <Power size={24} />
@@ -74,8 +88,8 @@ const ToolsModule = ({ position, onMouseDown }) => {
                 <Tip label={isMuted ? 'UNMUTE' : 'MUTE'}>
                     <button
                         onClick={toggleMute}
-                        disabled={!isConnected}
-                        className={`p-3 rounded-full border-2 transition-all duration-300 ${!isConnected
+                        disabled={!aiConnected}
+                        className={`p-3 rounded-full border-2 transition-all duration-300 ${!aiConnected
                             ? 'border-gray-800 text-gray-800 cursor-not-allowed'
                             : isMuted
                                 ? 'border-red-500 bg-red-500/10 text-red-500 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.3)]'

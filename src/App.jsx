@@ -28,7 +28,11 @@ import DeviceWindow from './components/DeviceWindow';
 function App() {
     // --- Store selectors ---
     const isLockScreenVisible = useStore(s => s.isLockScreenVisible);
-    const isConnected = useStore(s => s.isConnected);
+    const backendConnected = useStore(s => s.backendConnected);
+    const aiConnected = useStore(s => s.aiConnected);
+    const aiConnecting = useStore(s => s.aiConnecting);
+    const aiUnavailable = useStore(s => s.aiUnavailable);
+    const localDevicesReady = useStore(s => s.localDevicesReady);
     const isMuted = useStore(s => s.isMuted);
     const currentProject = useStore(s => s.currentProject);
 
@@ -167,7 +171,11 @@ function App() {
     // --- Initial socket check ---
     useEffect(() => {
         if (socket.connected) {
-            useStore.setState({ status: 'Connected' });
+            useStore.setState({
+                status: 'Backend Connected',
+                backendConnected: true,
+                localDevicesReady: true,
+            });
             emitSocket('get_settings');
         }
     }, []);
@@ -262,6 +270,21 @@ function App() {
                         I.N.A.R.A
                     </h1>
                     <div className="text-[10px] text-cyan-700 border border-cyan-900 px-1 rounded">V2.0.0</div>
+                    <div className={`text-[10px] px-2 py-0.5 rounded border ml-2 ${backendConnected ? 'text-green-400 border-green-500/30 bg-green-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'}`}>
+                        {backendConnected ? 'BACKEND CONNECTED' : 'BACKEND OFFLINE'}
+                    </div>
+                    <div className={`text-[10px] px-2 py-0.5 rounded border ${aiConnected
+                        ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                        : aiConnecting
+                            ? 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10 animate-pulse'
+                            : aiUnavailable
+                                ? 'text-red-400 border-red-500/30 bg-red-500/10'
+                                : 'text-gray-400 border-gray-500/20 bg-gray-500/10'}`}>
+                        {aiConnected ? 'AI CONNECTED' : aiConnecting ? 'AI CONNECTING' : aiUnavailable ? 'AI UNAVAILABLE' : 'AI IDLE'}
+                    </div>
+                    <div className={`text-[10px] px-2 py-0.5 rounded border ${localDevicesReady ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : 'text-gray-400 border-gray-500/20 bg-gray-500/10'}`}>
+                        {localDevicesReady ? 'LOCAL DEVICES READY' : 'LOCAL DEVICES OFFLINE'}
+                    </div>
                     {isVideoOn && <div className="text-[10px] text-green-500 border border-green-900 px-1 rounded ml-2">FPS: {fps}</div>}
                     {printerCount > 0 && (
                         <div className="flex items-center gap-1.5 text-[10px] text-green-400 border border-green-500/30 bg-green-500/10 px-2 py-0.5 rounded ml-2">
@@ -306,7 +329,7 @@ function App() {
                 >
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay z-10"></div>
                     <div className="relative z-20">
-                        <Visualizer audioData={aiAudioData} isListening={isConnected && !isMuted} intensity={audioAmp} width={elementSizes.visualizer.w} height={elementSizes.visualizer.h} />
+                        <Visualizer audioData={aiAudioData} isListening={aiConnected && !isMuted} intensity={audioAmp} width={elementSizes.visualizer.w} height={elementSizes.visualizer.h} />
                     </div>
                     {isModularMode && <div className={`absolute top-2 right-2 text-xs font-bold tracking-widest z-20 ${activeDragElement === 'visualizer' ? 'text-green-500' : 'text-yellow-500/50'}`}>VISUALIZER</div>}
                 </div>

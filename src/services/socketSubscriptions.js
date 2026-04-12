@@ -6,21 +6,43 @@
 import socket, { onSocket } from './socket';
 import useStore from '../store';
 
+const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUnavailable }) => {
+    if (!backendConnected) return 'Backend Disconnected';
+    if (aiConnecting) return 'AI Connecting';
+    if (aiConnected) return 'AI Connected';
+    if (aiUnavailable) return 'AI Unavailable';
+    return 'Backend Connected';
+};
+
 export function initSocketListeners() {
     const unsubs = [];
     const s = useStore.getState;
 
     // --- Connection ---
     unsubs.push(onSocket('connect', () => {
-        useStore.setState({ status: 'Connected', socketConnected: true });
+        const current = s();
+        useStore.setState({
+            backendConnected: true,
+            localDevicesReady: true,
+            status: getConnectionStatus({
+                backendConnected: true,
+                aiConnected: current.aiConnected,
+                aiConnecting: current.aiConnecting,
+                aiUnavailable: current.aiUnavailable,
+            }),
+        });
         socket.emit('get_settings');
     }));
 
     unsubs.push(onSocket('disconnect', () => {
         useStore.setState({
-            status: 'Disconnected',
-            socketConnected: false,
-            isConnected: false,
+            status: 'Backend Disconnected',
+            backendConnected: false,
+            aiConnected: false,
+            aiConnecting: false,
+            aiUnavailable: false,
+            localDevicesReady: false,
+            isMuted: true,
             listeningState: 'idle',
         });
     }));
@@ -36,15 +58,34 @@ export function initSocketListeners() {
 
         s().addMessage('System', data.msg);
         if (data.msg.includes('INARA Started')) {
-            useStore.setState({ status: 'Model Connected', isConnected: true });
+            useStore.setState({
+                status: 'AI Connected',
+                aiConnected: true,
+                aiConnecting: false,
+                aiUnavailable: false,
+            });
         } else if (data.msg === 'INARA Stopped') {
-            useStore.setState({ status: 'Connected', isConnected: false, isMuted: false, listeningState: 'idle' });
+            useStore.setState({
+                status: 'Backend Connected',
+                aiConnected: false,
+                aiConnecting: false,
+                aiUnavailable: false,
+                isMuted: false,
+                listeningState: 'idle',
+            });
         } else if (data.msg === 'Audio Paused') {
             useStore.setState({ isMuted: true });
         } else if (data.msg === 'Audio Resumed') {
             useStore.setState({ isMuted: false });
         } else if (data.msg === 'AI Unavailable') {
-            useStore.setState({ status: 'AI Unavailable', isConnected: false, listeningState: 'idle' });
+            useStore.setState({
+                status: 'AI Unavailable',
+                aiConnected: false,
+                aiConnecting: false,
+                aiUnavailable: true,
+                isMuted: true,
+                listeningState: 'idle',
+            });
         }
     }));
 
@@ -52,7 +93,14 @@ export function initSocketListeners() {
         console.error('Socket Error:', data);
         s().addMessage('System', `Error: ${data.msg}`);
         if (data.msg?.startsWith('AI unavailable:')) {
-            useStore.setState({ status: 'AI Unavailable', isConnected: false, listeningState: 'idle' });
+            useStore.setState({
+                status: 'AI Unavailable',
+                aiConnected: false,
+                aiConnecting: false,
+                aiUnavailable: true,
+                isMuted: true,
+                listeningState: 'idle',
+            });
         }
     }));
 

@@ -84,8 +84,8 @@ export function useVideoCapture() {
         ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
         // Transmit every 5th frame
-        const { isConnected } = useStore.getState();
-        if (isConnected && frameCountRef.current % 5 === 0) {
+        const { aiConnected } = useStore.getState();
+        if (aiConnected && frameCountRef.current % 5 === 0) {
             const transCanvas = transmissionCanvasRef.current;
             if (transCanvas) {
                 const transCtx = transCanvas.getContext('2d');

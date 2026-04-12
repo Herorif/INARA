@@ -1,38 +1,61 @@
 import socket, { emitSocket } from '../services/socket';
 
+const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUnavailable }) => {
+    if (!backendConnected) return 'Backend Disconnected';
+    if (aiConnecting) return 'AI Connecting';
+    if (aiConnected) return 'AI Connected';
+    if (aiUnavailable) return 'AI Unavailable';
+    return 'Backend Connected';
+};
+
 export const createConnectionSlice = (set, get) => ({
     // State
-    status: 'Disconnected',
-    socketConnected: socket.connected,
+    status: socket.connected ? 'Backend Connected' : 'Backend Disconnected',
+    backendConnected: socket.connected,
     isAuthenticated: localStorage.getItem('face_auth_enabled') !== 'true',
     isLockScreenVisible: localStorage.getItem('face_auth_enabled') === 'true',
     faceAuthEnabled: localStorage.getItem('face_auth_enabled') === 'true',
-    isConnected: false,
+    aiConnected: false,
+    aiConnecting: false,
+    aiUnavailable: false,
+    localDevicesReady: socket.connected,
     isMuted: true,
     currentProject: 'default',
     listeningState: 'idle', // 'idle' | 'wake_listening' | 'active'
 
     // Actions
     setStatus: (status) => set({ status }),
-    setSocketConnected: (val) => set({ socketConnected: val }),
     setIsAuthenticated: (val) => set({ isAuthenticated: val }),
     setIsLockScreenVisible: (val) => set({ isLockScreenVisible: val }),
     setFaceAuthEnabled: (val) => {
         localStorage.setItem('face_auth_enabled', val);
         set({ faceAuthEnabled: val });
     },
-    setIsConnected: (val) => set({ isConnected: val }),
     setIsMuted: (val) => set({ isMuted: val }),
     setCurrentProject: (val) => set({ currentProject: val }),
 
     togglePower: () => {
-        const { isConnected, socketConnected, micDevices, selectedMicId } = get();
-        if (isConnected) {
+        const { aiConnected, aiConnecting, backendConnected, micDevices, selectedMicId } = get();
+        if (aiConnecting) return;
+
+        if (aiConnected) {
             emitSocket('stop_audio');
-            set({ isConnected: false, isMuted: false, status: 'Connected', listeningState: 'idle' });
+            set({
+                aiConnected: false,
+                aiConnecting: false,
+                aiUnavailable: false,
+                isMuted: false,
+                status: getConnectionStatus({
+                    backendConnected,
+                    aiConnected: false,
+                    aiConnecting: false,
+                    aiUnavailable: false,
+                }),
+                listeningState: 'idle',
+            });
         } else {
-            if (!socketConnected) {
-                set({ status: 'Backend Disconnected' });
+            if (!backendConnected) {
+                set({ status: 'Backend Disconnected', localDevicesReady: false });
                 return;
             }
 
@@ -44,13 +67,19 @@ export const createConnectionSlice = (set, get) => ({
                 device_name: device ? device.label : null,
                 muted: false,
             });
-            set({ status: 'Connecting...', isMuted: false });
+            set({
+                aiConnected: false,
+                aiConnecting: true,
+                aiUnavailable: false,
+                status: 'AI Connecting',
+                isMuted: false,
+            });
         }
     },
 
     toggleMute: () => {
-        const { isConnected, isMuted } = get();
-        if (!isConnected) return;
+        const { aiConnected, isMuted } = get();
+        if (!aiConnected) return;
         if (isMuted) {
             emitSocket('resume_audio');
             set({ isMuted: false });
