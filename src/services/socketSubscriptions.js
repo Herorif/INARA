@@ -314,7 +314,49 @@ export function initSocketListeners() {
     }));
 
     unsubs.push(onSocket('device_control', (data) => {
-        if (data.device_id) s().updateDeviceState(data.device_id, { lastAction: data.action });
+        if (data.device_id) {
+            const updates = { lastAction: data.action };
+            if (data.action === 'turn_on') updates.state = 'on';
+            else if (data.action === 'turn_off') updates.state = 'off';
+            s().updateDeviceState(data.device_id, updates);
+        }
+    }));
+
+    unsubs.push(onSocket('vision_watches', (data) => {
+        if (data.watches) useStore.setState({ activeWatches: data.watches });
+    }));
+
+    // --- Desktop ---
+    unsubs.push(onSocket('desktop_system_info', (data) => {
+        s().setSystemInfo(data);
+        if (data.processes) s().setRunningApps(data.processes);
+    }));
+
+    unsubs.push(onSocket('desktop_screenshot', (data) => {
+        if (data.data?.image) s().setLastScreenshot(data.data.image);
+    }));
+
+    // --- Reminders ---
+    unsubs.push(onSocket('reminder_list', (list) => {
+        s().setReminders(Array.isArray(list) ? list : []);
+    }));
+
+    unsubs.push(onSocket('reminder_triggered', (data) => {
+        s().addMessage('INARA', `Reminder: ${data.task || data.message || 'Reminder fired'}`);
+        s().setActiveAlert({ id: data.id, task: data.task });
+        s().removeReminder(data.id);
+    }));
+
+    unsubs.push(onSocket('reminder_created', (data) => {
+        s().addReminder(data);
+    }));
+
+    unsubs.push(onSocket('reminder_cancelled', (data) => {
+        s().removeReminder(data.id);
+    }));
+
+    unsubs.push(onSocket('reminder_updated', () => {
+        // No-op: local state already updated by the action that triggered this
     }));
 
     // Return cleanup
