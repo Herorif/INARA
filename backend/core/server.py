@@ -13,10 +13,13 @@ INARA_ALLOW_EXPERIMENTAL_CORE_SERVER=1 before starting it.
 
 import sys
 import asyncio
+import logging
 import os
 import signal
 import json
 import base64
+
+logger = logging.getLogger(__name__)
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -205,7 +208,8 @@ async def lifespan(application):
 
     if vision_agent:
         await vision_agent.initialize()
-        vision_task_ref = asyncio.create_task(vision_loop.run())
+        global vision_task
+        vision_task = asyncio.create_task(vision_loop.run())
         print("[INARA] Vision loop started.")
 
     await device_agent.initialize()
@@ -685,8 +689,8 @@ async def video_frame(sid, data):
         try:
             import base64 as _b64
             vision_loop.set_frame(_b64.b64decode(image))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[video_frame] Failed to decode frame for vision loop: {e}")
 
 
 # --- Memory ---

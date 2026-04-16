@@ -14,6 +14,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Optional
 
+from core.event_bus import Event, Events
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +48,7 @@ class VisionLoop:
         self._watches: dict[str, WatchCondition] = {}
         self._stop_event = asyncio.Event()
         self._api_key: Optional[str] = None
+        self._client = None          # initialized once in run()
         self._model = "gemini-2.0-flash"
 
     # ------------------------------------------------------------------
@@ -88,6 +91,16 @@ class VisionLoop:
         """Main loop — polls active watches every self._interval seconds."""
         logger.info("[VisionLoop] Started")
         self._api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        # Create the Gemini client once for all watch evaluations
+        if self._api_key:
+            try:
+                from google import genai
+                self._client = genai.Client(api_key=self._api_key)
+            except Exception as e:
+                logger.warning(f"[VisionLoop] Failed to create Gemini client: {e}")
+                self._client = None
+        else:
+            self._client = None
 
         while not self._stop_event.is_set():
             await asyncio.sleep(self._interval)
@@ -114,7 +127,6 @@ class VisionLoop:
                 watch.last_checked = time.time()
 
                 if result.startswith("DETECTED"):
-                    from core.event_bus import Event, Events
                     self._bus.emit_nowait(Event(
                         type=Events.VISION_ALERT,
                         data={
@@ -130,20 +142,18 @@ class VisionLoop:
 
     def _evaluate_watch(self, watch: WatchCondition, frame_bytes: bytes) -> str:
         """Synchronous Gemini call — runs in executor to avoid blocking the event loop."""
-        if not self._api_key:
+        if not self._api_key or not self._client:
             return "CLEAR (no API key)"
         try:
-            from google import genai
             from google.genai import types
 
-            client = genai.Client(api_key=self._api_key)
             prompt = (
                 f"You are monitoring a camera feed. "
                 f"Watch for: {watch.description}. "
                 f"If you see it, respond with exactly: DETECTED: <brief description>. "
                 f"If you do not see it, respond with exactly: CLEAR."
             )
-            response = client.models.generate_content(
+            response = self._client.models.generate_content(
                 model=self._model,
                 contents=[
                     types.Part.from_bytes(data=frame_bytes, mime_type="image/jpeg"),
