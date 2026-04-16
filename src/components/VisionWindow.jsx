@@ -26,7 +26,7 @@ const AlertRow = ({ alert }) => (
 // ---------------------------------------------------------------------------
 const WatchRow = ({ watch }) => {
     const handleRemove = () => {
-        emitSocket('user_input', { text: `Stop watching for ${watch.id}` });
+        emitSocket('stop_watching', { watch_id: watch.id });
     };
     return (
         <div className="flex items-center gap-2 px-2 py-1.5 rounded border border-cyan-900/30 bg-black/20">
@@ -61,7 +61,7 @@ const VisionWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElemen
 
     const handleAddWatch = () => {
         if (!watchInput.trim()) return;
-        handleAsk(`Watch for: ${watchInput.trim()}`);
+        emitSocket('user_input', { text: `Watch for: ${watchInput.trim()}` });
         setWatchInput('');
     };
 

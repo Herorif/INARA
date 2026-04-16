@@ -54,7 +54,7 @@ const QUICK_APPS = [
 const AppButton = ({ app }) => {
     const Icon = app.icon;
     const handleLaunch = () => {
-        emitSocket('user_input', { text: `Launch ${app.name}` });
+        emitSocket('launch_app', { name: app.name });
     };
     return (
         <button
@@ -173,8 +173,8 @@ const DesktopWindow = ({ position, onClose, onMouseDown, zIndex, activeDragEleme
         setSearchQuery('');
     };
 
-    const handleScreenshot = () => handleAsk("What's on my screen right now?");
-    const handleRefreshStats = () => handleAsk('Get system info');
+    const handleScreenshot = () => emitSocket('take_screenshot', {});
+    const handleRefreshStats = () => emitSocket('get_system_info', {});
 
     const TABS = ['stats', 'apps', 'tools'];
 

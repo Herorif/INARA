@@ -49,8 +49,9 @@ const DeviceRow = ({ device }) => {
     const badgeClass = SOURCE_BADGE[device.source] || SOURCE_BADGE.default;
 
     const handleToggle = () => {
-        emitSocket('user_input', {
-            text: `${on ? 'Turn off' : 'Turn on'} ${device.name}`,
+        emitSocket('control_device', {
+            device_id: device.id,
+            action: on ? 'turn_off' : 'turn_on',
         });
     };
 
@@ -92,7 +93,7 @@ const DeviceWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElemen
 
     const allDevices = useStore(s => s.allDevices);
 
-    const handleRefresh = () => emitSocket('user_input', { text: 'List all devices' });
+    const handleRefresh = () => emitSocket('list_all_devices', {});
 
     const FILTERS = ['all', 'light', 'switch', 'climate', 'media'];
 

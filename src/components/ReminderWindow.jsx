@@ -43,12 +43,12 @@ const ReminderRow = ({ reminder }) => {
     const [snoozeOpen, setSnoozeOpen] = useState(false);
 
     const handleCancel = () => {
-        emitSocket('user_input', { text: `Cancel reminder ${reminder.id.slice(0, 8)}` });
+        emitSocket('cancel_reminder', { reminder_id: reminder.id });
         removeReminder(reminder.id);
     };
 
     const handleSnooze = (minutes) => {
-        emitSocket('user_input', { text: `Snooze reminder ${reminder.id.slice(0, 8)} for ${minutes} minutes` });
+        emitSocket('snooze_reminder', { reminder_id: reminder.id, minutes });
         setSnoozeOpen(false);
     };
 
