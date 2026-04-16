@@ -31,9 +31,12 @@ You can talk to it and get a response. Ask it to design a gear and it can create
 | 🖨️ **3D Print Pipeline** | Auto-slice and send to printers over your network              | OrcaSlicer + Moonraker/OctoPrint |
 | 🖐️ **Gesture Control**   | Minority Report-style window manipulation via hand tracking    | MediaPipe                        |
 | 🌐 **Web Agent**         | Autonomous browser - navigates, clicks, types, reads           | Playwright + Chromium            |
-| 🏠 **Smart Home**        | Voice control for TP-Link Kasa lights, plugs, switches         | `python-kasa`                    |
+| 🏠 **Smart Home**        | Voice control for TP-Link Kasa + Home Assistant devices        | `python-kasa`, HA REST API       |
 | 👁️ **Face Auth**         | Biometric login - local only, nothing leaves your machine      | MediaPipe Face Landmarks         |
 | 📁 **Project Memory**    | Persistent context across sessions and conversations           | File-based storage               |
+| ⏰ **Reminders**         | Voice-set reminders and recurring routines that fire on cue    | File-backed store                |
+| 🖥️ **Desktop Control**   | Launch apps, take screenshots, search files, read clipboard    | `psutil`, `pyperclip`            |
+| 📷 **Camera Vision**     | Describe scenes, detect presence, watch for conditions         | Gemini Vision                    |
 
 ### 🖐️ Gesture Control
 
@@ -47,12 +50,13 @@ INARA's Minority Report interface uses your webcam for hands-free window control
 
 ### 🔮 Coming Soon
 
-| Module                         | Description                                                    |
-| ------------------------------ | -------------------------------------------------------------- |
-| 📞 **Phone Calls**             | Outbound/inbound call handling through voice                   |
-| ⏰ **Reminders & Scheduling**  | Time-aware task management and calendar integration            |
-| 🖥️ **Desktop Productivity**    | App launching, file operations, system control                 |
-| 👁️ **Vision & Device Control** | Screen reading, camera-based interaction, device orchestration |
+| Module                        | Description                                                         |
+| ----------------------------- | ------------------------------------------------------------------- |
+| 📞 **Phone Calls**            | Outbound/inbound call handling through voice                        |
+| 📅 **Calendar Integration**   | Time-aware scheduling synced to external calendars                  |
+| 🔌 **Matter / Thread**        | Next-gen smart home protocol support                                |
+| 🎤 **Custom Wake Word**        | Train a personal wake phrase instead of a button press              |
+| 🔊 **Multi-Room Audio**        | Route voice and playback across rooms                               |
 
 ---
 
@@ -82,6 +86,10 @@ graph TB
         KASA[kasa_agent.py<br/>Smart Home]
         AUTH[authenticator.py<br/>Face Auth]
         PROJECT[project_manager.py<br/>Project Context]
+        SCHED[scheduler_agent.py<br/>Reminders & Routines]
+        DESK[desktop_agent.py<br/>Desktop Control]
+        VIS[vision_agent.py<br/>Camera Vision]
+        DEV[device_agent.py<br/>Unified Devices]
     end
 
     UI --> SOCKET_C
@@ -93,6 +101,10 @@ graph TB
     SERVER --> PRINTER
     SERVER --> AUTH
     SERVER --> PROJECT
+    SERVER --> SCHED
+    SERVER --> DESK
+    SERVER --> VIS
+    SERVER --> DEV
     CAD -->|STL| THREE
     CAD -->|STL| PRINTER
 ```
@@ -175,6 +187,9 @@ Once it's running, try these:
 4. 🌐 **Web** - Open the Browser window and say "Go to Google".
 5. 🏠 **Smart Home** - If you have Kasa devices, say "Turn on the lights".
 6. 🖨️ **Print** - Generate a model, then say "Print it".
+7. ⏰ **Reminders** - Say "Remind me to stretch in 5 minutes". It fires and announces.
+8. 🖥️ **Desktop** - Open the Desktop window. Click the lightning bolt to pull system stats.
+9. 📷 **Vision** - Open the Vision window. Type "person at door" and add a watch condition.
 
 ---
 
@@ -188,6 +203,9 @@ Settings live in `backend/settings.json` (auto-created on first run).
 | `tool_permissions.generate_cad`  | `bool`  | Require confirmation before CAD generation        |
 | `tool_permissions.run_web_agent` | `bool`  | Require confirmation before browser automation    |
 | `tool_permissions.write_file`    | `bool`  | Require confirmation before writing files to disk |
+| `tool_permissions.launch_app`    | `bool`  | Require confirmation before launching applications |
+| `tool_permissions.control_device`| `bool`  | Require confirmation before toggling smart devices |
+| `tool_permissions.watch_for`     | `bool`  | Require confirmation before starting camera watch  |
 | `printers`                       | `array` | Saved printer configurations                      |
 | `kasa_devices`                   | `array` | Saved smart home devices                          |
 
@@ -198,6 +216,9 @@ Create a `.env` file in the project root:
 ```env
 GEMINI_API_KEY=your_gemini_key
 ANTHROPIC_API_KEY=your_claude_key
+# Optional — only needed if using Home Assistant integration
+HA_URL=http://homeassistant.local:8123
+HA_TOKEN=your_long_lived_access_token
 ```
 
 - Gemini key -> [Google AI Studio](https://aistudio.google.com/app/apikey)
@@ -232,11 +253,15 @@ All processing is local. Nothing is uploaded. Nothing is stored externally.
 ```
 inara/
 ├── backend/
-│   ├── core/                  # Server, event bus, config, tool registry
+│   ├── core/                  # Event bus, reminder store, config, tool registry
 │   ├── llm/                   # LLM abstraction (Gemini, Claude, router)
-│   ├── agents/                # Agent framework (CAD, web, printer, kasa, auth)
+│   ├── agents/                # Agent modules (CAD, web, printer, kasa, scheduler, desktop, vision, device)
+│   ├── desktop/               # System monitor, app registry, screen capture
+│   ├── vision/                # Vision loop (continuous camera watch conditions)
+│   ├── devices/               # Home Assistant bridge
 │   ├── voice/                 # Voice pipeline (STT, TTS, VAD, audio I/O)
 │   ├── inara.py               # Voice integration (Gemini Live API)
+│   ├── server.py              # Canonical Socket.IO runtime
 │   ├── printer_agent.py       # Printer discovery & slicing engine
 │   ├── kasa_agent.py          # Kasa device control engine
 │   ├── cad_agent.py           # CAD generation engine
@@ -244,7 +269,8 @@ inara/
 │   └── project_manager.py     # Project context management
 ├── src/                       # React frontend
 │   ├── App.jsx                # Main application shell
-│   └── components/            # UI components
+│   ├── store/                 # Zustand slices (chat, cad, kasa, reminders, desktop, vision, devices…)
+│   └── components/            # UI components (windows, visualizer, tools panel…)
 ├── electron/                  # Electron main process
 │   └── main.js                # Window & IPC setup
 ├── tests/                     # Test suite
