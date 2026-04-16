@@ -218,7 +218,7 @@ from printer_agent import PrinterAgent
 from project_manager import ProjectManager
 
 class AudioLoop:
-    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, on_status=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None, printer_agent=None, project_manager=None):
+    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, on_status=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None, printer_agent=None, project_manager=None, scheduler_agent=None, desktop_agent=None, vision_agent=None, device_agent=None):
         self.video_mode = video_mode
         self.on_audio_data = on_audio_data
         self.on_video_frame = on_video_frame
@@ -266,6 +266,12 @@ class AudioLoop:
         self.kasa_agent = kasa_agent if kasa_agent else KasaAgent()
         self.printer_agent = printer_agent if printer_agent else PrinterAgent()
 
+        # Phase 4-7 agents (injected via set_agents() or constructor)
+        self.scheduler_agent = scheduler_agent
+        self.desktop_agent = desktop_agent
+        self.vision_agent = vision_agent
+        self.device_agent = device_agent
+
         self.send_text_task = None
         self.stop_event = asyncio.Event()
         
@@ -302,6 +308,17 @@ class AudioLoop:
         # Reset transcription tracking for new turn
         self._last_input_transcription = ""
         self._last_output_transcription = ""
+
+    def set_agents(self, scheduler_agent=None, desktop_agent=None, vision_agent=None, device_agent=None):
+        """Inject Phase 4-7 agents after construction (called from server.py)."""
+        if scheduler_agent is not None:
+            self.scheduler_agent = scheduler_agent
+        if desktop_agent is not None:
+            self.desktop_agent = desktop_agent
+        if vision_agent is not None:
+            self.vision_agent = vision_agent
+        if device_agent is not None:
+            self.device_agent = device_agent
 
     def update_permissions(self, new_perms):
         print(f"[INARA DEBUG] [CONFIG] Updating tool permissions: {new_perms}")
@@ -724,7 +741,22 @@ class AudioLoop:
                         print("The tool was called")
                         function_responses = []
                         for fc in response.tool_call.function_calls:
-                            if fc.name in ["generate_cad", "run_web_agent", "write_file", "read_directory", "read_file", "create_project", "switch_project", "list_projects", "list_smart_devices", "control_light", "discover_printers", "print_stl", "get_print_status", "iterate_cad"]:
+                            if fc.name in [
+                                "generate_cad", "run_web_agent", "write_file", "read_directory", "read_file",
+                                "create_project", "switch_project", "list_projects",
+                                "list_smart_devices", "control_light",
+                                "discover_printers", "print_stl", "get_print_status", "iterate_cad",
+                                # Scheduler
+                                "create_reminder", "list_reminders", "cancel_reminder", "snooze_reminder",
+                                "create_routine", "list_routines",
+                                # Desktop
+                                "get_system_info", "launch_app", "list_running_apps", "focus_window",
+                                "take_screenshot", "search_files", "read_clipboard", "write_clipboard",
+                                # Vision
+                                "describe_camera", "detect_presence", "watch_for", "stop_watching", "list_watches",
+                                # Devices
+                                "list_all_devices", "control_device", "get_device_state",
+                            ]:
                                 prompt = fc.args.get("prompt", "") # Prompt is not present for all tools
                                 
                                 # Check Permissions (Default to True if not set)
@@ -1115,6 +1147,58 @@ class AudioLoop:
                                         id=fc.id, name=fc.name, response={"result": result_str}
                                     )
                                     function_responses.append(function_response)
+                                # ---- Scheduler tools ----
+                                elif fc.name in ("create_reminder", "list_reminders", "cancel_reminder",
+                                                  "snooze_reminder", "create_routine", "list_routines"):
+                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
+                                    if self.scheduler_agent:
+                                        result = await self.scheduler_agent.handle_tool_call(fc.name, dict(fc.args))
+                                        result_text = result.message
+                                    else:
+                                        result_text = "Scheduler agent not available."
+                                    function_responses.append(types.FunctionResponse(
+                                        id=fc.id, name=fc.name, response={"result": result_text}
+                                    ))
+
+                                # ---- Desktop tools ----
+                                elif fc.name in ("get_system_info", "launch_app", "list_running_apps",
+                                                  "focus_window", "take_screenshot", "search_files",
+                                                  "read_clipboard", "write_clipboard"):
+                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
+                                    if self.desktop_agent:
+                                        result = await self.desktop_agent.handle_tool_call(fc.name, dict(fc.args))
+                                        result_text = result.message
+                                    else:
+                                        result_text = "Desktop agent not available."
+                                    function_responses.append(types.FunctionResponse(
+                                        id=fc.id, name=fc.name, response={"result": result_text}
+                                    ))
+
+                                # ---- Vision tools ----
+                                elif fc.name in ("describe_camera", "detect_presence", "watch_for",
+                                                  "stop_watching", "list_watches"):
+                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
+                                    if self.vision_agent:
+                                        result = await self.vision_agent.handle_tool_call(fc.name, dict(fc.args))
+                                        result_text = result.message
+                                    else:
+                                        result_text = "Vision agent not available."
+                                    function_responses.append(types.FunctionResponse(
+                                        id=fc.id, name=fc.name, response={"result": result_text}
+                                    ))
+
+                                # ---- Unified device tools ----
+                                elif fc.name in ("list_all_devices", "control_device", "get_device_state"):
+                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
+                                    if self.device_agent:
+                                        result = await self.device_agent.handle_tool_call(fc.name, dict(fc.args))
+                                        result_text = result.message
+                                    else:
+                                        result_text = "Device agent not available."
+                                    function_responses.append(types.FunctionResponse(
+                                        id=fc.id, name=fc.name, response={"result": result_text}
+                                    ))
+
                         if function_responses:
                             await self.session.send_tool_response(function_responses=function_responses)
                 

@@ -28,6 +28,15 @@ from kasa_agent import KasaAgent
 from printer_agent import PrinterAgent
 from project_manager import ProjectManager
 
+# Phase 4-7 agents (backend/ is already in sys.path from the append above)
+from core.event_bus import EventBus, Event, Events
+from core.reminder_store import ReminderStore
+from agents.scheduler_agent import SchedulerAgent
+from agents.desktop_agent import DesktopAgent
+from agents.vision_agent import VisionAgent
+from agents.device_agent import DeviceAgent
+from vision.vision_loop import VisionLoop
+
 # Create a Socket.IO server
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
@@ -67,6 +76,15 @@ backend_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(backend_dir)
 project_manager = ProjectManager(project_root)
 
+# Phase 4-7 — event bus + agents
+bus = EventBus()
+reminder_store = ReminderStore()
+scheduler_agent = SchedulerAgent(event_bus=bus, reminder_store=reminder_store)
+desktop_agent = DesktopAgent(event_bus=bus)
+vision_loop = VisionLoop(event_bus=bus, interval=5)
+vision_agent = VisionAgent(event_bus=bus, vision_loop=vision_loop)
+device_agent = DeviceAgent(event_bus=bus, kasa_agent=None, ha_bridge=None)  # kasa injected after kasa_agent init
+
 DEFAULT_SETTINGS = {
     "face_auth_enabled": False, # Default OFF as requested
     "tool_permissions": {
@@ -77,7 +95,33 @@ DEFAULT_SETTINGS = {
         "read_file": True,
         "create_project": True,
         "switch_project": True,
-        "list_projects": True
+        "list_projects": True,
+        # Scheduler
+        "create_reminder": True,
+        "list_reminders": True,
+        "cancel_reminder": True,
+        "snooze_reminder": True,
+        "create_routine": True,
+        "list_routines": True,
+        # Desktop
+        "get_system_info": True,
+        "launch_app": True,
+        "list_running_apps": True,
+        "focus_window": True,
+        "take_screenshot": True,
+        "search_files": True,
+        "read_clipboard": True,
+        "write_clipboard": True,
+        # Vision
+        "describe_camera": True,
+        "detect_presence": True,
+        "watch_for": True,
+        "stop_watching": True,
+        "list_watches": True,
+        # Devices (unified)
+        "list_all_devices": True,
+        "control_device": True,
+        "get_device_state": True,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}
@@ -215,6 +259,40 @@ def ensure_printer_monitor_running():
         return
     printer_monitor_task = asyncio.create_task(monitor_printers_loop())
 
+async def _bridge_event(event: Event):
+    """Forward EventBus events to Socket.IO."""
+    mapping = {
+        Events.REMINDER_TRIGGERED:   "reminder_triggered",
+        Events.REMINDER_CREATED:     "reminder_created",
+        Events.REMINDER_CANCELLED:   "reminder_cancelled",
+        Events.DESKTOP_SCREENSHOT:   "desktop_screenshot",
+        Events.DESKTOP_SYSTEM_INFO:  "desktop_system_info",
+        Events.VISION_ALERT:         "vision_alert",
+        Events.VISION_DESCRIPTION:   "vision_description",
+        Events.VISION_PRESENCE:      "vision_presence",
+        Events.DEVICE_LIST:          "device_list",
+        Events.DEVICE_CONTROL:       "device_control",
+        Events.DEVICE_STATE:         "device_state",
+    }
+    socket_event = mapping.get(event.type)
+    if socket_event:
+        await sio.emit(socket_event, event.data)
+
+
+async def _check_reminders_loop():
+    """Poll due reminders and announce them via Socket.IO."""
+    print("[SERVER] Reminder check loop started.")
+    while True:
+        try:
+            due = reminder_store.get_due_reminders()
+            for reminder in due:
+                await sio.emit("reminder_triggered", reminder.to_dict())
+                print(f"[REMINDER] Triggered: {reminder.task}")
+        except Exception as e:
+            print(f"[SERVER] Reminder loop error: {e}")
+        await asyncio.sleep(10)
+
+
 @app.on_event("startup")
 async def startup_event():
     import sys
@@ -230,8 +308,18 @@ async def startup_event():
 
     print("[SERVER] Startup: Initializing Kasa Agent...")
     await kasa_agent.initialize()
+    # Note: device_agent._kasa is None — list_all_devices falls through to HA only.
+    # Kasa is still controlled via the existing list_smart_devices/control_light tools in inara.py.
     load_saved_printers_into_agent()
     ensure_printer_monitor_running()
+
+    # Phase 4-7 startup
+    bus.on_all(_bridge_event)
+    asyncio.create_task(_check_reminders_loop())
+    asyncio.create_task(vision_loop.run())
+    await vision_agent.initialize()
+    print("[SERVER] Phase 4-7 agents initialized.")
+
     print_startup_summary()
 
 @app.get("/status")
@@ -277,6 +365,13 @@ async def connect(sid, environ):
     else:
         print("Face Auth Disabled. Auto-authenticating.")
         await sio.emit('auth_status', {'authenticated': True})
+
+    # Startup hydration — push current state to new client
+    pending = [r.to_dict() for r in reminder_store.list_reminders(filter="all") if r.status == "pending"]
+    if pending:
+        await sio.emit('reminder_list', pending, room=sid)
+    watches = vision_loop.list_watches() if hasattr(vision_loop, 'list_watches') else []
+    await sio.emit('vision_watches', {"watches": watches}, room=sid)
 
 @sio.event
 async def disconnect(sid):
@@ -410,6 +505,10 @@ async def start_audio(sid, data=None):
             kasa_agent=kasa_agent,
             printer_agent=printer_agent,
             project_manager=project_manager,
+            scheduler_agent=scheduler_agent,
+            desktop_agent=desktop_agent,
+            vision_agent=vision_agent,
+            device_agent=device_agent,
         )
         print("AudioLoop initialized successfully.")
 
@@ -525,6 +624,61 @@ async def confirm_tool(sid, data):
     else:
         print("Audio loop not active, cannot resolve confirmation.")
 
+# ---- Phase 4-7 direct socket handlers (bypass LLM for deterministic actions) ----
+
+@sio.event
+async def snooze_reminder(sid, data):
+    """data: {reminder_id, minutes}"""
+    result = await scheduler_agent.handle_tool_call("snooze_reminder", data or {})
+    await sio.emit("reminder_updated", {"message": result.message}, room=sid)
+
+@sio.event
+async def cancel_reminder(sid, data):
+    """data: {reminder_id}"""
+    result = await scheduler_agent.handle_tool_call("cancel_reminder", data or {})
+    await sio.emit("reminder_updated", {"message": result.message}, room=sid)
+
+@sio.event
+async def control_device(sid, data):
+    """data: {device_id, action, brightness?, color?}"""
+    result = await device_agent.handle_tool_call("control_device", data or {})
+    await sio.emit("device_control", {"success": result.success, "message": result.message})
+
+@sio.event
+async def stop_watching(sid, data):
+    """data: {watch_id}"""
+    result = await vision_agent.handle_tool_call("stop_watching", data or {})
+    watches = vision_loop.list_watches() if hasattr(vision_loop, 'list_watches') else []
+    await sio.emit("vision_watches", {"watches": watches})
+    await sio.emit("status", {"msg": result.message}, room=sid)
+
+@sio.event
+async def launch_app(sid, data):
+    """data: {name}"""
+    result = await desktop_agent.handle_tool_call("launch_app", data or {})
+    await sio.emit("status", {"msg": result.message}, room=sid)
+
+@sio.event
+async def take_screenshot(sid, data):
+    """data: {prompt?}"""
+    result = await desktop_agent.handle_tool_call("take_screenshot", data or {})
+    await sio.emit("desktop_screenshot", {"description": result.message, "data": result.data})
+
+@sio.event
+async def read_clipboard(sid, data=None):
+    result = await desktop_agent.handle_tool_call("read_clipboard", {})
+    await sio.emit("clipboard_content", {"text": result.message}, room=sid)
+
+@sio.event
+async def list_all_devices(sid, data=None):
+    await device_agent.handle_tool_call("list_all_devices", {})
+    # Device list is emitted via EventBus → _bridge_event → 'device_list'
+
+@sio.event
+async def get_system_info(sid, data=None):
+    await desktop_agent.handle_tool_call("get_system_info", {})
+    # Data emitted via EventBus → _bridge_event → 'desktop_system_info'
+
 @sio.event
 async def shutdown(sid, data=None):
     """Gracefully shutdown the server when the application closes."""
@@ -615,6 +769,17 @@ async def video_frame(sid, data):
         # We don't await this because we don't want to block the socket handler
         # But send_frame is async, so we create a task
         asyncio.create_task(audio_loop.send_frame(image_data))
+    # Feed latest frame to vision loop for watch condition evaluation
+    if image_data:
+        import base64
+        try:
+            if isinstance(image_data, str):
+                raw = base64.b64decode(image_data)
+            else:
+                raw = bytes(image_data)
+            vision_loop.set_frame(raw)
+        except Exception:
+            pass
 
 @sio.event
 async def save_memory(sid, data):
