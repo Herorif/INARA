@@ -1,11 +1,16 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
 const net = require('net');
+const fs = require('fs');
 
 const EXPECTED_BACKEND_RUNTIME = 'legacy-desktop-backend';
 const EXPECTED_BACKEND_ENTRYPOINT = 'backend/server.py';
+const PROJECT_ROOT = path.join(__dirname, '..');
+const BACKEND_DIR = path.join(PROJECT_ROOT, 'backend');
+const DIST_INDEX_PATH = path.join(PROJECT_ROOT, 'dist', 'index.html');
+const APP_ICON_PATH = path.join(PROJECT_ROOT, 'assets', 'icons', 'inara.ico');
 
 // Use ANGLE D3D11 backend - more stable on Windows while keeping WebGL working
 // This fixes "GPU state invalid after WaitForGetOffsetInRange" error
@@ -16,7 +21,40 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 let mainWindow;
 let pythonProcess;
 
+function getPreferredPythonExecutable() {
+    if (process.env.INARA_PYTHON) {
+        return process.env.INARA_PYTHON;
+    }
+
+    const candidates = [
+        path.join(PROJECT_ROOT, '.venv', 'Scripts', 'python.exe'),
+        path.join(PROJECT_ROOT, 'inara_env', 'Scripts', 'python.exe'),
+        path.join(PROJECT_ROOT, 'venv', 'Scripts', 'python.exe'),
+        'python',
+    ];
+
+    for (const candidate of candidates) {
+        if (candidate === 'python' || fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    return 'python';
+}
+
 function createWindow() {
+    const isDev = process.env.INARA_DEV_SERVER === '1';
+    const hasBuiltFrontend = fs.existsSync(DIST_INDEX_PATH);
+
+    if (!isDev && !hasBuiltFrontend) {
+        dialog.showErrorBox(
+            'INARA Frontend Missing',
+            'The production frontend has not been built yet. Run "npm run build" once or start INARA through the Windows launcher script.'
+        );
+        app.quit();
+        return;
+    }
+
     mainWindow = new BrowserWindow({
         width: 1920,
         height: 1080,
@@ -29,16 +67,14 @@ function createWindow() {
         frame: false, // Frameless for custom UI
         titleBarStyle: 'hidden',
         show: false, // Don't show until ready
+        icon: fs.existsSync(APP_ICON_PATH) ? APP_ICON_PATH : undefined,
     });
-
-    // In dev, load Vite server. In prod, load index.html
-    const isDev = process.env.NODE_ENV !== 'production';
 
     const loadFrontend = (retries = 3) => {
         const url = isDev ? 'http://localhost:5173' : null;
         const loadPromise = isDev
             ? mainWindow.loadURL(url)
-            : mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+            : mainWindow.loadFile(DIST_INDEX_PATH);
 
         loadPromise
             .then(() => {
@@ -70,13 +106,14 @@ function createWindow() {
 }
 
 function startPythonBackend() {
-    const scriptPath = path.join(__dirname, '../backend/server.py');
+    const scriptPath = path.join(BACKEND_DIR, 'server.py');
+    const pythonExecutable = getPreferredPythonExecutable();
     console.log(`[BOOT] Starting canonical backend runtime: ${EXPECTED_BACKEND_RUNTIME} (${EXPECTED_BACKEND_ENTRYPOINT})`);
+    console.log(`[BOOT] Python executable: ${pythonExecutable}`);
     console.log(`Starting Python backend: ${scriptPath}`);
 
-    // Assuming 'python' is in PATH. In prod, this would be the executable.
-    pythonProcess = spawn('python', [scriptPath], {
-        cwd: path.join(__dirname, '../backend'),
+    pythonProcess = spawn(pythonExecutable, [scriptPath], {
+        cwd: BACKEND_DIR,
     });
 
     pythonProcess.stdout.on('data', (data) => {
