@@ -74,8 +74,7 @@ class DeviceAgent(BaseAgent):
         ]
 
     async def initialize(self):
-        if self._kasa:
-            await self._kasa.initialize()
+        # Kasa is initialized by server.py — don't double-init here.
         if self._ha:
             reachable = await self._ha.ping()
             if reachable:
@@ -99,21 +98,21 @@ class DeviceAgent(BaseAgent):
     async def _list_all_devices(self) -> AgentResult:
         all_devices: list[dict] = []
 
-        # Kasa devices
-        if self._kasa:
-            try:
-                kasa_result = await self._kasa.handle_tool_call("list_smart_devices", {})
-                if kasa_result.success and kasa_result.data:
-                    for d in kasa_result.data.get("devices", []):
-                        all_devices.append({
-                            "id": d.get("ip", d.get("alias", "")),
-                            "name": d.get("alias", d.get("ip", "Unknown")),
-                            "state": "on" if d.get("is_on") else "off",
-                            "source": "kasa",
-                            "type": d.get("type", "device"),
-                        })
-            except Exception as e:
-                logger.warning(f"[DeviceAgent] Kasa list failed: {e}")
+        # Kasa devices — read from live KasaAgent's .devices dict
+        if self._kasa and hasattr(self._kasa, "devices"):
+            for ip, dev in self._kasa.devices.items():
+                dev_type = "unknown"
+                if   getattr(dev, "is_bulb",   False): dev_type = "bulb"
+                elif getattr(dev, "is_plug",   False): dev_type = "plug"
+                elif getattr(dev, "is_strip",  False): dev_type = "strip"
+                elif getattr(dev, "is_dimmer", False): dev_type = "dimmer"
+                all_devices.append({
+                    "id":     ip,
+                    "name":   getattr(dev, "alias", ip),
+                    "state":  "on" if getattr(dev, "is_on", False) else "off",
+                    "source": "kasa",
+                    "type":   dev_type,
+                })
 
         # Home Assistant devices
         if self._ha:
@@ -123,19 +122,19 @@ class DeviceAgent(BaseAgent):
             except Exception as e:
                 logger.warning(f"[DeviceAgent] HA list failed: {e}")
 
+        # Always emit (even empty) so the frontend can clear stale state.
+        self._bus.emit_nowait(Event(
+            type=Events.DEVICE_LIST,
+            data={"devices": all_devices},
+            source=self.name,
+        ))
+
         if not all_devices:
             return AgentResult(
                 success=True,
                 data={"devices": []},
                 message="No devices found. Make sure Kasa or Home Assistant is configured.",
             )
-
-        # Emit to frontend
-        self._bus.emit_nowait(Event(
-            type=Events.DEVICE_LIST,
-            data={"devices": all_devices},
-            source=self.name,
-        ))
 
         lines = [f"  - [{d['source']}] {d['name']} ({d['id']}) — {d['state']}" for d in all_devices]
         return AgentResult(
@@ -208,20 +207,36 @@ class DeviceAgent(BaseAgent):
         brightness: Optional[int],
         color: Optional[str],
     ) -> AgentResult:
-        kasa_action = action
-        kasa_args = {"target": device_id, "action": kasa_action}
-        if brightness is not None:
-            kasa_args["brightness"] = brightness
-        if color is not None:
-            kasa_args["color"] = color
+        ok = False
+        msg = f"Action '{action}' on '{device_id}' failed."
 
-        result = await self._kasa.handle_tool_call("control_light", kasa_args)
+        if action == "turn_on":
+            ok = await self._kasa.turn_on(device_id)
+            if ok: msg = f"Turned ON '{device_id}'."
+        elif action == "turn_off":
+            ok = await self._kasa.turn_off(device_id)
+            if ok: msg = f"Turned OFF '{device_id}'."
+        elif action == "toggle":
+            dev = self._kasa.devices.get(device_id)
+            if dev:
+                ok = await (self._kasa.turn_off if dev.is_on else self._kasa.turn_on)(device_id)
+                if ok: msg = f"Toggled '{device_id}'."
+        elif action == "set":
+            ok = True
+            msg = f"Updated '{device_id}'."
+
+        if ok and brightness is not None:
+            await self._kasa.set_brightness(device_id, brightness)
+        if ok and color is not None:
+            await self._kasa.set_color(device_id, color)
+
         self._bus.emit_nowait(Event(
             type=Events.DEVICE_CONTROL,
-            data={"device_id": device_id, "action": action, "success": result.success},
+            data={"device_id": device_id, "action": action, "success": ok,
+                  "state": "on" if action == "turn_on" else "off" if action == "turn_off" else None},
             source=self.name,
         ))
-        return result
+        return AgentResult(success=ok, message=msg)
 
     async def _get_device_state(self, device_id: str) -> AgentResult:
         if not device_id:
@@ -242,20 +257,15 @@ class DeviceAgent(BaseAgent):
             except Exception as e:
                 return AgentResult(success=False, message=f"HA state error: {e}")
 
-        # Kasa: re-discover and find matching device
-        if self._kasa:
-            try:
-                result = await self._kasa.handle_tool_call("list_smart_devices", {})
-                if result.success and result.data:
-                    for d in result.data.get("devices", []):
-                        if d.get("ip") == device_id or d.get("alias") == device_id:
-                            return AgentResult(
-                                success=True,
-                                data=d,
-                                message=f"{d['alias']} ({d['ip']}): {'ON' if d['is_on'] else 'OFF'}",
-                            )
-            except Exception as e:
-                return AgentResult(success=False, message=f"Kasa state error: {e}")
+        # Kasa: look up directly in cached devices
+        if self._kasa and hasattr(self._kasa, "devices"):
+            dev = self._kasa.devices.get(device_id)
+            if dev:
+                return AgentResult(
+                    success=True,
+                    data={"ip": device_id, "alias": dev.alias, "is_on": dev.is_on},
+                    message=f"{dev.alias} ({device_id}): {'ON' if dev.is_on else 'OFF'}",
+                )
 
         return AgentResult(success=False, message=f"Device '{device_id}' not found.")
 

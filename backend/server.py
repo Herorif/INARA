@@ -28,7 +28,7 @@ from kasa_agent import KasaAgent
 from printer_agent import PrinterAgent
 from project_manager import ProjectManager
 
-# Phase 4-7 agents (backend/ is already in sys.path from the append above)
+# Phase 4-7 agents
 from core.event_bus import EventBus, Event, Events
 from core.reminder_store import ReminderStore
 from agents.scheduler_agent import SchedulerAgent
@@ -318,6 +318,7 @@ async def startup_event():
     asyncio.create_task(_check_reminders_loop())
     asyncio.create_task(vision_loop.run())
     await vision_agent.initialize()
+    await device_agent.initialize()
     print("[SERVER] Phase 4-7 agents initialized.")
 
     print_startup_summary()
