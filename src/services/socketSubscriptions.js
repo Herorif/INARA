@@ -17,6 +17,15 @@ const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUn
 export function initSocketListeners() {
     const unsubs = [];
     const s = useStore.getState;
+    const completedTextRequests = new Set();
+    unsubs.push(onSocket('text_status', data => {
+        useStore.setState({ textProcessing: data.state === 'processing' });
+    }));
+    unsubs.push(onSocket('project_update', data => {
+        if (data.project !== s().currentProject) {
+            useStore.setState({ conversationId: crypto.randomUUID() });
+        }
+    }));
 
     // --- Connection ---
     unsubs.push(onSocket('connect', () => {
@@ -44,6 +53,7 @@ export function initSocketListeners() {
             localDevicesReady: false,
             isMuted: true,
             listeningState: 'idle',
+            textProcessing: false,
         });
     }));
 
@@ -173,6 +183,13 @@ export function initSocketListeners() {
 
     // --- Transcription ---
     unsubs.push(onSocket('transcription', (data) => {
+        if (data.request_id) {
+            if (completedTextRequests.has(data.request_id)) return;
+            completedTextRequests.add(data.request_id);
+            if (completedTextRequests.size > 64) {
+                completedTextRequests.delete(completedTextRequests.values().next().value);
+            }
+        }
         s().appendTranscription(data.sender, data.text);
     }));
 

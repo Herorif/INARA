@@ -14,19 +14,15 @@ class ProjectManager:
         if not self.projects_dir.exists():
             self.projects_dir.mkdir(parents=True)
             
-        # Clear temp project on startup if it exists
-        temp_path = self.projects_dir / "temp"
-        if temp_path.exists():
-            print("[ProjectManager] Clearing temp project...")
-            shutil.rmtree(temp_path)
-            
-        # Ensure temp project receives fresh creation
+        # Startup is non-destructive: unsaved designs and history are recoverable.
         self.create_project("temp")
 
     def create_project(self, name: str):
         """Creates a new project directory with subfolders."""
         # Sanitize name to be safe for filesystem
         safe_name = "".join([c for c in name if c.isalnum() or c in (' ', '-', '_')]).strip()
+        if not safe_name:
+            return False, "Project name must contain a letter or number."
         project_path = self.projects_dir / safe_name
         
         if not project_path.exists():
@@ -35,6 +31,8 @@ class ProjectManager:
             (project_path / "browser").mkdir()
             print(f"[ProjectManager] Created project: {safe_name}")
             return True, f"Project '{safe_name}' created."
+        for folder in ("cad", "browser"):
+            (project_path / folder).mkdir(exist_ok=True)
         return False, f"Project '{safe_name}' already exists."
 
     def switch_project(self, name: str):

@@ -1,0 +1,8 @@
+# Lean supported desktop backend. Compile/install the checked-in lock for releases.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+python-socketio>=5.11,<6
+python-multipart>=0.0.18,<1
+google-genai>=1.50,<3
+python-dotenv>=1,<2
+pydantic>=2.9,<3

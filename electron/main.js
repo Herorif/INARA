@@ -4,6 +4,8 @@ const { spawn } = require('child_process');
 const http = require('http');
 const net = require('net');
 const fs = require('fs');
+const { randomBytes } = require('crypto');
+const sessionToken = process.env.INARA_SESSION_TOKEN || randomBytes(32).toString('hex');
 
 const EXPECTED_BACKEND_RUNTIME = 'legacy-desktop-backend';
 const EXPECTED_BACKEND_ENTRYPOINT = 'backend/server.py';
@@ -62,6 +64,7 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js'),
+            additionalArguments: [`--inara-session-token=${sessionToken}`],
         },
         backgroundColor: '#000000',
         frame: false, // Frameless for custom UI
@@ -114,6 +117,7 @@ function startPythonBackend() {
 
     pythonProcess = spawn(pythonExecutable, [scriptPath], {
         cwd: BACKEND_DIR,
+        env: { ...process.env, INARA_SESSION_TOKEN: sessionToken },
     });
 
     pythonProcess.stdout.on('data', (data) => {

@@ -15,6 +15,45 @@
 
 > Supported runtime: `electron/main.js -> backend/server.py`. The `backend/core/` server refactor is archived reference code and is not the active app backend.
 
+## Revival milestone 1
+
+Typed chat now runs independently of the microphone and Gemini Live audio session.
+The backend boots with the lean core dependencies and loads optional capabilities
+only when requested. Existing temporary projects survive restart.
+
+On Windows with Python 3.12 and Node.js 24 LTS:
+
+```powershell
+.\scripts\bootstrap.ps1 -Dev
+# Configure GEMINI_API_KEY in .env, then:
+npm start
+```
+
+For backend-only development:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.lock
+.\.venv\Scripts\python.exe backend/server.py
+```
+
+The backend starts without an API key; AI requests return a clear configuration
+error until a valid key is supplied. Set `INARA_TEXT_MODEL` to select the text
+model. Voice and other legacy integrations still require their optional packages
+from `requirements.txt`; their modernization remains scheduled in the architecture.
+No WhatsApp reply capability is included.
+
+Run the deterministic milestone and desktop-contract checks with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py -q
+.\.venv\Scripts\python.exe -m ruff check backend/services tests/test_conversation_service.py
+npm run build
+```
+
+See [implementation status](docs/IMPLEMENTATION_STATUS.md) for verified behavior,
+current limitations and the next milestone.
+
 INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
 
 You can talk to it and get a response. Ask it to design a gear and it can create a 3D model, prepare it for printing, and send it to your printer. Tell it to dim the lights and it handles it. Ask it to look something up on Amazon and it opens a browser and searches for you.

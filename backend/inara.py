@@ -23,6 +23,7 @@ if sys.version_info < (3, 11, 0):
     asyncio.ExceptionGroup = exceptiongroup.ExceptionGroup
 
 from tools import tools_list
+from services.tools import contained_path
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -584,12 +585,11 @@ class AudioLoop:
         # we will root it in the current project path.
         
         current_project_path = self.project_manager.get_current_project_path()
-        final_path = current_project_path / filename # Simple flat structure for now, or allow relative?
+        final_path = contained_path(current_project_path, path)
         
         # If the user specifically wanted a subfolder, they might have provided "sub/file.txt".
         # Let's support relative paths if they don't start with /
-        if not os.path.isabs(path):
-             final_path = current_project_path / path
+        # All voice writes share the same canonical containment rule as typed tools.
         
         print(f"[INARA DEBUG] [FS] Resolved path: '{final_path}'")
 
@@ -611,6 +611,7 @@ class AudioLoop:
     async def handle_read_directory(self, path):
         print(f"[INARA DEBUG] [FS] Reading directory: '{path}'")
         try:
+            path = contained_path(self.project_manager.get_current_project_path(), path, allow_root=True)
             if not os.path.exists(path):
                 result = f"Directory '{path}' does not exist."
             else:
@@ -628,6 +629,7 @@ class AudioLoop:
     async def handle_read_file(self, path):
         print(f"[INARA DEBUG] [FS] Reading file: '{path}'")
         try:
+            path = contained_path(self.project_manager.get_current_project_path(), path)
             if not os.path.exists(path):
                 result = f"File '{path}' does not exist."
             else:

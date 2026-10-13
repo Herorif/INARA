@@ -2,6 +2,8 @@
 
 Updated 13 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
+The first implementation milestone is complete. Read [Implementation status](IMPLEMENTATION_STATUS.md) before continuing; the next milestone is transactional reminders and durable sessions, followed by the resident lifecycle and responsive JARVIS workspace.
+
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
 Official OpenAI documentation recommends GPT-6.1 Sol for complex coding and describes its capability as near Astra at a lower cost. That supports this choice; it is not a guarantee of equal results on every INARA task. Confirm quality through behavior, artifact validation and visual review. Availability depends on account, client and rollout. [Model guidance](https://learn.chatgpt.com/docs/models), [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol).
@@ -33,16 +35,18 @@ If GPT-6.1 Sol is unavailable, use the supported Sol option exposed in the accou
 - Ordinary text assistance works independently of live audio, microphone permission and an open window.
 - Introduce changes in small, verifiable steps; update these plans if an implementation discovery changes a material assumption.
 
-## First implementation task
+## Completed first milestone
 
-Start with a reproducible development baseline and a single independent typed-conversation path. Do not attempt the full architecture in one patch.
+The reproducible core environment, independent typed-conversation service, lazy provider, scoped request/result contracts and representative shared tool authorization are implemented. Project path containment and non-destructive startup are in place. The retained desktop event contract and new behavior passed 31 deterministic checks, and the production frontend build passed. See the status record for boundaries and unverified integrations.
 
-1. Inspect the current workspace and preserve existing data before executing initialization code. Establish source-control checkpoints if this downloaded copy still has no repository metadata.
-2. Check installed Node/Python tools and create the minimum reproducible environment needed for this milestone. The previous review environment lacked Node and application dependencies; verify again rather than assuming this remains true.
-3. Extract a conversation service and lazy provider initialization. Typed input must not require a running `AudioLoop` or microphone permission. Preserve the desktop transport contract through an adapter.
-4. Introduce validated requests and results, stable conversation identity, structured errors and the common tool-dispatch boundary. Fix project-path containment before allowing writes through the new path.
-5. Verify a successful typed exchange with microphone access disabled, missing/invalid provider configuration, provider failure, and correct scope enforcement for a representative tool. Keep real API tests opt-in and ensure deterministic checks do not depend on paid calls.
-6. Record changed behavior, checks and remaining limitations. Continue next with transactional reminders and recoverable project sessions, then the resident lifecycle and new UI shell.
+## Next implementation task
+
+1. Read the implementation status and inspect the relevant persistence and scheduler code. Preserve existing project files, reminder records and settings before migration.
+2. Introduce versioned durable session and reminder storage under the intended user-data directory. Follow the architecture's private-payload storage policy; preserve ownership, project scope and request identity without serializing executable Python objects.
+3. Migrate legacy records non-destructively with backup, validation and recoverable migration state. Reopening a session should restore the conversation without replaying completed tool actions.
+4. Replace reminder polling with transactional claiming and deduplicated delivery records. Store UTC instants and the selected IANA timezone; define recurrence and missed-delivery behavior explicitly.
+5. Verify restart recovery, simultaneous polls, duplicate acknowledgements, cancelled/snoozed reminders, recurrence and migration failure. Use temporary data and fake transports for deterministic checks.
+6. Update implementation status and complete this bounded milestone before moving to resident-window lifetime and the new JARVIS workspace.
 
 ## Keep model use efficient
 
@@ -52,6 +56,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement the first milestone in docs/IMPLEMENTATION_HANDOFF.md. Read docs/PROJECT_REVIEW.md, docs/INARA_REVAMP_PLAN.md and docs/UI_AND_CODE_CLEANUP_PLAN.md, then inspect the relevant code. Preserve existing projects and settings. Establish a reproducible baseline and make typed conversation independent of the live audio loop, with validated requests, lazy provider initialization and a shared authorization boundary. Keep the existing desktop contract working through an adapter. WhatsApp replies remain out of scope unless I specifically request them. Complete this bounded milestone, run meaningful checks and report the result and remaining limitations before expanding into other features.
+> Implement the next milestone in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md and the architecture, then inspect the existing persistence and scheduler code. Preserve current projects, reminder records and settings. Add versioned durable sessions and transactional reminders with non-destructive migration, ownership/project scopes, restart recovery and deduplicated delivery. Preserve the working typed conversation and desktop event contracts. WhatsApp replies remain out of scope unless I specifically request them. Complete this bounded milestone, run meaningful checks and report the result and remaining limitations before expanding into other features.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

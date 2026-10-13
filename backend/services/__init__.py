@@ -1,0 +1,1 @@
+"""Transport-independent assistant services."""

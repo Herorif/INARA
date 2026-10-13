@@ -16,30 +16,46 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
+from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 
 
 # Ensure we can import inara
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import inara
-from authenticator import FaceAuthenticator
-from kasa_agent import KasaAgent
-from printer_agent import PrinterAgent
+from services.lazy import LazyService
+from services.conversation import ConversationRequest, ConversationService
+from services.tools import ServiceError, ToolDispatcher, ToolSpec, register_project_tools
+
+inara = LazyService('inara')
+
+def FaceAuthenticator(**kwargs):
+    from authenticator import FaceAuthenticator as factory
+    return factory(**kwargs)
+
 from project_manager import ProjectManager
 
 # Phase 4-7 agents
 from core.event_bus import EventBus, Event, Events
 from core.reminder_store import ReminderStore
 from agents.scheduler_agent import SchedulerAgent
-from agents.desktop_agent import DesktopAgent
-from agents.vision_agent import VisionAgent
-from agents.device_agent import DeviceAgent
 from vision.vision_loop import VisionLoop
 
 # Create a Socket.IO server
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
-app = FastAPI()
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=[
+    'http://localhost:5173', 'http://127.0.0.1:5173', 'file://', 'null'])
+@asynccontextmanager
+async def lifespan(application):
+    await startup_event()
+    try:
+        yield
+    finally:
+        await close_services()
+
+
+app = FastAPI(lifespan=lifespan)
 app_socketio = socketio.ASGIApp(sio, app)
 ACTIVE_RUNTIME = "legacy-desktop-backend"
 ACTIVE_ENTRYPOINT = "backend/server.py"
@@ -67,10 +83,10 @@ signal.signal(signal.SIGTERM, signal_handler)
 audio_loop = None
 loop_task = None
 authenticator = None
-kasa_agent = KasaAgent()
-printer_agent = PrinterAgent()
+printer_agent = LazyService('printer_agent', 'PrinterAgent')
 printer_monitor_task = None
-SETTINGS_FILE = "settings.json"
+SETTINGS_FILE = str(Path(__file__).parent / "settings.json")
+load_dotenv(Path(__file__).parent.parent / '.env')
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(backend_dir)
@@ -80,10 +96,13 @@ project_manager = ProjectManager(project_root)
 bus = EventBus()
 reminder_store = ReminderStore()
 scheduler_agent = SchedulerAgent(event_bus=bus, reminder_store=reminder_store)
-desktop_agent = DesktopAgent(event_bus=bus)
+desktop_agent = LazyService('agents.desktop_agent', 'DesktopAgent', event_bus=bus)
 vision_loop = VisionLoop(event_bus=bus, interval=5)
-vision_agent = VisionAgent(event_bus=bus, vision_loop=vision_loop)
-device_agent = DeviceAgent(event_bus=bus, kasa_agent=None, ha_bridge=None)  # kasa injected after kasa_agent init
+vision_agent = LazyService('agents.vision_agent', 'VisionAgent', event_bus=bus, vision_loop=vision_loop)
+device_agent = LazyService('agents.device_agent', 'DeviceAgent', event_bus=bus)
+client_principals = {}
+background_tasks = []
+vision_task = None
 
 DEFAULT_SETTINGS = {
     "face_auth_enabled": False, # Default OFF as requested
@@ -164,7 +183,8 @@ def get_runtime_summary():
     ai_preflight_error = get_ai_preflight_error()
     reference_image_path = Path(backend_dir) / "reference.jpg"
     face_auth_enabled = SETTINGS.get("face_auth_enabled", False)
-    slicer_status = printer_agent.get_slicer_status()
+    slicer_status = (printer_agent.get_slicer_status() if printer_agent.instance is not None else
+                    {'available': False, 'message': 'Printer capability loads when requested.'})
 
     if ai_preflight_error:
         ai_status = f"blocked ({ai_preflight_error})"
@@ -190,6 +210,8 @@ def get_runtime_summary():
         "slicer_status": slicer_state,
         "slicer_message": slicer_status["message"],
         "saved_printers": len(SETTINGS.get("printers", [])),
+        "text_ready": True,
+        "text_model": os.getenv('INARA_TEXT_MODEL', 'gemini-3.8-flash'),
     }
 
 
@@ -217,7 +239,7 @@ def load_settings():
                          SETTINGS["tool_permissions"].update(v)
                     else:
                         SETTINGS[k] = v
-            print(f"Loaded settings: {SETTINGS}")
+            print("Loaded local settings.")
         except Exception as e:
             print(f"Error loading settings: {e}")
 
@@ -233,7 +255,16 @@ def save_settings():
 load_settings()
 
 authenticator = None
-kasa_agent = KasaAgent(known_devices=SETTINGS.get("kasa_devices"))
+kasa_agent = LazyService('kasa_agent', 'KasaAgent', known_devices=SETTINGS.get("kasa_devices"))
+device_agent.kwargs['kasa_agent'] = kasa_agent
+
+dispatcher = ToolDispatcher(
+    lambda: SETTINGS['tool_permissions'],
+    authenticated=lambda principal: principal in client_principals.values()
+    and (not SETTINGS.get('face_auth_enabled')
+         or (authenticator is not None and authenticator.authenticated)))
+register_project_tools(dispatcher)
+conversation_service = ConversationService(dispatcher)
 # tool_permissions is now SETTINGS["tool_permissions"]
 
 
@@ -258,6 +289,16 @@ def ensure_printer_monitor_running():
     if printer_monitor_task and not printer_monitor_task.done():
         return
     printer_monitor_task = asyncio.create_task(monitor_printers_loop())
+    background_tasks.append(printer_monitor_task)
+
+
+def activate_printers():
+    """Hydrate saved printers and start monitoring only on a printer/voice request."""
+    if isinstance(printer_agent, LazyService):
+        if printer_agent.instance is None:
+            printer_agent.get()
+            load_saved_printers_into_agent()
+        ensure_printer_monitor_running()
 
 async def _bridge_event(event: Event):
     """Forward EventBus events to Socket.IO."""
@@ -286,14 +327,16 @@ async def _check_reminders_loop():
         try:
             due = reminder_store.get_due_reminders()
             for reminder in due:
+                reminder_store.mark_triggered(reminder.id)
                 await sio.emit("reminder_triggered", reminder.to_dict())
+                if reminder.recurring:
+                    reminder_store.reschedule_recurring(reminder)
                 print(f"[REMINDER] Triggered: {reminder.task}")
         except Exception as e:
             print(f"[SERVER] Reminder loop error: {e}")
         await asyncio.sleep(10)
 
 
-@app.on_event("startup")
 async def startup_event():
     import sys
     print(f"[SERVER DEBUG] Startup Event Triggered")
@@ -306,20 +349,9 @@ async def startup_event():
     except Exception as e:
         print(f"[SERVER DEBUG] Error checking loop: {e}")
 
-    print("[SERVER] Startup: Initializing Kasa Agent...")
-    await kasa_agent.initialize()
-    # Note: device_agent._kasa is None — list_all_devices falls through to HA only.
-    # Kasa is still controlled via the existing list_smart_devices/control_light tools in inara.py.
-    load_saved_printers_into_agent()
-    ensure_printer_monitor_running()
-
-    # Phase 4-7 startup
+    # Text/reminders start without importing audio, browser, CAD or camera libraries.
     bus.on_all(_bridge_event)
-    asyncio.create_task(_check_reminders_loop())
-    asyncio.create_task(vision_loop.run())
-    await vision_agent.initialize()
-    await device_agent.initialize()
-    print("[SERVER] Phase 4-7 agents initialized.")
+    background_tasks.append(asyncio.create_task(_check_reminders_loop()))
 
     print_startup_summary()
 
@@ -328,11 +360,22 @@ async def status():
     return get_runtime_summary()
 
 @sio.event
-async def connect(sid, environ):
+async def connect(sid, environ, auth=None):
+    import hmac
+    import uuid
+    auth = auth if isinstance(auth, dict) else {}
+    token = os.getenv('INARA_SESSION_TOKEN')
+    if token and not hmac.compare_digest(str(auth.get('token', '')), token):
+        return False
+    try:
+        principal = str(uuid.UUID(auth['client_id'])) if auth.get('client_id') else sid
+    except (ValueError, TypeError):
+        return False
+    client_principals[sid] = principal
     print(f"Client connected: {sid}")
     await sio.emit('status', {'msg': 'Connected to INARA Backend'}, room=sid)
-    await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
-    await sio.emit('printer_list', printer_agent.get_printer_list(), room=sid)
+    await sio.emit('text_ready', {'model': os.getenv('INARA_TEXT_MODEL', 'gemini-3.8-flash')}, room=sid)
+    await sio.emit('printer_list', SETTINGS.get('printers', []), room=sid)
     await sio.emit('project_update', {'project': project_manager.current_project}, room=sid)
 
     global authenticator
@@ -376,6 +419,8 @@ async def connect(sid, environ):
 
 @sio.event
 async def disconnect(sid):
+    principal = client_principals.pop(sid, sid)
+    conversation_service.release_owner(principal)
     print(f"Client disconnected: {sid}")
 
 @sio.event
@@ -487,7 +532,10 @@ async def start_audio(sid, data=None):
     # Initialize INARA
     try:
         print(f"Initializing AudioLoop with device_index={device_index}")
-        audio_loop = inara.AudioLoop(
+        runtime = inara.get()
+        await kasa_agent.initialize()
+        activate_printers()
+        audio_loop = runtime.AudioLoop(
             video_mode="none", 
             on_audio_data=on_audio_data,
             on_cad_data=on_cad_data,
@@ -617,6 +665,8 @@ async def confirm_tool(sid, data):
     # data: { "id": "...", "confirmed": True/False }
     request_id = data.get('id')
     confirmed = data.get('confirmed', False)
+    if dispatcher.resolve(client_principals.get(sid, sid), request_id, confirmed):
+        return
     
     print(f"[SERVER DEBUG] Received confirmation response for {request_id}: {confirmed}")
     
@@ -656,8 +706,16 @@ async def stop_watching(sid, data):
 @sio.event
 async def launch_app(sid, data):
     """data: {name}"""
-    result = await desktop_agent.handle_tool_call("launch_app", data or {})
-    await sio.emit("status", {"msg": result.message}, room=sid)
+    try:
+        async def approve(payload):
+            await sio.emit('tool_confirmation_request', payload, room=sid)
+        result = await dispatcher.dispatch(client_principals.get(sid, sid), 'launch_app',
+                                           data or {}, {}, approve)
+        await sio.emit('status', {'msg': result['message']}, room=sid)
+    except (ServiceError, ValidationError) as exc:
+        await sio.emit('error', {'msg': str(exc) if isinstance(exc, ServiceError)
+                               else 'Invalid app request.',
+                               'code': getattr(exc, 'code', 'invalid_arguments')}, room=sid)
 
 @sio.event
 async def take_screenshot(sid, data):
@@ -718,43 +776,31 @@ async def shutdown(sid, data=None):
 
 @sio.event
 async def user_input(sid, data):
-    text = data.get('text')
-    print(f"[SERVER DEBUG] User input received: '{text}'")
-    
-    ai_preflight_error = get_ai_preflight_error()
-    if ai_preflight_error:
-        await emit_ai_unavailable(sid, ai_preflight_error)
-        return
-
-    if not audio_loop:
-        print("[SERVER DEBUG] [Error] Audio loop is None. Cannot send text.")
-        await sio.emit('error', {'msg': 'Connect to INARA first.'}, room=sid)
-        return
-
-    if not audio_loop.session:
-        print("[SERVER DEBUG] [Error] Session is None. Cannot send text.")
-        await sio.emit('error', {'msg': 'INARA is still connecting. Try again in a moment.'}, room=sid)
-        return
-
-    if text:
-        print(f"[SERVER DEBUG] Sending message to model: '{text}'")
-        
-        # Log User Input to Project History
-        if audio_loop and audio_loop.project_manager:
-            audio_loop.project_manager.log_chat("User", text)
-            
-        # Use the same 'send' method that worked for audio, as 'send_realtime_input' and 'send_client_content' seem unstable in this env
-        # INJECT VIDEO FRAME IF AVAILABLE (VAD-style logic for Text Input)
-        if audio_loop and audio_loop._latest_image_payload:
-            print(f"[SERVER DEBUG] Piggybacking video frame with text input.")
-            try:
-                # Send frame first
-                await audio_loop.session.send(input=audio_loop._latest_image_payload, end_of_turn=False)
-            except Exception as e:
-                print(f"[SERVER DEBUG] Failed to send piggyback frame: {e}")
-                
-        await audio_loop.session.send(input=text, end_of_turn=True)
-        print(f"[SERVER DEBUG] Message sent to model successfully.")
+    request = None
+    try:
+        request = ConversationRequest.model_validate(data)
+        if not request.text.strip():
+            raise ServiceError('invalid_request', 'Enter a message first.')
+        principal = client_principals.get(sid)
+        if principal is None or not dispatcher.authenticated(principal):
+            raise ServiceError('authentication_required', 'Authentication is required.')
+        async def approve(payload):
+            await sio.emit('tool_confirmation_request', payload, room=sid)
+        await sio.emit('text_status', {'state': 'processing',
+                                     'request_id': str(request.request_id)}, room=sid)
+        result = await conversation_service.reply(
+            principal, request, project_manager.get_current_project_path(), approve)
+        await sio.emit('conversation_result', result.model_dump(mode='json'), room=sid)
+        # Preserve the existing desktop transcript event contract.
+        await sio.emit('transcription', {'sender': 'INARA', 'text': result.text,
+                                        'request_id': str(request.request_id)}, room=sid)
+    except (ServiceError, ValidationError) as exc:
+        await sio.emit('error', {'msg': str(exc) if isinstance(exc, ServiceError)
+                               else 'Invalid message payload.',
+                               'code': getattr(exc, 'code', 'invalid_request'),
+                               'request_id': str(request.request_id) if request else None}, room=sid)
+    finally:
+        await sio.emit('text_status', {'state': 'idle'}, room=sid)
 
 import json
 from datetime import datetime
@@ -764,6 +810,7 @@ from pathlib import Path
 
 @sio.event
 async def video_frame(sid, data):
+    global vision_task
     # data should contain 'image' which is binary (blob) or base64 encoded
     image_data = data.get('image')
     if image_data and audio_loop:
@@ -779,6 +826,9 @@ async def video_frame(sid, data):
             else:
                 raw = bytes(image_data)
             vision_loop.set_frame(raw)
+            if vision_loop.list_watches() and (vision_task is None or vision_task.done()):
+                vision_task = asyncio.create_task(vision_loop.run())
+                background_tasks.append(vision_task)
         except Exception:
             pass
 
@@ -1005,6 +1055,7 @@ async def discover_printers(sid, data=None):
     print("Received discover_printers request")
 
     try:
+        activate_printers()
         await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
         printers = await printer_agent.discover_printers()
         await sio.emit('printer_list', printer_agent.get_printer_list())
@@ -1032,6 +1083,7 @@ async def add_printer(sid, data):
         
     try:
         # Add manually
+        activate_printers()
         camera_url = data.get('camera_url')
         printer = printer_agent.add_printer_manually(name, host, port=port, printer_type=ptype, camera_url=camera_url)
         
@@ -1252,9 +1304,39 @@ async def update_tool_permissions(sid, data):
     # Broadcast update to all
     await sio.emit('tool_permissions', SETTINGS["tool_permissions"])
 
+class LaunchArguments(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    name: str
+
+
+async def _launch_registered(args, context):
+    if not args.name.strip():
+        raise ServiceError('invalid_arguments', 'Choose an application to launch.')
+    result = await desktop_agent.handle_tool_call('launch_app', args.model_dump())
+    return {'success': result.success, 'message': result.message}
+
+
+dispatcher.register(ToolSpec('launch_app', 'Open a configured application by name.',
+                             LaunchArguments, _launch_registered))
+
+
+async def close_services():
+    if audio_loop:
+        audio_loop.stop()
+    if loop_task and not loop_task.done():
+        loop_task.cancel()
+        background_tasks.append(loop_task)
+    if authenticator:
+        authenticator.stop()
+    for task in background_tasks:
+        task.cancel()
+    await asyncio.gather(*background_tasks, return_exceptions=True)
+    background_tasks.clear()
+
+
 if __name__ == "__main__":
     uvicorn.run(
-        "server:app_socketio", 
+        app_socketio,
         host="127.0.0.1", 
         port=8000, 
         reload=False, # Reload enabled causes spawn of worker which might miss the event loop policy patch

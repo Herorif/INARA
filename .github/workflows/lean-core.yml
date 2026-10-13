@@ -1,0 +1,27 @@
+name: Lean core and desktop build
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  milestone:
+    runs-on: windows-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: python -m pip install -r requirements-dev.lock
+      - run: python -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py -q
+      - run: python -m ruff check backend/services tests/test_conversation_service.py
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build

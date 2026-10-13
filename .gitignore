@@ -5,6 +5,12 @@ __pycache__/
 .env
 venv/
 .venv/
+.tools/
+.pytest_cache/
+.ruff_cache/
+trace.txt
+backend/reminders.jsonl
+backend/routines.json
 env/
 
 # INARA Specific Local Data

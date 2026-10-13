@@ -83,7 +83,8 @@ class LegacyRuntimeSmokeTests(unittest.IsolatedAsyncioTestCase):
 
         try:
             server.SETTINGS["kasa_devices"] = []
-            with patch.object(server.kasa_agent, "discover_devices", AsyncMock(return_value=discovered_devices)):
+            with patch.object(server, "kasa_agent", SimpleNamespace(
+                discover_devices=AsyncMock(return_value=discovered_devices))):
                 with patch.object(server, "save_settings", lambda: None):
                     await server.discover_kasa("client-1", None)
                     persisted_devices = list(server.SETTINGS["kasa_devices"])
@@ -128,10 +129,12 @@ class LegacyRuntimeSmokeTests(unittest.IsolatedAsyncioTestCase):
             }
         ]
 
-        with patch.object(server.printer_agent, "get_slicer_status", lambda: slicer_status):
-            with patch.object(server.printer_agent, "discover_printers", AsyncMock(return_value=printers)):
-                with patch.object(server.printer_agent, "get_printer_list", lambda: printers):
-                    await server.discover_printers("client-2", None)
+        with patch.object(server, "printer_agent", SimpleNamespace(
+            get_slicer_status=lambda: slicer_status,
+            discover_printers=AsyncMock(return_value=printers),
+            get_printer_list=lambda: printers,
+        )):
+            await server.discover_printers("client-2", None)
 
         self.assertEqual(
             self.emitted_events[0],

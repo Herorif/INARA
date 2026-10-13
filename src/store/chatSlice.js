@@ -3,6 +3,8 @@ import { emitSocket } from '../services/socket';
 export const createChatSlice = (set, get) => ({
     messages: [],
     inputValue: '',
+    textProcessing: false,
+    conversationId: crypto.randomUUID(),
 
     setInputValue: (val) => set({ inputValue: val }),
 
@@ -31,8 +33,10 @@ export const createChatSlice = (set, get) => ({
     },
 
     handleSend: (e) => {
-        if (e.key === 'Enter' && get().inputValue.trim()) {
-            emitSocket('user_input', { text: get().inputValue });
+        if (e.key === 'Enter' && !e.isComposing && get().inputValue.trim()
+            && get().backendConnected && !get().textProcessing) {
+            emitSocket('user_input', { text: get().inputValue,
+                conversation_id: get().conversationId, request_id: crypto.randomUUID() });
             get().addMessage('You', get().inputValue);
             set({ inputValue: '' });
         }
