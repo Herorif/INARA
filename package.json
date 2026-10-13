@@ -1,0 +1,41 @@
+{
+  "name": "inara",
+  "version": "1.0.0",
+  "description": "INARA - General-Purpose AI Agent Platform",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && npx electron .\"",
+    "backend:dev": "python backend/server.py",
+    "build": "vite build",
+    "start": "npx electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
+    "@react-three/drei": "^9.99.0",
+    "@react-three/fiber": "^8.15.16",
+    "@types/three": "^0.160.0",
+    "clsx": "^2.1.0",
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.300.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "socket.io-client": "^4.7.4",
+    "tailwind-merge": "^2.2.0",
+    "three": "^0.160.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.2.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.1.0",
+    "wait-on": "^7.2.0"
+  }
+}

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+.venv/
+env/
+
+# INARA Specific Local Data
+backend/reference.jpg
+backend/settings.json
+backend/last_cad_generation.json
+long_term_memory/
+projects/
+output.stl
+cad_outputs/
+
+# Node.js
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Electron
+dist-electron/
+release/
+out/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ignore local GLiM state
+references/glim-state.json

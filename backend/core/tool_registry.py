@@ -1,0 +1,344 @@
+"""
+Central tool registry for INARA.
+
+All agent tools are registered here. The registry converts them
+to whatever format the active LLM provider needs.
+"""
+
+from llm.tools import Tool, ToolParameter, ToolParameterType, ToolRegistry
+
+
+def create_default_registry() -> ToolRegistry:
+    """Create and populate the default INARA tool registry."""
+    registry = ToolRegistry()
+
+    # --- CAD ---
+    registry.register(Tool(
+        name="generate_cad",
+        description="Generates a 3D CAD model based on a prompt.",
+        parameters=[
+            ToolParameter("prompt", ToolParameterType.STRING, "The description of the object to generate."),
+        ],
+        non_blocking=True,
+    ))
+    registry.register(Tool(
+        name="iterate_cad",
+        description=(
+            "Modifies or iterates on the current CAD design based on user feedback. "
+            "Use this when the user asks to adjust, change, modify, or iterate on "
+            "the existing 3D model (e.g., 'make it taller', 'add a handle')."
+        ),
+        parameters=[
+            ToolParameter("prompt", ToolParameterType.STRING, "The changes or modifications to apply to the current design."),
+        ],
+        non_blocking=True,
+    ))
+
+    # --- Web Agent ---
+    registry.register(Tool(
+        name="run_web_agent",
+        description="Opens a web browser and performs a task according to the prompt.",
+        parameters=[
+            ToolParameter("prompt", ToolParameterType.STRING, "The detailed instructions for the web browser agent."),
+        ],
+        non_blocking=True,
+    ))
+
+    # --- File Operations ---
+    registry.register(Tool(
+        name="write_file",
+        description="Writes content to a file at the specified path. Overwrites if exists.",
+        parameters=[
+            ToolParameter("path", ToolParameterType.STRING, "The path of the file to write to."),
+            ToolParameter("content", ToolParameterType.STRING, "The content to write to the file."),
+        ],
+    ))
+    registry.register(Tool(
+        name="read_directory",
+        description="Lists the contents of a directory.",
+        parameters=[
+            ToolParameter("path", ToolParameterType.STRING, "The path of the directory to list."),
+        ],
+    ))
+    registry.register(Tool(
+        name="read_file",
+        description="Reads the content of a file.",
+        parameters=[
+            ToolParameter("path", ToolParameterType.STRING, "The path of the file to read."),
+        ],
+    ))
+
+    # --- Projects ---
+    registry.register(Tool(
+        name="create_project",
+        description="Creates a new project folder to organize files.",
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "The name of the new project."),
+        ],
+    ))
+    registry.register(Tool(
+        name="switch_project",
+        description="Switches the current active project context.",
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "The name of the project to switch to."),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_projects",
+        description="Lists all available projects.",
+        parameters=[],
+    ))
+
+    # --- Smart Home ---
+    registry.register(Tool(
+        name="list_smart_devices",
+        description="Lists all available smart home devices (lights, plugs, etc.) on the network.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="control_light",
+        description="Controls a smart light device.",
+        parameters=[
+            ToolParameter("target", ToolParameterType.STRING, "The IP address of the device to control. Prefer IP over alias."),
+            ToolParameter("action", ToolParameterType.STRING, "The action: 'turn_on', 'turn_off', or 'set'."),
+            ToolParameter("brightness", ToolParameterType.INTEGER, "Optional brightness level (0-100).", required=False),
+            ToolParameter("color", ToolParameterType.STRING, "Optional color name (e.g., 'red', 'cool white') or 'warm'.", required=False),
+        ],
+    ))
+
+    # --- 3D Printing ---
+    registry.register(Tool(
+        name="discover_printers",
+        description="Discovers 3D printers available on the local network.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="print_stl",
+        description="Prints an STL file to a 3D printer. Handles slicing and uploading.",
+        parameters=[
+            ToolParameter("stl_path", ToolParameterType.STRING, "Path to STL file, or 'current' for the most recent CAD model."),
+            ToolParameter("printer", ToolParameterType.STRING, "Printer name or IP address."),
+            ToolParameter("profile", ToolParameterType.STRING, "Optional slicer profile name.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="get_print_status",
+        description="Gets the current status of a 3D printer including progress, time remaining, and temperatures.",
+        parameters=[
+            ToolParameter("printer", ToolParameterType.STRING, "Printer name or IP address."),
+        ],
+    ))
+
+    # --- Phone Calls ---
+    registry.register(Tool(
+        name="make_phone_call",
+        description="Places an outbound phone call to a number. INARA will converse on the call.",
+        parameters=[
+            ToolParameter("number", ToolParameterType.STRING, "The phone number to call (E.164 format, e.g. +15551234567)."),
+            ToolParameter("purpose", ToolParameterType.STRING, "Optional context for the call (e.g. 'order pizza', 'check on delivery').", required=False),
+        ],
+        non_blocking=True,
+    ))
+    registry.register(Tool(
+        name="end_phone_call",
+        description="Hangs up an active phone call.",
+        parameters=[
+            ToolParameter("call_id", ToolParameterType.STRING, "The ID of the call to end."),
+        ],
+    ))
+    registry.register(Tool(
+        name="get_call_status",
+        description="Gets the current status of a phone call.",
+        parameters=[
+            ToolParameter("call_id", ToolParameterType.STRING, "The ID of the call to check."),
+        ],
+    ))
+
+    # --- Desktop Control ---
+    registry.register(Tool(
+        name="get_system_info",
+        description="Returns current CPU, memory, disk, battery, and top process usage.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="launch_app",
+        description="Opens an application by friendly name (e.g. 'chrome', 'vscode', 'spotify', 'terminal').",
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "The app to open."),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_running_apps",
+        description="Lists the top running processes sorted by memory usage.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="focus_window",
+        description="Brings an open window to the foreground by its title or app name.",
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "Window title or app name to focus."),
+        ],
+    ))
+    registry.register(Tool(
+        name="take_screenshot",
+        description=(
+            "Takes a screenshot of the current screen and uses vision AI to describe what is visible. "
+            "Use when the user asks what's on screen or needs visual context."
+        ),
+        parameters=[
+            ToolParameter("prompt", ToolParameterType.STRING, "Optional specific question about what to look for.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="search_files",
+        description="Searches for files matching a name pattern on the user's machine. Returns up to 20 paths.",
+        parameters=[
+            ToolParameter("query", ToolParameterType.STRING, "Filename or glob pattern (e.g. 'resume*.docx', '*.pdf')."),
+            ToolParameter("directory", ToolParameterType.STRING, "Directory to search. Defaults to user home folder.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="read_clipboard",
+        description="Reads and returns the current text content of the system clipboard.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="write_clipboard",
+        description="Writes text to the system clipboard.",
+        parameters=[
+            ToolParameter("text", ToolParameterType.STRING, "The text to copy to clipboard."),
+        ],
+    ))
+
+    # --- Reminders & Routines ---
+    registry.register(Tool(
+        name="create_reminder",
+        description=(
+            "Creates a reminder that fires at a specific time. "
+            "Pass 'when' as an ISO-8601 datetime string (e.g. '2026-04-12T09:00:00') "
+            "or natural language (e.g. 'in 20 minutes', 'tomorrow at 3pm'). "
+            "For recurring reminders pass 'recurring' as 'daily', 'weekly', or 'weekdays'."
+        ),
+        parameters=[
+            ToolParameter("task", ToolParameterType.STRING, "What to remind the user about."),
+            ToolParameter("when", ToolParameterType.STRING, "When to fire the reminder (ISO datetime or natural language)."),
+            ToolParameter("recurring", ToolParameterType.STRING, "Recurrence: 'daily', 'weekly', or 'weekdays'. Omit for one-time.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_reminders",
+        description="Lists reminders. Use filter='today' for today's, 'overdue' for past-due, or 'all' for everything pending.",
+        parameters=[
+            ToolParameter("filter", ToolParameterType.STRING, "Filter: 'today', 'overdue', or 'all' (default).", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="cancel_reminder",
+        description="Cancels a reminder so it will not fire. Use the ID shown in list_reminders (first 8 characters are enough).",
+        parameters=[
+            ToolParameter("reminder_id", ToolParameterType.STRING, "The reminder ID or its 8-character prefix."),
+        ],
+    ))
+    registry.register(Tool(
+        name="snooze_reminder",
+        description="Snoozes a reminder, rescheduling it to fire again after the given number of minutes.",
+        parameters=[
+            ToolParameter("reminder_id", ToolParameterType.STRING, "The reminder ID or its 8-character prefix."),
+            ToolParameter("minutes", ToolParameterType.INTEGER, "How many minutes to snooze for."),
+        ],
+    ))
+    registry.register(Tool(
+        name="create_routine",
+        description=(
+            "Creates a named routine that runs automatically on a greeting trigger. "
+            "Trigger values: 'greeting:good_morning', 'greeting:im_home', "
+            "'greeting:goodnight', 'greeting:leaving', or 'manual'."
+        ),
+        parameters=[
+            ToolParameter("name", ToolParameterType.STRING, "Short name for the routine (e.g. 'Morning Routine')."),
+            ToolParameter("trigger", ToolParameterType.STRING, "When this routine fires (e.g. 'greeting:good_morning')."),
+            ToolParameter("actions", ToolParameterType.STRING, "Comma-separated list of actions for INARA to perform."),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_routines",
+        description="Lists all defined routines and whether they are enabled.",
+        parameters=[],
+    ))
+
+    # --- Vision ---
+    registry.register(Tool(
+        name="describe_camera",
+        description=(
+            "Takes the current camera frame and describes what INARA sees. "
+            "Use when the user asks 'What do you see?' or wants visual feedback from the camera. "
+            "Optionally pass a focused question."
+        ),
+        parameters=[
+            ToolParameter("question", ToolParameterType.STRING, "Optional specific question about the scene.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="detect_presence",
+        description="Checks whether any person is visible in the current camera view.",
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="watch_for",
+        description=(
+            "Starts continuously monitoring the camera for a specific event or object "
+            "and will alert the user when detected. "
+            "Examples: 'package delivery', 'person at the door', 'cat on desk'."
+        ),
+        parameters=[
+            ToolParameter("description", ToolParameterType.STRING, "What to watch for."),
+            ToolParameter("watch_id", ToolParameterType.STRING, "Short ID used to cancel this watch later.", required=False),
+        ],
+        non_blocking=True,
+    ))
+    registry.register(Tool(
+        name="stop_watching",
+        description="Stops a previously registered camera watch condition.",
+        parameters=[
+            ToolParameter("watch_id", ToolParameterType.STRING, "The watch ID to remove."),
+        ],
+    ))
+    registry.register(Tool(
+        name="list_watches",
+        description="Lists all active camera watch conditions.",
+        parameters=[],
+    ))
+
+    # --- Unified Devices (Kasa + Home Assistant) ---
+    registry.register(Tool(
+        name="list_all_devices",
+        description=(
+            "Lists all smart home devices across all connected protocols "
+            "(TP-Link Kasa and Home Assistant). Returns device IDs needed for control_device."
+        ),
+        parameters=[],
+    ))
+    registry.register(Tool(
+        name="control_device",
+        description=(
+            "Controls a smart home device. Works for Kasa and Home Assistant devices. "
+            "Actions: 'turn_on', 'turn_off', 'toggle', 'set'. "
+            "Use list_all_devices to get the device_id first."
+        ),
+        parameters=[
+            ToolParameter("device_id", ToolParameterType.STRING, "Device ID or IP from list_all_devices."),
+            ToolParameter("action", ToolParameterType.STRING, "Action: 'turn_on', 'turn_off', 'toggle', or 'set'."),
+            ToolParameter("brightness", ToolParameterType.INTEGER, "Brightness 0-100 (for lights).", required=False),
+            ToolParameter("color", ToolParameterType.STRING, "Color name or 'warm' (for lights).", required=False),
+            ToolParameter("temperature", ToolParameterType.NUMBER, "Target temperature for climate devices.", required=False),
+        ],
+    ))
+    registry.register(Tool(
+        name="get_device_state",
+        description="Returns the current state and attributes of a specific device.",
+        parameters=[
+            ToolParameter("device_id", ToolParameterType.STRING, "Device ID or IP."),
+        ],
+    ))
+
+    return registry
