@@ -15,7 +15,7 @@
 
 > Supported runtime: `electron/main.js -> backend/server.py`. The `backend/core/` server refactor is archived reference code and is not the active app backend.
 
-## Revival milestones 1?2
+## Revival: durable assistant and command deck
 
 Typed chat now runs independently of the microphone and Gemini Live audio session.
 The backend boots with the lean core dependencies and loads optional capabilities
@@ -43,14 +43,19 @@ The backend starts without an API key; AI requests return a clear configuration
 error until a valid key is supplied. Set `INARA_TEXT_MODEL` to select the text
 model. Voice and other legacy integrations still require their optional packages
 from `requirements.txt`; their modernization remains scheduled in the architecture.
-No WhatsApp reply capability is included.
+The new JARVIS command deck includes command, Studio and connection views. Closing
+its window leaves INARA in the system tray; Ctrl+Shift+Space reopens it, and Quit
+INARA ends the resident. Local reminders can be created without an AI key.
+Gaming mode and heavy UI activation are explicit. See [resident/workspace details](docs/RESIDENT_AND_WORKSPACE.md)
+and [rendered desktop preview](docs/qa/command-desktop.png). The current Electron
+resident footprint still needs reduction. No WhatsApp reply capability is included.
 
 Run the deterministic milestone and desktop-contract checks with:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py -q
+.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py -q
 .\.venv\Scripts\python.exe -m ruff check backend/services tests/test_conversation_service.py
-node --test tests/test_reminder_ui.mjs
+node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs
 npm run build
 ```
 

@@ -20,7 +20,7 @@ export const createConnectionSlice = (set, get) => ({
     aiUnavailable: false,
     localDevicesReady: socket.connected,
     isMuted: true,
-    currentProject: 'default',
+    currentProject: 'temp',
     listeningState: 'idle', // 'idle' | 'wake_listening' | 'active'
 
     // Actions

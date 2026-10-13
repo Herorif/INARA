@@ -2,7 +2,7 @@
 
 Updated 13 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The first two implementation milestones are complete. Read [Implementation status](IMPLEMENTATION_STATUS.md) before continuing; the next milestone is the resident lifecycle and responsive JARVIS workspace. Read [Persistence](PERSISTENCE.md) before altering stored records.
+The first two implementation milestones are complete. Read [Implementation status](IMPLEMENTATION_STATUS.md) before continuing; the resident lifecycle and polished responsive JARVIS workspace foundation are implemented. Resident footprint reduction remains open. Read [Persistence](PERSISTENCE.md) before altering stored records.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -43,14 +43,18 @@ The reproducible core environment, independent typed-conversation service, lazy 
 
 Versioned Windows-protected SQLite persistence, scoped sessions, request deduplication across restart, validated non-destructive migration, transactional reminder claiming, receipt/completion, UTC/IANA recurrence and UI reconnect recovery are implemented. Existing artifacts and source records remain preserved. See the status record and persistence contract for limitations.
 
+## Resident/workspace foundation
+
+Tray/hotkey reopen, graceful quit, scoped resident reminder delivery, explicit gaming policy, a polished responsive command deck, local reminder creation and lazy camera/CAD panels are implemented. See [implementation evidence and resource limits](RESIDENT_AND_WORKSPACE.md). Initial JavaScript fell to approximately 241 KB, but the resident Electron footprint still exceeds the architecture target. Do not claim the full resident resource gate is complete.
+
 ## Next implementation task
 
-1. Preserve the verified persistence contracts and deterministic checks; API configuration remains deferred until the owner requests it.
-2. Separate resident backend lifetime from the desktop window. Closing the window must retain reminders; reopening must restore state. Add explicit quit and clear lifecycle status.
-3. Introduce a responsive JARVIS workspace and reusable design tokens with readable controls, keyboard navigation and reduced-motion support. Lazily load 3D/camera modules.
-4. Add bounded resource states and gaming-mode policy with on-demand heavy capability activation. Measure actual idle and activation behavior on the Legion before claiming resource budgets.
-5. Verify close/reopen, explicit quit, startup failure, reconnect, layout sizes and accessibility. Keep OS startup installation opt-in and refrain from automatically enabling camera/audio acquisition.
-6. Update status and finish this bounded milestone before implementing CAD/Blender/image workers or Android pairing. WhatsApp replies remain excluded.
+1. Preserve the existing typed tools, protected persistence, identity migration and tested command deck. Keep API configuration deferred.
+2. Prototype a lean Windows resident host, with Electron only when a workspace is open. Compare measured idle memory/CPU, cold/warm reopen, tray/hotkey reliability and packaged installation requirements before choosing the production host.
+3. Retain one owned backend, scoped resident delivery, request deduplication, explicit quit, bounded recovery and safe child-process ownership. Avoid orphan processes and token exposure; preserve existing user data.
+4. Run a ten-minute idle measurement and a representative gaming test. Keep manual gaming mode until automatic detection is separately implemented and verified. Record failures honestly; do not obscure shared-memory or backend costs.
+5. Establish a supported Electron upgrade as a release gate, while retaining native/WebGL compatibility and reproducible checks.
+6. Finish this bounded footprint/lifecycle follow-up before adding isolated CAD/Blender/image workers. Keep WhatsApp replies excluded; Android pairing and calls remain later milestones.
 
 ## Keep model use efficient
 
@@ -60,6 +64,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement the resident lifecycle and responsive JARVIS workspace milestone in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md and docs/PERSISTENCE.md. Preserve encrypted data, reminder acknowledgement/recurrence and request deduplication. Keep the backend alive when the window closes, restore sessions when reopened, provide explicit quit, and add responsive accessible JARVIS styling with lazy heavy UI. Keep API configuration deferred and WhatsApp replies excluded. Run meaningful lifecycle, layout and resource checks and report this bounded milestone before expanding to creative workers or Android.
+> Implement the resident footprint follow-up in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/PERSISTENCE.md and docs/RESIDENT_AND_WORKSPACE.md. Preserve the polished JARVIS workspace and durable tool/reminder contracts. Prototype a lean Windows resident host with Electron only while the workspace is open; retain owned-backend lifecycle, scoped delivery, hotkey/tray reopen and protected identity. Compare actual memory/CPU and validate close/reopen, quit and failure recovery. Keep API configuration deferred and WhatsApp replies excluded. Report the measured result before expanding into creative workers.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

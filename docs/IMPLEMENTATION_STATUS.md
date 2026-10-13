@@ -1,6 +1,6 @@
 # INARA revival implementation status
 
-Updated 13 October 2026. This records the first two bounded milestones from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
+Updated 13 October 2026. This records the first two completed milestones and the resident/workspace foundation from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
 ## Completed behavior
 
@@ -42,12 +42,11 @@ The new typed tool path exposes project files, configured app launching and vali
 
 Completed typed history and its request ledger are durable and encrypted before SQLite/WAL writes. Restored context is limited to twenty completed messages. Windows DPAPI is user-bound; portable export, full device pairing, scoped persistent credentials, worker isolation, retention controls and the resource governor remain planned. Legacy voice histories remain a separate adapter; existing settings and artifacts retain their original formats. The legacy face-landmark gate is retained for compatibility and does not become strong OS authentication through this change.
 
-The complete JARVIS UI redesign, responsive workspace, lazy 3D/camera loading and supported Electron upgrade remain subsequent work. WhatsApp reply drafting and sending are excluded until specifically requested; no automatic replies were added.
+The command deck, responsive workspace, local reminder panel, lazy 3D/camera loading and resident close/reopen are implemented. Optional adapter interiors and a supported Electron upgrade remain subsequent work. The measured Electron resident footprint exceeds the intended resident target. WhatsApp reply drafting and sending are excluded until specifically requested; no automatic replies were added.
 
 ## Next milestone
 
-Separate the resident assistant lifetime from the desktop window, retaining the verified durable sessions and transactional reminder storage. Establish JARVIS design tokens and the responsive workspace shell before migrating the creative workers. Reuse this checkpoint and the verified core instead of repeating the repository audit.
-
+Reduce resident overhead and compare a lean Windows host with the current Electron controller before adding heavy workers. Preserve the responsive JARVIS command deck, durable sessions and reminder ownership. Then implement isolated creative workers and typed CAD/Blender/image contracts. See [resident/workspace details](RESIDENT_AND_WORKSPACE.md).
 
 ## Second milestone verification (13 October 2026)
 
@@ -56,3 +55,12 @@ Separate the resident assistant lifetime from the desktop window, retaining the 
 - Two Node state tests pass for simultaneous alert queueing, duplicate deliveries and reconnect snapshots. The production Vite build passes. Ruff and dependency consistency pass.
 - Tests use temporary user data, fake providers and fake transport. No production data migration, paid requests, phone/device actions or native desktop visual verification was performed. The build still reports the existing large bundle, old browsers data and Vite CJS warnings; the JARVIS/lazy workspace milestone will address the frontend structure.
 - The local desktop recipient rule does not implement Android delivery ownership or pairing. Closing the current desktop shell still stops its backend; resident lifetime is next. WhatsApp replies remain excluded.
+
+
+## Resident and JARVIS workspace verification (13 October 2026)
+
+The command deck and resident lifecycle foundation are implemented, including tray/hotkey reopen, explicit graceful quit, generic resident reminder notices, gaming suppression/gating, responsive command/Studio/connections views, local reminder creation and deferred camera/landmark loading. Source modules are separated by lifecycle and feature responsibility.
+
+61 Python checks and eight Node checks pass, along with lint, dependency consistency and production build. Hidden renderer tests verify 1440, 768 and 390 CSS-pixel layouts, modal behavior, icon labels and absence of heavy startup assets. Rendered screenshots are in [docs/qa](qa/command-desktop.png). Native close/reopen uses the same backend and verifies reminder receipt, gaming state and graceful quit with fresh isolated data. Notification display is stubbed. Bundled tracking initialization passes with an empty test stream; no real camera or paid provider is used.
+
+Initial JavaScript is approximately 241 KB uncompressed / 76 KB gzip; CAD is a separate approximately 902 KB chunk. The immediate resident snapshot retained roughly 400 MB of Electron working sets; the 150 MB resident target is not met, and a ten-minute idle/game benchmark is outstanding. The implementation is a functional foundation, with resident footprint reduction explicitly remaining open. Details and limits are in [Resident and workspace](RESIDENT_AND_WORKSPACE.md).

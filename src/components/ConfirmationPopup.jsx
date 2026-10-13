@@ -1,10 +1,34 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
 
 const ConfirmationPopup = () => {
     const request = useStore(s => s.confirmationRequest);
     const setConfirmationRequest = useStore(s => s.setConfirmationRequest);
+    const dialog = useRef(null);
+    useEffect(() => {
+        if (!request) return;
+        const previous = document.activeElement;
+        dialog.current?.querySelector('button')?.focus();
+        const keydown = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault(); event.stopImmediatePropagation();
+                emitSocket('confirm_tool', { id: request.id, confirmed: false });
+                setConfirmationRequest(null);
+            }
+            if (event.key === 'Tab') {
+                const buttons = dialog.current?.querySelectorAll('button');
+                if (!buttons?.length) return;
+                if (event.shiftKey && document.activeElement === buttons[0]) {
+                    event.preventDefault(); buttons[buttons.length - 1].focus();
+                } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) {
+                    event.preventDefault(); buttons[0].focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', keydown, true);
+        return () => { document.removeEventListener('keydown', keydown, true); previous?.focus(); };
+    }, [request, setConfirmationRequest]);
 
     if (!request) return null;
 
@@ -19,7 +43,7 @@ const ConfirmationPopup = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div ref={dialog} role="dialog" aria-modal="true" aria-label="Approve assistant action" className="tool-confirmation-dialog fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="relative w-full max-w-lg p-8 bg-black/90 border border-cyan-500/30 rounded-3xl shadow-[0_0_50px_rgba(34,211,238,0.15)] backdrop-blur-2xl transform transition-all scale-100">
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay rounded-3xl"></div>
 

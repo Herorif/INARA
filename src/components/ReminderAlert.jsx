@@ -37,6 +37,7 @@ const ReminderAlert = () => {
                             <span className="text-[10px] font-bold tracking-widest text-amber-400">REMINDER</span>
                         </div>
                         <button
+                            aria-label="Dismiss reminder"
                             onClick={handleDismiss}
                             className="p-1 rounded text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
                         >

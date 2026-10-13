@@ -31,6 +31,7 @@ from services.conversation import ConversationRequest, ConversationService
 from services.storage import Database, StorageError
 from services.sessions import SessionStore
 from services.scheduler_tools import register_scheduler_tools
+from services.resources import ResourceGovernor, ResourceRequest
 from services.tools import ServiceError, ToolDispatcher, ToolSpec, register_project_tools
 
 inara = LazyService('inara')
@@ -89,23 +90,26 @@ loop_task = None
 authenticator = None
 printer_agent = LazyService('printer_agent', 'PrinterAgent')
 printer_monitor_task = None
-SETTINGS_FILE = str(Path(__file__).parent / "settings.json")
+SETTINGS_FILE = os.getenv('INARA_SETTINGS_FILE') or str(Path(__file__).parent / "settings.json")
 load_dotenv(Path(__file__).parent.parent / '.env')
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(backend_dir)
+project_root = os.getenv('INARA_PROJECT_ROOT') or os.path.dirname(backend_dir)
 database = Database()
 project_manager = ProjectManager(project_root, state_store=database)
 
 # Phase 4-7 — event bus + agents
 bus = EventBus()
-reminder_store = ReminderStore(database=database)
+reminder_store = ReminderStore(backend_dir=os.getenv('INARA_LEGACY_DATA_DIR'), database=database)
 scheduler_agent = SchedulerAgent(event_bus=bus, reminder_store=reminder_store)
 desktop_agent = LazyService('agents.desktop_agent', 'DesktopAgent', event_bus=bus)
 vision_loop = VisionLoop(event_bus=bus, interval=5)
 vision_agent = LazyService('agents.vision_agent', 'VisionAgent', event_bus=bus, vision_loop=vision_loop)
 device_agent = LazyService('agents.device_agent', 'DeviceAgent', event_bus=bus)
 client_principals = {}
+client_roles = {}
+resource_governor = ResourceGovernor()
+uvicorn_server = None
 background_tasks = []
 vision_task = None
 
@@ -340,7 +344,8 @@ async def _check_reminders_loop():
 async def deliver_reminders_once():
     # One designated local client identity, retained in the delivery on reconnect.
     for principal in dict.fromkeys(client_principals.values()):
-        rooms = [sid for sid, owner in client_principals.items() if owner == principal]
+        rooms = sorted([sid for sid, owner in client_principals.items() if owner == principal],
+                       key=lambda sid: client_roles.get(sid) == 'resident')
         if not rooms or not dispatcher.authenticated(principal):
             continue
         for delivery in reminder_store.claim_deliveries(principal):
@@ -367,7 +372,8 @@ async def startup_event():
 
 @app.get("/status")
 async def status():
-    return get_runtime_summary()
+    return {**get_runtime_summary(), 'instance_id': os.getenv('INARA_INSTANCE_ID'),
+            'resources': resource_governor.snapshot()}
 
 @sio.event
 async def connect(sid, environ, auth=None):
@@ -382,9 +388,11 @@ async def connect(sid, environ, auth=None):
     except (ValueError, TypeError):
         return False
     client_principals[sid] = principal
+    client_roles[sid] = 'resident' if auth.get('role') == 'resident' else 'renderer'
     print(f"Client connected: {sid}")
     await sio.emit('status', {'msg': 'Connected to INARA Backend'}, room=sid)
     await sio.emit('text_ready', {'model': os.getenv('INARA_TEXT_MODEL', 'gemini-3.8-flash')}, room=sid)
+    await sio.emit('resource_state', resource_governor.snapshot(), room=sid)
     await sio.emit('printer_list', SETTINGS.get('printers', []), room=sid)
     await sio.emit('project_update', {'project': project_manager.current_project}, room=sid)
 
@@ -430,12 +438,43 @@ async def connect(sid, environ, auth=None):
 
 @sio.event
 async def disconnect(sid):
+    client_roles.pop(sid, None)
     principal = client_principals.pop(sid, sid)
     conversation_service.release_owner(principal)
     print(f"Client disconnected: {sid}")
 
+
+@sio.event
+async def set_resource_state(sid, data):
+    if sid not in client_principals:
+        return
+    try:
+        request = ResourceRequest.model_validate(data)
+    except ValidationError:
+        return
+    resource_governor.select(request.state)
+    if request.state in ('resident', 'gaming'):
+        await stop_audio(sid)
+        global vision_task
+        if vision_task and not vision_task.done():
+            vision_task.cancel()
+            await asyncio.gather(vision_task, return_exceptions=True)
+            vision_task = None
+    await sio.emit('resource_state', resource_governor.snapshot())
+
+
+async def allow_heavy(sid):
+    try:
+        resource_governor.require_heavy()
+        return True
+    except ServiceError as exc:
+        await sio.emit('error', {'msg': str(exc), 'code': exc.code}, room=sid)
+        return False
+
 @sio.event
 async def start_audio(sid, data=None):
+    if not await allow_heavy(sid):
+        return
     global audio_loop, loop_task
     
     # Optional: Block if not authenticated
@@ -704,6 +743,11 @@ async def run_reminder_action(sid, name, data):
 
 
 @sio.event
+async def create_reminder(sid, data):
+    await run_reminder_action(sid, 'create_reminder', data)
+
+
+@sio.event
 async def snooze_reminder(sid, data):
     await run_reminder_action(sid, "snooze_reminder", data)
 
@@ -821,39 +865,12 @@ async def get_system_info(sid, data=None):
 
 @sio.event
 async def shutdown(sid, data=None):
-    """Gracefully shutdown the server when the application closes."""
-    global audio_loop, loop_task, authenticator, printer_monitor_task
-    
-    print("[SERVER] ========================================")
-    print("[SERVER] SHUTDOWN SIGNAL RECEIVED FROM FRONTEND")
-    print("[SERVER] ========================================")
-    
-    # Stop audio loop
-    if audio_loop:
-        print("[SERVER] Stopping Audio Loop...")
-        audio_loop.stop()
-        audio_loop = None
-    
-    # Cancel the loop task if running
-    if loop_task and not loop_task.done():
-        print("[SERVER] Cancelling loop task...")
-        loop_task.cancel()
-        loop_task = None
-
-    if printer_monitor_task and not printer_monitor_task.done():
-        print("[SERVER] Cancelling printer monitor...")
-        printer_monitor_task.cancel()
-        printer_monitor_task = None
-    
-    # Stop authenticator if running
-    if authenticator:
-        print("[SERVER] Stopping Authenticator...")
-        authenticator.stop()
-    
-    print("[SERVER] Graceful shutdown complete. Terminating process...")
-    
-    # Force exit immediately - os._exit bypasses cleanup but ensures termination
-    os._exit(0)
+    """Only the connected desktop owner can request graceful shutdown."""
+    if sid not in client_principals:
+        return
+    await close_services()
+    if uvicorn_server is not None:
+        uvicorn_server.should_exit = True
 
 @sio.event
 async def user_input(sid, data):
@@ -894,6 +911,8 @@ from pathlib import Path
 
 @sio.event
 async def video_frame(sid, data):
+    if not await allow_heavy(sid):
+        return
     global vision_task
     # data should contain 'image' which is binary (blob) or base64 encoded
     image_data = data.get('image')
@@ -1018,6 +1037,8 @@ async def discover_kasa(sid, data=None):
 
 @sio.event
 async def iterate_cad(sid, data):
+    if not await allow_heavy(sid):
+        return
     # data: { prompt: "make it bigger" }
     prompt = data.get('prompt')
     print(f"Received iterate_cad request: '{prompt}'")
@@ -1060,6 +1081,8 @@ async def iterate_cad(sid, data):
 
 @sio.event
 async def generate_cad(sid, data):
+    if not await allow_heavy(sid):
+        return
     # data: { prompt: "make a cube" }
     prompt = data.get('prompt')
     print(f"Received generate_cad request: '{prompt}'")
@@ -1103,6 +1126,8 @@ async def generate_cad(sid, data):
 
 @sio.event
 async def prompt_web_agent(sid, data):
+    if not await allow_heavy(sid):
+        return
     # data: { prompt: "find xyz" }
     prompt = data.get('prompt')
     print(f"Received web agent prompt: '{prompt}'")
@@ -1419,11 +1444,5 @@ async def close_services():
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        app_socketio,
-        host="127.0.0.1", 
-        port=8000, 
-        reload=False, # Reload enabled causes spawn of worker which might miss the event loop policy patch
-        loop="asyncio",
-        reload_excludes=["temp_cad_gen.py", "output.stl", "*.stl"]
-    )
+    uvicorn_server = uvicorn.Server(uvicorn.Config(app_socketio, host="127.0.0.1", port=8000, loop="asyncio"))
+    uvicorn_server.run()

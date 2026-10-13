@@ -18,9 +18,19 @@ def pytest_configure(config):
     config._inara_previous_data = os.environ.get("INARA_DATA_DIR")
     config._inara_test_data = tempfile.TemporaryDirectory(prefix="inara-tests-")
     os.environ["INARA_DATA_DIR"] = config._inara_test_data.name
+    config._inara_previous_isolation = {key: os.environ.get(key) for key in
+                                       ("INARA_PROJECT_ROOT", "INARA_LEGACY_DATA_DIR", "INARA_SETTINGS_FILE")}
+    os.environ["INARA_PROJECT_ROOT"] = config._inara_test_data.name
+    os.environ["INARA_LEGACY_DATA_DIR"] = config._inara_test_data.name
+    os.environ["INARA_SETTINGS_FILE"] = str(Path(config._inara_test_data.name) / "settings.json")
 
 
 def pytest_unconfigure(config):
+    for key, value in config._inara_previous_isolation.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
     if config._inara_previous_data is None:
         os.environ.pop("INARA_DATA_DIR", None)
     else:

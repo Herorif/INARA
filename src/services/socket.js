@@ -4,11 +4,12 @@
  */
 import io from 'socket.io-client';
 
-let clientId = localStorage.getItem('inara_client_id');
+let clientId = window.electronAPI?.clientId || localStorage.getItem('inara_client_id');
 if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem('inara_client_id', clientId);
 }
+window.electronAPI?.registerResident(clientId);
 const socket = io('http://localhost:8000', {
     auth: { client_id: clientId, token: window.electronAPI?.sessionToken
         || import.meta.env.VITE_INARA_SESSION_TOKEN || '' },

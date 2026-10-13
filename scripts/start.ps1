@@ -16,5 +16,6 @@ if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) {
     throw 'Install Node.js 24 LTS or run bootstrap in a configured terminal.'
 }
 $command = if ($Dev) { 'dev' } else { 'start' }
+$env:ELECTRON_RUN_AS_NODE = $null
 npm.cmd run $command
 exit $LASTEXITCODE
