@@ -26,7 +26,7 @@ app.whenReady().then(async () => {
       offscreen: true
     }
   });
-  window.webContents.on('console-message', (_, level, message) => { if(message.includes('Tracking initialization:')) console.error(message); });
+  window.webContents.on('console-message', event => { if(event.message.includes('Tracking initialization:')) console.error(event.message); });
   const requests = [];
   window.webContents.session.webRequest.onBeforeRequest((details, callback) => {
     requests.push(details.url);

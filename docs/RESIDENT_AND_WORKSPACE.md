@@ -1,10 +1,10 @@
 # Resident assistant and command deck
 
-Implemented 13 October 2026. The desktop now uses an independent resident controller and a new JARVIS-inspired command deck. API configuration remains deferred.
+Implemented 13 October 2026. This records the original Electron resident controller and JARVIS command deck foundation. The default Windows host now uses the lean native implementation described in [Native resident](NATIVE_RESIDENT.md); the Electron controller remains an explicit `npm run start:legacy` fallback. API configuration remains deferred.
 
 ## Using it
 
-Run `scripts/start.ps1`. The workspace opens with command, Studio and connection views. The close button destroys the renderer and leaves the backend and tray controller running. Reopen from the tray or **Ctrl+Shift+Space**; if the hotkey is unavailable, the interface says to use the tray. **Quit INARA** in navigation or the tray ends the backend. OS startup installation is not enabled.
+Run `scripts/start.ps1`. The workspace opens with command, Studio and connection views. The close button exits the workspace's Electron process tree and leaves the native core and tray running. Reopen from the tray or **Ctrl+Shift+Space**; if the hotkey is unavailable, the interface says to use the tray. **Quit INARA** in navigation or the tray ends the backend. OS startup installation is not enabled. The remaining controller-specific descriptions below document the retained legacy fallback.
 
 The tray retains the same client identity as the original desktop, preserving session ownership. First launch adopts the existing renderer UUID; subsequent launches supply it through the preload bridge. Only metadata UUID/gaming preferences are saved in the resident identity file. Private session/reminder payloads retain the protected persistence contract.
 
@@ -44,4 +44,4 @@ The native integration run showed the renderer disappearing after close and the 
 
 Both scripts require Electron application mode: clear `ELECTRON_RUN_AS_NODE` before launching the executable. They use no paid provider calls, camera/microphone sessions or printer actions. CI includes the deterministic suite and hidden renderer checks; its remote run remains unverified.
 
-The next task is resident memory reduction and host comparison, followed by isolated CAD/Blender/image workers. A supported Electron upgrade is a release gate. Android pairing, call handling and WhatsApp replies are not introduced here.
+The native host follow-up and Electron 44.7.0 upgrade are recorded in [Native resident](NATIVE_RESIDENT.md). Isolated CAD/Blender/image workers are the next capability milestone. Android pairing, call handling and WhatsApp replies are not introduced here.

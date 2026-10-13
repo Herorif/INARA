@@ -22,6 +22,10 @@ if ($Registry) {
     npm.cmd ci
 }
 if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed' }
+if (-not (Test-Path -LiteralPath 'node_modules/electron/dist/electron.exe')) {
+    node node_modules/electron/install.js
+    if ($LASTEXITCODE -ne 0) { throw 'Electron runtime installation failed' }
+}
 npm.cmd run build
 if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
-Write-Output 'INARA is ready. Configure GEMINI_API_KEY in .env, then run npm start.'
+Write-Output 'INARA is ready. Run scripts/start.ps1. Local reminders work now; configure the AI provider when ready.'

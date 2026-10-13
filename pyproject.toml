@@ -1,7 +1,7 @@
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-include = ["backend/services/**/*.py", "backend/core/durable_reminders.py", "backend/core/reminder_store.py", "tests/test_conversation_service.py", "tests/test_durable_storage.py", "tests/test_resource_policy.py"]
+include = ["backend/services/**/*.py", "backend/resident/**/*.py", "backend/resident_main.py", "scripts/verify-native.py", "backend/core/durable_reminders.py", "backend/core/reminder_store.py", "tests/test_conversation_service.py", "tests/test_durable_storage.py", "tests/test_resource_policy.py", "tests/test_native_resident.py"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]

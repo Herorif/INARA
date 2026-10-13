@@ -6,14 +6,14 @@
 -=It's Not A Random Acronym=-
 ```
 
-![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)
-![Electron](https://img.shields.io/badge/Electron-28-47848F?logo=electron)
+![Electron](https://img.shields.io/badge/Electron-44.7-47848F?logo=electron)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 > Your own AI that lives on your desktop, controls your house, designs your parts, runs your browser, and prints your prototypes - all by voice.
 
-> Supported runtime: `electron/main.js -> backend/server.py`. The `backend/core/` server refactor is archived reference code and is not the active app backend.
+> Supported Windows runtime: `backend/resident_main.py` hosts the tray and `backend/server.py` core. `electron/native-main.cjs` runs the workspace on demand. The `backend/core/` server refactor is archived reference code.
 
 ## Revival: durable assistant and command deck
 
@@ -27,7 +27,6 @@ On Windows with Python 3.12 and Node.js 24 LTS:
 
 ```powershell
 .\scripts\bootstrap.ps1 -Dev
-# Configure GEMINI_API_KEY in .env, then:
 npm start
 ```
 
@@ -47,8 +46,9 @@ The new JARVIS command deck includes command, Studio and connection views. Closi
 its window leaves INARA in the system tray; Ctrl+Shift+Space reopens it, and Quit
 INARA ends the resident. Local reminders can be created without an AI key.
 Gaming mode and heavy UI activation are explicit. See [resident/workspace details](docs/RESIDENT_AND_WORKSPACE.md)
-and [rendered desktop preview](docs/qa/command-desktop.png). The current Electron
-resident footprint still needs reduction. No WhatsApp reply capability is included.
+and [rendered desktop preview](docs/qa/command-desktop.png). The native resident
+releases Electron completely when the workspace closes. See [native host measurement and limits](docs/NATIVE_RESIDENT.md).
+No WhatsApp reply capability is included.
 
 Run the deterministic milestone and desktop-contract checks with:
 

@@ -37,7 +37,8 @@ class EventBus:
 
     def on_all(self, handler: EventHandler):
         """Subscribe to all events (useful for logging/debugging)."""
-        self._global_handlers.append(handler)
+        if handler not in self._global_handlers:
+            self._global_handlers.append(handler)
 
     def off(self, event_type: str, handler: EventHandler):
         """Unsubscribe from an event type."""

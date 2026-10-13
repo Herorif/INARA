@@ -64,9 +64,11 @@ This is one modular application with supervised worker processes. Use a persiste
 
 ## Technology choices
 
+Implementation decision, 14 October 2026: the measured Python/Win32 host meets the local idle target without retaining a webview or adding another resident runtime. Keep Electron for the on-demand Studio and defer a Tauri migration unless installation or compatibility evidence justifies it. See [native host measurements and acceptance limits](NATIVE_RESIDENT.md).
+
 | Layer | Proposed choice | Reason and qualification |
 | --- | --- | --- |
-| Resident host and target Windows shell | Rust host with Tauri 2 for windows and tray integration | Native lifecycle and OS webview. Keep the existing Electron shell during backend migration and adopt Tauri after a Windows compatibility and memory prototype. |
+| Resident host and Windows shell | Python/Win32 tray and core; Electron 44.7.0 only for an open workspace | Measured 64.86 MB mean / 65.30 MB peak combined resident working set. Retain the tested React/WebGL workspace; Rust/Tauri remains an optional future packaging evaluation. |
 | Studio UI | Reuse React and Zustand; introduce TypeScript, lazy routes and generated contracts | Preserve the visual work and Three.js viewer while reducing startup and contract errors. |
 | Assistant core | Python, FastAPI and typed Pydantic requests | Reuse existing integrations, with a small import graph and no model initialization at import time. |
 | Desktop transport | Native IPC to the host; authenticated loopback API for Python | No unauthenticated fixed port. Launch-scoped credentials and strict allowed origins. |

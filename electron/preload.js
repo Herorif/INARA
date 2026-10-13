@@ -2,10 +2,10 @@ const {
   contextBridge,
   ipcRenderer
 } = require('electron');
-const argument = name => process.argv.find(arg => arg.startsWith(`--${name}=`))?.slice(name.length + 3) || '';
+const bootstrap = ipcRenderer.sendSync('desktop-bootstrap') || {};
 contextBridge.exposeInMainWorld('electronAPI', {
-  sessionToken: argument('inara-session-token'),
-  clientId: argument('inara-client-id'),
+  sessionToken: bootstrap.token || '',
+  clientId: bootstrap.clientId || '',
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),

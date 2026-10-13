@@ -21,8 +21,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: python -m pip install -r requirements-dev.lock
-      - run: python -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py -q
-      - run: python -m ruff check backend/services backend/core/durable_reminders.py backend/core/reminder_store.py tests/test_conversation_service.py tests/test_durable_storage.py tests/test_resource_policy.py
+      - run: python -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py -q
+      - run: python -m ruff check backend/services backend/resident backend/resident_main.py scripts/verify-native.py backend/core/durable_reminders.py backend/core/reminder_store.py tests/test_conversation_service.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs
       - run: npm run build
@@ -30,9 +30,11 @@ jobs:
       - name: Install Electron for hidden renderer checks
         run: |
           $env:ELECTRON_SKIP_BINARY_DOWNLOAD = $null
-          npm rebuild electron
+          node node_modules/electron/install.js
       - name: Verify workspace rendering
         run: |
           $env:ELECTRON_RUN_AS_NODE = $null
           $qaProcess = Start-Process node_modules/electron/dist/electron.exe -ArgumentList scripts/verify-workspace.cjs -WindowStyle Hidden -Wait -PassThru
           exit $qaProcess.ExitCode
+      - name: Verify native host lifecycle and failure recovery
+        run: python scripts/verify-native.py --idle-seconds 10 --failure-recovery

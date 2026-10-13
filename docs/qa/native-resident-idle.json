@@ -1,0 +1,2205 @@
+{
+  "real_game_benchmark": "deferred by user",
+  "resident_process_count": 2,
+  "busy_port_failure_recovery": true,
+  "open_1_seconds": 2.516,
+  "open_2_seconds": 2.188,
+  "close_reopen_same_core_identity": true,
+  "hotkey_message_and_single_instance_reopen": true,
+  "hotkey_registered": true,
+  "resident_reminder_receipt": true,
+  "manual_gaming_guard": true,
+  "idle": {
+    "seconds": 600.0,
+    "working_set_mean_mb": 64.86,
+    "working_set_peak_mb": 65.3,
+    "private_peak_mb": 47.54,
+    "cpu_percent_one_core": 0.3802,
+    "electron_processes": 0,
+    "samples": [
+      {
+        "elapsed": 0.0,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.12890625,
+            "private_mb": 46.3046875,
+            "cpu_seconds": 2.0
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.234375,
+            "private_mb": 0.8671875,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.36328125,
+        "private_mb": 47.171875,
+        "cpu_seconds": 2.046875
+      },
+      {
+        "elapsed": 5.0,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.12890625,
+            "private_mb": 46.3046875,
+            "cpu_seconds": 2.015625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.234375,
+            "private_mb": 0.8671875,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.36328125,
+        "private_mb": 47.171875,
+        "cpu_seconds": 2.0625
+      },
+      {
+        "elapsed": 10.0,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.12890625,
+            "private_mb": 46.3046875,
+            "cpu_seconds": 2.015625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.234375,
+            "private_mb": 0.8671875,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.36328125,
+        "private_mb": 47.171875,
+        "cpu_seconds": 2.0625
+      },
+      {
+        "elapsed": 15.0,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.12890625,
+            "private_mb": 46.3046875,
+            "cpu_seconds": 2.015625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.234375,
+            "private_mb": 0.8671875,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.36328125,
+        "private_mb": 47.171875,
+        "cpu_seconds": 2.0625
+      },
+      {
+        "elapsed": 20.0,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.12890625,
+            "private_mb": 46.3046875,
+            "cpu_seconds": 2.03125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.234375,
+            "private_mb": 0.8671875,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.36328125,
+        "private_mb": 47.171875,
+        "cpu_seconds": 2.078125
+      },
+      {
+        "elapsed": 25.0,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.08203125,
+            "private_mb": 46.19921875,
+            "cpu_seconds": 2.078125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.2890625,
+        "private_mb": 47.01171875,
+        "cpu_seconds": 2.125
+      },
+      {
+        "elapsed": 30.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.125,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.09375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.33203125,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.140625
+      },
+      {
+        "elapsed": 35.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.140625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.140625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.34765625,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.1875
+      },
+      {
+        "elapsed": 40.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.140625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.203125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.34765625,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.25
+      },
+      {
+        "elapsed": 45.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.15625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.234375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.36328125,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.28125
+      },
+      {
+        "elapsed": 50.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.15625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.234375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.36328125,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.28125
+      },
+      {
+        "elapsed": 55.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.16796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.25
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.296875
+      },
+      {
+        "elapsed": 60.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.16796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.265625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.3125
+      },
+      {
+        "elapsed": 65.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.16796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.28125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.328125
+      },
+      {
+        "elapsed": 70.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.16796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.28125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.328125
+      },
+      {
+        "elapsed": 75.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.16796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.328125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.375
+      },
+      {
+        "elapsed": 80.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.16796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.328125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.375
+      },
+      {
+        "elapsed": 85.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.171875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.34375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.37890625,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.390625
+      },
+      {
+        "elapsed": 90.015,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.17578125,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.359375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.3828125,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.40625
+      },
+      {
+        "elapsed": 95.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.1796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.40625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.38671875,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.453125
+      },
+      {
+        "elapsed": 100.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.1796875,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.40625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.38671875,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.453125
+      },
+      {
+        "elapsed": 105.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.19140625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.421875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.3984375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.46875
+      },
+      {
+        "elapsed": 110.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.19140625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.4375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.3984375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.484375
+      },
+      {
+        "elapsed": 115.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.19140625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.484375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.3984375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.53125
+      },
+      {
+        "elapsed": 120.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.19140625,
+            "private_mb": 46.26953125,
+            "cpu_seconds": 2.484375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.3984375,
+        "private_mb": 47.08203125,
+        "cpu_seconds": 2.53125
+      },
+      {
+        "elapsed": 125.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.17578125,
+            "private_mb": 46.234375,
+            "cpu_seconds": 2.515625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.3828125,
+        "private_mb": 47.046875,
+        "cpu_seconds": 2.5625
+      },
+      {
+        "elapsed": 130.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.17578125,
+            "private_mb": 46.234375,
+            "cpu_seconds": 2.515625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.3828125,
+        "private_mb": 47.046875,
+        "cpu_seconds": 2.5625
+      },
+      {
+        "elapsed": 135.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.1796875,
+            "private_mb": 46.234375,
+            "cpu_seconds": 2.515625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.38671875,
+        "private_mb": 47.046875,
+        "cpu_seconds": 2.5625
+      },
+      {
+        "elapsed": 140.031,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.1796875,
+            "private_mb": 46.234375,
+            "cpu_seconds": 2.515625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.38671875,
+        "private_mb": 47.046875,
+        "cpu_seconds": 2.5625
+      },
+      {
+        "elapsed": 145.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.1875,
+            "private_mb": 46.234375,
+            "cpu_seconds": 2.578125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.39453125,
+        "private_mb": 47.046875,
+        "cpu_seconds": 2.625
+      },
+      {
+        "elapsed": 150.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.20703125,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.578125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.4140625,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.625
+      },
+      {
+        "elapsed": 155.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.22265625,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.59375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.4296875,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.640625
+      },
+      {
+        "elapsed": 160.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.22265625,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.609375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.4296875,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.65625
+      },
+      {
+        "elapsed": 165.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.23046875,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.640625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.4375,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.6875
+      },
+      {
+        "elapsed": 170.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.23046875,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.640625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.4375,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.6875
+      },
+      {
+        "elapsed": 175.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.234375,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.65625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.44140625,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.703125
+      },
+      {
+        "elapsed": 180.046,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.234375,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.6875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.44140625,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.734375
+      },
+      {
+        "elapsed": 185.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.23828125,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.6875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.4453125,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.734375
+      },
+      {
+        "elapsed": 190.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.23828125,
+            "private_mb": 46.265625,
+            "cpu_seconds": 2.6875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.4453125,
+        "private_mb": 47.078125,
+        "cpu_seconds": 2.734375
+      },
+      {
+        "elapsed": 195.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.4921875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.703125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.69921875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.75
+      },
+      {
+        "elapsed": 200.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.49609375,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.71875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.703125,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.765625
+      },
+      {
+        "elapsed": 205.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51171875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.765625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.71875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.8125
+      },
+      {
+        "elapsed": 210.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51171875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.78125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.71875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.828125
+      },
+      {
+        "elapsed": 215.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51171875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.796875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.71875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.84375
+      },
+      {
+        "elapsed": 220.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51171875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.84375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.71875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.890625
+      },
+      {
+        "elapsed": 225.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51171875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.859375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.71875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.90625
+      },
+      {
+        "elapsed": 230.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51171875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.859375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.71875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.90625
+      },
+      {
+        "elapsed": 235.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51953125,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.7265625,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.921875
+      },
+      {
+        "elapsed": 240.062,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.51953125,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.90625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.7265625,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.953125
+      },
+      {
+        "elapsed": 245.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.53515625,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.9375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.7421875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.984375
+      },
+      {
+        "elapsed": 250.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.5390625,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.9375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.74609375,
+        "private_mb": 47.34375,
+        "cpu_seconds": 2.984375
+      },
+      {
+        "elapsed": 255.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.546875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.96875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.75390625,
+        "private_mb": 47.34375,
+        "cpu_seconds": 3.015625
+      },
+      {
+        "elapsed": 260.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.53125,
+            "private_mb": 46.5,
+            "cpu_seconds": 2.984375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.73828125,
+        "private_mb": 47.3125,
+        "cpu_seconds": 3.03125
+      },
+      {
+        "elapsed": 265.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.53515625,
+            "private_mb": 46.5,
+            "cpu_seconds": 2.984375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.7421875,
+        "private_mb": 47.3125,
+        "cpu_seconds": 3.03125
+      },
+      {
+        "elapsed": 270.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.55078125,
+            "private_mb": 46.53125,
+            "cpu_seconds": 2.984375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.7578125,
+        "private_mb": 47.34375,
+        "cpu_seconds": 3.03125
+      },
+      {
+        "elapsed": 275.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.55078125,
+            "private_mb": 46.53125,
+            "cpu_seconds": 3.03125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.7578125,
+        "private_mb": 47.34375,
+        "cpu_seconds": 3.078125
+      },
+      {
+        "elapsed": 280.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.5546875,
+            "private_mb": 46.53125,
+            "cpu_seconds": 3.0625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.76171875,
+        "private_mb": 47.34375,
+        "cpu_seconds": 3.109375
+      },
+      {
+        "elapsed": 285.078,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.5625,
+            "private_mb": 46.53125,
+            "cpu_seconds": 3.078125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.76953125,
+        "private_mb": 47.34375,
+        "cpu_seconds": 3.125
+      },
+      {
+        "elapsed": 290.093,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.5625,
+            "private_mb": 46.53125,
+            "cpu_seconds": 3.078125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.20703125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 64.76953125,
+        "private_mb": 47.34375,
+        "cpu_seconds": 3.125
+      },
+      {
+        "elapsed": 295.093,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.7109375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.03515625,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.171875
+      },
+      {
+        "elapsed": 300.093,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.71484375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.140625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.0390625,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.1875
+      },
+      {
+        "elapsed": 305.109,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.71875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.15625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.04296875,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.203125
+      },
+      {
+        "elapsed": 310.109,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.71875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.1875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.04296875,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.234375
+      },
+      {
+        "elapsed": 315.109,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.71875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.21875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.04296875,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.265625
+      },
+      {
+        "elapsed": 320.109,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.71875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.265625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.04296875,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.3125
+      },
+      {
+        "elapsed": 325.109,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.71875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.3125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.04296875,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.359375
+      },
+      {
+        "elapsed": 330.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.71875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.3125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.04296875,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.359375
+      },
+      {
+        "elapsed": 335.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.734375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.34375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.05859375,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.390625
+      },
+      {
+        "elapsed": 340.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.734375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.359375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.05859375,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.40625
+      },
+      {
+        "elapsed": 345.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.7421875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.359375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.06640625,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.40625
+      },
+      {
+        "elapsed": 350.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.7421875,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.359375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.06640625,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.40625
+      },
+      {
+        "elapsed": 355.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.74609375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.359375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.0703125,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.40625
+      },
+      {
+        "elapsed": 360.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.74609375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.0703125,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.421875
+      },
+      {
+        "elapsed": 365.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.74609375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.421875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.0703125,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.46875
+      },
+      {
+        "elapsed": 370.125,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.74609375,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.421875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.0703125,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.46875
+      },
+      {
+        "elapsed": 375.14,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.75390625,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.421875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.078125,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.46875
+      },
+      {
+        "elapsed": 380.14,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.75390625,
+            "private_mb": 46.50390625,
+            "cpu_seconds": 3.453125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.078125,
+        "private_mb": 47.3828125,
+        "cpu_seconds": 3.5
+      },
+      {
+        "elapsed": 385.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.92578125,
+            "private_mb": 46.65625,
+            "cpu_seconds": 3.46875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.53515625,
+        "cpu_seconds": 3.515625
+      },
+      {
+        "elapsed": 390.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.92578125,
+            "private_mb": 46.65625,
+            "cpu_seconds": 3.484375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.32421875,
+            "private_mb": 0.87890625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.53515625,
+        "cpu_seconds": 3.53125
+      },
+      {
+        "elapsed": 395.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.90625,
+            "private_mb": 46.62109375,
+            "cpu_seconds": 3.515625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.1953125,
+        "private_mb": 47.4375,
+        "cpu_seconds": 3.5625
+      },
+      {
+        "elapsed": 400.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.90625,
+            "private_mb": 46.62109375,
+            "cpu_seconds": 3.515625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.1953125,
+        "private_mb": 47.4375,
+        "cpu_seconds": 3.5625
+      },
+      {
+        "elapsed": 405.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.90625,
+            "private_mb": 46.62109375,
+            "cpu_seconds": 3.5625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.1953125,
+        "private_mb": 47.4375,
+        "cpu_seconds": 3.609375
+      },
+      {
+        "elapsed": 410.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.90625,
+            "private_mb": 46.62109375,
+            "cpu_seconds": 3.578125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.1953125,
+        "private_mb": 47.4375,
+        "cpu_seconds": 3.625
+      },
+      {
+        "elapsed": 415.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.91796875,
+            "private_mb": 46.62109375,
+            "cpu_seconds": 3.609375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.20703125,
+        "private_mb": 47.4375,
+        "cpu_seconds": 3.65625
+      },
+      {
+        "elapsed": 420.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.93359375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.640625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.22265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.6875
+      },
+      {
+        "elapsed": 425.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.94921875,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.65625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.23828125,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.703125
+      },
+      {
+        "elapsed": 430.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.94921875,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.671875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.23828125,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.71875
+      },
+      {
+        "elapsed": 435.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.703125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.75
+      },
+      {
+        "elapsed": 440.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.703125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.75
+      },
+      {
+        "elapsed": 445.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.71875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.765625
+      },
+      {
+        "elapsed": 450.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.71875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.765625
+      },
+      {
+        "elapsed": 455.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.734375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.78125
+      },
+      {
+        "elapsed": 460.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.734375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.78125
+      },
+      {
+        "elapsed": 465.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.78125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.828125
+      },
+      {
+        "elapsed": 470.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.796875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.84375
+      },
+      {
+        "elapsed": 475.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.8125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.859375
+      },
+      {
+        "elapsed": 480.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.84375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.890625
+      },
+      {
+        "elapsed": 485.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.90625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.953125
+      },
+      {
+        "elapsed": 490.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.90625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.953125
+      },
+      {
+        "elapsed": 495.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.9375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.984375
+      },
+      {
+        "elapsed": 500.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.9375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.46875,
+        "cpu_seconds": 3.984375
+      },
+      {
+        "elapsed": 505.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.96484375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.984375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25390625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.03125
+      },
+      {
+        "elapsed": 510.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.96484375,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 3.984375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25390625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.03125
+      },
+      {
+        "elapsed": 515.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.96875,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.015625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.2578125,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.0625
+      },
+      {
+        "elapsed": 520.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.96875,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.03125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.2578125,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.078125
+      },
+      {
+        "elapsed": 525.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.96875,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.0625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.2578125,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.109375
+      },
+      {
+        "elapsed": 530.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.953125,
+            "private_mb": 46.62109375,
+            "cpu_seconds": 4.0625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.2421875,
+        "private_mb": 47.4375,
+        "cpu_seconds": 4.109375
+      },
+      {
+        "elapsed": 535.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9609375,
+            "private_mb": 46.62109375,
+            "cpu_seconds": 4.078125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.25,
+        "private_mb": 47.4375,
+        "cpu_seconds": 4.125
+      },
+      {
+        "elapsed": 540.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9765625,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.078125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.125
+      },
+      {
+        "elapsed": 545.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9765625,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.109375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.15625
+      },
+      {
+        "elapsed": 550.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9765625,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.109375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.15625
+      },
+      {
+        "elapsed": 555.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9765625,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.15625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.203125
+      },
+      {
+        "elapsed": 560.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9765625,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.1875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.234375
+      },
+      {
+        "elapsed": 565.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9765625,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.1875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.234375
+      },
+      {
+        "elapsed": 570.187,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.9765625,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.1875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.265625,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.234375
+      },
+      {
+        "elapsed": 575.203,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.98046875,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.203125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.26953125,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.25
+      },
+      {
+        "elapsed": 580.203,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.98046875,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.203125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.26953125,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.25
+      },
+      {
+        "elapsed": 585.203,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.98828125,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.21875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.27734375,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.265625
+      },
+      {
+        "elapsed": 590.218,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 60.98828125,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.21875
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.2890625,
+            "private_mb": 0.81640625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.27734375,
+        "private_mb": 47.46875,
+        "cpu_seconds": 4.265625
+      },
+      {
+        "elapsed": 595.218,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 61.0,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.28125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.3046875,
+            "private_mb": 0.84765625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.3046875,
+        "private_mb": 47.5,
+        "cpu_seconds": 4.328125
+      },
+      {
+        "elapsed": 600.0,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 61.0,
+            "private_mb": 46.65234375,
+            "cpu_seconds": 4.28125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.3046875,
+            "private_mb": 0.84765625,
+            "cpu_seconds": 0.046875
+          }
+        },
+        "working_set_mb": 65.3046875,
+        "private_mb": 47.5,
+        "cpu_seconds": 4.328125
+      }
+    ]
+  },
+  "passed": true,
+  "measured_at": "2026-10-14 Asia/Kuala_Lumpur",
+  "python": "3.12.10",
+  "electron": "44.7.0",
+  "scope": "Native core/tray plus owned virtual-environment launcher; optional models not initialized; development machine."
+}

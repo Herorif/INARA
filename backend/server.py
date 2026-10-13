@@ -108,6 +108,7 @@ vision_agent = LazyService('agents.vision_agent', 'VisionAgent', event_bus=bus, 
 device_agent = LazyService('agents.device_agent', 'DeviceAgent', event_bus=bus)
 client_principals = {}
 client_roles = {}
+native_desktop = None
 resource_governor = ResourceGovernor()
 uvicorn_server = None
 background_tasks = []
@@ -344,12 +345,16 @@ async def _check_reminders_loop():
 async def deliver_reminders_once():
     # One designated local client identity, retained in the delivery on reconnect.
     for principal in dict.fromkeys(client_principals.values()):
-        rooms = sorted([sid for sid, owner in client_principals.items() if owner == principal],
+        rooms = sorted([sid for sid, owner in client_principals.items() if owner == principal and client_roles.get(sid) != 'workspace'],
                        key=lambda sid: client_roles.get(sid) == 'resident')
         if not rooms or not dispatcher.authenticated(principal):
             continue
         for delivery in reminder_store.claim_deliveries(principal):
-            await sio.emit("reminder_triggered", delivery, room=rooms[0])
+            if rooms[0] == 'native-resident' and native_desktop:
+                if await native_desktop.notify(delivery):
+                    reminder_store.acknowledge(delivery['delivery_id'], principal)
+            else:
+                await sio.emit("reminder_triggered", delivery, room=rooms[0])
 
 
 async def startup_event():
@@ -387,8 +392,10 @@ async def connect(sid, environ, auth=None):
         principal = str(uuid.UUID(auth['client_id'])) if auth.get('client_id') else sid
     except (ValueError, TypeError):
         return False
+    if native_desktop and native_desktop.state.identity.owner and principal != native_desktop.state.identity.owner:
+        return False
     client_principals[sid] = principal
-    client_roles[sid] = 'resident' if auth.get('role') == 'resident' else 'renderer'
+    client_roles[sid] = auth.get('role') if auth.get('role') in ('resident', 'workspace') else 'renderer'
     print(f"Client connected: {sid}")
     await sio.emit('status', {'msg': 'Connected to INARA Backend'}, room=sid)
     await sio.emit('text_ready', {'model': os.getenv('INARA_TEXT_MODEL', 'gemini-3.8-flash')}, room=sid)
@@ -452,6 +459,8 @@ async def set_resource_state(sid, data):
         request = ResourceRequest.model_validate(data)
     except ValidationError:
         return
+    if native_desktop and sid != 'native-resident' and native_desktop.state.identity.gaming:
+        request = ResourceRequest(state='gaming')
     resource_governor.select(request.state)
     if request.state in ('resident', 'gaming'):
         await stop_audio(sid)
@@ -461,6 +470,22 @@ async def set_resource_state(sid, data):
             await asyncio.gather(vision_task, return_exceptions=True)
             vision_task = None
     await sio.emit('resource_state', resource_governor.snapshot())
+
+
+@sio.event
+async def desktop_control(sid, data):
+    if not native_desktop or client_roles.get(sid) != 'workspace' or not isinstance(data, dict):
+        return {'ok': False, 'error': 'Desktop control unavailable'}
+    try:
+        principal = client_principals[sid]
+        state = await native_desktop.control(principal, data)
+        if data.get('action') == 'close':
+            for renderer, owner in tuple(client_principals.items()):
+                if owner == principal and client_roles.get(renderer) == 'renderer':
+                    await sio.disconnect(renderer)
+        return {'ok': True, 'state': state}
+    except (ValueError, asyncio.TimeoutError):
+        return {'ok': False, 'error': 'Desktop action rejected'}
 
 
 async def allow_heavy(sid):

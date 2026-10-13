@@ -160,13 +160,18 @@ export default function CommandDeck() {
       webcamDevices: devices.filter(d => d.kind === 'videoinput')
     })).catch(() => {});
   };
-  const toggleGaming = () => {
+  const toggleGaming = async () => {
     const value = !gaming;
+    try {
+      await window.electronAPI?.setGaming(value);
+    } catch {
+      setResident(previous => ({ ...previous, error: 'Gaming mode could not change. Check the core connection and retry.' }));
+      return;
+    }
     setResident(previous => ({
       ...previous,
       gaming: value
     }));
-    window.electronAPI?.setGaming(value);
     emitSocket('set_resource_state', {
       state: value ? 'gaming' : 'chat'
     });
@@ -207,7 +212,7 @@ export default function CommandDeck() {
                         <div className="pulse-status"><span className={`status-dot ${connected ? '' : 'offline'}`} /><strong>{connected ? 'At your service' : 'Waiting for connection'}</strong></div>
                         <div className="system-row"><span>Resource mode</span><strong>{gaming ? 'Gaming' : resource.state === 'studio' ? 'Studio' : 'Lightweight'}</strong></div>
                         <div className="system-row"><span>Voice</span><strong>{aiConnected ? 'Active' : 'Off'}</strong></div>
-                        <div className="system-row"><span>Desktop memory</span><strong>{memory === null ? '—' : `${Math.round(memory)} MB`}</strong></div>
+                        <div className="system-row"><span>Workspace memory</span><strong>{memory === null ? '—' : `${Math.round(memory)} MB`}</strong></div>
                         <div className="pulse-footer"><ShieldCheck size={13} /><span>Actions stay under your control</span></div></section>
                     <section className="surface reminders-card"><div className="section-heading"><span className="eyebrow">ON YOUR RADAR</span><Bell size={16} /></div>
                         <h2>{pending.length ? `${pending.length} upcoming` : 'A clear horizon'}<span className="heading-dot">.</span></h2>

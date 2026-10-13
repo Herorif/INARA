@@ -102,8 +102,7 @@ function openWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
-      preload: path.join(__dirname, 'preload.js'),
-      additionalArguments: [`--inara-session-token=${token}`, `--inara-client-id=${identity?.id || ''}`]
+      preload: path.join(__dirname, 'preload.js')
     }
   });
   const window = mainWindow;
@@ -305,6 +304,9 @@ if (ownsInstance) app.whenReady().then(() => {
   tray.on('click', () => controller.open());
   tray.on('balloon-click', () => controller.open());
   hotkeyReady = globalShortcut.register('CommandOrControl+Shift+Space', () => controller.open());
+  ipcMain.on('desktop-bootstrap', event => {
+    event.returnValue = trusted(event) ? { token, clientId: identity?.id || '' } : {};
+  });
   ipcMain.on('window-minimize', event => {
     if (trusted(event)) mainWindow.minimize();
   });
