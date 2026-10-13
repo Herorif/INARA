@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 const panels = {
-  cad: lazy(() => import('../components/CadWindow')),
+  cad: lazy(() => import('../features/cad/CadStudio')),
   browser: lazy(() => import('../components/BrowserWindow')),
   kasa: lazy(() => import('../components/KasaWindow')),
   printer: lazy(() => import('../components/PrinterWindow')),
@@ -82,7 +82,7 @@ export default function FeatureDialog({
   return <div className="dialog-backdrop" onMouseDown={event => {
     if (event.target === event.currentTarget) onClose();
   }}>
-        <section ref={dialog} className="feature-dialog" role="dialog" aria-modal="true" aria-labelledby="feature-title" tabIndex={-1}>
+        <section ref={dialog} className={`feature-dialog ${feature === 'cad' ? 'cad-dialog' : ''}`} role="dialog" aria-modal="true" aria-labelledby="feature-title" tabIndex={-1}>
             <header><div><span className="eyebrow">INARA WORKSPACE</span><h2 id="feature-title">{labels[feature]}</h2></div>
                 <button className="icon-button" aria-label="Close panel" onClick={onClose}><X size={20} /></button></header>
             <div className={`legacy-panel ${feature === 'camera' ? 'camera-host' : ''}`}>

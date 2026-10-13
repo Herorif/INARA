@@ -41,7 +41,7 @@ app.whenReady().then(async () => {
     assert.match(initial.title, /Ready when/);
     assert.equal(initial.overflow, false);
     assert.equal(initial.buttons, 0);
-    assert.ok(!requests.some(url => /CadWindow-|tracker-|vision_wasm|hand_landmarker/.test(url)), 'Heavy assets loaded on startup');
+    assert.ok(!requests.some(url => /CadWindow-|CadStudio-|tracker-|vision_wasm|hand_landmarker/.test(url)), 'Heavy assets loaded on startup');
     fs.writeFileSync(path.join(output, 'command-desktop.png'), (await window.webContents.capturePage()).toPNG());
     await window.webContents.executeJavaScript(`document.querySelectorAll('nav button')[1].click()`);
     await sleep(350);
@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     await window.webContents.executeJavaScript(`document.querySelector('.reminders-card .text-button').click()`);
     await sleep(300);
     assert.equal(await window.webContents.executeJavaScript(`!!document.querySelector('[role="dialog"]')`), true);
-    assert.ok(!requests.some(url => /CadWindow-|tracker-|vision_wasm|hand_landmarker/.test(url)));
+    assert.ok(!requests.some(url => /CadWindow-|CadStudio-|tracker-|vision_wasm|hand_landmarker/.test(url)));
     fs.writeFileSync(path.join(output, 'reminder-panel.png'), (await window.webContents.capturePage()).toPNG());
     await window.webContents.executeJavaScript(`document.querySelector('[aria-label="Close panel"]').click()`);
     assert.equal(await window.webContents.executeJavaScript(`!!document.querySelector('[role="dialog"]')`), false);

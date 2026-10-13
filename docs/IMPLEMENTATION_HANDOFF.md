@@ -2,7 +2,7 @@
 
 Updated 14 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished responsive JARVIS workspace and native resident follow-up are implemented. Read [Implementation status](IMPLEMENTATION_STATUS.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident and offline CAD worker are implemented. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -49,12 +49,16 @@ Tray/hotkey reopen, graceful quit, scoped resident reminder delivery, explicit g
 
 ## Next implementation task
 
-1. Preserve the native host, typed tools, protected persistence, old profile/identity and tested JARVIS command deck. Keep API configuration deferred and WhatsApp replies excluded.
-2. Build a typed CAD/Blender job contract through the existing dispatcher: validate geometry/job arguments, enforce project containment and configured authorization, and return artifact metadata with durable request IDs.
-3. Start with deterministic offline parametric geometry and a real preview/export workflow. Add an optional model adapter for natural-language plans without making local preview require a provider key.
-4. Run creative work in an owned, isolated process with bounded admission, timeout, cancellation, sanitized errors and explicit cleanup. Gaming mode rejects new jobs. Heavy dependencies/models remain absent from the resident process.
-5. Verify generated artifact geometry and actual close/cancel/failure cleanup. Re-measure resident use after worker exit; do not accept a successful preview that leaves a persistent worker/model behind.
-6. Keep image generation workers, advanced vision and Android pairing/calls as subsequent bounded tasks. The deferred real-game benchmark and signed packaging remain acceptance/release work.
+1. Preserve the native host, offline CAD engine, protected request ledger, identity and tested JARVIS workspace. Keep API configuration deferred and WhatsApp replies excluded.
+2. Extend creative jobs to typed scene assembly: multiple supported objects, transforms and material choices, with offline GLB scene preview and new revision/export actions.
+3. Add a controlled Blender adapter when an installation is available, with validated operations, `.blend`/GLB output and explicit availability. Keep offline modeling usable without installing Blender or configuring a provider.
+4. Own Blender and descendants, enforce timeout/cancellation/gaming admission, sanitize failures and keep heavy imports out of the resident. Never execute arbitrary provider-generated Python.
+5. Verify scene geometry, actual Blender import/render/export when available, old-revision preservation and worker/resource recovery. Extend blueprint proposals only after the structured scene contract is tested.
+6. Image generation workers, advanced vision and Android pairing/calls remain subsequent bounded tasks. The real-game benchmark is deferred; signed packaging remains release work.
+
+## Completed CAD worker milestone
+
+Offline box/bracket/enclosure generation, editable dimensions, real orbit/wireframe preview, STL/GLB/recipe download, protected scoped job history, shared build authorization, cancellation/timeout and owned worker cleanup are implemented. Optional AI proposals return validated recipe data for review; configuration stays deferred. The older voice adapter is preserved. See [CAD Studio evidence and limits](CAD_STUDIO.md). Actual Blender scene execution is still pending.
 
 ## Keep model use efficient
 
@@ -64,6 +68,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement the isolated CAD/Blender worker milestone in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/PERSISTENCE.md and docs/NATIVE_RESIDENT.md. Preserve the native tray/core lifetime, polished JARVIS workspace and durable authorization/request contracts. Start with deterministic offline geometry, typed job validation and a real artifact preview/export loop; add an optional natural-language provider adapter. Own and clean up the worker process, support cancellation/timeouts, reject jobs in gaming mode and verify geometry plus resource recovery. Keep API configuration deferred and WhatsApp replies excluded. The real-game benchmark remains deferred by the user.
+> Implement typed scene assembly and the controlled Blender bridge in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/CAD_STUDIO.md, docs/PERSISTENCE.md and docs/NATIVE_RESIDENT.md. Preserve native lifetime, protected jobs, existing offline solids and the JARVIS UI. Add multiple objects, validated transforms/materials and offline GLB scene preview/export. Add owned Blender `.blend`/render/export operations when available without making offline modeling depend on an installation or provider key. Keep generated instructions as validated data, verify geometry and revision preservation, support cancellation/gaming policy and measure resource recovery. API configuration and the real-game benchmark remain deferred; WhatsApp replies remain excluded.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

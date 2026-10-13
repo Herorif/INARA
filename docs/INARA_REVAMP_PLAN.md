@@ -76,7 +76,7 @@ Implementation decision, 14 October 2026: the measured Python/Win32 host meets t
 | Data | SQLite in WAL mode, artifact directories and encrypted sensitive payloads | Transactional jobs and reminders without a separate database service. SQLite itself is not automatically encrypted. |
 | Local reasoning | Managed llama.cpp process; optional Ollama adapter | Start and unload models explicitly, with bounded context and a tested tool schema. |
 | Local speech | Evaluate sherpa-onnx for streaming speech, VAD and keyword detection; retain a working wake-word adapter where useful | Choose models through accuracy and resource measurements on these devices. Runtime and model licences are separate. |
-| Mechanical design | build123d in a separate worker | Preserve parametric engineering workflows; add STEP and validated exports. |
+| Mechanical design | Implemented bounded stdlib mesh worker; build123d remains a future engineering adapter | Offline parametric box/bracket/enclosure with validated STL/GLB now works. Add richer geometry and STEP through an isolated kernel later. See [CAD Studio](CAD_STUDIO.md). |
 | Artistic 3D | Blender worker plus a small Blender integration for approved scene operations | Edit objects, materials, lighting and procedural scenes while preserving native project files. |
 | Image generation | Cloud image adapter initially; optional local ComfyUI worker | Good results before large downloads; reusable local workflows when the laptop has capacity. |
 | Tracking | MediaPipe or equivalent compact ONNX models | Local hand, face and pose landmarks without continuously invoking a multimodal cloud model. |

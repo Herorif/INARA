@@ -1,0 +1,56 @@
+{
+  "before_workspace": {
+    "working_set_mb": 62.38,
+    "private_mb": 46.0
+  },
+  "ui": {
+    "box_rendered": true,
+    "bracket_rendered": true,
+    "enclosure_rendered": true,
+    "glb_imported_with_three": true,
+    "download_formats": [
+      "stl",
+      "glb",
+      "json"
+    ],
+    "responsive_widths": [
+      1440,
+      390,
+      768
+    ],
+    "external_asset_requests": 0,
+    "reopened_history_and_preview_without_rebuild": true,
+    "optional_planner_missing_key_preserves_offline_preview": true,
+    "passed": true
+  },
+  "workers_started_and_exited": 3,
+  "geometry_module_in_resident": false,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 64.86,
+      "private_mb": 47.32
+    },
+    {
+      "working_set_mb": 64.86,
+      "private_mb": 47.32
+    },
+    {
+      "working_set_mb": 64.86,
+      "private_mb": 47.32
+    },
+    {
+      "working_set_mb": 64.86,
+      "private_mb": 47.32
+    },
+    {
+      "working_set_mb": 64.86,
+      "private_mb": 47.32
+    },
+    {
+      "working_set_mb": 64.86,
+      "private_mb": 47.32
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

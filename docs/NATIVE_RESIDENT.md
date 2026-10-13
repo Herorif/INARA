@@ -50,4 +50,4 @@ Working-set sums include shared pages, so private bytes are reported separately.
 
 ## Next bounded task
 
-Implement a typed, isolated CAD/Blender worker with a real artifact preview/export loop, admission policy, cancellation and no worker remaining after it exits. Start with deterministic offline geometry and an optional provider adapter; keep API configuration deferred. Image generation workers and more camera tooling follow the same lifecycle contract. Android pairing/calls remain separate milestones, and WhatsApp drafting/sending remains excluded until specifically requested.
+The offline CAD worker, real preview/export loop, protected job ledger and optional blueprint adapter are implemented in [CAD Studio](CAD_STUDIO.md), including warmed resource recovery. Typed scene assembly and controlled Blender execution are next. Image generation and further vision workers follow the same lifecycle. Android pairing/calls remain separate milestones; WhatsApp drafting/sending stays excluded until specifically requested.

@@ -185,6 +185,16 @@ class WorkspaceProcess:
             )
             allowed = {
                 "systemroot",
+                "systemdrive",
+                "programdata",
+                "programfiles",
+                "programfiles(x86)",
+                "programw6432",
+                "commonprogramfiles",
+                "commonprogramfiles(x86)",
+                "commonprogramw6432",
+                "public",
+                "allusersprofile",
                 "windir",
                 "path",
                 "temp",
@@ -234,7 +244,7 @@ class WorkspaceProcess:
                     None,
                     None,
                     True,
-                    0x80000 | 0x4 | 0x400,
+                    0x80000 | 0x4 | 0x400 | 0x08000000,
                     environment,
                     str(cwd),
                     C.byref(startup),
@@ -276,6 +286,15 @@ class WorkspaceProcess:
             and api(kernel, "WaitForSingleObject", [W.HANDLE, W.DWORD], W.DWORD)(self.process, 0)
             == 0x102
         )
+
+    def exit_code(self):
+        value = W.DWORD()
+        checked(
+            api(kernel, "GetExitCodeProcess", [W.HANDLE, C.POINTER(W.DWORD)], W.BOOL)(
+                self.process, C.byref(value)
+            )
+        )
+        return value.value
 
     def close(self):
         if self.job:

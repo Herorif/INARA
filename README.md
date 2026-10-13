@@ -50,6 +50,12 @@ and [rendered desktop preview](docs/qa/command-desktop.png). The native resident
 releases Electron completely when the workspace closes. See [native host measurement and limits](docs/NATIVE_RESIDENT.md).
 No WhatsApp reply capability is included.
 
+**3D Studio now works offline:** choose a box, L bracket or open enclosure, edit
+dimensions, orbit the model and export STL/GLB or its recipe. Builds run in an
+owned process and stop on cancellation, Studio close or gaming mode. Saved
+revisions restore without rebuilding. AI blueprint proposals are optional and
+remain unconfigured. See [CAD Studio and verification](docs/CAD_STUDIO.md).
+
 Run the deterministic milestone and desktop-contract checks with:
 
 ```powershell

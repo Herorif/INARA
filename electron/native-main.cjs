@@ -44,7 +44,7 @@ app.whenReady().then(async () => {
   window = new BrowserWindow({ width: 1440, height: 940, minWidth: 390, minHeight: 560,
     frame: false, show: false, title: 'INARA · Command deck', backgroundColor: '#080d18',
     icon: path.join(root, 'assets/icons/inara.png'),
-    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, preload: path.join(__dirname, 'preload.js') } });
+    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: !bootstrap.hide, offscreen: !!bootstrap.hide, preload: path.join(__dirname, 'preload.js') } });
   ipcMain.on('desktop-bootstrap', event => { event.returnValue = trusted(event) ? { token: bootstrap.token, clientId: bootstrap.clientId } : {}; });
   ipcMain.on('window-minimize', event => { if (trusted(event)) window.minimize(); });
   ipcMain.on('window-maximize', event => { if (trusted(event)) window.isMaximized() ? window.unmaximize() : window.maximize(); });

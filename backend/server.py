@@ -32,6 +32,8 @@ from services.storage import Database, StorageError
 from services.sessions import SessionStore
 from services.scheduler_tools import register_scheduler_tools
 from services.resources import ResourceGovernor, ResourceRequest
+from services.cad import CadService, register_cad_tools
+from services.cad_transport import CadTransport
 from services.tools import ServiceError, ToolDispatcher, ToolSpec, register_project_tools
 
 inara = LazyService('inara')
@@ -275,6 +277,19 @@ dispatcher = ToolDispatcher(
          or (authenticator is not None and authenticator.authenticated)))
 register_project_tools(dispatcher)
 register_scheduler_tools(dispatcher, scheduler_agent, reminder_store)
+async def publish_cad_job(principal, job):
+    for sid, owner in tuple(client_principals.items()):
+        if owner == principal and client_roles.get(sid) == 'renderer':
+            await sio.emit('cad_job', job, room=sid)
+
+def cad_context(sid):
+    if sid not in client_principals or client_roles.get(sid) != 'renderer':
+        raise ServiceError('authentication_required', 'Use the connected workspace to access Studio.')
+    return {'principal': client_principals[sid], 'project_path': project_manager.get_current_project_path().resolve()}
+
+cad_service = CadService(database, resource_governor, publish_cad_job)
+register_cad_tools(dispatcher, cad_service)
+cad_transport = CadTransport(sio, cad_service, dispatcher, cad_context)
 conversation_service = ConversationService(dispatcher, store=SessionStore(database))
 # tool_permissions is now SETTINGS["tool_permissions"]
 
@@ -445,8 +460,10 @@ async def connect(sid, environ, auth=None):
 
 @sio.event
 async def disconnect(sid):
-    client_roles.pop(sid, None)
+    role = client_roles.pop(sid, None)
     principal = client_principals.pop(sid, sid)
+    if role == 'renderer' and not any(owner == principal and client_roles.get(other) == 'renderer' for other, owner in client_principals.items()):
+        await cad_transport.stop_owner(principal)
     conversation_service.release_owner(principal)
     print(f"Client disconnected: {sid}")
 
@@ -463,6 +480,7 @@ async def set_resource_state(sid, data):
         request = ResourceRequest(state='gaming')
     resource_governor.select(request.state)
     if request.state in ('resident', 'gaming'):
+        await cad_transport.close()
         await stop_audio(sid)
         global vision_task
         if vision_task and not vision_task.done():
@@ -1455,6 +1473,7 @@ dispatcher.register(ToolSpec('launch_app', 'Open a configured application by nam
 
 
 async def close_services():
+    await cad_transport.close()
     if audio_loop:
         audio_loop.stop()
     if loop_task and not loop_task.done():

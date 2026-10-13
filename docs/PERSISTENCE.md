@@ -36,6 +36,10 @@ The first connected authenticated local client identity owns a new delivery. Tha
 
 Snooze and cancellation retire outstanding deliveries and increment the reminder revision. An old acknowledgement or alert action cannot finish a newer reminder revision. Completion of a recurring occurrence does not cancel its next schedule. Direct snooze/cancel and typed reminder tools use the shared validated tool dispatcher and configured permission rules. Receipt and completion require the delivery's authenticated recipient.
 
+## CAD job records
+
+New CAD jobs use encrypted documents scoped to the desktop owner, resolved project path and request UUID. Recipe, state, errors and artifact metadata are protected before SQLite writes. Completed duplicate requests return their stored status; conflicts reject reuse, and interrupted claims are preserved without replay. A storage failure after a claim releases the worker and leaves the request uncertain. Project artifacts/recipes remain ordinary files in separate revision directories. See [CAD Studio lifecycle and limits](CAD_STUDIO.md).
+
 ## Time policy
 
 Reminder instants are UTC epoch seconds plus an IANA timezone and preserved local wall clock. The default is `Asia/Kuala_Lumpur`. Daily, weekly and weekday recurrence follows local calendar dates. Missed occurrences coalesce into one overdue alert; the next schedule advances to a future date, avoiding a backlog of historical alerts. A nonexistent DST wall time advances to the first valid minute, and an ambiguous wall time uses the first occurrence (`fold=0`). A DST-adjusted occurrence does not shift the following day's original clock time. The installed `tzdata` dependency supplies IANA data on Windows. [Python zoneinfo](https://docs.python.org/3/library/zoneinfo.html).
