@@ -2,7 +2,7 @@
 
 Updated 13 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The first implementation milestone is complete. Read [Implementation status](IMPLEMENTATION_STATUS.md) before continuing; the next milestone is transactional reminders and durable sessions, followed by the resident lifecycle and responsive JARVIS workspace.
+The first two implementation milestones are complete. Read [Implementation status](IMPLEMENTATION_STATUS.md) before continuing; the next milestone is the resident lifecycle and responsive JARVIS workspace. Read [Persistence](PERSISTENCE.md) before altering stored records.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -39,14 +39,18 @@ If GPT-6.1 Sol is unavailable, use the supported Sol option exposed in the accou
 
 The reproducible core environment, independent typed-conversation service, lazy provider, scoped request/result contracts and representative shared tool authorization are implemented. Project path containment and non-destructive startup are in place. The retained desktop event contract and new behavior passed 31 deterministic checks, and the production frontend build passed. See the status record for boundaries and unverified integrations.
 
+## Completed second milestone
+
+Versioned Windows-protected SQLite persistence, scoped sessions, request deduplication across restart, validated non-destructive migration, transactional reminder claiming, receipt/completion, UTC/IANA recurrence and UI reconnect recovery are implemented. Existing artifacts and source records remain preserved. See the status record and persistence contract for limitations.
+
 ## Next implementation task
 
-1. Read the implementation status and inspect the relevant persistence and scheduler code. Preserve existing project files, reminder records and settings before migration.
-2. Introduce versioned durable session and reminder storage under the intended user-data directory. Follow the architecture's private-payload storage policy; preserve ownership, project scope and request identity without serializing executable Python objects.
-3. Migrate legacy records non-destructively with backup, validation and recoverable migration state. Reopening a session should restore the conversation without replaying completed tool actions.
-4. Replace reminder polling with transactional claiming and deduplicated delivery records. Store UTC instants and the selected IANA timezone; define recurrence and missed-delivery behavior explicitly.
-5. Verify restart recovery, simultaneous polls, duplicate acknowledgements, cancelled/snoozed reminders, recurrence and migration failure. Use temporary data and fake transports for deterministic checks.
-6. Update implementation status and complete this bounded milestone before moving to resident-window lifetime and the new JARVIS workspace.
+1. Preserve the verified persistence contracts and deterministic checks; API configuration remains deferred until the owner requests it.
+2. Separate resident backend lifetime from the desktop window. Closing the window must retain reminders; reopening must restore state. Add explicit quit and clear lifecycle status.
+3. Introduce a responsive JARVIS workspace and reusable design tokens with readable controls, keyboard navigation and reduced-motion support. Lazily load 3D/camera modules.
+4. Add bounded resource states and gaming-mode policy with on-demand heavy capability activation. Measure actual idle and activation behavior on the Legion before claiming resource budgets.
+5. Verify close/reopen, explicit quit, startup failure, reconnect, layout sizes and accessibility. Keep OS startup installation opt-in and refrain from automatically enabling camera/audio acquisition.
+6. Update status and finish this bounded milestone before implementing CAD/Blender/image workers or Android pairing. WhatsApp replies remain excluded.
 
 ## Keep model use efficient
 
@@ -56,6 +60,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement the next milestone in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md and the architecture, then inspect the existing persistence and scheduler code. Preserve current projects, reminder records and settings. Add versioned durable sessions and transactional reminders with non-destructive migration, ownership/project scopes, restart recovery and deduplicated delivery. Preserve the working typed conversation and desktop event contracts. WhatsApp replies remain out of scope unless I specifically request them. Complete this bounded milestone, run meaningful checks and report the result and remaining limitations before expanding into other features.
+> Implement the resident lifecycle and responsive JARVIS workspace milestone in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md and docs/PERSISTENCE.md. Preserve encrypted data, reminder acknowledgement/recurrence and request deduplication. Keep the backend alive when the window closes, restore sessions when reopened, provide explicit quit, and add responsive accessible JARVIS styling with lazy heavy UI. Keep API configuration deferred and WhatsApp replies excluded. Run meaningful lifecycle, layout and resource checks and report this bounded milestone before expanding to creative workers or Android.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

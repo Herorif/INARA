@@ -11,6 +11,22 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
+
+def pytest_configure(config):
+    """Isolate storage before collection: smoke tests import the server at module scope."""
+    import tempfile
+    config._inara_previous_data = os.environ.get("INARA_DATA_DIR")
+    config._inara_test_data = tempfile.TemporaryDirectory(prefix="inara-tests-")
+    os.environ["INARA_DATA_DIR"] = config._inara_test_data.name
+
+
+def pytest_unconfigure(config):
+    if config._inara_previous_data is None:
+        os.environ.pop("INARA_DATA_DIR", None)
+    else:
+        os.environ["INARA_DATA_DIR"] = config._inara_previous_data
+    config._inara_test_data.cleanup()
+
 # Settings file path
 SETTINGS_FILE = BACKEND_DIR / "settings.json"
 

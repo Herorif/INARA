@@ -44,3 +44,6 @@ Thumbs.db
 
 # Ignore local GLiM state
 references/glim-state.json
+
+# Optional development runtime storage (production uses LOCALAPPDATA)
+.runtime/

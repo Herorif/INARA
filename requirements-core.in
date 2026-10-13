@@ -6,3 +6,4 @@ python-multipart>=0.0.18,<1
 google-genai>=1.50,<3
 python-dotenv>=1,<2
 pydantic>=2.9,<3
+tzdata>=2026.5,<2027

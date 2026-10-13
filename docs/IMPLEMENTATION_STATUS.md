@@ -1,16 +1,16 @@
 # INARA revival implementation status
 
-Updated 13 October 2026. This records the first bounded milestone from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
+Updated 13 October 2026. This records the first two bounded milestones from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
 ## Completed behavior
 
 The supported `backend/server.py` now starts with the lean core environment and serves typed conversation without an `AudioLoop`, microphone permission, camera or voice connection. Google SDK clients initialize on a text request and are closed afterwards. `INARA_TEXT_MODEL` selects the text model; the initial default is `gemini-3.8-flash`.
 
-Requests and results are validated and carry UUID conversation/request IDs. In-memory conversation history is scoped to the desktop client and project, with bounded storage and serialized turns. Duplicate request IDs return the prior result or error without replaying the provider work; conflicting payloads are rejected. Missing credentials, invalid input, provider failure and timeout have structured, sanitized errors.
+Requests and results are validated and carry UUID conversation/request IDs. Durable encrypted conversation history is scoped to the desktop client and project, with bounded restored context and serialized turns. Duplicate request IDs return the prior result or error without replaying the provider work; conflicting payloads are rejected. Missing credentials, invalid input, provider failure and timeout have structured, sanitized errors.
 
 Project file reading/writing and app launching use the common dispatcher. Arguments are validated, configured denials are enforced, approvals expire and are bound to the requesting client, and authorization is checked again before execution. File access rejects traversal, absolute/drive/UNC paths and alternate-data-stream syntax, resolving existing symlinks/junctions before containment checks. Voice file operations use the same containment rule.
 
-Temporary projects are preserved on startup. Due reminders transition out of pending state before notification, preventing the repeated ten-second emission in the old loop. Full transactional reminder delivery, recurrence/timezone policy and crash recovery remain a later milestone.
+Temporary projects and the selected project survive startup. Reminder claiming, schedule advancement and occurrence records commit together; leased delivery retries retain their IDs, and authenticated receipt/completion survives restart. Legacy reminder, routine and project chat migration preserves originals and encrypted snapshots. UTC/IANA recurrence and missed-occurrence policy are documented in [Persistence](PERSISTENCE.md).
 
 Optional audio, camera, CAD, browser, Kasa and printer implementations are imported on demand. Printer hydration/monitoring starts on printer or voice activation; semantic camera watches run when requested frames and watches are present. The FastAPI lifespan owns background-task cleanup. Legacy socket names remain available through the supported server.
 
@@ -38,12 +38,21 @@ No paid AI requests, real app launches, camera sessions, printer actions or phon
 
 ## Remaining boundaries
 
-The new typed tool path currently exposes project files and configured app launching. CAD, image generation, local speech, Android and telephony are not implemented through that path yet. Some legacy direct handlers still require migration to the shared policy service, and the legacy voice dispatcher remains separate. This is a local desktop milestone, not a remotely exposed automation service.
+The new typed tool path exposes project files, configured app launching and validated local reminder tools. Direct snooze/cancel also uses the common dispatcher. CAD, image generation, local speech, Android and telephony are not implemented through that path yet. Some legacy direct handlers still require migration to the shared policy service, and the legacy voice dispatcher remains separate. This is a local desktop milestone, not a remotely exposed automation service.
 
-Conversation history is bounded in memory rather than durable across backend restarts. Full device pairing, scoped persistent credentials, encrypted storage, worker isolation and the resource governor remain planned. The legacy face-landmark gate is retained for compatibility and does not become strong OS authentication through this change.
+Completed typed history and its request ledger are durable and encrypted before SQLite/WAL writes. Restored context is limited to twenty completed messages. Windows DPAPI is user-bound; portable export, full device pairing, scoped persistent credentials, worker isolation, retention controls and the resource governor remain planned. Legacy voice histories remain a separate adapter; existing settings and artifacts retain their original formats. The legacy face-landmark gate is retained for compatibility and does not become strong OS authentication through this change.
 
 The complete JARVIS UI redesign, responsive workspace, lazy 3D/camera loading and supported Electron upgrade remain subsequent work. WhatsApp reply drafting and sending are excluded until specifically requested; no automatic replies were added.
 
 ## Next milestone
 
-Implement transactional reminders and durable recoverable project/conversation sessions, then separate the resident assistant lifetime from the desktop window. Establish JARVIS design tokens and the responsive workspace shell before migrating the creative workers. Reuse this checkpoint and the verified core instead of repeating the repository audit.
+Separate the resident assistant lifetime from the desktop window, retaining the verified durable sessions and transactional reminder storage. Establish JARVIS design tokens and the responsive workspace shell before migrating the creative workers. Reuse this checkpoint and the verified core instead of repeating the repository audit.
+
+
+## Second milestone verification (13 October 2026)
+
+- Versioned encrypted SQLite user data, request ledger, project selection and reminder delivery are implemented without API configuration.
+- 56 Python checks pass, covering both milestones, Windows DPAPI round trips, protected database/backups, migration validation/rollback, session restart without tool replay, uncertain requests, concurrent services/pollers, transport failure, acknowledgements, stale alert edits, cancellation/snooze, timezone filtering and DST recurrence.
+- Two Node state tests pass for simultaneous alert queueing, duplicate deliveries and reconnect snapshots. The production Vite build passes. Ruff and dependency consistency pass.
+- Tests use temporary user data, fake providers and fake transport. No production data migration, paid requests, phone/device actions or native desktop visual verification was performed. The build still reports the existing large bundle, old browsers data and Vite CJS warnings; the JARVIS/lazy workspace milestone will address the frontend structure.
+- The local desktop recipient rule does not implement Android delivery ownership or pairing. Closing the current desktop shell still stops its backend; resident lifetime is next. WhatsApp replies remain excluded.

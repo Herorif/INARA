@@ -20,6 +20,8 @@ from typing import Any, Optional
 from agents.base import AgentResult, BaseAgent
 from core.event_bus import EventBus, Event, Events
 from core.reminder_store import Reminder, ReminderStore, Routine
+from core.durable_reminders import local_instant
+from zoneinfo import ZoneInfo
 from llm.tools import Tool, ToolParameter, ToolParameterType
 
 
@@ -27,7 +29,7 @@ from llm.tools import Tool, ToolParameter, ToolParameterType
 # Time parsing helpers
 # ---------------------------------------------------------------------------
 
-def _parse_when(when_str: str) -> Optional[float]:
+def _parse_when(when_str: str, timezone: str = "Asia/Kuala_Lumpur") -> Optional[float]:
     """
     Parse a 'when' string into a Unix timestamp.
 
@@ -45,7 +47,7 @@ def _parse_when(when_str: str) -> Optional[float]:
         dt = datetime.datetime.fromisoformat(when_str)
         # If no timezone info, treat as local time
         if dt.tzinfo is None:
-            return dt.timestamp()
+            return local_instant(dt, timezone)
         return dt.timestamp()
     except ValueError:
         pass
@@ -55,7 +57,8 @@ def _parse_when(when_str: str) -> Optional[float]:
         import dateparser
         dt = dateparser.parse(
             when_str,
-            settings={"PREFER_DATES_FROM": "future", "RETURN_AS_TIMEZONE_AWARE": False},
+            settings={"PREFER_DATES_FROM": "future", "RETURN_AS_TIMEZONE_AWARE": True,
+                      "TIMEZONE": timezone},
         )
         if dt:
             return dt.timestamp()
@@ -81,7 +84,7 @@ def _parse_relative(s: str) -> Optional[float]:
 
 
 def _format_reminder(r: Reminder) -> str:
-    dt = datetime.datetime.fromtimestamp(r.trigger_at)
+    dt = datetime.datetime.fromtimestamp(r.trigger_at, ZoneInfo(r.timezone))
     dt_str = dt.strftime("%a %b %d at %I:%M %p")
     parts = [f"[{r.id[:8]}] '{r.task}' — {dt_str}"]
     if r.recurring:
@@ -205,7 +208,12 @@ class SchedulerAgent(BaseAgent):
         if not when_str:
             return AgentResult(success=False, message="No 'when' provided.")
 
-        trigger_at = _parse_when(when_str)
+        timezone = args.get("timezone", "Asia/Kuala_Lumpur")
+        try:
+            ZoneInfo(timezone)
+            trigger_at = _parse_when(when_str, timezone)
+        except (ValueError, KeyError):
+            return AgentResult(success=False, message="Use a valid IANA timezone and reminder time.")
         if trigger_at is None:
             return AgentResult(success=False, message=f"Could not parse time '{when_str}'. Use ISO format or plain English like 'in 30 minutes'.")
 
@@ -216,7 +224,7 @@ class SchedulerAgent(BaseAgent):
         if recurring not in valid_recurring:
             return AgentResult(success=False, message=f"Invalid recurring value '{recurring}'. Use 'daily', 'weekly', or 'weekdays'.")
 
-        reminder = self._store.add_reminder(task=task, trigger_at=trigger_at, recurring=recurring)
+        reminder = self._store.add_reminder(task=task, trigger_at=trigger_at, recurring=recurring, timezone=timezone)
 
         self._bus.emit_nowait(Event(
             type=Events.REMINDER_CREATED,
@@ -224,7 +232,7 @@ class SchedulerAgent(BaseAgent):
             source=self.name,
         ))
 
-        dt_str = datetime.datetime.fromtimestamp(trigger_at).strftime("%A %B %d at %I:%M %p")
+        dt_str = datetime.datetime.fromtimestamp(trigger_at, ZoneInfo(reminder.timezone)).strftime("%A %B %d at %I:%M %p")
         msg = f"Reminder set: '{task}' on {dt_str}"
         if recurring:
             msg += f" (repeats {recurring})"
@@ -275,7 +283,7 @@ class SchedulerAgent(BaseAgent):
         if not updated:
             return AgentResult(success=False, message=f"Could not snooze reminder '{reminder_id}'.")
 
-        dt_str = datetime.datetime.fromtimestamp(updated.trigger_at).strftime("%I:%M %p")
+        dt_str = datetime.datetime.fromtimestamp(updated.trigger_at, ZoneInfo(updated.timezone)).strftime("%I:%M %p")
         return AgentResult(success=True, data=updated.to_dict(), message=f"Snoozed for {minutes} minutes. Will fire at {dt_str}.")
 
     def _create_routine(self, args: dict) -> AgentResult:

@@ -14,6 +14,7 @@ import threading
 import sys
 import os
 import json
+import uuid
 from datetime import datetime
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -27,6 +28,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.lazy import LazyService
 from services.conversation import ConversationRequest, ConversationService
+from services.storage import Database, StorageError
+from services.sessions import SessionStore
+from services.scheduler_tools import register_scheduler_tools
 from services.tools import ServiceError, ToolDispatcher, ToolSpec, register_project_tools
 
 inara = LazyService('inara')
@@ -90,11 +94,12 @@ load_dotenv(Path(__file__).parent.parent / '.env')
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(backend_dir)
-project_manager = ProjectManager(project_root)
+database = Database()
+project_manager = ProjectManager(project_root, state_store=database)
 
 # Phase 4-7 — event bus + agents
 bus = EventBus()
-reminder_store = ReminderStore()
+reminder_store = ReminderStore(database=database)
 scheduler_agent = SchedulerAgent(event_bus=bus, reminder_store=reminder_store)
 desktop_agent = LazyService('agents.desktop_agent', 'DesktopAgent', event_bus=bus)
 vision_loop = VisionLoop(event_bus=bus, interval=5)
@@ -264,7 +269,8 @@ dispatcher = ToolDispatcher(
     and (not SETTINGS.get('face_auth_enabled')
          or (authenticator is not None and authenticator.authenticated)))
 register_project_tools(dispatcher)
-conversation_service = ConversationService(dispatcher)
+register_scheduler_tools(dispatcher, scheduler_agent, reminder_store)
+conversation_service = ConversationService(dispatcher, store=SessionStore(database))
 # tool_permissions is now SETTINGS["tool_permissions"]
 
 
@@ -325,16 +331,20 @@ async def _check_reminders_loop():
     print("[SERVER] Reminder check loop started.")
     while True:
         try:
-            due = reminder_store.get_due_reminders()
-            for reminder in due:
-                reminder_store.mark_triggered(reminder.id)
-                await sio.emit("reminder_triggered", reminder.to_dict())
-                if reminder.recurring:
-                    reminder_store.reschedule_recurring(reminder)
-                print(f"[REMINDER] Triggered: {reminder.task}")
-        except Exception as e:
-            print(f"[SERVER] Reminder loop error: {e}")
+            await deliver_reminders_once()
+        except Exception:
+            print("[SERVER] Reminder delivery failed; retained for retry.")
         await asyncio.sleep(10)
+
+
+async def deliver_reminders_once():
+    # One designated local client identity, retained in the delivery on reconnect.
+    for principal in dict.fromkeys(client_principals.values()):
+        rooms = [sid for sid, owner in client_principals.items() if owner == principal]
+        if not rooms or not dispatcher.authenticated(principal):
+            continue
+        for delivery in reminder_store.claim_deliveries(principal):
+            await sio.emit("reminder_triggered", delivery, room=rooms[0])
 
 
 async def startup_event():
@@ -412,8 +422,9 @@ async def connect(sid, environ, auth=None):
 
     # Startup hydration — push current state to new client
     pending = [r.to_dict() for r in reminder_store.list_reminders(filter="all") if r.status == "pending"]
-    if pending:
+    if dispatcher.authenticated(principal):
         await sio.emit('reminder_list', pending, room=sid)
+        await sio.emit('reminder_deliveries', reminder_store.open_deliveries(principal), room=sid)
     watches = vision_loop.list_watches() if hasattr(vision_loop, 'list_watches') else []
     await sio.emit('vision_watches', {"watches": watches}, room=sid)
 
@@ -677,17 +688,87 @@ async def confirm_tool(sid, data):
 
 # ---- Phase 4-7 direct socket handlers (bypass LLM for deterministic actions) ----
 
+async def run_reminder_action(sid, name, data):
+    if not await reminder_action_allowed(sid):
+        return
+    async def approve(payload):
+        await sio.emit('tool_confirmation_request', payload, room=sid)
+    try:
+        result = await dispatcher.dispatch(client_principals[sid], name, data or {},
+                                           {"principal": client_principals[sid]}, approve)
+        await sio.emit('reminder_updated', result, room=sid)
+        await refresh_reminders(sid)
+    except (ServiceError, ValidationError) as exc:
+        await sio.emit('error', {'msg': str(exc) if isinstance(exc, ServiceError)
+                       else 'Invalid reminder arguments.', 'code': getattr(exc, 'code', 'invalid_arguments')}, room=sid)
+
+
 @sio.event
 async def snooze_reminder(sid, data):
-    """data: {reminder_id, minutes}"""
-    result = await scheduler_agent.handle_tool_call("snooze_reminder", data or {})
-    await sio.emit("reminder_updated", {"message": result.message}, room=sid)
+    await run_reminder_action(sid, "snooze_reminder", data)
+
 
 @sio.event
 async def cancel_reminder(sid, data):
-    """data: {reminder_id}"""
-    result = await scheduler_agent.handle_tool_call("cancel_reminder", data or {})
-    await sio.emit("reminder_updated", {"message": result.message}, room=sid)
+    await run_reminder_action(sid, "cancel_reminder", data)
+
+
+async def reminder_action_allowed(sid):
+    principal = client_principals.get(sid)
+    if principal is None or not dispatcher.authenticated(principal):
+        await sio.emit('error', {'msg': 'Authentication is required.'}, room=sid)
+        return False
+    return True
+
+
+async def refresh_reminders(sid):
+    principal = client_principals[sid]
+    for room, owner in tuple(client_principals.items()):
+        if owner == principal:
+            await sio.emit('reminder_list', [r.to_dict() for r in reminder_store.list_reminders()], room=room)
+            await sio.emit('reminder_deliveries', reminder_store.open_deliveries(owner), room=room)
+
+
+@sio.event
+async def acknowledge_reminder(sid, data):
+    if await reminder_action_allowed(sid) and isinstance(data, dict):
+        reminder_store.acknowledge(str(data.get('delivery_id', '')), client_principals[sid])
+
+
+@sio.event
+async def dismiss_reminder(sid, data):
+    if await reminder_action_allowed(sid) and isinstance(data, dict):
+        if not reminder_store.acknowledge(str(data.get('delivery_id', '')), client_principals[sid], complete=True):
+            await sio.emit('error', {'msg': 'This reminder alert is no longer actionable.'}, room=sid)
+        await refresh_reminders(sid)
+
+
+@sio.event
+async def get_reminders(sid):
+    if await reminder_action_allowed(sid):
+        await refresh_reminders(sid)
+
+
+class ResumeConversation(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    conversation_id: uuid.UUID
+
+
+@sio.event
+async def resume_conversation(sid, data):
+    try:
+        request = ResumeConversation.model_validate(data)
+        principal = client_principals.get(sid)
+        if principal is None or not dispatcher.authenticated(principal):
+            raise ServiceError('authentication_required', 'Unlock INARA before restoring conversation.')
+        messages = conversation_service.restore(client_principals[sid], request.conversation_id,
+                                                project_manager.get_current_project_path())
+        await sio.emit('conversation_restored', {'conversation_id': str(request.conversation_id),
+                       'project': project_manager.current_project, 'messages': messages}, room=sid)
+    except (ServiceError, ValidationError, StorageError) as exc:
+        await sio.emit('conversation_restore_failed', {'msg': str(exc) if not isinstance(exc, ValidationError)
+                       else 'Invalid conversation ID.', 'conversation_id': data.get('conversation_id')
+                       if isinstance(data, dict) else None}, room=sid)
 
 @sio.event
 async def control_device(sid, data):
@@ -799,6 +880,9 @@ async def user_input(sid, data):
                                else 'Invalid message payload.',
                                'code': getattr(exc, 'code', 'invalid_request'),
                                'request_id': str(request.request_id) if request else None}, room=sid)
+    except StorageError as exc:
+        await sio.emit('error', {'msg': str(exc), 'code': 'storage_unavailable',
+                       'request_id': str(request.request_id) if request else None}, room=sid)
     finally:
         await sio.emit('text_status', {'state': 'idle'}, room=sid)
 

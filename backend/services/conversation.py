@@ -54,11 +54,27 @@ def create_text_provider():
 
 
 class ConversationService:
-    def __init__(self, dispatcher, provider_factory=create_text_provider, timeout=45):
+    def __init__(self, dispatcher, provider_factory=create_text_provider, timeout=45, store=None):
         self.dispatcher = dispatcher
         self.provider_factory = provider_factory
         self.timeout = timeout
         self.conversations = {}
+        self.store = store
+
+    def restore(self, owner, conversation_id, project):
+        key, path = str(conversation_id), str(project.resolve())
+        if self.store is None:
+            conversation = self.conversations.get(key)
+            if conversation and (conversation.owner != owner or conversation.project != path):
+                raise ServiceError(
+                    "conversation_scope", "Start a new conversation for this project."
+                )
+            messages = conversation.messages if conversation else []
+            return [
+                {"role": message.role.value, "content": message.content} for message in messages
+            ]
+        self.store.migrate_history(key, owner, path, project / "chat_history.jsonl")
+        return self.store.restore(key, owner, path)
 
     def release_owner(self, owner):
         # Preserve history on socket reconnect; ownership is the stable desktop client ID.
@@ -76,7 +92,18 @@ class ConversationService:
             raise ServiceError("conversation_scope", "Start a new conversation for this project.")
         async with conversation.lock:
             request_id = str(request.request_id)
-            if request_id in conversation.results:
+            if self.store is not None:
+                history, previous = self.store.claim(
+                    key, owner, conversation.project, request_id, request.text
+                )
+                if previous:
+                    if previous["state"] == "failed":
+                        raise ServiceError(previous["code"], previous["message"])
+                    return ConversationResult.model_validate(previous["result"])
+                conversation.messages = [
+                    Message(MessageRole(item["role"]), item["content"]) for item in history
+                ]
+            elif request_id in conversation.results:
                 previous_text, previous = conversation.results[request_id]
                 if previous_text != request.text:
                     raise ServiceError("request_conflict", "This request ID was already used.")
@@ -110,7 +137,26 @@ class ConversationService:
                             text=response.text,
                         )
                         messages.append(Message(MessageRole.ASSISTANT, response.text))
-                        conversation.messages = messages[-20:]
+                        # Store completed text turns only; signed tool content lives within this request.
+                        conversation.messages = [
+                            *conversation.messages,
+                            Message(MessageRole.USER, request.text),
+                            Message(MessageRole.ASSISTANT, response.text),
+                        ][-20:]
+                        if self.store is not None:
+                            history = [
+                                {"role": message.role.value, "content": message.content}
+                                for message in conversation.messages
+                            ]
+                            self.store.finish(
+                                key,
+                                owner,
+                                conversation.project,
+                                request_id,
+                                request.text,
+                                {"state": "succeeded", "result": result.model_dump(mode="json")},
+                                history,
+                            )
                         conversation.results[request_id] = (request.text, result)
                         if len(conversation.results) > 64:
                             conversation.results.pop(next(iter(conversation.results)))
@@ -130,7 +176,7 @@ class ConversationService:
                                 owner,
                                 call.name,
                                 call.args,
-                                {"project_path": project},
+                                {"project_path": project, "principal": owner},
                                 request_approval,
                             )
                         except (ServiceError, ValidationError) as exc:
@@ -169,5 +215,16 @@ class ConversationService:
                         await asyncio.wait_for(provider.close(), 5)
                     except Exception:
                         pass  # Cleanup failure must not discard a completed response.
+                cached = conversation.results.get(request_id)
+                if self.store is not None and cached and isinstance(cached[1], ServiceError):
+                    error = cached[1]
+                    self.store.finish(
+                        key,
+                        owner,
+                        conversation.project,
+                        request_id,
+                        request.text,
+                        {"state": "failed", "code": error.code, "message": str(error)},
+                    )
                 while len(conversation.results) > 64:
                     conversation.results.pop(next(iter(conversation.results)))

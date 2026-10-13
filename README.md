@@ -15,11 +15,13 @@
 
 > Supported runtime: `electron/main.js -> backend/server.py`. The `backend/core/` server refactor is archived reference code and is not the active app backend.
 
-## Revival milestone 1
+## Revival milestones 1?2
 
 Typed chat now runs independently of the microphone and Gemini Live audio session.
 The backend boots with the lean core dependencies and loads optional capabilities
-only when requested. Existing temporary projects survive restart.
+only when requested. Projects and typed sessions survive restart, and reminders use
+transactional delivery with receipt and completion. Private payloads are protected
+with Windows DPAPI before SQLite writes; see [persistence and recovery](docs/PERSISTENCE.md).
 
 On Windows with Python 3.12 and Node.js 24 LTS:
 
@@ -46,8 +48,9 @@ No WhatsApp reply capability is included.
 Run the deterministic milestone and desktop-contract checks with:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py -q
+.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py -q
 .\.venv\Scripts\python.exe -m ruff check backend/services tests/test_conversation_service.py
+node --test tests/test_reminder_ui.mjs
 npm run build
 ```
 

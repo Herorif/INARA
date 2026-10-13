@@ -41,6 +41,7 @@ starlette==1.8.0
 tenacity==9.1.4
 typing-inspection==0.4.4
 typing_extensions==4.16.0
+tzdata==2026.5
 urllib3==2.8.0
 uvicorn==0.54.0
 websockets==16.1.1

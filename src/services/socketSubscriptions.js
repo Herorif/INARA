@@ -5,6 +5,7 @@
  */
 import socket, { onSocket } from './socket';
 import useStore from '../store';
+import { conversationForProject } from '../store/chatSlice';
 
 const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUnavailable }) => {
     if (!backendConnected) return 'Backend Disconnected';
@@ -18,13 +19,25 @@ export function initSocketListeners() {
     const unsubs = [];
     const s = useStore.getState;
     const completedTextRequests = new Set();
+    const deliveredReminderIds = new Set();
     unsubs.push(onSocket('text_status', data => {
         useStore.setState({ textProcessing: data.state === 'processing' });
     }));
-    unsubs.push(onSocket('project_update', data => {
-        if (data.project !== s().currentProject) {
-            useStore.setState({ conversationId: crypto.randomUUID() });
-        }
+    const resumeConversation = (force = false) => {
+        if (!force && (s().conversationRestoring || s().textProcessing)) return;
+        useStore.setState({ conversationRestoring: true });
+        socket.emit('resume_conversation', { conversation_id: s().conversationId });
+    };
+    unsubs.push(onSocket('conversation_restored', data => {
+        if (data.conversation_id !== s().conversationId || data.project !== s().currentProject) return;
+        useStore.setState({ conversationRestoring: false, messages: data.messages.map(m => ({
+            sender: m.role === 'user' ? 'You' : 'INARA', text: m.content, time: '',
+        })) });
+    }));
+    unsubs.push(onSocket('conversation_restore_failed', data => {
+        if (data.conversation_id && data.conversation_id !== s().conversationId) return;
+        useStore.setState({ conversationRestoring: false });
+        s().addMessage('System', data.msg || 'Conversation could not be restored.');
     }));
 
     // --- Connection ---
@@ -41,6 +54,7 @@ export function initSocketListeners() {
             }),
         });
         socket.emit('get_settings');
+        resumeConversation();
     }));
 
     unsubs.push(onSocket('disconnect', () => {
@@ -54,6 +68,7 @@ export function initSocketListeners() {
             isMuted: true,
             listeningState: 'idle',
             textProcessing: false,
+            conversationRestoring: false,
         });
     }));
 
@@ -121,10 +136,13 @@ export function initSocketListeners() {
 
     // --- Auth ---
     unsubs.push(onSocket('auth_status', (data) => {
-        console.log('Auth Status:', data);
+        const unlocked = data.authenticated && !s().isAuthenticated;
         useStore.setState({ isAuthenticated: data.authenticated });
         if (!data.authenticated) {
             useStore.setState({ isLockScreenVisible: true });
+        } else if (unlocked && s().backendConnected) {
+            resumeConversation();
+            socket.emit('get_reminders');
         }
     }));
 
@@ -239,22 +257,6 @@ export function initSocketListeners() {
         if (data.image) useStore.setState({ lastScreenshot: data.image });
     }));
 
-    // --- Reminders ---
-    unsubs.push(onSocket('reminder_triggered', (data) => {
-        console.log('[REMINDER] Fired:', data);
-        useStore.setState({ activeAlert: { id: data.id, task: data.task } });
-        // Auto-open reminder window so the user sees it
-        useStore.setState({ showReminderWindow: true });
-    }));
-
-    unsubs.push(onSocket('reminder_created', (data) => {
-        s().addReminder(data);
-    }));
-
-    unsubs.push(onSocket('reminder_cancelled', (data) => {
-        s().removeReminder(data.id);
-    }));
-
     // --- Kasa ---
     unsubs.push(onSocket('kasa_devices', (devices) => {
         console.log('Kasa Devices:', devices);
@@ -267,9 +269,9 @@ export function initSocketListeners() {
 
     // --- Project ---
     unsubs.push(onSocket('project_update', (data) => {
-        console.log('Project Update:', data.project);
-        useStore.setState({ currentProject: data.project });
-        s().addMessage('System', `Switched to project: ${data.project}`);
+        const changed = data.project !== s().currentProject;
+        useStore.setState({ currentProject: data.project, conversationId: conversationForProject(data.project) });
+        if (changed && s().backendConnected) resumeConversation(true);
     }));
 
     // --- Printers ---
@@ -359,9 +361,21 @@ export function initSocketListeners() {
     }));
 
     unsubs.push(onSocket('reminder_triggered', (data) => {
-        s().addMessage('INARA', `Reminder: ${data.task || data.message || 'Reminder fired'}`);
-        s().setActiveAlert({ id: data.id, task: data.task });
-        s().removeReminder(data.id);
+        if (!data.delivery_id) return;
+        if (!deliveredReminderIds.has(data.delivery_id)) {
+            s().setActiveAlert(data);
+            deliveredReminderIds.add(data.delivery_id);
+            if (deliveredReminderIds.size > 512) deliveredReminderIds.delete(deliveredReminderIds.values().next().value);
+        }
+        socket.emit('acknowledge_reminder', { delivery_id: data.delivery_id });
+    }));
+    unsubs.push(onSocket('reminder_deliveries', (deliveries) => {
+        const alerts = Array.isArray(deliveries) ? deliveries : [];
+        s().restoreAlerts(alerts);
+        for (const alert of alerts) {
+            deliveredReminderIds.add(alert.delivery_id);
+            socket.emit('acknowledge_reminder', { delivery_id: alert.delivery_id });
+        }
     }));
 
     unsubs.push(onSocket('reminder_created', (data) => {
