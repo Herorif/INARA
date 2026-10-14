@@ -1,6 +1,6 @@
 # INARA revival implementation status
 
-Updated 14 October 2026. This records the completed core/persistence milestones, JARVIS workspace and native resident follow-up from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
+Updated 14 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD and typed scene assembly from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
 ## Completed behavior
 
@@ -38,7 +38,7 @@ No paid AI requests, real app launches, camera sessions, printer actions or phon
 
 ## Remaining boundaries
 
-The typed tool path exposes project files, configured app launching, validated local reminders and offline parametric CAD jobs. Direct snooze/cancel uses the common dispatcher; CAD builds share the existing generation permission. Blender scene execution, image generation, local speech, Android and telephony remain subsequent work. Some legacy direct handlers still require policy migration, and the legacy voice dispatcher remains separate. This is a local desktop implementation, not a remotely exposed automation service.
+The typed tool path exposes project files, configured app launching, validated local reminders and offline parametric CAD jobs. Direct snooze/cancel uses the common dispatcher; CAD builds share the existing generation permission. Typed scene assembly and an optional Blender bridge are implemented; actual Blender execution awaits an installation. Image generation, local speech, Android and telephony remain subsequent work. Some legacy direct handlers still require policy migration, and the legacy voice dispatcher remains separate. This is a local desktop implementation, not a remotely exposed automation service.
 
 Completed typed history and request ledgers are encrypted before SQLite/WAL writes. Restored context is limited to twenty completed messages. Windows DPAPI is user-bound; portable private export, device pairing, scoped credentials and retention controls remain planned. CAD worker ownership and manual resource/gaming policy are implemented; GPU/thermal admission and isolation of other legacy workers remain open. Legacy voice histories remain a separate adapter; existing settings/artifacts retain their formats. The legacy face-landmark gate does not become strong OS authentication through this change.
 
@@ -46,7 +46,7 @@ The command deck, responsive workspace, local reminder panel, lazy 3D/camera loa
 
 ## Next milestone
 
-Implement typed scene assembly and the controlled Blender bridge, preserving the offline CAD engine, native lifetime, protected jobs, reminders and JARVIS command deck. Keep modeling usable without a configured provider or Blender installation. See [CAD Studio](CAD_STUDIO.md) and [native release checks](NATIVE_RESIDENT.md). The user deferred the real-game benchmark.
+Implement the image-generation workspace and owned job adapter, preserving offline solids/scenes, native lifetime, protected jobs, reminders and the JARVIS command deck. Actual Blender acceptance remains installation-dependent. Keep modeling usable without a configured provider or Blender installation. See [CAD Studio](CAD_STUDIO.md) and [native release checks](NATIVE_RESIDENT.md). The user deferred the real-game benchmark.
 
 ## Second milestone verification (13 October 2026)
 
@@ -76,3 +76,12 @@ The default Windows host now runs Win32 tray/hotkey and the ASGI core in one Pyt
 The shared typed generation tool now builds boxes, L brackets and open enclosures in an owned stdlib worker, without audio, a CAD kernel or an API key. The responsive JARVIS panel offers dimensions, orbit/wireframe, scoped history and real STL/GLB/recipe downloads. An optional provider proposes schema-validated recipe data for review. Existing voice CAD remains available.
 
 98 Python and nine frontend checks pass, with build, lint and dependency consistency. Real native UI verification covers each shape's expected volume, rendered preview, GLB import, all downloads, narrow layouts, history restoration without rebuilding and missing-key planner behavior. Three workers exit; geometry stays outside the resident. After workspace exit, six recovery samples remained around 64.86 MB combined working set / 47.32 MB private bytes. This is a ten-second recovery observation, not a new idle/game benchmark. [CAD evidence and limits](CAD_STUDIO.md) records actual Blender/STEP/complex-shape exclusions and the bounded transport shutdown behavior after injected crashes.
+
+
+## Scene assembly verification (14 October 2026)
+
+Typed scenes now support up to eight boxes/brackets/enclosures with per-object dimensions, positive scale, XYZ rotation, translation and four materials. The responsive Studio adds object selection, add/duplicate/remove, material-aware GLB preview and immutable STL/GLB/recipe revisions. Scene bounds and summed part volumes are shown accurately; this does not add boolean unions or arbitrary modeling. Existing encrypted scopes, permissions, old recipe deduplication and owned worker cleanup are retained.
+
+The optional bridge detects an installed Blender and runs a fixed background import/export/project/render script as an owned descendant, with bounded CPU threads, timeout and artifacts. No Blender installation exists here, so the real round-trip test is skipped and actual `.blend`/render/export remains unverified. Offline scenes work without it or API configuration.
+
+116 Python and nine frontend checks pass, along with build, Ruff and dependency consistency. Actual hidden renderer verification passes three-solid regression, scene object editing/transforms/materials, GLB download/import, narrow layouts and history restoration without rebuild. Four workers exit, scene/geometry modules remain outside the resident, and six post-workspace samples stay at 64.97-65.04 MB working set / 47.54 MB private bytes. This is a ten-second recovery observation. [Scene Studio](SCENE_STUDIO.md) records contracts, screenshots, evidence and remaining Blender limits. No paid or phone actions ran; the real-game benchmark remains deferred.

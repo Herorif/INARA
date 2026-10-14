@@ -74,8 +74,8 @@ def build(recipe):
     return vertices, faces
 
 
-def validate(vertices, faces):
-    if not vertices or not faces or len(faces) > 512:
+def validate(vertices, faces, max_faces=512):
+    if not vertices or not faces or len(faces) > max_faces:
         raise ValueError("Geometry limit exceeded")
     edges, directed = Counter(), Counter()
     volume = 0
@@ -84,7 +84,9 @@ def validate(vertices, faces):
         if not all(math.isfinite(x) for point in (a, b, c) for x in point):
             raise ValueError("Nonfinite coordinate")
         normal(a, b, c)
-        volume += sum(a[i] * cross(b, c)[i] for i in range(3)) / 6
+        origin = vertices[0]
+        ar, br, cr = (sub(point, origin) for point in (a, b, c))
+        volume += sum(ar[i] * cross(br, cr)[i] for i in range(3)) / 6
         for i, j in zip(face, (face[1], face[2], face[0])):
             edges[tuple(sorted((i, j)))] += 1
             directed[(i, j)] += 1

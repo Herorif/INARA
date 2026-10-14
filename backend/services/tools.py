@@ -45,6 +45,34 @@ class ToolSpec:
     execute: Callable
 
 
+def inline_tool_schema(model):
+    """Expand local schema references for providers whose tool format rejects $defs.
+
+    Runtime validation still uses the original Pydantic model. Recursive tool
+    contracts are intentionally unsupported rather than silently truncating them.
+    """
+    schema = model.model_json_schema()
+    definitions = schema.pop("$defs", {})
+
+    def expand(value, trail=()):
+        if isinstance(value, list):
+            return [expand(item, trail) for item in value]
+        if not isinstance(value, dict):
+            return value
+        if "$ref" in value:
+            reference = value["$ref"]
+            if not reference.startswith("#/$defs/") or reference in trail:
+                raise ValueError("Tool schemas require finite local references")
+            target = definitions[reference.removeprefix("#/$defs/")]
+            return expand(
+                {**target, **{key: item for key, item in value.items() if key != "$ref"}},
+                (*trail, reference),
+            )
+        return {key: expand(item, trail) for key, item in value.items()}
+
+    return expand(schema)
+
+
 class ToolDispatcher:
     def __init__(self, permissions, authenticated=lambda principal: True, timeout=60):
         self.permissions = permissions
@@ -61,7 +89,7 @@ class ToolDispatcher:
             {
                 "name": spec.name,
                 "description": spec.description,
-                "parameters": spec.arguments.model_json_schema(),
+                "parameters": inline_tool_schema(spec.arguments),
             }
             for spec in self.tools.values()
         ]

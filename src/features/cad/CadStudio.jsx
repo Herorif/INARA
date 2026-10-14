@@ -3,6 +3,7 @@ import { Box, CornerDownRight, PackageOpen, Download, Layers3, Loader2, Sparkles
 import useStore from '../../store';
 import socket from '../../services/socket';
 import ModelPreview from './ModelPreview';
+import SceneEditor, { newObject } from './SceneEditor';
 import { artifactBytes, cadRpc, mergeJob, pendingJob } from './client';
 import './cad.css';
 const LegacyCad = lazy(() => import('../../components/CadWindow'));
@@ -26,6 +27,10 @@ const shapes = [{
   id: 'enclosure',
   label: 'Open enclosure',
   icon: PackageOpen
+}, {
+  id: 'scene',
+  label: 'Scene assembly',
+  icon: Layers3
 }];
 const phases = {
   submitting: 'Sending your build',
@@ -34,6 +39,7 @@ const phases = {
   building: 'Building geometry',
   validating: 'Checking the solid',
   saving: 'Saving exports',
+  blender: 'Blender project and render',
   ready: 'Ready to explore',
   cancelled: 'Build cancelled',
   interrupted: 'Build interrupted',
@@ -52,6 +58,9 @@ export default function CadStudio() {
     [exporting, setExporting] = useState(''),
     [wireframe, setWireframe] = useState(false),
     [legacy, setLegacy] = useState(false);
+  const [capabilities, setCapabilities] = useState({
+    blender: false
+  });
   const selectedRef = useRef(null),
     alive = useRef(false),
     epoch = useRef(0);
@@ -73,6 +82,9 @@ export default function CadStudio() {
     try {
       const response = await cadRpc(socket, 'cad_list');
       if (!alive.current || generation !== epoch.current) return;
+      setCapabilities(response.capabilities || {
+        blender: false
+      });
       setJobs(previous => response.jobs.map(incoming => mergeJob(previous.find(value => value.request_id === incoming.request_id), incoming)));
       if (!selectedRef.current && response.jobs[0]) {
         selectedRef.current = response.jobs[0].request_id;
@@ -89,6 +101,10 @@ export default function CadStudio() {
     selectedRef.current = null;
     setSelected(null);
     setJobs([]);
+    setRecipe(defaults);
+    setCapabilities({
+      blender: false
+    });
     setError('');
     setPlanning(false);
     setExporting('');
@@ -177,7 +193,7 @@ export default function CadStudio() {
       const bytes = await artifactBytes(artifact);
       if (!alive.current || generation !== epoch.current) return;
       const url = URL.createObjectURL(new Blob([bytes], {
-        type: format === 'glb' ? 'model/gltf-binary' : format === 'json' ? 'application/json' : 'model/stl'
+        type: format === 'png' ? 'image/png' : format === 'blend' ? 'application/octet-stream' : format === 'glb' ? 'model/gltf-binary' : format === 'json' ? 'application/json' : 'model/stl'
       }));
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -203,29 +219,37 @@ export default function CadStudio() {
               icon: Icon
             }) => <button type="button" key={id} className={recipe.shape === id ? 'selected' : ''} aria-pressed={recipe.shape === id} disabled={busy || planning} onClick={() => setRecipe(previous => ({
               ...previous,
-              shape: id
+              shape: id,
+              objects: id === 'scene' ? previous.objects || [newObject(0), newObject(1)] : null,
+              engine: 'offline'
             }))}><Icon size={21} /><span>{label}</span></button>)}</div>
           <label className="cad-field">Design name<input value={recipe.name} required maxLength={60} disabled={busy || planning} onChange={event => setRecipe(previous => ({
               ...previous,
               name: event.target.value
             }))} /></label>
-          <div className="cad-dimensions">{['width', 'depth', 'height', ...(recipe.shape !== 'box' ? ['thickness'] : [])].map(key => <label className="cad-field" key={key}>{key === 'thickness' ? 'Wall thickness' : key[0].toUpperCase() + key.slice(1)}<div className="cad-number"><input aria-label={`${key} in millimetres`} type="number" min={key === 'thickness' ? .5 : 1} max={key === 'thickness' ? 100 : 1000} step="any" required value={recipe[key]} disabled={busy || planning} onChange={event => setRecipe(previous => ({
+          {recipe.shape === 'scene' ? <><SceneEditor objects={recipe.objects} onChange={objects => setRecipe(previous => ({
+              ...previous,
+              objects
+            }))} disabled={busy || planning} /><label className="cad-field">Build engine<select value={recipe.engine || 'offline'} disabled={busy || planning} onChange={event => setRecipe(previous => ({
+                ...previous,
+                engine: event.target.value
+              }))}><option value="offline">Offline / STL / GLB</option><option value="blender" disabled={!capabilities.blender}>Blender / project + render{!capabilities.blender ? ' (not installed)' : ''}</option></select></label></> : <div className="cad-dimensions">{['width', 'depth', 'height', ...(recipe.shape !== 'box' ? ['thickness'] : [])].map(key => <label className="cad-field" key={key}>{key === 'thickness' ? 'Wall thickness' : key[0].toUpperCase() + key.slice(1)}<div className="cad-number"><input aria-label={`${key} in millimetres`} type="number" min={key === 'thickness' ? .5 : 1} max={key === 'thickness' ? 100 : 1000} step="any" required value={recipe[key]} disabled={busy || planning} onChange={event => setRecipe(previous => ({
                   ...previous,
                   [key]: event.target.value === '' ? '' : Number(event.target.value)
-                }))} /><span>mm</span></div></label>)}</div>
-          <p className="cad-builder-note">{recipe.shape === 'enclosure' ? 'Open top, flat base and uniform walls.' : recipe.shape === 'bracket' ? 'One continuous solid with a base and upright.' : 'A closed rectangular solid, ready for refinement.'}</p>
+                }))} /><span>mm</span></div></label>)}</div>}
+          <p className="cad-builder-note">{recipe.shape === 'scene' ? 'Compose parts, set their placement and choose a material for each.' : recipe.shape === 'enclosure' ? 'Open top, flat base and uniform walls.' : recipe.shape === 'bracket' ? 'One continuous solid with a base and upright.' : 'A closed rectangular solid, ready for refinement.'}</p>
           <button className="primary-button cad-build" type="submit" disabled={!connected || busy || planning}>{busy ? <Loader2 size={16} className="cad-spinner" /> : <Box size={17} />}{busy ? 'Build in progress' : 'Build new revision'}</button>
           {busy && <button className="cad-cancel" type="button" onClick={cancel}><Square size={13} />Cancel build</button>}
         </form>
-        <details className="cad-ai"><summary><Sparkles size={15} />AI blueprint<span>OPTIONAL</span></summary><p>Describe one supported solid. Review its dimensions before building.</p><textarea aria-label="Blueprint description" maxLength={2000} value={prompt} disabled={planning || busy} placeholder="An open enclosure, 80 × 60 × 30 mm, with 3 mm walls…" onChange={event => setPrompt(event.target.value)} /><button className="text-button" disabled={!connected || planning || busy || !prompt.trim()} onClick={plan}>{planning ? 'Proposing dimensions…' : 'Propose dimensions'}<Sparkles size={13} /></button></details>
+        <details className="cad-ai" hidden={recipe.shape === 'scene'}><summary><Sparkles size={15} />AI blueprint<span>OPTIONAL</span></summary><p>Describe one supported solid. Review its dimensions before building.</p><textarea aria-label="Blueprint description" maxLength={2000} value={prompt} disabled={planning || busy} placeholder="An open enclosure, 80 × 60 × 30 mm, with 3 mm walls…" onChange={event => setPrompt(event.target.value)} /><button className="text-button" disabled={!connected || planning || busy || !prompt.trim()} onClick={plan}>{planning ? 'Proposing dimensions…' : 'Propose dimensions'}<Sparkles size={13} /></button></details>
         {legacyData && <button className="text-button" onClick={() => setLegacy(true)}>Open previous voice design</button>}
       </aside>
       <section className="cad-workbench" aria-label="Model and exports">
         <div className="cad-preview-top"><span className="eyebrow">02 / EXPLORE</span><button className="text-button" aria-pressed={wireframe} onClick={() => setWireframe(value => !value)}><Layers3 size={14} />{wireframe ? 'Show solid' : 'Wireframe'}</button></div>
         <ModelPreview job={job} wireframe={wireframe} />
         <div className={`cad-status ${job?.state === 'succeeded' ? 'ready' : ''}`} role="status">{job?.state === 'succeeded' ? <Check size={16} /> : busy ? <Loader2 className="cad-spinner" size={16} /> : <span className="status-dot" />}<div><strong>{phases[job?.phase] || 'Ready to build'}</strong><span>{job?.state === 'succeeded' ? 'Solid validated · Worker released' : 'Builds run separately from your resident assistant'}</span></div><span className="cad-status-unit">MM</span></div>
-        {job?.stats && <div className="cad-stats"><div><span>Dimensions</span><strong>{job.recipe.width} × {job.recipe.depth} × {job.recipe.height}<small> mm</small></strong></div><div><span>Volume</span><strong>{(job.stats.volume_mm3 / 1000).toFixed(2)}<small> cm³</small></strong></div><div><span>Mesh</span><strong>{job.stats.triangles}<small> triangles</small></strong></div><div><span>Topology</span><strong>Watertight</strong></div></div>}
-        <div className="cad-export"><div><span className="eyebrow">03 / TAKE IT FURTHER</span><p>STL for fabrication · GLB for Blender and other 3D apps</p></div><div>{['stl', 'glb', 'json'].map(format => <button key={format} disabled={!connected || job?.state !== 'succeeded' || !!exporting} onClick={() => download(format)}>{exporting === format ? <Loader2 size={14} className="cad-spinner" /> : <Download size={14} />}{format === 'json' ? 'Recipe' : format.toUpperCase()}</button>)}</div></div>
+        {job?.stats && <div className="cad-stats"><div><span>Dimensions</span><strong>{job.recipe.shape === 'scene' ? job.stats.bounds_mm[1].map((value, i) => (value - job.stats.bounds_mm[0][i]).toFixed(1)).join(' × ') : `${job.recipe.width} × ${job.recipe.depth} × ${job.recipe.height}`}<small> mm</small></strong></div><div><span>{job.recipe.shape === 'scene' ? 'Parts volume (sum)' : 'Volume'}</span><strong>{(job.stats.volume_mm3 / 1000).toFixed(2)}<small> cm³</small></strong></div><div><span>Mesh</span><strong>{job.stats.triangles}<small> triangles</small></strong></div><div><span>Topology</span><strong>{job.recipe.shape === 'scene' ? `${job.recipe.objects.length} closed parts` : 'Watertight'}</strong></div></div>}
+        <div className="cad-export"><div><span className="eyebrow">03 / TAKE IT FURTHER</span><p>STL for fabrication · GLB for Blender and other 3D apps</p></div><div>{['stl', 'glb', 'json', ...(job?.artifacts?.blend ? ['blend', 'png'] : [])].map(format => <button key={format} disabled={!connected || job?.state !== 'succeeded' || !!exporting} onClick={() => download(format)}>{exporting === format ? <Loader2 size={14} className="cad-spinner" /> : <Download size={14} />}{format === 'json' ? 'Recipe' : format.toUpperCase()}</button>)}</div></div>
       </section>
     </div>
     {(error || job?.error) && <div className="cad-error" role="alert">{error || job.error}</div>}

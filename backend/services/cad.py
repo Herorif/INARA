@@ -24,7 +24,7 @@ from services.storage import scope_hash, StorageError
 from services.tools import ServiceError, ToolSpec, contained_path
 
 
-class Recipe(BaseModel):
+class SolidRecipe(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     name: StrictStr = Field(default="Untitled design", min_length=1, max_length=60)
     shape: Literal["box", "bracket", "enclosure"] = "box"
@@ -42,10 +42,60 @@ class Recipe(BaseModel):
 
     @model_validator(mode="after")
     def valid_walls(self):
-        if self.shape != "box" and min(self.depth, self.height) - self.thickness < 0.5:
+        if (
+            self.shape in ("bracket", "enclosure")
+            and min(self.depth, self.height) - self.thickness < 0.5
+        ):
             raise ValueError("Leave at least 0.5 mm beyond the base/wall thickness")
         if self.shape == "enclosure" and min(self.width, self.depth) - 2 * self.thickness < 0.5:
             raise ValueError("Enclosure openings must be at least 0.5 mm wide")
+        return self
+
+
+class SceneObject(SolidRecipe):
+    position: list[float] = Field(
+        default_factory=lambda: [0.0, 0.0, 0.0], min_length=3, max_length=3
+    )
+    rotation: list[float] = Field(
+        default_factory=lambda: [0.0, 0.0, 0.0], min_length=3, max_length=3
+    )
+    scale: list[float] = Field(default_factory=lambda: [1.0, 1.0, 1.0], min_length=3, max_length=3)
+    material: Literal["cyan", "titanium", "amber", "ceramic"] = "cyan"
+
+    @field_validator("position", "rotation", "scale", mode="before")
+    @classmethod
+    def valid_vector(cls, value, info):
+        import math
+
+        low, high = {"position": (-2000, 2000), "rotation": (-360, 360), "scale": (0.1, 5)}[
+            info.field_name
+        ]
+        if (
+            not isinstance(value, list)
+            or len(value) != 3
+            or any(
+                isinstance(x, bool)
+                or not isinstance(x, (int, float))
+                or not math.isfinite(x)
+                or not low <= x <= high
+                for x in value
+            )
+        ):
+            raise ValueError("Use three finite numeric transform values within the supported range")
+        return value
+
+
+class Recipe(SolidRecipe):
+    shape: Literal["box", "bracket", "enclosure", "scene"] = "box"
+    objects: list[SceneObject] | None = Field(default=None, min_length=1, max_length=8)
+    engine: Literal["offline", "blender"] = "offline"
+
+    @model_validator(mode="after")
+    def valid_scene(self):
+        if (self.shape == "scene") != (self.objects is not None):
+            raise ValueError(
+                "Scenes require one to eight objects; solids do not accept scene objects"
+            )
         return self
 
 
@@ -59,7 +109,7 @@ class JobRequest(BaseModel):
 
 
 class ArtifactRequest(JobRequest):
-    format: Literal["stl", "glb", "json"] = "stl"
+    format: Literal["stl", "glb", "json", "blend", "png"] = "stl"
 
 
 class PlanRequest(BaseModel):
@@ -69,16 +119,16 @@ class PlanRequest(BaseModel):
 
 class MeshStats(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    vertices: StrictInt = Field(ge=4, le=1024)
-    triangles: StrictInt = Field(ge=4, le=512)
+    vertices: StrictInt = Field(ge=4, le=8192)
+    triangles: StrictInt = Field(ge=4, le=4096)
     watertight: bool = Field(strict=True)
-    volume_mm3: float = Field(gt=0, le=1_000_000_000, strict=True)
+    volume_mm3: float = Field(gt=0, le=1_000_000_000_000, strict=True)
     bounds_mm: list[list[float]] = Field(min_length=2, max_length=2)
 
 
 class ExportMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    bytes: StrictInt = Field(gt=0, le=65536)
+    bytes: StrictInt = Field(gt=0, le=16_777_216)
     sha256: StrictStr = Field(pattern="^[a-f0-9]{64}$")
 
 
@@ -93,16 +143,31 @@ def read_export(path, metadata):
     if (
         not path.is_file()
         or path.stat().st_size != metadata["bytes"]
-        or not 0 < metadata["bytes"] <= 65536
+        or not 0 < metadata["bytes"] <= 16_777_216
     ):
         raise ServiceError("artifact_invalid", "The export changed or is missing.")
     with path.open("rb") as stream:
-        raw = stream.read(65537)
+        raw = stream.read(metadata["bytes"] + 1)
     if len(raw) != metadata["bytes"] or hashlib.sha256(raw).hexdigest() != metadata["sha256"]:
         raise ServiceError(
             "artifact_invalid", "The export changed; preserve it and inspect the project."
         )
     return raw
+
+
+def blender_executable():
+    """Discover an installed application without importing it or running a probe."""
+    import shutil
+
+    found = shutil.which("blender")
+    if found:
+        return str(Path(found).resolve())
+    root = Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Blender Foundation"
+    if root.is_dir():
+        candidates = sorted(root.glob("Blender */blender.exe"), reverse=True)
+        if candidates:
+            return str(candidates[0].resolve())
+    return None
 
 
 class CadService:
@@ -174,12 +239,17 @@ class CadService:
         async with self.lock:
             previous = self.load(owner, project, key)
             if previous:
-                if previous["recipe"] != recipe:
+                if Recipe.model_validate(previous["recipe"]).model_dump() != recipe:
                     raise ServiceError(
                         "request_conflict", "This build ID was already used with other dimensions."
                     )
                 return self.public(previous)
             self.governor.require_heavy()
+            if recipe["engine"] == "blender" and not blender_executable():
+                raise ServiceError(
+                    "blender_unavailable",
+                    "Blender is not installed. Choose the offline engine to build this scene.",
+                )
             if self.active:
                 raise ServiceError(
                     "worker_busy", "One creative build is already running. Wait or cancel it first."
@@ -244,13 +314,23 @@ class CadService:
             running["process"] = factory(
                 executable,
                 Path(__file__).resolve().parents[1] / "workers/cad_worker.py",
-                {"staging": str(staging), "recipe": value["recipe"]},
+                {
+                    "staging": str(staging),
+                    "recipe": value["recipe"],
+                    "blender": blender_executable()
+                    if value["recipe"].get("engine") == "blender"
+                    else None,
+                },
                 project,
             )
             value.update(state="running", phase="building")
             self.save(owner, project, value)
             await self.publish(owner, value)
-            deadline = time.monotonic() + self.timeout
+            deadline = time.monotonic() + (
+                max(self.timeout, 120)
+                if value["recipe"].get("engine") == "blender"
+                else self.timeout
+            )
             while running["process"].alive():
                 if running["cancel"].is_set() or self.governor.state in ("gaming", "resident"):
                     raise ServiceError(
@@ -268,7 +348,10 @@ class CadService:
                         phase = json.loads(progress.read_text())["phase"]
                     except (ValueError, KeyError, OSError):
                         phase = value["phase"]
-                    if phase in ("building", "validating", "saving") and phase != value["phase"]:
+                    if (
+                        phase in ("building", "validating", "saving", "blender")
+                        and phase != value["phase"]
+                    ):
                         value["phase"] = phase
                         await self.publish(owner, value)
                 await asyncio.sleep(0.05)
@@ -293,9 +376,14 @@ class CadService:
             result = WorkerResult.model_validate_json(result_bytes).model_dump()
             artifacts = result["artifacts"]
             if (
-                set(artifacts) != {"stl", "glb", "json"}
+                set(artifacts)
+                != (
+                    {"stl", "glb", "json", "blend", "png"}
+                    if value["recipe"].get("engine") == "blender"
+                    else {"stl", "glb", "json"}
+                )
                 or result["stats"]["watertight"] is not True
-                or not 1 <= result["stats"]["triangles"] <= 512
+                or not 1 <= result["stats"]["triangles"] <= 4096
             ):
                 raise ServiceError("worker_failed", "Artifact validation failed.")
             for extension, metadata in artifacts.items():
@@ -349,6 +437,9 @@ class CadService:
                     "model.stl",
                     "model.glb",
                     "model.json",
+                    "model.blend",
+                    "model.png",
+                    "blender.glb",
                 ):
                     try:
                         (staging / name).unlink(missing_ok=True)
@@ -400,6 +491,8 @@ class CadService:
             raise ServiceError(
                 "artifact_missing", "Build this design successfully before exporting it."
             )
+        if args.format not in value["artifacts"]:
+            raise ServiceError("artifact_missing", "This revision does not contain that export.")
         metadata = value["artifacts"][args.format]
         path = contained_path(Path(project), f"{value['directory']}/model.{args.format}")
         raw = read_export(path, metadata)
@@ -428,7 +521,7 @@ async def plan_recipe(prompt, provider_factory=None):
                             {
                                 "name": "propose_cad_recipe",
                                 "description": "Propose one editable box, L bracket or open enclosure in millimetres.",
-                                "parameters": Recipe.model_json_schema(),
+                                "parameters": SolidRecipe.model_json_schema(),
                             }
                         ]
                     }
@@ -439,7 +532,7 @@ async def plan_recipe(prompt, provider_factory=None):
                 raise ServiceError(
                     "plan_invalid", "The planner did not return a supported blueprint."
                 )
-            return Recipe.model_validate(response.tool_calls[0].args).model_dump()
+            return SolidRecipe.model_validate(response.tool_calls[0].args).model_dump()
     except ServiceError:
         raise
     except TimeoutError as exc:
@@ -460,7 +553,7 @@ def register_cad_tools(dispatcher, service):
     dispatcher.register(
         ToolSpec(
             "generate_cad",
-            "Build a validated offline parametric box, L bracket or open enclosure. Dimensions in mm; returns a scoped job and STL/GLB exports.",
+            "Build parametric solids or a typed scene of up to eight objects with transforms/materials. Offline STL/GLB; optional installed Blender projects and render.",
             BuildRequest,
             service.start,
         )

@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { Box, Rotate3D } from 'lucide-react';
 import socket from '../../services/socket';
@@ -28,12 +28,27 @@ function Solid({
   geometry,
   wireframe
 }) {
-  const edges = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
-  useEffect(() => () => edges.dispose(), [edges]);
-  return <group>
-    <mesh geometry={geometry}><meshStandardMaterial color="#42c4cf" roughness={.38} metalness={.28} wireframe={wireframe} /></mesh>
-    {!wireframe && <lineSegments geometry={edges}><lineBasicMaterial color="#b6f6f6" transparent opacity={.45} /></lineSegments>}
-  </group>;
+  const {
+    invalidate
+  } = useThree();
+  useEffect(() => {
+    geometry.traverse(object => {
+      if (object.isMesh) {
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          material.wireframe = wireframe;
+          material.needsUpdate = true;
+        }
+      }
+    });
+    invalidate();
+  }, [geometry, wireframe, invalidate]);
+  return <primitive object={geometry} dispose={null} />;
+}
+function disposeModel(model) {
+  model?.traverse(object => {
+    object.geometry?.dispose();
+    if (object.material) for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.dispose();
+  });
 }
 export default function ModelPreview({
   job,
@@ -50,18 +65,24 @@ export default function ModelPreview({
     if (job?.state === 'succeeded') {
       cadRpc(socket, 'cad_artifact', {
         request_id: job.request_id,
-        format: 'stl'
+        format: 'glb'
       }).then(async ({
         artifact
       }) => {
         const bytes = await artifactBytes(artifact);
         if (!alive) return;
-        model = new STLLoader().parse(bytes.buffer);
-        model.center();
-        model.rotateX(-Math.PI / 2);
-        model.computeBoundingSphere();
-        model.scale(1 / model.boundingSphere.radius, 1 / model.boundingSphere.radius, 1 / model.boundingSphere.radius);
-        model.computeVertexNormals();
+        const gltf = await new Promise((resolve, reject) => new GLTFLoader().parse(bytes.buffer, '', resolve, reject));
+        model = gltf.scene;
+        if (!alive) {
+          disposeModel(model);
+          return;
+        }
+        const bounds = new THREE.Box3().setFromObject(model);
+        const center = bounds.getCenter(new THREE.Vector3());
+        const radius = bounds.getSize(new THREE.Vector3()).length() / 2;
+        if (!Number.isFinite(radius) || radius <= 0) throw new Error('Invalid scene bounds.');
+        model.position.copy(center).multiplyScalar(-1 / radius);
+        model.scale.setScalar(1 / radius);
         setLoadedFor(job.request_id);
         setGeometry(model);
       }).catch(failure => {
@@ -70,7 +91,7 @@ export default function ModelPreview({
     }
     return () => {
       alive = false;
-      model?.dispose();
+      disposeModel(model);
     };
   }, [job?.request_id, job?.state]);
   const visibleGeometry = loadedFor === job?.request_id && job?.state === 'succeeded' ? geometry : null;

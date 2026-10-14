@@ -125,7 +125,7 @@ def verify():
         result["ui"] = json.loads((output / "ui-verification.json").read_text())
         assert result["ui"]["passed"], result["ui"]
         until(lambda: host.workspace is None and not host.runtime.cad_service.active)
-        assert len(worker_pids) == 3
+        assert len(worker_pids) == 4
         for pid in worker_pids:
             handle = api(kernel, "OpenProcess", [W.DWORD, W.BOOL, W.DWORD], W.HANDLE)(
                 0x100000, False, pid
@@ -139,6 +139,7 @@ def verify():
                 finally:
                     kernel.CloseHandle(handle)
         assert "creative.geometry" not in sys.modules
+        assert "creative.scene" not in sys.modules
         result["workers_started_and_exited"] = len(worker_pids)
         result["geometry_module_in_resident"] = False
         result["resident_after_worker_and_workspace_exit"] = [sample()]

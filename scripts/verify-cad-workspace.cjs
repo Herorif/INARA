@@ -30,6 +30,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
   await load.apply(window, args);
   const evaluate = source => window.webContents.executeJavaScript(source);
   const result = {};
+  window.webContents.on("console-message", (_, level, message) => { if (level === 3) console.error("QA renderer:", message); });
   try {
     const requests = [];
     window.webContents.session.webRequest.onBeforeRequest((details, callback) => {
@@ -111,6 +112,51 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await until(() => evaluate(`document.querySelector('.cad-error')?.textContent.includes('not configured yet')`));
     assert.equal(await evaluate(`document.querySelector('.cad-viewport').dataset.modelLoaded`), 'true');
     result.optional_planner_missing_key_preserves_offline_preview = true;
+
+    // Exercise actual scene editing, object lifecycle, transformed/material GLB and restore.
+    window.setContentSize(1440, 1000);
+    await evaluate(`document.querySelectorAll('.cad-shapes button')[3].click()`);
+    await until(() => evaluate(`document.querySelectorAll('.scene-roster button').length === 2`));
+    assert.equal(await evaluate(`document.querySelector('.cad-builder select option[value="blender"]').disabled`), true);
+    await evaluate(`document.querySelector('.scene-actions button').click()`);
+    await until(() => evaluate(`document.querySelectorAll('.scene-roster button').length === 3`));
+    await evaluate(`document.querySelector('[aria-label="Duplicate object"]').click()`);
+    await until(() => evaluate(`document.querySelectorAll('.scene-roster button').length === 4`));
+    await evaluate(`document.querySelector('[aria-label="Remove object"]').click()`);
+    await until(() => evaluate(`document.querySelectorAll('.scene-roster button').length === 3`));
+    await evaluate(`const selects = document.querySelectorAll('.scene-editor select'); selects[0].value='enclosure'; selects[0].dispatchEvent(new Event('change',{bubbles:true})); selects[1].value='titanium'; selects[1].dispatchEvent(new Event('change',{bubbles:true}));`);
+    for (const [label,value] of [['rotation Z','45'],['position Y','20'],['position Z','40'],['scale X','1.2']]) {
+      await evaluate(`{ const sceneInput=document.querySelector('[aria-label="${label}"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(sceneInput,'${value}'); sceneInput.dispatchEvent(new Event('input',{bubbles:true})); }`);
+    }
+    await evaluate(`document.querySelector('.cad-build').click()`);
+    await until(() => evaluate(`document.querySelector('.cad-status strong')?.textContent === 'Ready to explore' && document.querySelector('.cad-stats')?.textContent.includes('331.33') && document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true'`));
+    await evaluate(`if(document.querySelector('.cad-preview-top button').getAttribute('aria-pressed') === 'true') document.querySelector('.cad-preview-top button').click(); document.querySelector('.cad-studio').scrollTop=0; document.querySelector('.cad-studio').parentElement.scrollTop=0;`);
+    await sleep(400);
+    fs.writeFileSync(path.join(output,'scene-desktop.png'),(await window.webContents.capturePage()).toPNG());
+    await evaluate(`document.querySelectorAll('.cad-export button')[1].click()`);
+    await until(() => downloads.length === 4);
+    const sceneBinary = fs.readFileSync(downloads[3]);
+    const loaded = await new Promise((resolve,reject) => new GLTFLoader().parse(sceneBinary.buffer.slice(sceneBinary.byteOffset,sceneBinary.byteOffset+sceneBinary.byteLength),'',resolve,reject));
+    const parts=[]; loaded.scene.traverse(object => { if(object.isMesh) parts.push(object); });
+    assert.equal(parts.length,3);
+    assert.deepEqual(parts.map(part => part.material.name),['cyan','amber','titanium']);
+    assert.ok(parts[2].geometry.attributes.position.count > parts[0].geometry.attributes.position.count);
+    result.scene = { objects:3, materials:parts.map(part => part.material.name), add_duplicate_remove:true, transforms:true, real_glb_download:true };
+    for (const width of [390,768]) {
+      window.setContentSize(width,900); await sleep(200);
+      assert.equal(await evaluate(`document.documentElement.scrollWidth > innerWidth || document.querySelector('.cad-studio').scrollWidth > document.querySelector('.cad-studio').clientWidth`),false);
+      if(width===390) {
+        await evaluate(`document.querySelector('.cad-studio').scrollTop=0; document.querySelector('.cad-studio').parentElement.scrollTop=0;`);
+        fs.writeFileSync(path.join(output,'scene-mobile.png'),(await window.webContents.capturePage()).toPNG());
+        await evaluate(`document.querySelector('.cad-workbench').scrollIntoView({block:'start'})`);
+        await sleep(200);
+        fs.writeFileSync(path.join(output,'scene-mobile-preview.png'),(await window.webContents.capturePage()).toPNG());
+      }
+    }
+    await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+    await evaluate(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('3D studio')).click()`);
+    await until(() => evaluate(`document.querySelectorAll('.scene-roster button').length === 3 && document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true' && document.querySelector('.cad-stats')?.textContent.includes('331.33')`));
+    result.scene.restored_without_rebuild = true;
     result.passed = true;
   } catch (error) {
     result.passed = false;

@@ -1,0 +1,35 @@
+# Scene Studio and optional Blender bridge
+
+Implemented 14 October 2026. Open **Studio > 3D studio > Scene assembly**. Add, duplicate or remove up to eight boxes, L brackets or open enclosures. Select an object to edit its name, dimensions, material and transform, then build a new revision. Offline builds require neither Blender nor an API key. [Desktop](qa/scene-desktop.png), [phone-width controls](qa/scene-mobile.png), [phone-width preview](qa/scene-mobile-preview.png).
+
+## Scene contract
+
+`SceneObject` extends the existing validated solid recipe. Translation is -2000 to 2000 mm per axis; rotation is -360 to 360 degrees; positive scale is 0.1 to 5. Transforms apply scale, X/Y/Z rotations, then translation about the solid's base origin. Negative/mirrored scales, nested scenes, arbitrary meshes, scripts and extra fields reject before worker launch. Materials are cyan, titanium, amber and ceramic. Existing wall and dimension limits still apply.
+
+Each GLB contains one named mesh node per part with embedded normals and its own material. Geometry is baked into world coordinates; editable transforms remain in the JSON recipe. Preview reads the actual integrity-checked GLB, uses demand rendering, and disposes geometry, materials and orbit controls on release. STL combines the parts without material information. Scene dimensions are world bounds, and reported volume is the sum of part volumes. Intersecting parts remain separate closed meshes: this is assembly, not boolean union or a guarantee of fabrication suitability.
+
+`backend/creative/scene.py` owns assembly/export in the worker. The resident imports typed schemas and services only. Existing authenticated RPCs, generation permission/approval, owner/project scope, encrypted job history, duplicate/no-replay rules and immutable artifact revisions remain in place. Older recipes normalize new optional defaults when comparing completed IDs; no data rewrite is needed. Closing Studio, renderer loss, gaming/resident admission, core shutdown and explicit cancellation retain the shared owned-job cleanup path.
+
+The export ceiling is now **16 MiB per artifact**, replacing the earlier 64 KiB ceiling to accommodate bounded scenes and Blender projects. Actual reads are bounded, sizes and SHA-256 hashes are checked in the core and renderer, and an unavailable format fails clearly. The existing 128-build history cap remains; archival/retention is future work. Project artifacts are ordinary local files, while private ledger records remain DPAPI protected.
+
+## Controlled Blender bridge
+
+The core checks PATH and the standard Windows Blender Foundation installation directory without importing Blender or launching a probe. `cad_list` reports installation availability; the UI disables the Blender engine when absent. Availability means an executable was found, not that its version passed this project's round-trip check. A request for an absent installation rejects before a job is claimed. Refresh history after installing Blender to update availability.
+
+When selected, the owned Python worker invokes Blender in background/factory-startup mode with automatic script execution disabled, two threads and the fixed bundled `backend/workers/blender_scene.py`. This script imports only the freshly generated embedded GLB, re-exports its named meshes, adds a presentation camera/lights, saves a `.blend`, and renders a 960 x 720 PNG with 16 CPU Cycles samples. No provider-generated Python, external user `.blend` loading, arbitrary operator dispatch or shell command is accepted. The bridge follows Blender's documented [GLB import](https://docs.blender.org/api/main/bpy.ops.import_scene.html) and [GLB export](https://docs.blender.org/api/5.0/bpy.ops.export_scene.html) operators.
+
+Blender is a descendant of the atomic Windows Job Object, inherits the worker's credential-filtered environment and is killed with its owned tree on cancellation/exit. The core deadline is 120 seconds for Blender (30 seconds for offline work); the child command also has a 110-second timeout. Nonzero exits, missing/oversize artifacts and invalid signatures fail without replacing earlier designs. Successful Blender revisions add BLEND and PNG downloads to STL, GLB and Recipe. This is process ownership, not a security sandbox or a GPU/thermal scheduler.
+
+**Blender is not installed in this environment. Its live import/render/export test is explicitly skipped.** The bridge is implemented and syntax checked; its intended `.blend`/PNG/export workflow remains unverified until tested with an actual installation. No installation or provider configuration was performed. The optional AI blueprint adapter stays limited to single-solid data proposals; scene AI proposals are deferred.
+
+## Verification
+
+- 116 Python checks pass; one real installed-Blender test is skipped. Nine frontend checks pass. Production build, Ruff and Python dependency consistency pass.
+- Independent binary inspection checks GLB part names, material indices, world coordinates/unit conversion, STL triangle count, transform order, summed volume and the eight-part limit. The nested scene tool schema is expanded for provider SDK compatibility and validated through the installed SDK without network access. Tests cover invalid vectors/code-like fields, prior revision preservation, old recipe deduplication, scoped history, cancellation and unavailable-Blender admission.
+- `scripts/verify-cad.py` exercises the actual native host and hidden renderer with isolated profile, projects, settings and DPAPI storage. It retains the three single-solid flows, then adds/duplicates/removes objects, changes transforms/materials, builds a three-part scene, downloads/imports GLB with Three.js, verifies all three materials, and restores the scene without rebuilding. Widths 1440, 768 and 390 fit without overflow. Screenshots were visually inspected. No remote geometry asset requests occurred.
+- Four owned geometry workers start and exit. Both geometry and scene modules stay absent from the resident. After workspace closure, six samples over ten seconds show **64.97-65.04 MB combined working set / 47.54 MB private bytes**, including the venv launcher; before workspace opening, 62.25/46.10 MB. This is a short recovery observation, not another ten-minute or real-game benchmark. Graceful core shutdown passes. [Recorded evidence](qa/scene-verification.json).
+- No paid provider, actual Blender, camera, microphone, printer or phone actions ran. Remote CI, installed-release performance, real-game impact and Blender resource recovery remain unverified. Existing build/deprecation warnings remain.
+
+## Next bounded milestone
+
+Add an image-generation workspace and job adapter using the same explicit availability, permission, immutable artifact, cancellation and worker-lifetime rules. Keep provider configuration optional and deferred, and load local models only on demand. Actual Blender acceptance remains a separate installation-dependent check. Advanced vision and Android pairing/calls follow; WhatsApp replies remain excluded until specifically requested.

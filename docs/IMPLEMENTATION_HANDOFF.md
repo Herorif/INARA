@@ -2,7 +2,7 @@
 
 Updated 14 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident and offline CAD worker are implemented. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly and optional Blender bridge are implemented. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -49,16 +49,20 @@ Tray/hotkey reopen, graceful quit, scoped resident reminder delivery, explicit g
 
 ## Next implementation task
 
-1. Preserve the native host, offline CAD engine, protected request ledger, identity and tested JARVIS workspace. Keep API configuration deferred and WhatsApp replies excluded.
-2. Extend creative jobs to typed scene assembly: multiple supported objects, transforms and material choices, with offline GLB scene preview and new revision/export actions.
-3. Add a controlled Blender adapter when an installation is available, with validated operations, `.blend`/GLB output and explicit availability. Keep offline modeling usable without installing Blender or configuring a provider.
-4. Own Blender and descendants, enforce timeout/cancellation/gaming admission, sanitize failures and keep heavy imports out of the resident. Never execute arbitrary provider-generated Python.
-5. Verify scene geometry, actual Blender import/render/export when available, old-revision preservation and worker/resource recovery. Extend blueprint proposals only after the structured scene contract is tested.
-6. Image generation workers, advanced vision and Android pairing/calls remain subsequent bounded tasks. The real-game benchmark is deferred; signed packaging remains release work.
+1. Preserve native lifetime, offline solids/scenes, protected jobs, identity and the JARVIS workspace. Keep API configuration deferred and WhatsApp replies excluded.
+2. Add an image-generation workspace with explicit backend availability and a bounded generation contract. Reuse shared authorization, protected owner/project history and immutable artifacts. Do not download or initialize a model at resident startup.
+3. Keep heavy execution in owned workers; enforce cancellation, timeout and gaming admission. Verify missing-configuration behavior without paid requests, then actual generation only when a backend is configured.
+4. Add real preview/download/revision actions and visually verify desktop/narrow layouts plus resource recovery. Do not present placeholder output as generated art.
+5. The optional Blender bridge is implemented but no installation exists here: actual `.blend`/render/export acceptance and Blender resource recovery remain pending. Its real test automatically runs when an executable is detected. See [Scene Studio](SCENE_STUDIO.md).
+6. Advanced vision and Android pairing/calls remain subsequent tasks. The real-game benchmark is deferred; signed packaging remains release work.
+
+## Completed scene assembly milestone
+
+Up to eight typed parametric objects, scale/XYZ rotation/translation, four materials, add/duplicate/remove, material-aware GLB preview, STL/GLB/recipe revisions and an installation-aware fixed Blender bridge are implemented. Existing job permissions, cancellation and scoped storage are retained; old revisions remain readable. The optional provider planner stays single-solid only. 116 Python checks and nine frontend checks pass; the real Blender test is skipped. Actual hidden renderer verification covers three-part editing/export/restore and approximately 65 MB resident recovery. See [Scene Studio evidence and limitations](SCENE_STUDIO.md).
 
 ## Completed CAD worker milestone
 
-Offline box/bracket/enclosure generation, editable dimensions, real orbit/wireframe preview, STL/GLB/recipe download, protected scoped job history, shared build authorization, cancellation/timeout and owned worker cleanup are implemented. Optional AI proposals return validated recipe data for review; configuration stays deferred. The older voice adapter is preserved. See [CAD Studio evidence and limits](CAD_STUDIO.md). Actual Blender scene execution is still pending.
+Offline box/bracket/enclosure generation, editable dimensions, real orbit/wireframe preview, STL/GLB/recipe download, protected scoped job history, shared build authorization, cancellation/timeout and owned worker cleanup are implemented. Optional AI proposals return validated recipe data for review; configuration stays deferred. The older voice adapter is preserved. See [CAD Studio evidence and limits](CAD_STUDIO.md). Typed scene assembly and an optional Blender bridge are now implemented; actual Blender execution is installation-dependent and still unverified.
 
 ## Keep model use efficient
 
@@ -68,6 +72,7 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement typed scene assembly and the controlled Blender bridge in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/CAD_STUDIO.md, docs/PERSISTENCE.md and docs/NATIVE_RESIDENT.md. Preserve native lifetime, protected jobs, existing offline solids and the JARVIS UI. Add multiple objects, validated transforms/materials and offline GLB scene preview/export. Add owned Blender `.blend`/render/export operations when available without making offline modeling depend on an installation or provider key. Keep generated instructions as validated data, verify geometry and revision preservation, support cancellation/gaming policy and measure resource recovery. API configuration and the real-game benchmark remain deferred; WhatsApp replies remain excluded.
+> Implement the image-generation workspace and owned job adapter described in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/SCENE_STUDIO.md, docs/CAD_STUDIO.md, docs/PERSISTENCE.md and docs/NATIVE_RESIDENT.md. Preserve the native resident, offline solids/scenes, protected jobs, reminders and JARVIS UI. Add typed bounded image requests, explicit backend availability, scoped revisions, preview/export, permissions, cancellation/timeout/gaming policy and on-demand worker ownership. Verify missing configuration and deterministic adapter behavior without paid requests; do not fabricate generated output. API configuration and the real-game benchmark remain deferred; WhatsApp replies remain excluded. Actual Blender round-trip acceptance remains pending until installation.
+
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

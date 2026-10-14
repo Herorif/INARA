@@ -2,7 +2,14 @@
 
 import asyncio
 from pydantic import ValidationError
-from services.cad import BuildRequest, JobRequest, ArtifactRequest, PlanRequest, plan_recipe
+from services.cad import (
+    BuildRequest,
+    JobRequest,
+    ArtifactRequest,
+    PlanRequest,
+    plan_recipe,
+    blender_executable,
+)
 from services.storage import StorageError
 from services.tools import ServiceError
 
@@ -105,7 +112,10 @@ class CadTransport:
         }
 
     async def cad_list(self, sid, data, context):
-        return {"jobs": self.service.list(context["principal"], context["project_path"])}
+        return {
+            "jobs": self.service.list(context["principal"], context["project_path"]),
+            "capabilities": {"blender": bool(blender_executable()), "max_objects": 8},
+        }
 
     async def cad_close(self, sid, data, context):
         await self.stop_owner(context["principal"])

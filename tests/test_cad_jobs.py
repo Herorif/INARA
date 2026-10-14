@@ -13,6 +13,7 @@ from creative.geometry import build, validate, stl, glb
 from llm.base import LLMResponse, ToolCall
 from services.cad import (
     Recipe,
+    SolidRecipe,
     BuildRequest,
     ArtifactRequest,
     CadService,
@@ -238,7 +239,7 @@ async def test_optional_planner_returns_validated_data_and_closes_provider():
             return_value=LLMResponse(
                 tool_calls=[
                     ToolCall(
-                        "proposal", "propose_cad_recipe", Recipe(shape="enclosure").model_dump()
+                        "proposal", "propose_cad_recipe", SolidRecipe(shape="enclosure").model_dump()
                     )
                 ]
             )
