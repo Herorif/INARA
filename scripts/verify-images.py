@@ -1,5 +1,6 @@
 """Actual native image workspace. Test fixtures are explicitly labelled; no model runs."""
 
+from functools import partial
 import ctypes as C
 from ctypes import wintypes as W
 import json
@@ -124,16 +125,17 @@ def verify():
         from tests.image_support import FixtureImageService
         from services.images import register_image_tool
 
+        application = host.runtime.runtime
         fixture = FixtureImageService(
-            host.runtime.database,
-            host.runtime.resource_governor,
-            host.runtime.publish_image_job,
+            application.database,
+            application.resources,
+            partial(application.delivery.publish_job, "image_job"),
             process_factory=worker,
         )
         fixture.enabled = False
-        host.runtime.image_service = fixture
-        host.runtime.image_transport.service = fixture
-        register_image_tool(host.runtime.dispatcher, fixture)
+        application.images = fixture
+        application.image_transport.service = fixture
+        register_image_tool(application.dispatcher, fixture)
         result["before_workspace"] = sample()
         host.tray.post(host.open_workspace)
         until(lambda: (output / "unconfigured-checked.json").exists())
@@ -142,7 +144,7 @@ def verify():
         until(lambda: (output / "ui-verification.json").exists())
         result["ui"] = json.loads((output / "ui-verification.json").read_text())
         assert result["ui"]["passed"], result["ui"]
-        until(lambda: host.workspace is None and not host.runtime.image_service.active)
+        until(lambda: host.workspace is None and not application.images.active)
         assert len(worker_pids) == 3
         for pid in worker_pids:
             handle = api(kernel, "OpenProcess", [W.DWORD, W.BOOL, W.DWORD], W.HANDLE)(

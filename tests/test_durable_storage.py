@@ -322,27 +322,27 @@ def test_workspace_restores_selected_project_without_touching_artifacts(tmp_path
 
 
 @pytest.mark.asyncio
-async def test_transport_failure_retries_persistent_delivery(tmp_path, monkeypatch):
-    import server
+async def test_transport_failure_retries_persistent_delivery(tmp_path, monkeypatch, application_factory):
+    runtime = application_factory()
 
     store = make_store(tmp_path)
     store.add_reminder("offline reminder", 1)
-    monkeypatch.setattr(server, "reminder_store", store)
-    monkeypatch.setattr(server, "client_principals", {"socket": "owner"})
-    monkeypatch.setattr(server.dispatcher, "authenticated", lambda _: True)
+    runtime.delivery.reminders = runtime.reminder_transport.store = store
+    runtime.sessions.principals["socket"] = "owner"
+    monkeypatch.setattr(runtime.dispatcher, "authenticated", lambda _: True)
     emit = AsyncMock(side_effect=OSError("fake disconnected transport"))
-    monkeypatch.setattr(server.sio, "emit", emit)
+    monkeypatch.setattr(runtime.sio, "emit", emit)
     monkeypatch.setattr("core.durable_reminders.time.time", lambda: 100)
     with pytest.raises(OSError):
-        await server.deliver_reminders_once()
+        await runtime.delivery.deliver_reminders_once()
     first = emit.call_args.args[1]
-    monkeypatch.setattr(server.sio, "emit", AsyncMock())
+    monkeypatch.setattr(runtime.sio, "emit", AsyncMock())
     monkeypatch.setattr("core.durable_reminders.time.time", lambda: 131)
-    await server.deliver_reminders_once()
-    second = server.sio.emit.call_args.args[1]
+    await runtime.delivery.deliver_reminders_once()
+    second = runtime.sio.emit.call_args.args[1]
     assert first["delivery_id"] == second["delivery_id"]
-    await server.acknowledge_reminder("socket", {"delivery_id": second["delivery_id"]})
-    await server.dismiss_reminder("socket", {"delivery_id": second["delivery_id"]})
+    await runtime.reminder_transport.acknowledge_reminder("socket", {"delivery_id": second["delivery_id"]})
+    await runtime.reminder_transport.dismiss_reminder("socket", {"delivery_id": second["delivery_id"]})
     assert store.open_deliveries("owner") == []
 
 
@@ -442,8 +442,8 @@ async def test_typed_reminder_tools_use_selected_timezone_and_durable_store(tmp_
 
 
 @pytest.mark.asyncio
-async def test_direct_reminder_edit_enforces_shared_denial(tmp_path, monkeypatch):
-    import server
+async def test_direct_reminder_edit_enforces_shared_denial(tmp_path, monkeypatch, application_factory):
+    runtime = application_factory()
     from agents.scheduler_agent import SchedulerAgent
     from core.event_bus import EventBus
     from services.scheduler_tools import register_scheduler_tools
@@ -452,12 +452,12 @@ async def test_direct_reminder_edit_enforces_shared_denial(tmp_path, monkeypatch
     reminder = store.add_reminder("protected reminder", 100)
     dispatcher = ToolDispatcher(lambda: {"cancel_reminder": "deny"})
     register_scheduler_tools(dispatcher, SchedulerAgent(EventBus(), store), store)
-    monkeypatch.setattr(server, "dispatcher", dispatcher)
-    monkeypatch.setattr(server, "client_principals", {"socket": "owner"})
-    monkeypatch.setattr(server, "reminder_store", store)
+    runtime.reminder_transport.dispatcher = dispatcher
+    runtime.sessions.principals["socket"] = "owner"
+    runtime.delivery.reminders = runtime.reminder_transport.store = store
     emit = AsyncMock()
-    monkeypatch.setattr(server.sio, "emit", emit)
-    await server.cancel_reminder("socket", {"reminder_id": reminder.id})
+    monkeypatch.setattr(runtime.sio, "emit", emit)
+    await runtime.reminder_transport.cancel_reminder("socket", {"reminder_id": reminder.id})
     assert store.get(reminder.id).status == "pending"
     assert emit.call_args.args[0] == "error"
     assert emit.call_args.args[1]["code"] == "permission_denied"

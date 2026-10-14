@@ -40,6 +40,10 @@ class EventBus:
         if handler not in self._global_handlers:
             self._global_handlers.append(handler)
 
+    def off_all(self, handler: EventHandler):
+        """Unsubscribe a global observer when its application stops."""
+        self._global_handlers = [h for h in self._global_handlers if h != handler]
+
     def off(self, event_type: str, handler: EventHandler):
         """Unsubscribe from an event type."""
         if event_type in self._handlers:

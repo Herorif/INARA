@@ -52,7 +52,7 @@ class NativeHost:
         self.state.phase, self.state.error = "starting", None
         self.started_at = time.monotonic()
         self.server = None
-        # The retained server registers signals on import: import on the main thread.
+        # Load the supported facade before starting its application loop.
         import signal
 
         try:
@@ -77,7 +77,7 @@ class NativeHost:
             self.runtime = server
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
-            server.native_desktop = self
+            server.runtime.sessions.native_desktop = self
             server.ACTIVE_RUNTIME = "native-resident-core"
             server.ACTIVE_ENTRYPOINT = "backend/resident_main.py"
             self.server = server.uvicorn.Server(
@@ -136,8 +136,7 @@ class NativeHost:
         if self.runtime and self.state.identity.owner:
 
             def attach():
-                self.runtime.client_principals["native-resident"] = self.state.identity.owner
-                self.runtime.client_roles["native-resident"] = "resident"
+                self.runtime.runtime.sessions.attach_native(self.state.identity.owner)
 
             if self.loop and self.loop.is_running():
                 self.loop.call_soon_threadsafe(attach)

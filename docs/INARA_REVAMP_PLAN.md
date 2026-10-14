@@ -267,7 +267,7 @@ At roadmap checkpoint `5f79902`, the source inventory found 145 Python/JS/JSX/CS
 
 ### R1. Vision studio v2: implemented, hardware acceptance pending
 
-**Implementation update:** [Vision studio v2](VISION_STUDIO.md) now implements this software scope, with real-model/synthetic-stream verification. Actual camera/hand and physical sleep/device acceptance remain pending. R2a is next.
+**Implementation update:** [Vision studio v2](VISION_STUDIO.md) now implements this software scope, with real-model/synthetic-stream verification. Actual camera/hand and physical sleep/device acceptance remain pending. R2a is now implemented; R2b is next.
 
 Product outcome: a polished camera workspace with a clear off/requesting/preview/tracking/failed state, source selection, mirror control, useful hand overlays, confidence/presence information and a visible way to stop. Begin with the existing bundled hand model. Face/pose models are later optional capabilities; landmarks do not authenticate the owner.
 
@@ -278,6 +278,8 @@ Acceptance: duplicate starts, slow permission completion after close, denied per
 ### R2. Core composition, transport and authorization cleanup
 
 Product outcome: one reliable capability path for typed requests, UI actions and later voice/phone actions, with useful errors and predictable reconnect/shutdown.
+
+**R2a implementation update:** [Core composition](CORE_COMPOSITION.md) records the completed ownership extraction, native/renderer verification and remaining legacy seams. R2b route/policy migration is next.
 
 R2a extracts construction/lifetime from `server.py` into an application composition root with explicit dependencies. Move session identity, project context and event delivery into owned services, then feature registration into transport modules. Preserve `server.py` as the compatible supported entry point. Avoid tests or adapters depending on mutable module globals or private monkey-patches in production.
 
@@ -365,7 +367,7 @@ Phone feasibility should be reviewed when the Android shell first exists, before
 5. Visually review desktop and narrow UI; respect reduced motion, readable contrast, keyboard access and useful recovery.
 6. Update handoff/status and keep the supported build usable. Do not expand remote access, add automatic replies or initialize heavy models as a side effect of refactoring.
 
-R1 software implementation is complete. The next bounded deliverables are R2a runtime/session extraction, R2b route/policy migration and R2c tool/declaration cleanup. R3 begins once the core contract has a stable version; it can progress by feature rather than waiting for every legacy adapter to be rewritten. This ordering brings visible improvements while preventing the mobile app from inheriting legacy coupling and policy gaps.
+R1 software and R2a runtime/session extraction are complete. The next bounded deliverables are R2b route/policy migration and R2c tool/declaration cleanup. R3 begins once the core contract has a stable version; it can progress by feature rather than waiting for every legacy adapter to be rewritten. This ordering brings visible improvements while preventing the mobile app from inheriting legacy coupling and policy gaps.
 
 ## Repository organization
 

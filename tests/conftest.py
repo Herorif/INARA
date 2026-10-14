@@ -80,3 +80,27 @@ def sample_stl_content():
     endloop
   endfacet
 endsolid test"""
+
+@pytest.fixture
+def application_factory(tmp_path):
+    """Fresh composition root; never replace live server module globals."""
+    from application import create_application
+    from services.storage import Database
+    from unittest.mock import AsyncMock
+
+    applications = []
+
+    def create(**overrides):
+        root = tmp_path / str(len(applications))
+        root.mkdir()
+        values = dict(settings={"face_auth_enabled": False, "tool_permissions": {},
+                                "kasa_devices": []},
+                      project_root=root, legacy_data_dir=root,
+                      database=Database(root / "private"))
+        values.update(overrides)
+        runtime = create_application(**values)
+        runtime.sio.emit = AsyncMock()
+        applications.append(runtime)
+        return runtime
+
+    return create

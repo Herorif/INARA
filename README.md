@@ -73,8 +73,8 @@ restart is deliberate. Real camera/hand acceptance remains pending. See
 Run the deterministic milestone and desktop-contract checks with:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py -q
-.\.venv\Scripts\python.exe -m ruff check backend/services tests/test_conversation_service.py
+.\.venv\Scripts\python.exe -m pytest tests/test_application.py tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py -q
+.\.venv\Scripts\python.exe -m ruff check backend/application.py backend/transport tests/test_application.py backend/services tests/test_conversation_service.py
 node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs tests/test_cad_ui.mjs tests/test_vision.mjs
 npm run build
 ```
@@ -383,3 +383,5 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
   <strong>Built by Herorif</strong><br>
   <em>I love you 3000</em>
 </p>
+
+Core composition, desktop session ownership and remaining legacy policy seams are documented in [Core composition (R2a)](docs/CORE_COMPOSITION.md).

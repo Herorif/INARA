@@ -6,18 +6,12 @@ import asyncio
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-import socketio
 import uvicorn
-from fastapi import FastAPI
-import asyncio
 import threading
-import sys
 import os
 import json
-import uuid
 from datetime import datetime
 from pathlib import Path
-from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -27,93 +21,27 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.lazy import LazyService
-from services.conversation import ConversationRequest, ConversationService
-from services.storage import Database, StorageError
-from services.sessions import SessionStore
-from services.scheduler_tools import register_scheduler_tools
-from services.resources import ResourceGovernor, ResourceRequest
-from services.cad import CadService, register_cad_tools
-from services.cad_transport import CadTransport
-from services.images import ImageService, register_image_tool
-from services.image_transport import ImageTransport
-from services.tools import ServiceError, ToolDispatcher, ToolSpec, register_project_tools
+from services.resources import ResourceRequest
+from services.tools import ServiceError, ToolSpec
 
-inara = LazyService('inara')
 
 def FaceAuthenticator(**kwargs):
     from authenticator import FaceAuthenticator as factory
     return factory(**kwargs)
 
-from project_manager import ProjectManager
-
-# Phase 4-7 agents
-from core.event_bus import EventBus, Event, Events
-from core.reminder_store import ReminderStore
-from agents.scheduler_agent import SchedulerAgent
-from vision.vision_loop import VisionLoop
-
-# Create a Socket.IO server
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=[
-    'http://localhost:5173', 'http://127.0.0.1:5173', 'file://', 'null'])
-@asynccontextmanager
-async def lifespan(application):
-    await startup_event()
-    try:
-        yield
-    finally:
-        await close_services()
-
-
-app = FastAPI(lifespan=lifespan)
-app_socketio = socketio.ASGIApp(sio, app)
 ACTIVE_RUNTIME = "legacy-desktop-backend"
 ACTIVE_ENTRYPOINT = "backend/server.py"
-
-import signal
-
-# --- SHUTDOWN HANDLER ---
-def signal_handler(sig, frame):
-    print(f"\n[SERVER] Caught signal {sig}. Exiting gracefully...")
-    # Clean up audio loop
-    if audio_loop:
-        try:
-            print("[SERVER] Stopping Audio Loop...")
-            audio_loop.stop() 
-        except:
-            pass
-    # Force kill
-    print("[SERVER] Force exiting...")
-    os._exit(0)
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
 
 # Global state
 audio_loop = None
 loop_task = None
 authenticator = None
-printer_agent = LazyService('printer_agent', 'PrinterAgent')
 printer_monitor_task = None
 SETTINGS_FILE = os.getenv('INARA_SETTINGS_FILE') or str(Path(__file__).parent / "settings.json")
 load_dotenv(Path(__file__).parent.parent / '.env')
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.getenv('INARA_PROJECT_ROOT') or os.path.dirname(backend_dir)
-database = Database()
-project_manager = ProjectManager(project_root, state_store=database)
-
-# Phase 4-7 — event bus + agents
-bus = EventBus()
-reminder_store = ReminderStore(backend_dir=os.getenv('INARA_LEGACY_DATA_DIR'), database=database)
-scheduler_agent = SchedulerAgent(event_bus=bus, reminder_store=reminder_store)
-desktop_agent = LazyService('agents.desktop_agent', 'DesktopAgent', event_bus=bus)
-vision_loop = VisionLoop(event_bus=bus, interval=5)
-vision_agent = LazyService('agents.vision_agent', 'VisionAgent', event_bus=bus, vision_loop=vision_loop)
-device_agent = LazyService('agents.device_agent', 'DeviceAgent', event_bus=bus)
-client_principals = {}
-client_roles = {}
-native_desktop = None
-resource_governor = ResourceGovernor()
 uvicorn_server = None
 background_tasks = []
 vision_task = None
@@ -162,7 +90,7 @@ DEFAULT_SETTINGS = {
     "camera_flipped": False # Invert cursor horizontal direction
 }
 
-SETTINGS = DEFAULT_SETTINGS.copy()
+SETTINGS = {**DEFAULT_SETTINGS, "tool_permissions": dict(DEFAULT_SETTINGS["tool_permissions"])}
 AI_KEY_PLACEHOLDERS = {
     "your_api_key_here",
     "your_gemini_api_key_here",
@@ -269,39 +197,53 @@ def save_settings():
 # Load on startup
 load_settings()
 
-authenticator = None
-kasa_agent = LazyService('kasa_agent', 'KasaAgent', known_devices=SETTINGS.get("kasa_devices"))
-device_agent.kwargs['kasa_agent'] = kasa_agent
+async def _stop_legacy_media():
+    """Compatibility hook until the audio/session consolidation in R6."""
+    global audio_loop, loop_task, authenticator, printer_monitor_task, vision_task
+    if audio_loop:
+        audio_loop.stop()
+    if loop_task and not loop_task.done():
+        background_tasks.append(loop_task)
+    if authenticator:
+        authenticator.stop()
+    audio_loop = loop_task = authenticator = printer_monitor_task = vision_task = None
 
-dispatcher = ToolDispatcher(
-    lambda: SETTINGS['tool_permissions'],
-    authenticated=lambda principal: principal in client_principals.values()
-    and (not SETTINGS.get('face_auth_enabled')
-         or (authenticator is not None and authenticator.authenticated)))
-register_project_tools(dispatcher)
-register_scheduler_tools(dispatcher, scheduler_agent, reminder_store)
-async def publish_cad_job(principal, job):
-    for sid, owner in tuple(client_principals.items()):
-        if owner == principal and client_roles.get(sid) == 'renderer':
-            await sio.emit('cad_job', job, room=sid)
 
-def cad_context(sid):
-    if sid not in client_principals or client_roles.get(sid) != 'renderer':
-        raise ServiceError('authentication_required', 'Use the connected workspace to access Studio.')
-    return {'principal': client_principals[sid], 'project_path': project_manager.get_current_project_path().resolve()}
+from application import create_application
 
-cad_service = CadService(database, resource_governor, publish_cad_job)
-register_cad_tools(dispatcher, cad_service)
-cad_transport = CadTransport(sio, cad_service, dispatcher, cad_context)
-async def publish_image_job(principal, job):
-    for sid, owner in tuple(client_principals.items()):
-        if owner == principal and client_roles.get(sid) == 'renderer':
-            await sio.emit('image_job', job, room=sid)
-image_service = ImageService(database, resource_governor, publish_image_job)
-register_image_tool(dispatcher, image_service)
-image_transport = ImageTransport(sio, image_service, dispatcher, cad_context)
-conversation_service = ConversationService(dispatcher, store=SessionStore(database))
-# tool_permissions is now SETTINGS["tool_permissions"]
+runtime = create_application(
+    settings=SETTINGS, project_root=project_root,
+    legacy_data_dir=os.getenv('INARA_LEGACY_DATA_DIR'),
+    face_authenticated=lambda: authenticator is not None and authenticator.authenticated,
+    stop_legacy=_stop_legacy_media, startup_summary=print_startup_summary,
+    status_summary=get_runtime_summary, instance_id=os.getenv("INARA_INSTANCE_ID"))
+# Compatibility aliases for the resident host and unmigrated legacy adapters.
+# Extracted transports hold explicit dependencies and never import this facade.
+sio, app, app_socketio = runtime.sio, runtime.app, runtime.asgi
+database, project_manager = runtime.database, runtime.projects
+bus, reminder_store, scheduler_agent = runtime.bus, runtime.reminders, runtime.scheduler
+resource_governor, dispatcher = runtime.resources, runtime.dispatcher
+client_principals, client_roles = runtime.sessions.principals, runtime.sessions.roles
+background_tasks = runtime.tasks
+inara, printer_agent, desktop_agent = runtime.inara, runtime.printer, runtime.desktop
+vision_loop, vision_agent, device_agent, kasa_agent = runtime.vision_loop, runtime.vision, runtime.devices, runtime.kasa
+cad_service, image_service = runtime.cad, runtime.images
+cad_transport, image_transport = runtime.cad_transport, runtime.image_transport
+conversation_service = runtime.conversation
+cad_context = runtime.studio_context
+# Named facade methods remain for local adapters and existing launch scripts.
+user_input = runtime.conversation_transport.user_input
+resume_conversation = runtime.conversation_transport.resume_conversation
+create_reminder = runtime.reminder_transport.create_reminder
+snooze_reminder = runtime.reminder_transport.snooze_reminder
+cancel_reminder = runtime.reminder_transport.cancel_reminder
+acknowledge_reminder = runtime.reminder_transport.acknowledge_reminder
+dismiss_reminder = runtime.reminder_transport.dismiss_reminder
+get_reminders = runtime.reminder_transport.get_reminders
+refresh_reminders = runtime.reminder_transport.refresh_reminders
+deliver_reminders_once = runtime.delivery.deliver_reminders_once
+startup_event = runtime.start
+close_services = runtime.close
 
 
 def load_saved_printers_into_agent():
@@ -336,92 +278,11 @@ def activate_printers():
             load_saved_printers_into_agent()
         ensure_printer_monitor_running()
 
-async def _bridge_event(event: Event):
-    """Forward EventBus events to Socket.IO."""
-    mapping = {
-        Events.REMINDER_TRIGGERED:   "reminder_triggered",
-        Events.REMINDER_CREATED:     "reminder_created",
-        Events.REMINDER_CANCELLED:   "reminder_cancelled",
-        Events.DESKTOP_SCREENSHOT:   "desktop_screenshot",
-        Events.DESKTOP_SYSTEM_INFO:  "desktop_system_info",
-        Events.VISION_ALERT:         "vision_alert",
-        Events.VISION_DESCRIPTION:   "vision_description",
-        Events.VISION_PRESENCE:      "vision_presence",
-        Events.DEVICE_LIST:          "device_list",
-        Events.DEVICE_CONTROL:       "device_control",
-        Events.DEVICE_STATE:         "device_state",
-    }
-    socket_event = mapping.get(event.type)
-    if socket_event:
-        await sio.emit(socket_event, event.data)
-
-
-async def _check_reminders_loop():
-    """Poll due reminders and announce them via Socket.IO."""
-    print("[SERVER] Reminder check loop started.")
-    while True:
-        try:
-            await deliver_reminders_once()
-        except Exception:
-            print("[SERVER] Reminder delivery failed; retained for retry.")
-        await asyncio.sleep(10)
-
-
-async def deliver_reminders_once():
-    # One designated local client identity, retained in the delivery on reconnect.
-    for principal in dict.fromkeys(client_principals.values()):
-        rooms = sorted([sid for sid, owner in client_principals.items() if owner == principal and client_roles.get(sid) != 'workspace'],
-                       key=lambda sid: (client_roles.get(sid) != 'resident') if resource_governor.state == 'resident'
-                       else (client_roles.get(sid) == 'resident'))
-        if not rooms or not dispatcher.authenticated(principal):
-            continue
-        for delivery in reminder_store.claim_deliveries(principal):
-            if rooms[0] == 'native-resident' and native_desktop:
-                if await native_desktop.notify(delivery):
-                    reminder_store.acknowledge(delivery['delivery_id'], principal)
-            else:
-                await sio.emit("reminder_triggered", delivery, room=rooms[0])
-
-
-async def startup_event():
-    import sys
-    print(f"[SERVER DEBUG] Startup Event Triggered")
-    print(f"[SERVER DEBUG] Python Version: {sys.version}")
-    try:
-        loop = asyncio.get_running_loop()
-        print(f"[SERVER DEBUG] Running Loop: {type(loop)}")
-        policy = asyncio.get_event_loop_policy()
-        print(f"[SERVER DEBUG] Current Policy: {type(policy)}")
-    except Exception as e:
-        print(f"[SERVER DEBUG] Error checking loop: {e}")
-
-    # Text/reminders start without importing audio, browser, CAD or camera libraries.
-    bus.on_all(_bridge_event)
-    background_tasks.append(asyncio.create_task(_check_reminders_loop()))
-
-    print_startup_summary()
-
-@app.get("/status")
-async def status():
-    return {**get_runtime_summary(), 'instance_id': os.getenv('INARA_INSTANCE_ID'),
-            'resources': resource_governor.snapshot()}
-
 @sio.event
 async def connect(sid, environ, auth=None):
-    import hmac
-    import uuid
-    auth = auth if isinstance(auth, dict) else {}
-    token = os.getenv('INARA_SESSION_TOKEN')
-    if token and not hmac.compare_digest(str(auth.get('token', '')), token):
+    if not runtime.sessions.accept(sid, auth, os.getenv('INARA_SESSION_TOKEN')):
         return False
-    try:
-        principal = str(uuid.UUID(auth['client_id'])) if auth.get('client_id') else sid
-    except (ValueError, TypeError):
-        return False
-    if native_desktop and native_desktop.state.identity.owner and principal != native_desktop.state.identity.owner:
-        return False
-    client_principals[sid] = principal
-    client_roles[sid] = auth.get('role') if auth.get('role') in ('resident', 'workspace') else 'renderer'
+    principal = client_principals[sid]
     print(f"Client connected: {sid}")
     await sio.emit('status', {'msg': 'Connected to INARA Backend'}, room=sid)
     await sio.emit('text_ready', {'model': os.getenv('INARA_TEXT_MODEL', 'gemini-3.8-flash')}, room=sid)
@@ -471,12 +332,7 @@ async def connect(sid, environ, auth=None):
 
 @sio.event
 async def disconnect(sid):
-    role = client_roles.pop(sid, None)
-    principal = client_principals.pop(sid, sid)
-    if role == 'renderer' and not any(owner == principal and client_roles.get(other) == 'renderer' for other, owner in client_principals.items()):
-        await cad_transport.stop_owner(principal)
-        await image_transport.stop_owner(principal)
-    conversation_service.release_owner(principal)
+    await runtime.disconnect(sid)
     print(f"Client disconnected: {sid}")
 
 
@@ -488,7 +344,7 @@ async def set_resource_state(sid, data):
         request = ResourceRequest.model_validate(data)
     except ValidationError:
         return
-    if native_desktop and sid != 'native-resident' and native_desktop.state.identity.gaming:
+    if runtime.sessions.native_desktop and sid != 'native-resident' and runtime.sessions.native_desktop.state.identity.gaming:
         request = ResourceRequest(state='gaming')
     resource_governor.select(request.state)
     if request.state in ('resident', 'gaming'):
@@ -505,11 +361,11 @@ async def set_resource_state(sid, data):
 
 @sio.event
 async def desktop_control(sid, data):
-    if not native_desktop or client_roles.get(sid) != 'workspace' or not isinstance(data, dict):
+    if not runtime.sessions.native_desktop or client_roles.get(sid) != 'workspace' or not isinstance(data, dict):
         return {'ok': False, 'error': 'Desktop control unavailable'}
     try:
         principal = client_principals[sid]
-        state = await native_desktop.control(principal, data)
+        state = await runtime.sessions.native_desktop.control(principal, data)
         if data.get('action') == 'close':
             for renderer, owner in tuple(client_principals.items()):
                 if owner == principal and client_roles.get(renderer) == 'renderer':
@@ -783,93 +639,6 @@ async def confirm_tool(sid, data):
 
 # ---- Phase 4-7 direct socket handlers (bypass LLM for deterministic actions) ----
 
-async def run_reminder_action(sid, name, data):
-    if not await reminder_action_allowed(sid):
-        return
-    async def approve(payload):
-        await sio.emit('tool_confirmation_request', payload, room=sid)
-    try:
-        result = await dispatcher.dispatch(client_principals[sid], name, data or {},
-                                           {"principal": client_principals[sid]}, approve)
-        await sio.emit('reminder_updated', result, room=sid)
-        await refresh_reminders(sid)
-    except (ServiceError, ValidationError) as exc:
-        await sio.emit('error', {'msg': str(exc) if isinstance(exc, ServiceError)
-                       else 'Invalid reminder arguments.', 'code': getattr(exc, 'code', 'invalid_arguments')}, room=sid)
-
-
-@sio.event
-async def create_reminder(sid, data):
-    await run_reminder_action(sid, 'create_reminder', data)
-
-
-@sio.event
-async def snooze_reminder(sid, data):
-    await run_reminder_action(sid, "snooze_reminder", data)
-
-
-@sio.event
-async def cancel_reminder(sid, data):
-    await run_reminder_action(sid, "cancel_reminder", data)
-
-
-async def reminder_action_allowed(sid):
-    principal = client_principals.get(sid)
-    if principal is None or not dispatcher.authenticated(principal):
-        await sio.emit('error', {'msg': 'Authentication is required.'}, room=sid)
-        return False
-    return True
-
-
-async def refresh_reminders(sid):
-    principal = client_principals[sid]
-    for room, owner in tuple(client_principals.items()):
-        if owner == principal:
-            await sio.emit('reminder_list', [r.to_dict() for r in reminder_store.list_reminders()], room=room)
-            await sio.emit('reminder_deliveries', reminder_store.open_deliveries(owner), room=room)
-
-
-@sio.event
-async def acknowledge_reminder(sid, data):
-    if await reminder_action_allowed(sid) and isinstance(data, dict):
-        reminder_store.acknowledge(str(data.get('delivery_id', '')), client_principals[sid])
-
-
-@sio.event
-async def dismiss_reminder(sid, data):
-    if await reminder_action_allowed(sid) and isinstance(data, dict):
-        if not reminder_store.acknowledge(str(data.get('delivery_id', '')), client_principals[sid], complete=True):
-            await sio.emit('error', {'msg': 'This reminder alert is no longer actionable.'}, room=sid)
-        await refresh_reminders(sid)
-
-
-@sio.event
-async def get_reminders(sid):
-    if await reminder_action_allowed(sid):
-        await refresh_reminders(sid)
-
-
-class ResumeConversation(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    conversation_id: uuid.UUID
-
-
-@sio.event
-async def resume_conversation(sid, data):
-    try:
-        request = ResumeConversation.model_validate(data)
-        principal = client_principals.get(sid)
-        if principal is None or not dispatcher.authenticated(principal):
-            raise ServiceError('authentication_required', 'Unlock INARA before restoring conversation.')
-        messages = conversation_service.restore(client_principals[sid], request.conversation_id,
-                                                project_manager.get_current_project_path())
-        await sio.emit('conversation_restored', {'conversation_id': str(request.conversation_id),
-                       'project': project_manager.current_project, 'messages': messages}, room=sid)
-    except (ServiceError, ValidationError, StorageError) as exc:
-        await sio.emit('conversation_restore_failed', {'msg': str(exc) if not isinstance(exc, ValidationError)
-                       else 'Invalid conversation ID.', 'conversation_id': data.get('conversation_id')
-                       if isinstance(data, dict) else None}, room=sid)
-
 @sio.event
 async def control_device(sid, data):
     """data: {device_id, action, brightness?, color?}"""
@@ -927,37 +696,6 @@ async def shutdown(sid, data=None):
     await close_services()
     if uvicorn_server is not None:
         uvicorn_server.should_exit = True
-
-@sio.event
-async def user_input(sid, data):
-    request = None
-    try:
-        request = ConversationRequest.model_validate(data)
-        if not request.text.strip():
-            raise ServiceError('invalid_request', 'Enter a message first.')
-        principal = client_principals.get(sid)
-        if principal is None or not dispatcher.authenticated(principal):
-            raise ServiceError('authentication_required', 'Authentication is required.')
-        async def approve(payload):
-            await sio.emit('tool_confirmation_request', payload, room=sid)
-        await sio.emit('text_status', {'state': 'processing',
-                                     'request_id': str(request.request_id)}, room=sid)
-        result = await conversation_service.reply(
-            principal, request, project_manager.get_current_project_path(), approve)
-        await sio.emit('conversation_result', result.model_dump(mode='json'), room=sid)
-        # Preserve the existing desktop transcript event contract.
-        await sio.emit('transcription', {'sender': 'INARA', 'text': result.text,
-                                        'request_id': str(request.request_id)}, room=sid)
-    except (ServiceError, ValidationError) as exc:
-        await sio.emit('error', {'msg': str(exc) if isinstance(exc, ServiceError)
-                               else 'Invalid message payload.',
-                               'code': getattr(exc, 'code', 'invalid_request'),
-                               'request_id': str(request.request_id) if request else None}, room=sid)
-    except StorageError as exc:
-        await sio.emit('error', {'msg': str(exc), 'code': 'storage_unavailable',
-                       'request_id': str(request.request_id) if request else None}, room=sid)
-    finally:
-        await sio.emit('text_status', {'state': 'idle'}, room=sid)
 
 import json
 from datetime import datetime
@@ -1483,22 +1221,6 @@ async def _launch_registered(args, context):
 
 dispatcher.register(ToolSpec('launch_app', 'Open a configured application by name.',
                              LaunchArguments, _launch_registered))
-
-
-async def close_services():
-    await cad_transport.close()
-    await image_transport.close()
-    if audio_loop:
-        audio_loop.stop()
-    if loop_task and not loop_task.done():
-        loop_task.cancel()
-        background_tasks.append(loop_task)
-    if authenticator:
-        authenticator.stop()
-    for task in background_tasks:
-        task.cancel()
-    await asyncio.gather(*background_tasks, return_exceptions=True)
-    background_tasks.clear()
 
 
 if __name__ == "__main__":

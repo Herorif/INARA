@@ -193,4 +193,6 @@ Cross-platform context is an explicit value: owner/device/project/conversation/r
 
 Refactor completion is: one owner for the responsibility, a working user flow, meaningful regression evidence, preserved private/project data, measured startup/idle behavior when affected, and a short migration note. Formatting alone, a relocated large file, fixture-only inference or a test that swallows an exception does not complete a feature.
 
-R1 update: camera ownership, tracking scheduling/worker protocol and overlays are separated in `features/vision/`. The old global camera style block and unreferenced `useVideoCapture`/`useHandTracking` hooks are retired. [Vision studio](VISION_STUDIO.md) records synthetic versus hardware acceptance; R2a composition/session extraction is next.
+R1 update: camera ownership, tracking scheduling/worker protocol and overlays are separated in `features/vision/`. The old global camera style block and unreferenced `useVideoCapture`/`useHandTracking` hooks are retired. [Vision studio](VISION_STUDIO.md) records synthetic versus hardware acceptance. R2a composition/session extraction is now complete; see the update below.
+
+R2a update: `application.py` and `transport/` now own construction/lifetime, desktop identity/project snapshots, conversation/reminder routes and event delivery. `server.py` remains the mapped facade for legacy adapters. [Core composition](CORE_COMPOSITION.md) lists preserved compatibility seams and remaining direct-route bypasses. R2b route/policy migration is next; the whole server is not yet a bootstrap-only file.

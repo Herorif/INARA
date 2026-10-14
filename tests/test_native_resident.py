@@ -70,8 +70,8 @@ async def test_native_control_rejects_other_owner_and_suppresses_gaming_notices(
 
 
 @pytest.mark.asyncio
-async def test_native_receipt_only_after_notice_queued_and_workspace_excluded(monkeypatch):
-    import server
+async def test_native_receipt_only_after_notice_queued_and_workspace_excluded(monkeypatch, application_factory):
+    runtime = application_factory()
 
     store = SimpleNamespace(
         claim_deliveries=lambda _: [{"delivery_id": "one"}], acknowledge=AsyncMock()
@@ -80,20 +80,20 @@ async def test_native_receipt_only_after_notice_queued_and_workspace_excluded(mo
     receipts = []
     store.acknowledge = lambda key, owner: receipts.append((key, owner))
     desktop = SimpleNamespace(notify=AsyncMock(return_value=False))
-    monkeypatch.setattr(server, "native_desktop", desktop)
-    monkeypatch.setattr(server, "reminder_store", store)
-    monkeypatch.setattr(server, "client_principals", {"native-resident": "owner", "main": "owner"})
+    runtime.sessions.native_desktop = desktop
+    runtime.delivery.reminders = store
+    runtime.sessions.principals.update({"native-resident": "owner", "main": "owner"})
     monkeypatch.setattr(
-        server, "client_roles", {"native-resident": "resident", "main": "workspace"}
+        runtime.sessions, "roles", {"native-resident": "resident", "main": "workspace"}
     )
-    monkeypatch.setattr(server.dispatcher, "authenticated", lambda _: True)
+    monkeypatch.setattr(runtime.dispatcher, "authenticated", lambda _: True)
     emit = AsyncMock()
-    monkeypatch.setattr(server.sio, "emit", emit)
-    await server.deliver_reminders_once()
+    monkeypatch.setattr(runtime.sio, "emit", emit)
+    await runtime.delivery.deliver_reminders_once()
     assert receipts == []
     emit.assert_not_called()
     desktop.notify.return_value = True
-    await server.deliver_reminders_once()
+    await runtime.delivery.deliver_reminders_once()
     assert receipts == [("one", "owner")]
 
 
@@ -102,7 +102,7 @@ async def test_desktop_control_requires_workspace_role(monkeypatch):
     import server
 
     desktop = SimpleNamespace(control=AsyncMock(return_value={"gaming": True}))
-    monkeypatch.setattr(server, "native_desktop", desktop)
+    monkeypatch.setattr(server.runtime.sessions, "native_desktop", desktop)
     monkeypatch.setattr(server, "client_principals", {"renderer": "owner", "main": "owner"})
     monkeypatch.setattr(server, "client_roles", {"renderer": "renderer", "main": "workspace"})
     assert not (await server.desktop_control("renderer", {"action": "quit"}))["ok"]
@@ -158,23 +158,23 @@ time.sleep(60)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode,recipient", [("resident", "tray"), ("studio", "renderer")])
 async def test_reminder_destination_follows_lifetime_not_stale_renderer(
-    monkeypatch, mode, recipient
+    monkeypatch, mode, recipient, application_factory
 ):
-    import server
+    runtime = application_factory()
 
     monkeypatch.setattr(
-        server, "client_principals", {"renderer": "owner", "tray": "owner", "control": "owner"}
+        runtime.sessions, "principals", {"renderer": "owner", "tray": "owner", "control": "owner"}
     )
     monkeypatch.setattr(
-        server, "client_roles", {"renderer": "renderer", "tray": "resident", "control": "workspace"}
+        runtime.sessions, "roles", {"renderer": "renderer", "tray": "resident", "control": "workspace"}
     )
-    monkeypatch.setattr(server.resource_governor, "state", mode)
-    monkeypatch.setattr(server.dispatcher, "authenticated", lambda _: True)
+    monkeypatch.setattr(runtime.resources, "state", mode)
+    monkeypatch.setattr(runtime.dispatcher, "authenticated", lambda _: True)
     monkeypatch.setattr(
-        server,
-        "reminder_store",
+        runtime.delivery,
+        "reminders",
         SimpleNamespace(claim_deliveries=lambda _: [{"delivery_id": "one"}]),
     )
-    monkeypatch.setattr(server.sio, "emit", AsyncMock())
-    await server.deliver_reminders_once()
-    assert server.sio.emit.await_args.kwargs["room"] == recipient
+    monkeypatch.setattr(runtime.sio, "emit", AsyncMock())
+    await runtime.delivery.deliver_reminders_once()
+    assert runtime.sio.emit.await_args.kwargs["room"] == recipient

@@ -192,8 +192,8 @@ def test_project_restart_preserves_temporary_work(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_socket_text_contract_no_audio(monkeypatch, tmp_path):
-    import server
+async def test_socket_text_contract_no_audio(monkeypatch, tmp_path, application_factory):
+    runtime = application_factory()
 
     emitted = []
 
@@ -201,15 +201,15 @@ async def test_socket_text_contract_no_audio(monkeypatch, tmp_path):
         emitted.append((event, data, room))
 
     service, _ = make_service([LLMResponse(text="Text is ready.")])
-    monkeypatch.setattr(server, "conversation_service", service)
-    monkeypatch.setattr(server.sio, "emit", emit)
-    monkeypatch.setattr(server, "audio_loop", None)
+    runtime.conversation_transport.service = service
+    monkeypatch.setattr(runtime.sio, "emit", emit)
+
     monkeypatch.setattr(
-        server, "project_manager", SimpleNamespace(get_current_project_path=lambda: tmp_path)
+        runtime.sessions, "projects", SimpleNamespace(get_current_project_path=lambda: tmp_path, current_project="temp")
     )
-    monkeypatch.setitem(server.client_principals, "client", "owner")
-    monkeypatch.setitem(server.SETTINGS, "face_auth_enabled", False)
-    await server.user_input("client", {"text": "Hello"})
+    monkeypatch.setitem(runtime.sessions.principals, "client", "owner")
+    monkeypatch.setitem(runtime.settings, "face_auth_enabled", False)
+    await runtime.conversation_transport.user_input("client", {"text": "Hello"})
     assert (
         "transcription",
         {"sender": "INARA", "text": "Text is ready.", "request_id": emitted[1][1]["request_id"]},
@@ -217,7 +217,7 @@ async def test_socket_text_contract_no_audio(monkeypatch, tmp_path):
     ) in emitted
     assert emitted[0][1]["state"] == "processing"
     assert emitted[-1][1]["state"] == "idle"
-    assert server.audio_loop is None
+    assert runtime.inara.instance is None
 
 
 @pytest.mark.asyncio
@@ -248,40 +248,40 @@ async def test_socket_rejects_missing_auth_token(monkeypatch):
     assert await server.connect("client", {}, {"client_id": str(uuid.uuid4())}) is False
 
 
-def test_server_lifespan_is_lean_and_cleans_tasks(monkeypatch, tmp_path):
-    import server
+def test_server_lifespan_is_lean_and_cleans_tasks(monkeypatch, tmp_path, application_factory):
+    runtime = application_factory()
     from fastapi.testclient import TestClient
     from core.reminder_store import ReminderStore
 
-    monkeypatch.setattr(server, "reminder_store", ReminderStore(tmp_path))
-    with TestClient(server.app) as client:
+    runtime.delivery.reminders = ReminderStore(tmp_path)
+    with TestClient(runtime.app) as client:
         response = client.get("/status")
         assert response.status_code == 200
         assert response.json()["text_ready"] is True
         assert not any(module in sys.modules for module in ["inara", "pyaudio", "cv2", "build123d"])
-        assert any(not task.done() for task in server.background_tasks)
-        running_tasks = list(server.background_tasks)
+        assert any(not task.done() for task in runtime.tasks)
+        running_tasks = list(runtime.tasks)
     assert running_tasks and all(task.done() for task in running_tasks)
-    assert server.background_tasks == []
+    assert runtime.tasks == []
 
 
 @pytest.mark.asyncio
-async def test_socket_missing_key_and_invalid_payload(monkeypatch, tmp_path):
-    import server
+async def test_socket_missing_key_and_invalid_payload(monkeypatch, tmp_path, application_factory):
+    runtime = application_factory()
 
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.setattr(server, "conversation_service", ConversationService(server.dispatcher))
+    runtime.conversation_transport.service = ConversationService(runtime.dispatcher)
     monkeypatch.setattr(
-        server, "project_manager", SimpleNamespace(get_current_project_path=lambda: tmp_path)
+        runtime.sessions, "projects", SimpleNamespace(get_current_project_path=lambda: tmp_path, current_project="temp")
     )
-    monkeypatch.setattr(server.sio, "emit", AsyncMock())
-    monkeypatch.setitem(server.client_principals, "client", "owner")
-    monkeypatch.setitem(server.SETTINGS, "face_auth_enabled", False)
-    await server.user_input("client", {"text": "Hello"})
-    errors = [call for call in server.sio.emit.call_args_list if call.args[0] == "error"]
+    monkeypatch.setattr(runtime.sio, "emit", AsyncMock())
+    monkeypatch.setitem(runtime.sessions.principals, "client", "owner")
+    monkeypatch.setitem(runtime.settings, "face_auth_enabled", False)
+    await runtime.conversation_transport.user_input("client", {"text": "Hello"})
+    errors = [call for call in runtime.sio.emit.call_args_list if call.args[0] == "error"]
     assert errors[-1].args[1]["code"] == "provider_not_configured"
-    await server.user_input("client", {"text": 42})
-    errors = [call for call in server.sio.emit.call_args_list if call.args[0] == "error"]
+    await runtime.conversation_transport.user_input("client", {"text": 42})
+    errors = [call for call in runtime.sio.emit.call_args_list if call.args[0] == "error"]
     assert errors[-1].args[1]["code"] == "invalid_request"
 
 

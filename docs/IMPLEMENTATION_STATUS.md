@@ -46,7 +46,7 @@ The command deck, responsive workspace, local reminder panel, lazy 3D/camera loa
 
 ## Next milestone
 
-R2a core composition/session extraction: preserve the supported `server.py` entry point while separating construction/lifetime, identity/project context and thin event delivery. Keep all native, persistence, creative and vision behavior intact. R2b route/policy migration follows separately. See [handoff](IMPLEMENTATION_HANDOFF.md) and [Vision studio](VISION_STUDIO.md). Provider setup and real-game benchmarking remain deferred; real hardware/model acceptance stays explicitly separate.
+R2b route/policy migration: complete the direct-route matrix and move remaining legacy bypasses through shared validation/authorization with scoped responses and direct-call coverage. R2a construction/session extraction is complete; [Core composition](CORE_COMPOSITION.md) maps ownership, compatibility seams and evidence. Provider setup and real-game benchmarking remain deferred; real hardware/model acceptance stays separate.
 
 ## Second milestone verification (13 October 2026)
 
@@ -106,3 +106,10 @@ R1 implementation adds explicit camera/tracker state, source selection, mirror/o
 146 Python and 26 frontend checks pass, plus production build, lint and dependency consistency. Real renderer/model checks use synthetic camera streams: blank-frame inference is genuine; injected overlay landmarks are visibly labelled fixtures. Seven workers terminate, all tracks end, no remote assets load and the native core stays free of vision-model imports. Six post-workspace samples remain 63.63-63.83 MB working set / 46.60-46.86 MB private bytes. [Vision evidence and acceptance limits](VISION_STUDIO.md) records actual camera/hand and physical sleep/device checks still pending. This is short recovery, not a game benchmark. R2a is the next implementation.
 
 The retained fallback host lifecycle check passes after fixing reminder destination priority: resident mode selects its tray/native recipient ahead of stale renderer connections; Studio still prefers the renderer. Two destination regressions are included in the 146 Python checks.
+
+
+## Core composition/session extraction verification (14 October 2026, R2a)
+
+The injected application root now owns construction, FastAPI/ASGI lifetime, reminders, creative services and event delivery. Desktop sessions own handshake identity/roles/native binding and project snapshots. Conversation/reminder transports register existing wire contracts independently of the server facade. Startup rollback, repeated lifetime and shutdown failure paths release pollers/subscriptions. The final owner disconnect resolves approvals; another connected owner channel keeps its approvals.
+
+161 Python checks pass (one real-Blender skip), including 15 new boundary checks; all 26 frontend checks and scoped Ruff pass. Actual native failure/reopen/reminder/gaming verification, CAD/scene render/export/restore and labelled image-fixture cancellation/revisions pass. Short native idle measured 65.57 MB mean working set / 48.03 MB peak private bytes including the launcher, with zero Electron processes. Existing bounded Engine.IO shutdown timeout logs remain in the injected-crash scenario. No new real-model/hardware acceptance is claimed. [Evidence, migration inventory and remaining legacy seams](CORE_COMPOSITION.md). R2b is next.

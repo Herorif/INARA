@@ -48,4 +48,4 @@ Physical camera behavior, real-hand accuracy/latency, OEM permission/device beha
 
 ## Next implementation
 
-R2a: extract application construction/lifetime, session identity, project context and event delivery from `backend/server.py` into explicit dependencies and thin feature transports. Preserve the supported entry point, native lifecycle, reminders, existing CAD/image contracts and the new vision UI. Follow with R2b's route/policy matrix and legacy authorization migration. Do not combine the entire backend rewrite or Android pairing into R2a.
+R2a is implemented: [Core composition](CORE_COMPOSITION.md) records construction/lifetime, session/project context and transport extraction with regression evidence. The next checkpoint is R2b's route/policy matrix and legacy authorization migration. Android pairing remains a later milestone.

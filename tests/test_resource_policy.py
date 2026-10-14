@@ -30,25 +30,26 @@ async def test_gaming_blocks_legacy_camera_before_audio_or_worker_access(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_reminder_prefers_renderer_then_resident_on_close(tmp_path, monkeypatch):
-    import server
+async def test_reminder_prefers_renderer_then_resident_on_close(tmp_path, monkeypatch, application_factory):
+    runtime = application_factory()
     from core.reminder_store import ReminderStore
 
     store = ReminderStore(tmp_path)
     store.add_reminder("test reminder", 1)
-    monkeypatch.setattr(server, "reminder_store", store)
-    monkeypatch.setattr(server, "client_principals", {"tray": "owner", "window": "owner"})
-    monkeypatch.setattr(server, "client_roles", {"tray": "resident", "window": "renderer"})
-    monkeypatch.setattr(server.dispatcher, "authenticated", lambda _: True)
+    runtime.delivery.reminders = runtime.reminder_transport.store = store
+    runtime.sessions.principals.update({"tray": "owner", "window": "owner"})
+    runtime.sessions.roles.update({"tray": "resident", "window": "renderer"})
+    runtime.resources.select("studio")
+    monkeypatch.setattr(runtime.dispatcher, "authenticated", lambda _: True)
     emit = AsyncMock()
-    monkeypatch.setattr(server.sio, "emit", emit)
+    monkeypatch.setattr(runtime.sio, "emit", emit)
     monkeypatch.setattr("core.durable_reminders.time.time", lambda: 100)
-    await server.deliver_reminders_once()
+    await runtime.delivery.deliver_reminders_once()
     first = emit.call_args.args[1]
     assert emit.call_args.kwargs["room"] == "window"
-    server.client_principals.pop("window")
+    runtime.sessions.principals.pop("window")
     monkeypatch.setattr("core.durable_reminders.time.time", lambda: 131)
-    await server.deliver_reminders_once()
+    await runtime.delivery.deliver_reminders_once()
     assert emit.call_args.kwargs["room"] == "tray"
     assert emit.call_args.args[1]["delivery_id"] == first["delivery_id"]
 
@@ -70,8 +71,8 @@ async def test_shutdown_requires_connected_identity_and_cleans_before_exit(monke
 
 
 @pytest.mark.asyncio
-async def test_direct_reminder_creation_needs_no_ai_configuration(tmp_path, monkeypatch):
-    import server
+async def test_direct_reminder_creation_needs_no_ai_configuration(tmp_path, monkeypatch, application_factory):
+    runtime = application_factory()
     from agents.scheduler_agent import SchedulerAgent
     from core.event_bus import EventBus
     from core.reminder_store import ReminderStore
@@ -82,11 +83,11 @@ async def test_direct_reminder_creation_needs_no_ai_configuration(tmp_path, monk
     dispatcher = ToolDispatcher(lambda: {"create_reminder": False})
     register_scheduler_tools(dispatcher, SchedulerAgent(EventBus(), store), store)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.setattr(server, "dispatcher", dispatcher)
-    monkeypatch.setattr(server, "client_principals", {"client": "owner"})
-    monkeypatch.setattr(server, "reminder_store", store)
-    monkeypatch.setattr(server.sio, "emit", AsyncMock())
-    await server.create_reminder(
+    runtime.reminder_transport.dispatcher = dispatcher
+    runtime.sessions.principals["client"] = "owner"
+    runtime.delivery.reminders = runtime.reminder_transport.store = store
+    monkeypatch.setattr(runtime.sio, "emit", AsyncMock())
+    await runtime.reminder_transport.create_reminder(
         "client",
         {
             "task": "offline local reminder",
