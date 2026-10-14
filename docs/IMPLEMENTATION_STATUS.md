@@ -1,6 +1,6 @@
 # INARA revival implementation status
 
-Updated 14 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD and typed scene assembly from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
+Updated 14 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly and Image atelier from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
 ## Completed behavior
 
@@ -38,7 +38,7 @@ No paid AI requests, real app launches, camera sessions, printer actions or phon
 
 ## Remaining boundaries
 
-The typed tool path exposes project files, configured app launching, validated local reminders and offline parametric CAD jobs. Direct snooze/cancel uses the common dispatcher; CAD builds share the existing generation permission. Typed scene assembly and an optional Blender bridge are implemented; actual Blender execution awaits an installation. Image generation, local speech, Android and telephony remain subsequent work. Some legacy direct handlers still require policy migration, and the legacy voice dispatcher remains separate. This is a local desktop implementation, not a remotely exposed automation service.
+The typed tool path exposes project files, configured app launching, validated local reminders and offline parametric CAD jobs. Direct snooze/cancel uses the common dispatcher; CAD builds share the existing generation permission. Typed scene assembly and an optional Blender bridge are implemented; actual Blender execution awaits an installation. Image atelier and its local generation adapter are implemented; real diffusion inference remains unconfigured/unverified. Local speech, advanced vision, Android and telephony remain subsequent work. Some legacy direct handlers still require policy migration, and the legacy voice dispatcher remains separate. This is a local desktop implementation, not a remotely exposed automation service.
 
 Completed typed history and request ledgers are encrypted before SQLite/WAL writes. Restored context is limited to twenty completed messages. Windows DPAPI is user-bound; portable private export, device pairing, scoped credentials and retention controls remain planned. CAD worker ownership and manual resource/gaming policy are implemented; GPU/thermal admission and isolation of other legacy workers remain open. Legacy voice histories remain a separate adapter; existing settings/artifacts retain their formats. The legacy face-landmark gate does not become strong OS authentication through this change.
 
@@ -46,7 +46,7 @@ The command deck, responsive workspace, local reminder panel, lazy 3D/camera loa
 
 ## Next milestone
 
-Implement the image-generation workspace and owned job adapter, preserving offline solids/scenes, native lifetime, protected jobs, reminders and the JARVIS command deck. Actual Blender acceptance remains installation-dependent. Keep modeling usable without a configured provider or Blender installation. See [CAD Studio](CAD_STUDIO.md) and [native release checks](NATIVE_RESIDENT.md). The user deferred the real-game benchmark.
+Improve the on-demand Vision studio, preserving offline solids/scenes, Image atelier, shared creative jobs, native lifetime, protected history and the JARVIS command deck. Actual Blender acceptance remains installation-dependent. Keep modeling usable without a configured provider or Blender installation. See [CAD Studio](CAD_STUDIO.md) and [native release checks](NATIVE_RESIDENT.md). The user deferred the real-game benchmark.
 
 ## Second milestone verification (13 October 2026)
 
@@ -85,3 +85,10 @@ Typed scenes now support up to eight boxes/brackets/enclosures with per-object d
 The optional bridge detects an installed Blender and runs a fixed background import/export/project/render script as an owned descendant, with bounded CPU threads, timeout and artifacts. No Blender installation exists here, so the real round-trip test is skipped and actual `.blend`/render/export remains unverified. Offline scenes work without it or API configuration.
 
 116 Python and nine frontend checks pass, along with build, Ruff and dependency consistency. Actual hidden renderer verification passes three-solid regression, scene object editing/transforms/materials, GLB download/import, narrow layouts and history restoration without rebuild. Four workers exit, scene/geometry modules remain outside the resident, and six post-workspace samples stay at 64.97-65.04 MB working set / 47.54 MB private bytes. This is a ten-second recovery observation. [Scene Studio](SCENE_STUDIO.md) records contracts, screenshots, evidence and remaining Blender limits. No paid or phone actions ran; the real-game benchmark remains deferred.
+
+
+## Image atelier verification (14 October 2026)
+
+Image atelier now offers prompts, frame/seed/quality controls, preview, PNG/recipe download and protected revisions. A fixed local SD/SDXL adapter loads only in an owned worker after explicit generation, without downloads or a cloud API. Configuration remains deferred and no real image model ran. The normal UI explains missing setup and disables generation.
+
+CAD/image lifetimes and authenticated RPCs now share services, preserving old CAD contracts and adding one creative execution slot across CAD/Blender/images. 144 Python and nine frontend checks pass, plus build, Ruff and dependency consistency. Actual native renderer verification exercises unconfigured behavior and explicitly labelled test-only fixture revisions/downloads/reopen/cancel at 1440/768/390 widths. Production rejects fixture provenance. Three fixture workers exit and six recovery samples show 65.12-65.18 MB working set / 47.51 MB private bytes; this does not measure diffusion/GPU recovery. The existing real CAD/scene workflow also passes after refactoring. [Image atelier](IMAGE_ATELIER.md) records evidence, model/setup limits and the next vision milestone. Real Blender and image-model acceptance, remote CI and gaming benchmarks remain unverified/deferred.

@@ -1,6 +1,7 @@
 export const createUiSlice = (set, get) => ({
     showSettings: false,
     showCadWindow: false,
+    showImageStudio: false,
     showBrowserWindow: false,
     showKasaWindow: false,
     showPrinterWindow: false,

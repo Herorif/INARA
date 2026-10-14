@@ -58,12 +58,18 @@ remain unconfigured. An optional installed-Blender bridge adds project/render ex
 its live round trip awaits an installation. See [Scene Studio](docs/SCENE_STUDIO.md)
 and [CAD Studio](docs/CAD_STUDIO.md).
 
+**Image atelier is available in Studio:** edit prompts, frame size, seed and quality,
+then keep PNG/recipe revisions once a local model is configured. Model setup is
+still deferred; the app shows that clearly and does not fabricate output. Models
+load only inside owned workers, sharing one execution slot with CAD. See
+[Image atelier and verification](docs/IMAGE_ATELIER.md).
+
 Run the deterministic milestone and desktop-contract checks with:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py -q
+.\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py -q
 .\.venv\Scripts\python.exe -m ruff check backend/services tests/test_conversation_service.py
-node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs
+node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs tests/test_cad_ui.mjs
 npm run build
 ```
 

@@ -47,3 +47,5 @@ Reminder instants are UTC epoch seconds plus an IANA timezone and preserved loca
 The laptop must be awake and the backend running to emit reminders. Resident window lifetime, OS wake scheduling, Android offline scheduling, retention controls and resource measurements belong to subsequent milestones.
 
 Scene assembly reuses the same scoped CAD documents and immutable artifact revisions. Old single-solid recipes normalize optional scene/engine defaults for deduplication without rewriting stored data. See [Scene Studio](SCENE_STUDIO.md).
+
+Image jobs use separate owner/project-hashed `image_jobs:` records and the shared durable creative claim/revision service. Prompts/settings and metadata are protected in SQLite; ordinary PNG/JSON project exports remain plaintext. Interrupted/uncertain requests never auto-replay. See [Image atelier](IMAGE_ATELIER.md).

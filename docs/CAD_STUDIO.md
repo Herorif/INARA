@@ -44,4 +44,4 @@ Native lifecycle/crash checks still pass with bounded shutdown. An injected work
 
 ## Next bounded implementation
 
-Typed scene assembly and the controlled optional Blender bridge are implemented in [Scene Studio](SCENE_STUDIO.md). Actual Blender round trips remain pending installation. Image-generation jobs are the next bounded implementation; keep API configuration and the real-game benchmark deferred and WhatsApp replies excluded.
+Typed scene assembly and the controlled optional Blender bridge are implemented in [Scene Studio](SCENE_STUDIO.md). Actual Blender round trips remain pending installation. Image-generation jobs are now implemented in [Image atelier](IMAGE_ATELIER.md), with model inference still unconfigured; keep API configuration and the real-game benchmark deferred and WhatsApp replies excluded.

@@ -32,4 +32,6 @@ Blender is a descendant of the atomic Windows Job Object, inherits the worker's 
 
 ## Next bounded milestone
 
-Add an image-generation workspace and job adapter using the same explicit availability, permission, immutable artifact, cancellation and worker-lifetime rules. Keep provider configuration optional and deferred, and load local models only on demand. Actual Blender acceptance remains a separate installation-dependent check. Advanced vision and Android pairing/calls follow; WhatsApp replies remain excluded until specifically requested.
+The [Image atelier](IMAGE_ATELIER.md) and local generation adapter are now implemented, with real inference still unconfigured/unverified. The original next task was to add an image-generation workspace and job adapter using the same explicit availability, permission, immutable artifact, cancellation and worker-lifetime rules. Keep provider configuration optional and deferred, and load local models only on demand. Actual Blender acceptance remains a separate installation-dependent check. Advanced vision and Android pairing/calls follow; WhatsApp replies remain excluded until specifically requested.
+
+CAD and images now share `creative_jobs.py` / `creative_transport.py` with a single execution slot. Existing scene contracts, stored revisions and public CAD RPCs remain compatible. Actual CAD renderer regression passes after extraction; see [Image atelier](IMAGE_ATELIER.md).

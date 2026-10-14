@@ -2,7 +2,7 @@
 
 Updated 14 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly and optional Blender bridge are implemented. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge and Image atelier/job adapter are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -49,12 +49,16 @@ Tray/hotkey reopen, graceful quit, scoped resident reminder delivery, explicit g
 
 ## Next implementation task
 
-1. Preserve native lifetime, offline solids/scenes, protected jobs, identity and the JARVIS workspace. Keep API configuration deferred and WhatsApp replies excluded.
-2. Add an image-generation workspace with explicit backend availability and a bounded generation contract. Reuse shared authorization, protected owner/project history and immutable artifacts. Do not download or initialize a model at resident startup.
-3. Keep heavy execution in owned workers; enforce cancellation, timeout and gaming admission. Verify missing-configuration behavior without paid requests, then actual generation only when a backend is configured.
-4. Add real preview/download/revision actions and visually verify desktop/narrow layouts plus resource recovery. Do not present placeholder output as generated art.
-5. The optional Blender bridge is implemented but no installation exists here: actual `.blend`/render/export acceptance and Blender resource recovery remain pending. Its real test automatically runs when an executable is detected. See [Scene Studio](SCENE_STUDIO.md).
-6. Advanced vision and Android pairing/calls remain subsequent tasks. The real-game benchmark is deferred; signed packaging remains release work.
+1. Preserve the resident, offline solids/scenes, Image atelier, shared creative-job lifetime, protected history, identity and JARVIS workspace. Keep provider/model configuration deferred and WhatsApp replies excluded.
+2. Improve the on-demand Vision studio with explicit session state, local tracking overlays and useful controls. Inspect existing camera/tracker modules first; reuse working local assets.
+3. Keep camera acquisition and heavy analysis opt-in. Handle permission failure, device loss, duplicate starts, panel closure, workspace loss and gaming mode without retaining streams or analysis work. Default to preview; do not add automatic recording or desktop actions.
+4. Verify synthetic-stream/tracker behavior, rendered narrow/desktop controls, lazy startup assets and resource recovery. Actual owner-camera acceptance remains separate when hardware access is available.
+5. Real diffusion and Blender generation remain installation-dependent acceptance checks. Do not claim quality/GPU recovery from fixture plumbing checks. Read [Image atelier](IMAGE_ATELIER.md) and [Scene Studio](SCENE_STUDIO.md).
+6. Android pairing/calls follow the vision work. The real-game benchmark is deferred; signing/packaging, optional worker dependency locks and GPU/thermal admission remain release/setup work.
+
+## Completed Image atelier milestone
+
+A responsive prompt/frame/seed/quality workspace, installation-aware local SD/SDXL adapter, owned image worker, PNG/recipe preview/download and protected revisions are implemented. CAD and image jobs now share one durable service/transport and one creative execution slot. No weights/dependencies were installed or configured. Real generation is unverified; the normal UI explains setup and disables generation. 144 Python checks and nine frontend checks pass. Actual native UI checks use labelled test-only fixtures, verify cancellation/revisions and approximately 65 MB resident recovery; production rejects fixture provenance. [Evidence and limits](IMAGE_ATELIER.md).
 
 ## Completed scene assembly milestone
 
@@ -72,7 +76,7 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement the image-generation workspace and owned job adapter described in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/SCENE_STUDIO.md, docs/CAD_STUDIO.md, docs/PERSISTENCE.md and docs/NATIVE_RESIDENT.md. Preserve the native resident, offline solids/scenes, protected jobs, reminders and JARVIS UI. Add typed bounded image requests, explicit backend availability, scoped revisions, preview/export, permissions, cancellation/timeout/gaming policy and on-demand worker ownership. Verify missing configuration and deterministic adapter behavior without paid requests; do not fabricate generated output. API configuration and the real-game benchmark remain deferred; WhatsApp replies remain excluded. Actual Blender round-trip acceptance remains pending until installation.
+> Implement the on-demand Vision studio improvement in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/IMAGE_ATELIER.md, docs/SCENE_STUDIO.md and docs/NATIVE_RESIDENT.md. Preserve shared CAD/image jobs, native lifetime, history, permissions and the JARVIS UI. Inspect existing camera/tracker code before changing it. Add explicit session state, useful local tracking overlays/controls, robust acquisition/device-loss/closure/gaming cleanup, responsive visuals and synthetic-stream verification. Do not add automatic recording or actions. Provider/model configuration and the real-game benchmark remain deferred; WhatsApp replies remain excluded. Real diffusion and Blender acceptance are still pending installation/setup.
 
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

@@ -10,6 +10,7 @@ import './workspace.css';
 const AuthLock = lazy(() => import('../components/AuthLock'));
 const flags = {
   cad: 'showCadWindow',
+  image: 'showImageStudio',
   browser: 'showBrowserWindow',
   kasa: 'showKasaWindow',
   printer: 'showPrinterWindow',
@@ -21,7 +22,7 @@ const flags = {
   settings: 'showSettings',
   routines: 'showRoutineWindow'
 };
-const heavyFeatures = new Set(['cad', 'camera', 'browser', 'vision']);
+const heavyFeatures = new Set(['cad', 'image', 'camera', 'browser', 'vision']);
 function Clock() {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
@@ -233,13 +234,13 @@ export default function CommandDeck() {
                     <FeatureCard icon={Box} title="3D studio" description="Build a parametric solid, explore it in 3D and export STL or GLB. Works offline." tag="LOCAL + ON DEMAND" disabled={gaming} onClick={() => openFeature('cad')} />
                     <FeatureCard icon={Camera} title="Vision studio" description="A live perspective, when you choose. Camera access starts only with your permission." tag="CAMERA OFF" disabled={gaming} onClick={() => openFeature('camera')} />
                     <FeatureCard icon={Globe2} title="Research browser" description="Open a focused research workspace. Automation requires its optional setup." tag="ON DEMAND" disabled={gaming} onClick={() => openFeature('browser')} />
-                    <FeatureCard icon={Sparkles} title="Image atelier" description="Prompt, explore and art-direct your next visual. The generation worker is coming next." tag="COMING NEXT" disabled />
+                    <FeatureCard icon={Sparkles} title="Image atelier" description="Shape your next visual with prompts, seeds and protected revisions. Local models load only on demand." tag="MODEL SETUP LATER" disabled={gaming} onClick={() => openFeature('image')} />
                 </> : <>
                     <FeatureCard icon={Bell} title="Reminders" description="A reliable nudge. Schedules and unfinished alerts survive restart." tag="LOCAL" onClick={() => openFeature('reminder')} />
                     <FeatureCard icon={Cpu} title="Desktop controls" description="Apps and selected system tools, with permission at every step." tag="ON DEMAND" onClick={() => openFeature('desktop')} />
                     <FeatureCard icon={Zap} title="Smart home" description="Connect your supported lights and devices when you’re ready." tag="SETUP REQUIRED" onClick={() => openFeature('kasa')} />
                     <FeatureCard icon={Box} title="Print workshop" description="Inspect your printers and prepare the next physical creation." tag="SETUP REQUIRED" onClick={() => openFeature('printer')} />
-                </>}</div><div className="future-note"><Layers3 size={18} /><span>Blender workers and Android pairing are on the roadmap. Your existing SIM and WhatsApp number stay yours.</span></div>
+                </>}</div><div className="future-note"><Layers3 size={18} /><span>Offline scenes are ready. Image models and Android pairing can be configured separately. Your existing SIM and WhatsApp number stay yours.</span></div>
             </>}
             <footer className="workspace-footer"><span>INARA <span className="footer-separator">/</span> YOUR PERSONAL INTELLIGENCE</span><span><span className="status-dot" /> {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span></footer>
         </main></div>

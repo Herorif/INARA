@@ -1,5 +1,6 @@
 """Explicit desktop resource policy; heavy adapters remain on-demand."""
 
+import asyncio
 from typing import Literal
 from pydantic import BaseModel, ConfigDict
 from services.tools import ServiceError
@@ -13,6 +14,8 @@ class ResourceRequest(BaseModel):
 class ResourceGovernor:
     def __init__(self):
         self.state = "chat"
+        self.creative_active = {}
+        self.creative_lock = asyncio.Lock()
 
     def select(self, state):
         self.state = state

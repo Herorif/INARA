@@ -34,6 +34,8 @@ from services.scheduler_tools import register_scheduler_tools
 from services.resources import ResourceGovernor, ResourceRequest
 from services.cad import CadService, register_cad_tools
 from services.cad_transport import CadTransport
+from services.images import ImageService, register_image_tool
+from services.image_transport import ImageTransport
 from services.tools import ServiceError, ToolDispatcher, ToolSpec, register_project_tools
 
 inara = LazyService('inara')
@@ -120,6 +122,7 @@ DEFAULT_SETTINGS = {
     "face_auth_enabled": False, # Default OFF as requested
     "tool_permissions": {
         "generate_cad": True,
+        "generate_image": True,
         "run_web_agent": True,
         "write_file": True,
         "read_directory": True,
@@ -290,6 +293,13 @@ def cad_context(sid):
 cad_service = CadService(database, resource_governor, publish_cad_job)
 register_cad_tools(dispatcher, cad_service)
 cad_transport = CadTransport(sio, cad_service, dispatcher, cad_context)
+async def publish_image_job(principal, job):
+    for sid, owner in tuple(client_principals.items()):
+        if owner == principal and client_roles.get(sid) == 'renderer':
+            await sio.emit('image_job', job, room=sid)
+image_service = ImageService(database, resource_governor, publish_image_job)
+register_image_tool(dispatcher, image_service)
+image_transport = ImageTransport(sio, image_service, dispatcher, cad_context)
 conversation_service = ConversationService(dispatcher, store=SessionStore(database))
 # tool_permissions is now SETTINGS["tool_permissions"]
 
@@ -464,6 +474,7 @@ async def disconnect(sid):
     principal = client_principals.pop(sid, sid)
     if role == 'renderer' and not any(owner == principal and client_roles.get(other) == 'renderer' for other, owner in client_principals.items()):
         await cad_transport.stop_owner(principal)
+        await image_transport.stop_owner(principal)
     conversation_service.release_owner(principal)
     print(f"Client disconnected: {sid}")
 
@@ -481,6 +492,7 @@ async def set_resource_state(sid, data):
     resource_governor.select(request.state)
     if request.state in ('resident', 'gaming'):
         await cad_transport.close()
+        await image_transport.close()
         await stop_audio(sid)
         global vision_task
         if vision_task and not vision_task.done():
@@ -1474,6 +1486,7 @@ dispatcher.register(ToolSpec('launch_app', 'Open a configured application by nam
 
 async def close_services():
     await cad_transport.close()
+    await image_transport.close()
     if audio_loop:
         audio_loop.stop()
     if loop_task and not loop_task.done():
