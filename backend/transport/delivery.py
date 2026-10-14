@@ -31,7 +31,13 @@ class EventDelivery:
     async def bridge_legacy(self, event):
         name = LEGACY_EVENTS.get(event.type)
         if name:
-            await self.sio.emit(name, event.data)
+            if event.principal is not None:
+                if self.dispatcher.authenticated(event.principal):
+                    for sid in self.sessions.rooms(event.principal, "renderer"):
+                        await self.sio.emit(name, event.data, room=sid)
+            else:
+                # Unmigrated legacy producers remain explicitly inventoried in R2b.
+                await self.sio.emit(name, event.data)
 
     async def deliver_reminders_once(self):
         for principal in dict.fromkeys(self.sessions.principals.values()):

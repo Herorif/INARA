@@ -407,3 +407,5 @@ Measure ten-minute idle runs with and without wake detection, representative gam
 Cloud spending is optional for routine local work. Model, image and call usage must be visible by job and capped by daily/monthly policies. Telephone operation may add number rental, carrier forwarding, call minutes, AI audio and gateway hosting. Calculate budgets from current quotes and expected minutes, not a fixed invented monthly price. Model and creative bundle licences, installer signing and infrastructure maintenance also belong in the release plan.
 
 Phase 0 should finish with recorded laptop specifications, Fold8 firmware and regional capabilities, the actual carrier and forwarding behavior, accepted cloud budget, languages and the first three representative CAD/image/message tasks. Those facts determine the tested default profile while preserving this overall architecture.
+
+R2b1 update: the [complete route inventory](ROUTE_POLICY_MATRIX.md) and [first desktop/device policy group](ROUTE_POLICY_MIGRATION.md) are implemented. R2b2 settings/permission/native-resource policy is next; remaining legacy groups and R2c are still pending.

@@ -43,6 +43,7 @@ class ToolSpec:
     description: str
     arguments: type[BaseModel]
     execute: Callable
+    execution_timeout: float | None = None
 
 
 def inline_tool_schema(model):
@@ -139,8 +140,20 @@ class ToolDispatcher:
         # Recheck authentication and disablement after waiting, before side effects.
         if not self.authenticated(principal) or self.permissions().get(name) == "deny":
             raise ServiceError("permission_denied", "This action is no longer authorized.")
-        result = spec.execute(validated, context)
-        return await result if inspect.isawaitable(result) else result
+
+        async def execute():
+            result = spec.execute(validated, context)
+            return await result if inspect.isawaitable(result) else result
+
+        if spec.execution_timeout is None:
+            return await execute()
+        try:
+            async with asyncio.timeout(spec.execution_timeout):
+                return await execute()
+        except TimeoutError as exc:
+            raise ServiceError(
+                "action_timeout", "The local action timed out; check its state before retrying."
+            ) from exc
 
 
 def register_project_tools(dispatcher):

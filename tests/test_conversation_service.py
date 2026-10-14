@@ -221,22 +221,23 @@ async def test_socket_text_contract_no_audio(monkeypatch, tmp_path, application_
 
 
 @pytest.mark.asyncio
-async def test_direct_app_action_uses_shared_policy(monkeypatch):
-    import server
+async def test_direct_app_action_uses_shared_policy(monkeypatch, application_factory):
+    runtime = application_factory()
 
     fake_agent = SimpleNamespace(
         handle_tool_call=AsyncMock(return_value=SimpleNamespace(success=True, message="Launched"))
     )
-    monkeypatch.setattr(server, "desktop_agent", fake_agent)
-    monkeypatch.setattr(server.sio, "emit", AsyncMock())
-    monkeypatch.setitem(server.client_principals, "client", "owner")
-    monkeypatch.setitem(server.SETTINGS, "face_auth_enabled", False)
-    monkeypatch.setitem(server.SETTINGS["tool_permissions"], "launch_app", "deny")
-    await server.launch_app("client", {"name": "notepad"})
+    runtime.local_actions.desktop = fake_agent
+    monkeypatch.setattr(runtime.sio, "emit", AsyncMock())
+    monkeypatch.setitem(runtime.sessions.principals, "client", "owner")
+    runtime.sessions.roles["client"] = "renderer"
+    monkeypatch.setitem(runtime.settings, "face_auth_enabled", False)
+    monkeypatch.setitem(runtime.settings["tool_permissions"], "launch_app", "deny")
+    await runtime.local_transport.launch_app("client", {"name": "notepad"})
     fake_agent.handle_tool_call.assert_not_awaited()
-    assert server.sio.emit.call_args.args[1]["code"] == "permission_denied"
-    monkeypatch.setitem(server.SETTINGS["tool_permissions"], "launch_app", False)
-    await server.launch_app("client", {"name": "notepad"})
+    assert runtime.sio.emit.call_args.args[1]["code"] == "permission_denied"
+    monkeypatch.setitem(runtime.settings["tool_permissions"], "launch_app", False)
+    await runtime.local_transport.launch_app("client", {"name": "notepad"})
     fake_agent.handle_tool_call.assert_awaited_once()
 
 

@@ -1,0 +1,985 @@
+{
+  "checkpoint": "R2b1 inventory and desktop/device group; other groups pending",
+  "socket_routes": {
+    "acknowledge_reminder": {
+      "schema": "Legacy delivery_id mapping",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "acknowledge reminder",
+      "policy": "Authentication and store delivery ownership; receipt schema pending",
+      "response": "SID result/error; same-owner refresh",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport; receipt schema/role policy review remains",
+      "status": "existing-partial"
+    },
+    "add_printer": {
+      "schema": "Legacy host/name/type/camera_url mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Persist printer config and probe network",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "cad_artifact": {
+      "schema": "ArtifactRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative artifact",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_cancel": {
+      "schema": "JobRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative cancel",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_close": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative close",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_list": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative list",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_plan": {
+      "schema": "PlanRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative plan",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing-partial"
+    },
+    "cad_submit": {
+      "schema": "BuildRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative submit",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cancel_reminder": {
+      "schema": "ReminderAction",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "cancel reminder",
+      "policy": "Shared dispatcher mutation gates",
+      "response": "SID result/error; same-owner refresh",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport; receipt schema/role policy review remains",
+      "status": "existing"
+    },
+    "confirm_tool": {
+      "schema": "Confirmation: strict id and boolean",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner; shared approval owner; voice fallback",
+      "effects": "Resolve shared or legacy voice confirmation",
+      "policy": "Role/auth/strict input; shared owner-binding; voice fallback remains legacy",
+      "response": "Scoped errors; no success ACK",
+      "lifetime": "Dispatcher approval deadline; legacy voice separate",
+      "replacement": "Shared confirmation transport; bind voice pending IDs in R6",
+      "status": "migrated-partial"
+    },
+    "connect": {
+      "schema": "Socket auth mapping; token/UUID validation",
+      "caller": "Launch-token client; native owner constrained",
+      "context": "DesktopSessions principal/role; global project",
+      "effects": "Register channel, hydrate state, optional face loop",
+      "policy": "Token, UUID and native-owner check; hydration partly before face gate",
+      "response": "SID state; auth events may broadcast",
+      "lifetime": "Socket lifecycle; optional face task remains legacy",
+      "replacement": "DesktopSessions + future connection transport",
+      "status": "existing-partial"
+    },
+    "control_device": {
+      "schema": "ControlDevice",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "control device",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "control_kasa": {
+      "schema": "Legacy ip/action/value mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "control kasa",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "create_reminder": {
+      "schema": "CreateReminder",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "create reminder",
+      "policy": "Shared dispatcher mutation gates",
+      "response": "SID result/error; same-owner refresh",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport; receipt schema/role policy review remains",
+      "status": "existing"
+    },
+    "desktop_control": {
+      "schema": "Legacy action mapping validated by host",
+      "caller": "Workspace role; native owner check",
+      "context": "NativeHost identity",
+      "effects": "Register/open/close/gaming/quit",
+      "policy": "Workspace role and native ownership",
+      "response": "Scoped ACK; owner renderer disconnection",
+      "lifetime": "Native control timeout",
+      "replacement": "R2b2 native transport schema",
+      "status": "existing-partial"
+    },
+    "disconnect": {
+      "schema": "Socket lifecycle SID",
+      "caller": "Transport lifecycle",
+      "context": "Registry SID -> owner/role",
+      "effects": "Cancel origin local actions; last-renderer jobs; final-owner approvals",
+      "policy": "No caller-provided identity",
+      "response": "No response",
+      "lifetime": "Application cleanup",
+      "replacement": "Application.disconnect",
+      "status": "existing"
+    },
+    "discover_kasa": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Discover network devices and persist device settings",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "discover_printers": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Discover network printers; activate lazy monitor",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "dismiss_reminder": {
+      "schema": "Legacy delivery_id mapping",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "dismiss reminder",
+      "policy": "Authentication and store delivery ownership; receipt schema pending",
+      "response": "SID result/error; same-owner refresh",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport; receipt schema/role policy review remains",
+      "status": "existing-partial"
+    },
+    "generate_cad": {
+      "schema": "Legacy prompt mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "generate cad",
+      "policy": "Heavy-resource gate only; no common direct-action authorization",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "get_reminders": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "get reminders",
+      "policy": "Authentication and store delivery ownership; receipt schema pending",
+      "response": "SID result/error; same-owner refresh",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport; receipt schema/role policy review remains",
+      "status": "existing-partial"
+    },
+    "get_settings": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Read settings/permissions",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "Next R2b2 authenticated settings/permission transport",
+      "status": "pending"
+    },
+    "get_slicer_profiles": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "get slicer profiles",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "get_system_info": {
+      "schema": "NoArguments",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "get system info",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "get_tool_permissions": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "get tool permissions",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "Next R2b2 authenticated settings/permission transport",
+      "status": "pending"
+    },
+    "image_artifact": {
+      "schema": "ImageArtifactRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative artifact",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_cancel": {
+      "schema": "JobRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative cancel",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_close": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative close",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_list": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative list",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_submit": {
+      "schema": "ImageRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative submit",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "iterate_cad": {
+      "schema": "Legacy prompt mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "iterate cad",
+      "policy": "Heavy-resource gate only; no common direct-action authorization",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "launch_app": {
+      "schema": "LaunchApp",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "launch app",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "list_all_devices": {
+      "schema": "NoArguments",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "list all devices",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "pause_audio": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "pause audio",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "print_stl": {
+      "schema": "Legacy stl_path/printer/profile mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Resolve file, preview, slice, upload/start printer job; containment/grant migration pending",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "prompt_web_agent": {
+      "schema": "Legacy prompt mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "prompt web agent",
+      "policy": "Heavy-resource gate only; no common direct-action authorization",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "read_clipboard": {
+      "schema": "NoArguments",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "read clipboard",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "resume_audio": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "resume audio",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "resume_conversation": {
+      "schema": "ResumeConversation",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner and captured selected project",
+      "effects": "Restore protected history",
+      "policy": "Shared dispatcher tool gates; durable owner/project request scope",
+      "response": "Result/transcript/error or restore/failure to SID",
+      "lifetime": "Existing provider/tool deadlines; durable dedupe; bounded restore",
+      "replacement": "ConversationTransport; role policy review remains",
+      "status": "existing"
+    },
+    "save_memory": {
+      "schema": "Legacy messages/filename mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Write plaintext legacy memory file",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "set_resource_state": {
+      "schema": "ResourceRequest",
+      "caller": "Connected SID; role unrestricted",
+      "context": "Global governor; native gaming override",
+      "effects": "Change mode and close jobs/media",
+      "policy": "Connected identity; no shared permission",
+      "response": "Broadcast resource_state; invalid input ignored",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b2 native/resource policy",
+      "status": "existing-partial"
+    },
+    "shutdown": {
+      "schema": "Ignored optional mapping",
+      "caller": "Connected SID; role unrestricted",
+      "context": "Global desktop/project/media state",
+      "effects": "Close application and exit uvicorn",
+      "policy": "Identity presence only",
+      "response": "No response",
+      "lifetime": "Application.close",
+      "replacement": "R2b2 native lifecycle policy",
+      "status": "existing-partial"
+    },
+    "snooze_reminder": {
+      "schema": "SnoozeReminder",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "snooze reminder",
+      "policy": "Shared dispatcher mutation gates",
+      "response": "SID result/error; same-owner refresh",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport; receipt schema/role policy review remains",
+      "status": "existing"
+    },
+    "start_audio": {
+      "schema": "Legacy optional device mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "start audio",
+      "policy": "Heavy-resource gate only; no common direct-action authorization",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "stop_audio": {
+      "schema": "Ignored optional mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "stop audio",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "stop_watching": {
+      "schema": "StopWatching",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "stop watching",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "take_screenshot": {
+      "schema": "Screenshot",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "take screenshot",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "update_settings": {
+      "schema": "Legacy settings mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Mutate/persist permissions, face gate and camera settings",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "Next R2b2 authenticated settings/permission transport",
+      "status": "pending"
+    },
+    "update_tool_permissions": {
+      "schema": "Legacy permission mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Mutate/persist shared permission settings",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "Next R2b2 authenticated settings/permission transport",
+      "status": "pending"
+    },
+    "upload_memory": {
+      "schema": "Legacy memory text mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "Send untrusted memory context to legacy voice model",
+      "policy": "Legacy route bypass; no common dispatcher",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    },
+    "user_input": {
+      "schema": "ConversationRequest",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner and captured selected project",
+      "effects": "Provider/shared tool work",
+      "policy": "Shared dispatcher tool gates; durable owner/project request scope",
+      "response": "Result/transcript/error or restore/failure to SID",
+      "lifetime": "Existing provider/tool deadlines; durable dedupe; bounded restore",
+      "replacement": "ConversationTransport; role policy review remains",
+      "status": "existing"
+    },
+    "video_frame": {
+      "schema": "Legacy image bytes/base64 mapping",
+      "caller": "No explicit per-route authentication/role gate",
+      "context": "Global desktop/project/media state",
+      "effects": "video frame",
+      "policy": "Heavy-resource gate only; no common direct-action authorization",
+      "response": "Legacy events/errors may broadcast",
+      "lifetime": "Legacy adapter/task; no uniform route deadline",
+      "replacement": "R2b feature transport/policy migration",
+      "status": "pending"
+    }
+  },
+  "http_routes": {
+    "/status": {
+      "schema": "None",
+      "caller": "Local HTTP reader",
+      "context": "Runtime metadata",
+      "effects": "Read status",
+      "policy": "No privileged action",
+      "response": "HTTP JSON",
+      "lifetime": "Immediate snapshot",
+      "replacement": "Application status",
+      "status": "existing"
+    }
+  },
+  "shared_tools": {
+    "cancel_reminder": {
+      "schema": "ReminderAction",
+      "policy": "Shared permissions[cancel_reminder]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "control_device": {
+      "schema": "ControlDevice",
+      "policy": "Shared permissions[control_device]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "create_reminder": {
+      "schema": "CreateReminder",
+      "policy": "Shared permissions[create_reminder]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "generate_cad": {
+      "schema": "BuildRequest",
+      "policy": "Shared permissions[generate_cad]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "generate_image": {
+      "schema": "ImageRequest",
+      "policy": "Shared permissions[generate_image]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "get_system_info": {
+      "schema": "NoArguments",
+      "policy": "Shared permissions[get_system_info]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "launch_app": {
+      "schema": "LaunchApp",
+      "policy": "Shared permissions[launch_app]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "list_all_devices": {
+      "schema": "NoArguments",
+      "policy": "Shared permissions[list_all_devices]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "list_reminders": {
+      "schema": "ListReminders",
+      "policy": "Shared permissions[list_reminders]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "read_clipboard": {
+      "schema": "NoArguments",
+      "policy": "Shared permissions[read_clipboard]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "read_file": {
+      "schema": "PathArguments",
+      "policy": "Shared permissions[read_file]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "snooze_reminder": {
+      "schema": "SnoozeReminder",
+      "policy": "Shared permissions[snooze_reminder]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "stop_watching": {
+      "schema": "StopWatching",
+      "policy": "Shared permissions[stop_watching]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "take_screenshot": {
+      "schema": "Screenshot",
+      "policy": "Shared permissions[take_screenshot]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "write_file": {
+      "schema": "WriteArguments",
+      "policy": "Shared permissions[write_file]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c"
+    }
+  },
+  "legacy_voice_declarations": {
+    "cancel_reminder": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "cancel reminder",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "control_device": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "control device",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "create_reminder": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "create reminder",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "create_routine": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "create routine",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "describe_camera": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "describe camera",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "detect_presence": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "detect presence",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "focus_window": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "focus window",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "generate_cad_prototype": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "generate cad prototype",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "get_device_state": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "get device state",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "get_system_info": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "get system info",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "launch_app": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "launch app",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "list_all_devices": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "list all devices",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "list_reminders": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "list reminders",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "list_routines": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "list routines",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "list_running_apps": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "list running apps",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "list_watches": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "list watches",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "read_clipboard": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "read clipboard",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "read_directory": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "read directory",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "read_file": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "read file",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "search_files": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "search files",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "snooze_reminder": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "snooze reminder",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "stop_watching": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "stop watching",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "take_screenshot": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "take screenshot",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "watch_for": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "watch for",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "write_clipboard": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "write clipboard",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    },
+    "write_file": {
+      "schema": "Legacy provider declaration; ad-hoc runtime validation",
+      "caller": "Legacy AudioLoop provider session",
+      "context": "Global voice/project/agent state",
+      "effects": "write file",
+      "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
+      "response": "Voice response and legacy callbacks, possibly broadcast",
+      "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
+      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
+      "status": "pending"
+    }
+  }
+}

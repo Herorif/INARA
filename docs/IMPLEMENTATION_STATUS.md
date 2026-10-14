@@ -46,7 +46,7 @@ The command deck, responsive workspace, local reminder panel, lazy 3D/camera loa
 
 ## Next milestone
 
-R2b route/policy migration: complete the direct-route matrix and move remaining legacy bypasses through shared validation/authorization with scoped responses and direct-call coverage. R2a construction/session extraction is complete; [Core composition](CORE_COMPOSITION.md) maps ownership, compatibility seams and evidence. Provider setup and real-game benchmarking remain deferred; real hardware/model acceptance stays separate.
+R2b2 settings/permission and native/resource policy migration is next. R2b1's complete route inventory and desktop/device actions are implemented; the whole R2b milestone remains incomplete. See [Route policy migration](ROUTE_POLICY_MIGRATION.md) and its matrix for exact pending groups. Provider setup and real-game benchmarking remain deferred.
 
 ## Second milestone verification (13 October 2026)
 
@@ -113,3 +113,10 @@ The retained fallback host lifecycle check passes after fixing reminder destinat
 The injected application root now owns construction, FastAPI/ASGI lifetime, reminders, creative services and event delivery. Desktop sessions own handshake identity/roles/native binding and project snapshots. Conversation/reminder transports register existing wire contracts independently of the server facade. Startup rollback, repeated lifetime and shutdown failure paths release pollers/subscriptions. The final owner disconnect resolves approvals; another connected owner channel keeps its approvals.
 
 161 Python checks pass (one real-Blender skip), including 15 new boundary checks; all 26 frontend checks and scoped Ruff pass. Actual native failure/reopen/reminder/gaming verification, CAD/scene render/export/restore and labelled image-fixture cancellation/revisions pass. Short native idle measured 65.57 MB mean working set / 48.03 MB peak private bytes including the launcher, with zero Electron processes. Existing bounded Engine.IO shutdown timeout logs remain in the injected-crash scenario. No new real-model/hardware acceptance is claimed. [Evidence, migration inventory and remaining legacy seams](CORE_COMPOSITION.md). R2b is next.
+
+
+## Route-policy checkpoint verification (14 October 2026, R2b1)
+
+52 socket routes, `/status`, 15 shared tools and 26 legacy voice declarations are inventoried with schema/caller/context/effects/policy/response/lifetime/replacement fields. Seven direct desktop/device actions now share strict schemas and dispatcher policy with typed model tools. Renderer/auth checks, scoped responses and stamped event ownership prevent those actions from broadcasting across owners. Origin disconnect/app close cancels tracked local requests; shared confirmation input is strict and owner-bound.
+
+222 Python checks pass (one real-Blender skip), including 61 new policy checks; all 26 frontend checks and scoped lint pass. Actual native failure/reopen/reminder/gaming/shutdown verification passes, with short idle 65.61 MB mean working set and zero Electron processes. Desktop/device action tests use injected adapters; no real app/device/screenshot/clipboard action is claimed. [Migration, evidence and remaining bypasses](ROUTE_POLICY_MIGRATION.md). R2b2 settings/lifecycle is next; remaining legacy groups are explicitly pending.

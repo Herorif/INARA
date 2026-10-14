@@ -2,7 +2,7 @@
 
 Updated 14 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2 and R2a core composition/session extraction are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md) and [Core composition](CORE_COMPOSITION.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and the first R2b route-policy group are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md) and [Route policy migration](ROUTE_POLICY_MIGRATION.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -54,7 +54,7 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | Order | Product outcome | Refactor outcome |
 | --- | --- | --- |
 | R1 implemented; hardware acceptance pending | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
-| R2a implemented; R2b/R2c next | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
+| R2a and R2b1 implemented; R2b2/R2c next | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
 | R3 | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
 | R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
 | R5 | Deeper 3D vibe coding and image workflows | Validated change sets, selected-revision edits, kernel/Blender/image adapters with real acceptance gates |
@@ -62,16 +62,22 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | R7 | Native foldable Android companion and secure pairing | Device/project context, scoped grants, revocation and idempotent sync |
 | R8 | Read-only selected-notification inbox and summaries | Native ingestion, dedupe, retention and owner-controlled summarization; no WhatsApp reply tools |
 
-R1 software and R2a composition/session extraction are implemented. Hardware acceptance for Vision remains pending. R2b and R2c are the next bounded backend checkpoints; the rows are milestones, not promises that a whole subsystem fits one turn. Memory/backup, browser/devices/printing, phone feasibility and signed packaging retain their follow-on tracks. Keep the next task scoped to R2b.
+R1 software, R2a and R2b1 are implemented. Vision hardware acceptance remains pending. R2b is being delivered in bounded groups: the complete route inventory and desktop/device group are done; settings/native/resource policy is next. R2c follows after the remaining policy groups. Keep the next task scoped to R2b2.
 
 ## Next implementation task
 
-1. Implement R2b: build the complete socket/direct-route policy matrix, using [Core composition](CORE_COMPOSITION.md) as the current boundary and legacy-seam inventory.
-2. For every route record schema, identity/role/project source, side effects, permission/approval, scoped responses, timeout/cancellation and legacy replacement. Cover direct calls as well as model-dispatched calls.
-3. Migrate remaining legacy policy bypasses through the shared dispatcher in bounded feature groups. Preserve event names/payloads or provide a tested compatibility adapter; keep native control, reminders, conversation and creative jobs working.
-4. Keep `server.py` as the supported facade over `application.py`; use explicit dependencies and isolated test roots. Do not switch to the archived runtime, expose local desktop roles to mobile, or archive active core helpers without the R2c reference/parity map.
-5. Verify denial, malformed requests, owner/project isolation, disconnected/expired approvals, scoped errors and affected native/renderer flows. File relocation alone is not policy migration.
-6. Provider/model configuration, real camera/hand acceptance, real diffusion/Blender execution and the real-game benchmark remain deferred or unverified. WhatsApp replies remain excluded.
+1. Implement R2b2 settings/permission and native/resource lifecycle policy. Read [Route policy migration](ROUTE_POLICY_MIGRATION.md), the [complete matrix](ROUTE_POLICY_MATRIX.md) and [Core composition](CORE_COMPOSITION.md).
+2. Migrate `get_settings`, `update_settings`, `get_tool_permissions`, `update_tool_permissions`, `set_resource_state`, `desktop_control` and `shutdown` into injected transports with strict schemas, role/owner checks and scoped results/errors. Settings authorization must not depend on a permission that the same request can disable.
+3. Preserve native launch token, identity registration, tray receipt, explicit quit, gaming override and existing UI payloads or provide tested adapters. Test unauthenticated/wrong-role calls, malformed settings, permission escalation attempts, locked state, reconnect and native close/reopen.
+4. Keep `server.py` as the supported facade. Update every affected matrix row/test and run affected native/renderer checks. Do not enable mobile grants, switch to the archived runtime or archive active core helpers.
+5. Remaining R2b groups include Kasa/printer compatibility, memory/media/legacy creative/browser routes, reminder receipt/role schemas, planner permission and legacy voice/event ownership. R2c declaration/reference cleanup remains separate; the entire R2b milestone is not complete.
+6. Provider/model setup, real hardware/model acceptance and the real-game benchmark remain deferred or unverified. WhatsApp replies remain excluded.
+
+## Completed route-policy checkpoint (R2b1)
+
+The tested inventory covers 52 socket routes, `/status`, 15 shared tools and 26 separate legacy voice declarations. Seven desktop/device actions now use strict schemas and the shared dispatcher for both direct and typed model calls, with renderer checks, approval/denial, scoped responses, stamped agent event ownership, cooperative execution deadlines and origin-disconnect cancellation. Confirmation payloads now require a real boolean and an authenticated renderer; voice binding remains a legacy seam.
+
+222 Python and 26 frontend checks pass, including 61 new policy checks. Actual native failure/reopen/reminder/gaming/shutdown verification passes; short idle is approximately 66 MB with zero Electron processes after close. New action tests use injected adapters, not real device/app actions. See [Route policy migration and limits](ROUTE_POLICY_MIGRATION.md). R2b2 is next.
 
 ## Completed core composition milestone (R2a)
 
@@ -105,7 +111,7 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement R2b route/policy migration in docs/IMPLEMENTATION_HANDOFF.md. Read docs/CORE_COMPOSITION.md, docs/IMPLEMENTATION_STATUS.md and the roadmap/refactor map. Enumerate every supported socket/direct route with schema, identity/role/project, effects, permission/approval, scoped response and timeout/cancel owner. Migrate remaining legacy bypasses through the shared dispatcher in bounded groups, preserving event contracts, native identity/lifetime, protected persistence and creative jobs. Use application.py and injected transports; do not restore global service ownership or switch to the archived core server. Verify direct-call denials, malformed input, owner/project isolation, expired/disconnected approvals and affected native/renderer flows. R2c schema/reference cleanup remains separate. Configuration and real-game benchmarking remain deferred; WhatsApp replies stay excluded.
+> Implement R2b2 settings/permission and native/resource lifecycle migration in docs/IMPLEMENTATION_HANDOFF.md. Read docs/ROUTE_POLICY_MIGRATION.md, docs/ROUTE_POLICY_MATRIX.md, docs/CORE_COMPOSITION.md and the status record. Migrate settings reads/mutations, permission reads/mutations, resource state, desktop control and shutdown into injected strict-schema transports with explicit owner/role policy and scoped errors/results. Prevent settings authorization from being disabled by the same request. Preserve native identity/token, registration, reminders, explicit quit/gaming override and UI contracts. Test malformed/unauthorized/escalation/locked/reconnect paths and affected native flows; update matrix coverage. Other R2b groups and R2c remain separate. Configuration/game benchmarking stay deferred; WhatsApp replies stay excluded.
 
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

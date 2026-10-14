@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import ValidationError
 
 
 
@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.lazy import LazyService
 from services.resources import ResourceRequest
-from services.tools import ServiceError, ToolSpec
+from services.tools import ServiceError
 
 
 def FaceAuthenticator(**kwargs):
@@ -624,6 +624,9 @@ async def resume_audio(sid, data=None):
 
 @sio.event
 async def confirm_tool(sid, data):
+    data = await runtime.local_transport.validate_confirmation(sid, data)
+    if data is None:
+        return
     # data: { "id": "...", "confirmed": True/False }
     request_id = data.get('id')
     confirmed = data.get('confirmed', False)
@@ -637,56 +640,14 @@ async def confirm_tool(sid, data):
     else:
         print("Audio loop not active, cannot resolve confirmation.")
 
-# ---- Phase 4-7 direct socket handlers (bypass LLM for deterministic actions) ----
-
-@sio.event
-async def control_device(sid, data):
-    """data: {device_id, action, brightness?, color?}"""
-    result = await device_agent.handle_tool_call("control_device", data or {})
-    await sio.emit("device_control", {"success": result.success, "message": result.message})
-
-@sio.event
-async def stop_watching(sid, data):
-    """data: {watch_id}"""
-    result = await vision_agent.handle_tool_call("stop_watching", data or {})
-    watches = vision_loop.list_watches() if hasattr(vision_loop, 'list_watches') else []
-    await sio.emit("vision_watches", {"watches": watches})
-    await sio.emit("status", {"msg": result.message}, room=sid)
-
-@sio.event
-async def launch_app(sid, data):
-    """data: {name}"""
-    try:
-        async def approve(payload):
-            await sio.emit('tool_confirmation_request', payload, room=sid)
-        result = await dispatcher.dispatch(client_principals.get(sid, sid), 'launch_app',
-                                           data or {}, {}, approve)
-        await sio.emit('status', {'msg': result['message']}, room=sid)
-    except (ServiceError, ValidationError) as exc:
-        await sio.emit('error', {'msg': str(exc) if isinstance(exc, ServiceError)
-                               else 'Invalid app request.',
-                               'code': getattr(exc, 'code', 'invalid_arguments')}, room=sid)
-
-@sio.event
-async def take_screenshot(sid, data):
-    """data: {prompt?}"""
-    result = await desktop_agent.handle_tool_call("take_screenshot", data or {})
-    await sio.emit("desktop_screenshot", {"description": result.message, "data": result.data})
-
-@sio.event
-async def read_clipboard(sid, data=None):
-    result = await desktop_agent.handle_tool_call("read_clipboard", {})
-    await sio.emit("clipboard_content", {"text": result.message}, room=sid)
-
-@sio.event
-async def list_all_devices(sid, data=None):
-    await device_agent.handle_tool_call("list_all_devices", {})
-    # Device list is emitted via EventBus → _bridge_event → 'device_list'
-
-@sio.event
-async def get_system_info(sid, data=None):
-    await desktop_agent.handle_tool_call("get_system_info", {})
-    # Data emitted via EventBus → _bridge_event → 'desktop_system_info'
+# Compatible names; registration and execution are owned by the injected transport.
+control_device = runtime.local_transport.control_device
+stop_watching = runtime.local_transport.stop_watching
+launch_app = runtime.local_transport.launch_app
+take_screenshot = runtime.local_transport.take_screenshot
+read_clipboard = runtime.local_transport.read_clipboard
+list_all_devices = runtime.local_transport.list_all_devices
+get_system_info = runtime.local_transport.get_system_info
 
 @sio.event
 async def shutdown(sid, data=None):
@@ -1206,22 +1167,6 @@ async def update_tool_permissions(sid, data):
         audio_loop.update_permissions(SETTINGS["tool_permissions"])
     # Broadcast update to all
     await sio.emit('tool_permissions', SETTINGS["tool_permissions"])
-
-class LaunchArguments(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    name: str
-
-
-async def _launch_registered(args, context):
-    if not args.name.strip():
-        raise ServiceError('invalid_arguments', 'Choose an application to launch.')
-    result = await desktop_agent.handle_tool_call('launch_app', args.model_dump())
-    return {'success': result.success, 'message': result.message}
-
-
-dispatcher.register(ToolSpec('launch_app', 'Open a configured application by name.',
-                             LaunchArguments, _launch_registered))
-
 
 if __name__ == "__main__":
     uvicorn_server = uvicorn.Server(uvicorn.Config(app_socketio, host="127.0.0.1", port=8000, loop="asyncio"))

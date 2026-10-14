@@ -22,6 +22,8 @@ from services.conversation import ConversationService
 from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
 from services.lazy import LazyService
+from services.local_actions import LocalActions
+from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
 from services.scheduler_tools import register_scheduler_tools
 from services.sessions import SessionStore
@@ -91,6 +93,10 @@ class Application:
         self.devices = LazyService(
             "agents.device_agent", "DeviceAgent", event_bus=bus, kasa_agent=self.kasa
         )
+        self.local_actions = LocalActions(
+            self.dispatcher, self.desktop, self.devices, self.vision, self.vision_loop
+        )
+        self.local_transport = LocalActionTransport(sio, self.dispatcher, self.sessions)
         self.tasks = []
         self.started = False
 
@@ -116,6 +122,7 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
+        await self.local_transport.stop_sid(sid)
         principal, role = self.sessions.remove(sid)
         if role == "renderer" and not self.sessions.rooms(principal, "renderer"):
             await self.cad_transport.stop_owner(principal)
@@ -142,7 +149,10 @@ class Application:
     async def close(self):
         try:
             results = await asyncio.gather(
-                self.cad_transport.close(), self.image_transport.close(), return_exceptions=True
+                self.cad_transport.close(),
+                self.image_transport.close(),
+                self.local_transport.stop_sid(),
+                return_exceptions=True,
             )
             if self.stop_legacy:
                 await self.stop_legacy()
