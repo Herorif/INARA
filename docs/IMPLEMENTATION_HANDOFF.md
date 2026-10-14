@@ -47,6 +47,23 @@ Versioned Windows-protected SQLite persistence, scoped sessions, request dedupli
 
 Tray/hotkey reopen, graceful quit, scoped resident reminder delivery, explicit gaming policy, a polished responsive command deck, local reminder creation and lazy camera/CAD panels are implemented. Initial JavaScript is approximately 241 KB. The default native host releases Electron entirely after workspace close, preserving core/identity lifetime. Electron 44.7.0 and actual idle/lifecycle evidence are in [Native resident](NATIVE_RESIDENT.md). Game FPS/thermals, signed packaging, actual keyboard/balloon acceptance and resource use after optional legacy worker activation remain unverified.
 
+## Ordered roadmap for subsequent implementations
+
+Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-and-implementation-sequence-14-october-2026), reconciled against checkpoint `5f79902`. The [refactor map](UI_AND_CODE_CLEANUP_PLAN.md#remaining-refactor-work-tied-to-the-implementation-sequence) names source areas and acceptance evidence.
+
+| Order | Product outcome | Refactor outcome |
+| --- | --- | --- |
+| R1 | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
+| R2a/R2b/R2c | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
+| R3 | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
+| R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
+| R5 | Deeper 3D vibe coding and image workflows | Validated change sets, selected-revision edits, kernel/Blender/image adapters with real acceptance gates |
+| R6 | Quick assistant and push-to-talk voice | One audio/session stack feeding existing conversation and tool services; optional wake profile later |
+| R7 | Native foldable Android companion and secure pairing | Device/project context, scoped grants, revocation and idempotent sync |
+| R8 | Read-only selected-notification inbox and summaries | Native ingestion, dedupe, retention and owner-controlled summarization; no WhatsApp reply tools |
+
+The next three bounded deliverables are R1, R2a and R2b. The rows are milestones, not promises that a whole subsystem fits one coding turn. Memory/backup, browser/devices/printing, call feasibility and signed packaging have explicit follow-on tracks. Phone feasibility is assessed once the Android shell exists, before committing to a call engine. Keep the next task below scoped to R1; do not implement the whole roadmap at once.
+
 ## Next implementation task
 
 1. Preserve the resident, offline solids/scenes, Image atelier, shared creative-job lifetime, protected history, identity and JARVIS workspace. Keep provider/model configuration deferred and WhatsApp replies excluded.

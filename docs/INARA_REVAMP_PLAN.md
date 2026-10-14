@@ -1,10 +1,10 @@
 # INARA laptop and Android architecture plan
 
-Plan date: 13 October 2026. Intended devices: a Lenovo Legion laptop running Windows and a Samsung Galaxy Z Fold8. Exact laptop GPU, VRAM and RAM remain to be detected. Preserve the existing SIM number and personal WhatsApp account. The current implementation findings are in [INARA project review](PROJECT_REVIEW.md). The detailed organization and interface work is in [Code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md), with a scoped next task and model recommendation in [Implementation handoff](IMPLEMENTATION_HANDOFF.md).
+Plan date: 13 October 2026; implementation sequence reconciled 14 October 2026. Intended devices: a Lenovo Legion laptop running Windows and a Samsung Galaxy Z Fold8. Exact laptop GPU, VRAM and RAM remain to be detected. Preserve the existing SIM number and personal WhatsApp account. The current implementation findings are in [INARA project review](PROJECT_REVIEW.md). The detailed organization and interface work is in [Code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md), with a scoped next task and model recommendation in [Implementation handoff](IMPLEMENTATION_HANDOFF.md).
 
 Build INARA as a lightweight resident assistant with a full creative workspace and an Android companion. Use local processing for activation, routine actions, private memory and tracking. Offer cloud assistance for complex reasoning, higher-quality generation and telephone conversations. Start heavy local workers only when requested, and let the resource manager defer them while gaming or on battery.
 
-Keeping the existing phone accounts is a product requirement. The supported baseline includes owner-approved personal WhatsApp notification summaries. Reply drafting and sending are deferred capabilities, invoked only by a specific owner request; receiving a message never starts a reply. General AI conversations on SIM calls require a validated carrier-forwarding path or a supported OEM integration. General AI answering of personal WhatsApp calls is a feasibility constraint, not a committed feature.
+Keeping the existing phone accounts is a product requirement. The intended Android baseline includes owner-approved personal WhatsApp notification summaries. Reply drafting and sending are deferred capabilities, invoked only by a specific owner request; receiving a message never starts a reply. General AI conversations on SIM calls require a validated carrier-forwarding path or a supported OEM integration. General AI answering of personal WhatsApp calls is a feasibility constraint, not a committed feature.
 
 ## Product behavior
 
@@ -12,11 +12,11 @@ Keeping the existing phone accounts is a product requirement. The supported base
 | --- | --- | --- |
 | Resident | Tray icon, hotkey, optional local wake phrase, reminders and paired-phone events | Small service persists when windows close. No large language model, camera or creative worker stays loaded by default. |
 | Quick assistant | Small chat or voice panel for opening apps, finding files, reminders, answers and message review | Start only the required speech or reasoning adapter. Return to resident mode after an idle timeout. |
-| Studio | Full workspace for CAD, Blender, images, coding, browser tasks and camera tools | Workers and previews load on demand. Jobs survive closing the workspace unless cancelled. |
+| Studio | Full workspace for CAD, Blender, images, coding, browser tasks and camera tools | Workers and previews load on demand. Panel-owned jobs currently cancel when Studio closes; explicit background execution is planned. |
 | Game or battery | Quiet assistant with push-to-talk or hotkey access and urgent notifications | Defer GPU generation, indexing and camera watches. Permit cloud execution when enabled. |
 | Android | Chat, voice button, message inbox, approvals, call summaries, camera sharing and laptop job control | Native event-driven app. No large model or continuous camera runs in the background. |
 
-Opening Studio exposes tools; it does not start every tool. A job launched by voice can start the same worker without opening Studio, subject to the selected resource policy. Closing a window releases its preview resources without silently losing the job.
+Opening Studio exposes tools; it does not start every tool. A job launched by voice can start the same worker without opening Studio, subject to the selected resource policy. Today, closing the owning Studio/workspace cancels its creative worker and preserves prior artifacts/history. A future explicit background-job mode will keep an approved job running while releasing its preview; it must not silently retain GPU work.
 
 Examples of the intended experience:
 
@@ -78,7 +78,7 @@ Implementation decision, 14 October 2026: the measured Python/Win32 host meets t
 | Local speech | Evaluate sherpa-onnx for streaming speech, VAD and keyword detection; retain a working wake-word adapter where useful | Choose models through accuracy and resource measurements on these devices. Runtime and model licences are separate. |
 | Mechanical design | Implemented bounded stdlib mesh worker; build123d remains a future engineering adapter | Offline parametric box/bracket/enclosure with validated STL/GLB now works. Add richer geometry and STEP through an isolated kernel later. See [CAD Studio](CAD_STUDIO.md). |
 | Artistic 3D | Blender worker plus a small Blender integration for approved scene operations | Edit objects, materials, lighting and procedural scenes while preserving native project files. |
-| Image generation | Cloud image adapter initially; optional local ComfyUI worker | Good results before large downloads; reusable local workflows when the laptop has capacity. |
+| Image generation | Implemented on-demand local Diffusers adapter; cloud/other local engines remain optional future adapters | SD/SDXL plumbing and Image atelier are implemented. No weights were installed; actual inference, quality and GPU recovery await setup. See [Image atelier](IMAGE_ATELIER.md). |
 | Tracking | MediaPipe or equivalent compact ONNX models | Local hand, face and pose landmarks without continuously invoking a multimodal cloud model. |
 | Remote connection | Paired TLS channel on LAN; optional encrypted relay or private VPN for remote use | Avoid exposing the desktop automation API directly to the internet. |
 
@@ -257,24 +257,113 @@ Reminders store UTC timestamps plus an IANA timezone for calendar recurrence, wi
 
 When the laptop is asleep, the phone retains notes, reminders, captured notifications and approved small offline behaviors. Heavy requests queue with a visible unavailable state. A configured cloud route can answer chat or calls independently, with only the knowledge supplied to it. Do not promise immediate laptop execution or universal remote wake.
 
-## Migration sequence and release gates
+## Current baseline and implementation sequence (14 October 2026)
 
-Avoid a simultaneous shell, backend, model and mobile rewrite. Preserve user data, introduce the new contracts and move one integration at a time. The archived core modules are source material to inspect and adapt, not a drop-in production replacement.
+This sequence supersedes the initial phase/week estimates and outdated implementation assumptions in the original review. It is a dependency plan, not a delivery-date commitment. One milestone may require several bounded implementations; keep each checkpoint usable and reviewable. Feature work and refactoring advance together. Do not start another whole-project rewrite.
 
-| Phase | Work | Exit criterion | Approximate focused effort |
-| --- | --- | --- | --- |
-| 0 | Preserve data; inventory hardware; verify model access; prototype Fold8 notification ingestion and carrier forwarding | Supported capability matrix and baseline measurements, with phone feasibility resolved early | 1–2 weeks |
-| 1 | Independent text service, shared tool policy, typed contracts, locked core dependencies, path containment, reminder fix and recoverable sessions | Text works without mic permission; direct and model actions enforce the same scopes; no repeated reminder alerts | 2–3 weeks |
-| 2 | Resident lifetime, hotkey/wake adapters, resource governor, JARVIS design system, responsive layout, lazy UI, shell comparison and installation prototype | Window close retains reminders; reopen resumes state; layout and accessibility checks, measured idle budget and game policy pass | 2–3 weeks |
-| 3 | CAD and Blender workers, artifact revisions, validation and export | A reference suite produces editable files with correct units/dimensions, preserved revisions and cancellation | 2–3 weeks |
-| 4 | Image adapter, optional ComfyUI bundle, tracking and shared capture | A local image job releases its allocations; tracking works without a cloud key; camera stops on disable | 1–2 weeks |
-| 5 | Native Android companion, pairing, notification summaries, approvals, local notes and sync recovery | Fold/unfold, offline operation and app restart preserve state; WhatsApp draft/send tools are absent from the initial release | 3–4 weeks |
-| 6 | Validated forwarded SIM call pilot and final summaries | Receive, interrupt, summarize and hand off test calls with laptop asleep; forwarding loop and outage tests pass | 1–3 weeks, carrier dependent |
-| 7 | Browser/devices/printing migration, signed installers, updates, recovery and endurance tests | One supported release with diagnostics, backups, migration rollback and documented capability limits | 2–3 weeks |
+The current checkpoint is `5f79902`: independent typed core, private persistence/reminders, native resident, JARVIS shell, offline solids/scenes, optional fixed Blender bridge, Image atelier and shared owned creative jobs. The recorded suite has 144 Python checks and nine frontend checks passing. These counts describe the existing checkpoint, not universal coverage of every retained legacy integration. Real Blender execution, diffusion inference, phone operation and game impact remain unverified. The short image-fixture recovery observation is approximately 65 MB resident working set; the earlier ten-minute native idle evidence is separate.
 
-Expect roughly four to six months for a focused solo implementation of the broad system, with estimates revised after Phase 0. A small team may overlap independent work, but hardware, Android and carrier prototypes remain release dependencies. Personal WhatsApp call automation has no delivery estimate under the current account requirement.
+A fresh source inventory finds 145 Python/JS/JSX/CSS source files in `backend/` and `src/`, including archived modules. Current cleanup pressure points include `backend/server.py` (1505 lines), `backend/inara.py` (1403), `backend/printer_agent.py` (1092), archived `backend/core/server.py` (781), `backend/voice/pipeline.py` (733) and `src/app/workspace.css` (1769). Line counts locate ownership problems; they are not arbitrary file-size targets. Several direct legacy device, screenshot and clipboard handlers still call adapters outside the newer shared tool path. Do not expose those paths to a paired phone before migration.
 
-The first useful milestone is narrower: a recoverable laptop assistant that handles text independently of voice, local reminders, app launching, hotkey activation and one validated CAD workflow. Follow with the Android inbox and project controls. Full call handling should not delay that milestone.
+### R1. Vision studio v2: the next implementation
+
+Product outcome: a polished camera workspace with a clear off/requesting/preview/tracking/failed state, source selection, mirror control, useful hand overlays, confidence/presence information and a visible way to stop. Begin with the existing bundled hand model. Face/pose models are later optional capabilities; landmarks do not authenticate the owner.
+
+Refactor: separate capture ownership, tracking scheduling and overlay rendering from React presentation. Reuse `features/vision/capture.js` and the working local tracker; consolidate legacy `useVideoCapture`/`useHandTracking` only after checking their consumers. Replace duplicated acquisition/inference loops with one session controller. Evaluate a dedicated Web Worker/transferable-frame path for inference to keep the UI responsive, retaining a tested fallback if packaged WASM compatibility requires it. Never queue an unbounded frame backlog.
+
+Acceptance: duplicate starts, slow permission completion after close, denied permission, track-ended/device-unplug, source switching, hidden view, sleep/resume and gaming all release or pause the intended resources. Verify mirrored overlay alignment and stale-frame rejection. Synthetic streams and actual renderer/model initialization checks run without taking the owner's camera; real camera acceptance remains clearly separate. No recording, frame upload or gesture-triggered desktop action is added by default.
+
+### R2. Core composition, transport and authorization cleanup
+
+Product outcome: one reliable capability path for typed requests, UI actions and later voice/phone actions, with useful errors and predictable reconnect/shutdown.
+
+R2a extracts construction/lifetime from `server.py` into an application composition root with explicit dependencies. Move session identity, project context and event delivery into owned services, then feature registration into transport modules. Preserve `server.py` as the compatible supported entry point. Avoid tests or adapters depending on mutable module globals or private monkey-patches in production.
+
+R2b inventories every socket event and legacy voice tool. Define request/result/error contracts, the allowed principal/device/project scope and its side effects. Route implemented actions through the dispatcher; explicitly report unavailable where safe behavior has not been migrated. Cover device controls, clipboard/screenshot, browser, memory and printer routes as well as the newer text/reminder/creative routes. Use narrow owner rooms instead of unintended broadcasts. Approval records bind identity, tool, argument hash, project and expiry, with execution-time rechecks and no repeated permission questions for unchanged authorized work.
+
+R2c consolidates tool declarations and provider-schema translation. Preserve the SDK schema regression checks already needed for nested scene data and image sizes. Inventory actual imports before moving active modules out of `backend/core/`; its archived server does not make the whole directory unused. Retire duplicate CAD/web/voice paths only after mapping retained behavior to their replacement and verifying compatibility.
+
+Acceptance: a route/policy matrix has no unexplained supported bypass, cross-owner/project access fails, direct and model invocations apply the same rule, reconnection does not replay uncertain work, and current CAD/image/reminder/native checks still pass. LAN/mobile automation stays closed until this gate passes.
+
+### R3. Typed UI contracts, shared design system and activity workspace
+
+Product outcome: the remaining panels feel like one JARVIS application. Add a common activity view for jobs, artifacts, errors, approvals and recovery; maintain truthful state rather than decorative telemetry.
+
+Refactor: migrate the transport boundary and new feature modules to TypeScript incrementally, allowing existing JavaScript during migration. Generate client types from authoritative Pydantic/JSON schemas and version the event contract; retain runtime validation at the core. Break `socketSubscriptions.js` into feature registrations. Share request/job/reconnect handling instead of duplicating it in CAD and images. Keep frame/audio updates out of broad Zustand subscriptions.
+
+Extract design tokens, panel headers, labelled fields, status/progress, error/empty states, revision lists, accessible dialogs and approval UI. Split `workspace.css` by shell/layout/tokens; keep feature styles scoped. Add a keyboard command palette, consistent recovery actions and responsive master/detail layouts. Preserve real models/images as the visual focus; stop hidden animation and WebGL rendering.
+
+Acceptance: keyboard/focus behavior, reduced motion, long text, 200% text scaling, narrow/tablet/desktop/ultrawide widths and representative Windows DPI settings work. Initial assets stay lazy and bundle regressions are visible. Existing JS can coexist; a mass rename is not a completion criterion.
+
+### R4. Capability center, resource governor and job lifetime
+
+Product outcome: INARA explains what is ready, missing, blocked by gaming or awaiting setup, and why a job can or cannot start. Add hardware detection, readable diagnostics and local/cloud/manual performance profiles without installing anything automatically.
+
+Refactor: centralize configuration and capability descriptors; distinguish detected configuration, installed dependencies, verified integration and measured performance. Replace scattered model identifiers with per-capability profiles. Introduce a small reservation/queue service around the existing single creative slot: CPU/RAM/VRAM estimates, cancellation, bounded admission, fairness and explicit release. Optional hardware probes run on demand or at a low rate and show unknown when unsupported; never import Torch into the resident to detect a GPU.
+
+Keep manual gaming mode authoritative. Automatic foreground-game detection is opt-in later and must not inject into games. Separate notifications from GPU scheduling. Add explicit foreground/background job lifetime only after reservation and reconnect tests: closing a panel cancels foreground work; the owner can deliberately run supported jobs in the background. Background work must respect gaming transitions and never cause replay of an uncertain claim. Sleep/resume produces a clear interrupted/recoverable state.
+
+Acceptance: no worker/model/device leak, no unwanted GPU allocation in resident/gaming mode, no unbounded queue, accurate diagnostics, cancellation/retry fairness and post-worker recovery measurements. Preserve the <=150 MB / <1% CPU ten-minute resident target; compare results using the same aggregate process accounting. Existing approximately 65 MB measurements are a baseline, not a promise for future loaded models. Real-game benchmarking remains deferred.
+
+### R5. Creative Studio v2: stronger workflows and 3D vibe coding
+
+Product outcome: edit an existing design through selection, constrained transforms, dimensions, undo/redo and revision comparison. A natural-language change should propose a validated change set against the selected revision, show its effect and build a new revision after review.
+
+R5a improves the offline workflow: shared artifact browser, reload/duplicate recipes, numeric/gizmo transform consistency, object selection, frame-to-selection, saved views and deliberate revision branching. Preserve units, closed-part/overlap semantics and previous artifacts. Add a constrained scene-change schema with an explicit base revision; reject stale changes rather than applying them to a different design. Prompt-generated Python remains excluded.
+
+R5b adds richer geometry only through a separately installed owned engineering adapter: supported primitives/features, holes/fillets/booleans and STEP where a validated CAD kernel is available. Check topology, dimensions, volume/units and exports with representative fixtures before exposing an operation. Existing simple solids remain independent of the kernel.
+
+R5c expands the fixed Blender bridge with validated materials/lights/cameras/render settings and editable scene revisions. Actual import/save/render/export and Blender resource recovery require installation acceptance. Image atelier adds gallery/compare/recipe reuse first; reference images, masks, editing, upscaling, cloud engines and newer local pipelines are separate adapters with explicit availability, bounded inputs and cost/resource policies.
+
+Acceptance: offline flows work without providers, schema-only proposals are labelled as proposals, every successful edit has validated exports, stale requests cannot corrupt revisions, and cancellation preserves the last valid artifact. Installation-independent work proceeds while configuration remains deferred. No fixture run establishes model quality or GPU fitness.
+
+### R6. Quick assistant and voice v2
+
+Product outcome: a compact hotkey panel for everyday assistance, push-to-talk, streaming transcript, speech responses and interruption, with typed use always available. Add a clear listening/thinking/speaking state and device recovery. Wake-word activation is a later optional profile with its own measured idle cost.
+
+Refactor: separate the 1403-line legacy AudioLoop into capture/device management, speech recognition, conversation integration and playback. Reconcile the separate `voice/pipeline.py` implementation instead of maintaining two authoritative voice/tool stacks. One conversation service and dispatcher serve text and voice. Explicit audio-frame metadata covers codec, sample rate, channels, sequence and timestamps; bounded queues, echo handling and interruption belong at the media boundary.
+
+Acceptance: no microphone or cloud audio connection at ordinary text startup, duplicate sessions do not own the same device, Bluetooth/device switches and sleep/resume recover, interruption stops playback/work correctly, and closing quick UI releases speech resources. Local speech/provider configuration is optional/deferred until selected. Mock speech proves lifecycle only; real speech latency/accuracy needs owner-device acceptance. Evaluate the separate <=250 MB / <2% CPU wake-profile target only if wake detection is enabled.
+
+### R7. Android foundation and secure pairing
+
+Product outcome: native Kotlin/Compose companion with chat, laptop status, job previews and notifications/approvals, adapting to cover-screen, unfolded and multi-window layouts. Start with pairing and read-only job/status access; enable mutating actions only after the same grants apply on desktop and phone.
+
+Refactor: introduce device identity and per-device/project sessions rather than exposing the desktop launch token or a global current project. Add expiring QR pairing, owner verification, established TLS/authentication, Keystore/DPAPI key protection, revocation and replay-resistant request IDs. Keep LAN operation first; private-network/relay support is a separately validated transport and never a public unauthenticated automation port. Add idempotent offline outbox/sync, not automatic replay of externally effective actions.
+
+Acceptance: pairing/revocation, two-device scope, lost/stale approvals, disconnect/reconnect, app process death, laptop sleep/unavailability, fold/unfold and background battery behavior pass. No default-dialer role, notification permission or microphone access is silently enabled by pairing. Record the exact phone/OS and laptop specifications before hardware-specific claims.
+
+### R8. Android notification inbox and owner summaries
+
+Product outcome: summarize selected phone notifications, open the original app/message when a valid link exists, and create owner callback/reminder tasks. Preserve the existing SIM and personal WhatsApp account. Notification data can be incomplete or redacted; the UI must say so rather than imply full chat-history access.
+
+Refactor: a native NotificationListenerService adapter with app/contact allowlists feeds scoped notification records. Deduplicate notification updates, respect access revocation, define retention and keep owner-controlled local/cloud summarization routes separate. No raw notification or summary may grant additional tools or impersonate an owner instruction.
+
+Acceptance: summaries reflect captured text only, revocation stops collection/sync, grouping and reconnect do not duplicate records, locked/redacted content is represented honestly, and no notification can trigger a reply. **WhatsApp draft/send/auto-ack tools remain absent until the owner specifically requests that capability.** Android documents the notification callback surface in [NotificationListenerService](https://developer.android.com/reference/android/service/notification/NotificationListenerService).
+
+### Follow-on work and release tracks
+
+| Track | Scope and gate |
+| --- | --- |
+| Memory and recovery | Inspect/correct/forget project memory with provenance; scoped retrieval and incremental indexing; retention/archive controls; encrypted portable export and restore preview. DPAPI is user-bound, so portable backups require a separately designed recovery/key workflow using established libraries. Never test restore by overwriting the live profile. |
+| Browser and desktop | Owned browser process, bounded DOM/accessibility tasks, selected-app context and permission-aware clipboard/screenshot; preserve the useful automation adapters. Browser content is untrusted and cannot authorize another action. |
+| Smart home and printing | One device registry, validated Kasa/HA adapters and capability-specific errors. Separate slice, upload and start-print actions; exact printer capabilities and completion require real adapter acceptance. Split discovery, transport, slicing and monitoring from the large printer agent. |
+| Phone-call feasibility | Record supported Android/OEM roles, call control and audio paths on the actual handset. Default-dialer UI/call control does not establish conversational access to SIM media. Android reserves VOICE_CALL recording for system components; do not promise that a normal companion app can tap/inject SIM or personal WhatsApp call audio. See [dialer roles](https://developer.android.com/develop/connectivity/telecom/dialer-app) and [audio-source restrictions](https://developer.android.com/reference/android/media/MediaRecorder.AudioSource#VOICE_CALL). Personal WhatsApp AI call answering stays research, not a delivery commitment. |
+| Forwarded SIM pilot | If the owner later chooses a supported carrier-forwarding/OEM route, test it while retaining the existing number. An optional always-available call gateway is needed for service while the laptop sleeps; this has separate hosting/carrier dependencies. No number migration, forwarding change or live call is authorized merely by this plan. Callers receive a restricted fact/task scope, separate from owner tools; verify authenticated media/webhooks, interruption, codec conversion, bounded duration, owner handoff and final summaries before acceptance. |
+| Packaging and support | Reproducible core and optional worker environments, dependency/license inventory, installer/uninstaller, signing, opt-in startup/update, sanitized diagnostics, migration rollback and interrupted-update recovery. Pilot desktop packaging after R4/R6; pilot companion distribution after R7/R8. Do not leave release engineering until every advanced feature is finished. |
+
+Phone feasibility should be reviewed when the Android shell first exists, before substantial call-engine work. It does not wait for every memory/device feature. No model/API/Blender setup or carrier change is required to continue R1-R4. Real image/Blender/device tests remain separate acceptance tasks when their prerequisites are available.
+
+### Rules for every implementation
+
+1. Pick one concrete feature or refactor boundary; read its contract and preserve data/identity/native lifetime.
+2. Make a source-control checkpoint, migrate one route/feature, keep a narrow compatibility adapter and remove it only after parity/reference checks.
+3. Run relevant deterministic, policy and artifact checks. Add real hidden-renderer checks for changed UI/lifecycle behavior; do not repeat unrelated broad benchmarks without a reason.
+4. Record actual versus fixture behavior, installed versus merely detected capabilities, resource observations and remaining limits. Tests must fail on invalid outcomes rather than swallow exceptions.
+5. Visually review desktop and narrow UI; respect reduced motion, readable contrast, keyboard access and useful recovery.
+6. Update handoff/status and keep the supported build usable. Do not expand remote access, add automatic replies or initialize heavy models as a side effect of refactoring.
+
+The next three bounded deliverables are R1 Vision studio, R2a runtime/session extraction and R2b route/policy migration. R3 begins once the core contract has a stable version; it can progress by feature rather than waiting for every legacy adapter to be rewritten. This ordering brings visible improvements while preventing the mobile app from inheriting legacy coupling and policy gaps.
 
 ## Repository organization
 

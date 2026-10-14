@@ -1,6 +1,6 @@
 # INARA code cleanup and JARVIS interface plan
 
-Updated 13 October 2026. This extends the [system architecture](INARA_REVAMP_PLAN.md) and translates the [project findings](PROJECT_REVIEW.md) into implementation work. Make the application easier to maintain and give it a responsive JARVIS-style interface while meeting the laptop resource budgets.
+Updated 14 October 2026. The core/native/creative foundation is already implemented; the ordered remaining work is R1-R8 in [the reconciled roadmap](INARA_REVAMP_PLAN.md#current-baseline-and-implementation-sequence-14-october-2026). This extends the [system architecture](INARA_REVAMP_PLAN.md) and translates the [project findings](PROJECT_REVIEW.md) into implementation work. Make the application easier to maintain and give it a responsive JARVIS-style interface while meeting the laptop resource budgets.
 
 The cleanup and interface changes should ship in reviewable increments. Preserve existing user data and working integrations, establish shared contracts, then move features behind those contracts. The interface should reveal actual assistant state and make creative work easy to inspect and revise.
 
@@ -122,7 +122,7 @@ Keep blur, shadows and transparent compositing bounded. Profile the interface wh
 - At narrow widths and Fold8 posture changes, the conversation, draft input and active job survive the layout change.
 - All main flows work by keyboard, focus is visible, text can scale to 200%, and screen readers receive meaningful status and action labels. Target at least 4.5:1 contrast for ordinary body text and at least 44×44 logical-pixel primary touch targets.
 - The quick panel meets the architecture's activation budget on the actual Legion. Set interaction and frame-time thresholds from recorded hardware baselines; aim for immediate visible acknowledgement within 100 ms for local UI actions.
-- Hidden/minimized UI performs no decorative rendering or unnecessary camera work. Closing the workspace preserves service-owned jobs and reminders.
+- Hidden/minimized UI performs no decorative rendering or unnecessary camera work. Closing the workspace preserves reminders/history and cancels current panel-owned creative work. A future explicitly selected background-job mode must preserve work and still release preview resources.
 - No artificial dashboard numbers, simulated completion percentages or permanently spinning indicators appear in production.
 - Empty, disconnected, denied, loading, cancelled and error states are designed for each feature, including a visible recovery action.
 - Browser/worker failures are contained by a feature error boundary so other assistant capabilities remain usable.
@@ -137,3 +137,58 @@ Apply this rule in capability exposure and backend authorization, not only in a 
 ## Implementation checkpoints
 
 Complete the contract and service cleanup before connecting the phone. Establish the design tokens and shared UI primitives early, then rebuild the quick panel and workspace shell. Migrate one feature at a time into that shell and profile each new viewer. Finish each checkpoint with working behavior, meaningful checks, visual review and recorded resource measurements before expanding scope.
+
+
+## Remaining refactor work, tied to the implementation sequence
+
+Keep the current `backend/`, `src/` and `electron/` roots. The tree below is an incremental ownership target, not a request to move the repository into a new monorepo layout. Change import and packaging paths only as the owning feature migrates.
+
+```text
+backend/
+  server.py                 Compatible supported bootstrap/facade
+  application.py            Composition root and startup/shutdown ownership
+  contracts/                Versioned requests/results/events and capability types
+  transport/                Socket/HTTP handlers, sessions and event delivery
+  services/                 Conversation, policy, projects, jobs, artifacts, memory
+  adapters/                 Speech, providers, browser, devices, printer integrations
+  workers/                  Fixed owned process entry points
+  resident/                 Native Windows lifetime and UI launch
+src/
+  app/                      Bootstrap, navigation, shell and command palette
+  features/                 Assistant, CAD, images, vision, jobs, inbox, settings
+  shared/
+    ui/                     Accessible fields, dialogs, status and revisions
+    design/                 Tokens, typography and bounded motion
+    transport/              Generated types, runtime guards and RPC/event helpers
+    hooks/                  Reusable request/session lifetime
+mobile/android/             Native companion, introduced at R7
+```
+
+| Current code | Refactor boundary | Milestone and completion evidence |
+| --- | --- | --- |
+| `backend/server.py` | Composition, identity/project sessions, then thin feature transports | R2a/R2b; preserved event contracts, dependency injection, scoped emissions, no unexplained supported authorization bypass |
+| `backend/inara.py` and `backend/voice/pipeline.py` | One media session/audio manager feeding one conversation/tool service | R6; text remains independent, microphone ownership/interrupt/recovery checks pass |
+| `backend/core/` | Classify each module as active, migration reference or unused | R2c; reference/parity manifest before archiving or removing any file. Several core helpers remain active |
+| `backend/tools.py`, provider tool declarations and registries | One schema source, provider translators and generated client contracts | R2c/R3; SDK conversion and runtime rejection checks preserve full constraints |
+| Legacy CAD and browser implementations | Thin compatibility adapters to owned capability services | R2/R5/follow-on automation; previous behavior mapped before retirement; arbitrary generated-code execution excluded from the supported replacement |
+| `backend/printer_agent.py` | Discovery, slicer, printer transport, monitoring and service policy | Follow-on device track; separate slice/upload/start stages and actual adapter capability tests |
+| `services/creative_jobs.py` / transports | Preserve shared CAD/image lifetime; add resource reservation and explicit background policy | R4; one heavy slot, bounded queue, no cross-project leaks, no replay of uncertain work |
+| `services/resources.py` | Capability registry, hardware snapshot and reservations independent of UI | R4; unknown hardware stays unknown, manual gaming wins, model imports remain outside resident |
+| Camera/tracker hooks and `features/vision/` | One capture session, bounded inference and independent overlay rendering | R1; synthetic races/device loss, packaged local model, overlay alignment and cleanup |
+| `socketSubscriptions.js` and direct feature RPC calls | Feature-specific event registrars and shared reconnect/request lifetime | R3; versioned payloads, duplicate/reconnect handling and identity/project scope |
+| `workspace.css`, legacy panel interiors and repeated CAD/image presentation | Shared tokens/layout primitives plus scoped feature styles | R3; visual parity, accessible controls, responsive/DPI checks and lazy assets |
+| Root diagnostic scripts, generated logs and duplicated launch helpers | Classify supported/manual/archive and separate release inputs | R2c/release; reference scan and clean installation smoke check before removal |
+
+Do not use line-count reduction as a standalone success measure. `server.py` becomes a bootstrap only when extracted services own their lifecycle without circular imports or references back to transport globals. Retain a facade only for a mapped compatibility need, not a second implementation.
+
+Every migrated route gets an entry in the route/policy matrix: event/tool name, request/result schema, identity/device/project source, allowed roles, side effects, permission/approval requirement, scoped response channel, timeout/cancel owner and legacy replacement. Test direct-route calls as well as model calls. Until a route is migrated, its mobile exposure is unavailable.
+
+Migrate TypeScript from the contract boundary outward. Generate types from server schemas, use narrowly scoped state selectors and keep mutable media/geometry buffers outside application-wide React state. Adopt formatting/static checks for the area being migrated and update its dependency lock in the same bounded checkpoint. Audit upgrades by compatible groups: frontend renderer/Three.js, Electron/preload and each optional Python worker. Verify against official release notes and the existing renderer/native acceptance checks before changing versions.
+
+Add request/job/device correlation IDs to structured diagnostic logs, with credentials, prompts, message text and image/camera payloads excluded by default. A user-invoked diagnostic bundle explains its scope and uses scrubbed metadata. Availability states are separate: not configured, dependencies missing, detected, integration verified, resource blocked and failed. A merely detected executable or package is not a verified capability.
+
+Optional workers should gain explicit launch profiles at R4: selected interpreter/environment, dependency-lock identity, fixed entry point, timeout, model manifest and resource estimate. The current image worker uses the core interpreter; isolated environments must be implemented before claiming independent worker dependency bundles. Model manifests record weights/runtime versions and licences so artifact provenance and repeatability can improve without reading large weights in the resident.
+
+Cross-platform context is an explicit value: owner/device/project/conversation/request IDs plus capability grants. Local single-owner globals must not silently become a multi-device protocol. Pairing and mobile outbox recovery require this boundary before Android can start privileged work.
+
+Refactor completion is: one owner for the responsibility, a working user flow, meaningful regression evidence, preserved private/project data, measured startup/idle behavior when affected, and a short migration note. Formatting alone, a relocated large file, fixture-only inference or a test that swallows an exception does not complete a feature.
