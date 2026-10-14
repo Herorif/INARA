@@ -1,6 +1,6 @@
 # INARA revival implementation status
 
-Updated 14 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly and Image atelier from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
+Updated 14 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
 ## Completed behavior
 
@@ -46,7 +46,7 @@ The command deck, responsive workspace, local reminder panel, lazy 3D/camera loa
 
 ## Next milestone
 
-Improve the on-demand Vision studio, preserving offline solids/scenes, Image atelier, shared creative jobs, native lifetime, protected history and the JARVIS command deck. Actual Blender acceptance remains installation-dependent. Keep modeling usable without a configured provider or Blender installation. See [CAD Studio](CAD_STUDIO.md) and [native release checks](NATIVE_RESIDENT.md). The user deferred the real-game benchmark.
+R2a core composition/session extraction: preserve the supported `server.py` entry point while separating construction/lifetime, identity/project context and thin event delivery. Keep all native, persistence, creative and vision behavior intact. R2b route/policy migration follows separately. See [handoff](IMPLEMENTATION_HANDOFF.md) and [Vision studio](VISION_STUDIO.md). Provider setup and real-game benchmarking remain deferred; real hardware/model acceptance stays explicitly separate.
 
 ## Second milestone verification (13 October 2026)
 
@@ -97,3 +97,12 @@ CAD/image lifetimes and authenticated RPCs now share services, preserving old CA
 ## Roadmap reconciliation (14 October 2026)
 
 A planning-only review against `5f79902` now defines R1 Vision, R2 core/policy cleanup, R3 typed shared UI/activity, R4 capabilities/resources, R5 creative workflows, R6 voice/quick panel, R7 Android pairing and R8 notification summaries. Source ownership, follow-on tracks and acceptance gates are recorded in [the architecture roadmap](INARA_REVAMP_PLAN.md#current-baseline-and-implementation-sequence-14-october-2026) and [refactor map](UI_AND_CODE_CLEANUP_PLAN.md#remaining-refactor-work-tied-to-the-implementation-sequence). These are planned changes, not completed runtime features. Configuration and real-game benchmarking remain deferred, personal WhatsApp replies remain excluded, and live model/Blender/phone acceptance remains pending.
+
+
+## Vision studio v2 verification (14 October 2026)
+
+R1 implementation adds explicit camera/tracker state, source selection, mirror/overlay/rate controls and two-hand overlays. Capture/session, inference scheduling, worker protocol and rendering now have separate owners. The classic Web Worker runs the bundled local model with one transferred frame in flight, stale-result rejection and bounded initialization/inference. Stop, device loss, source switch, panel/visibility/native power events and gaming release resources; restart is explicit. Two unused legacy hooks and the global camera CSS block are retired.
+
+146 Python and 26 frontend checks pass, plus production build, lint and dependency consistency. Real renderer/model checks use synthetic camera streams: blank-frame inference is genuine; injected overlay landmarks are visibly labelled fixtures. Seven workers terminate, all tracks end, no remote assets load and the native core stays free of vision-model imports. Six post-workspace samples remain 63.63-63.83 MB working set / 46.60-46.86 MB private bytes. [Vision evidence and acceptance limits](VISION_STUDIO.md) records actual camera/hand and physical sleep/device checks still pending. This is short recovery, not a game benchmark. R2a is the next implementation.
+
+The retained fallback host lifecycle check passes after fixing reminder destination priority: resident mode selects its tray/native recipient ahead of stale renderer connections; Studio still prefers the renderer. Two destination regressions are included in the 146 Python checks.

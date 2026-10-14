@@ -263,9 +263,11 @@ This sequence supersedes the initial phase/week estimates and outdated implement
 
 The current checkpoint is `5f79902`: independent typed core, private persistence/reminders, native resident, JARVIS shell, offline solids/scenes, optional fixed Blender bridge, Image atelier and shared owned creative jobs. The recorded suite has 144 Python checks and nine frontend checks passing. These counts describe the existing checkpoint, not universal coverage of every retained legacy integration. Real Blender execution, diffusion inference, phone operation and game impact remain unverified. The short image-fixture recovery observation is approximately 65 MB resident working set; the earlier ten-minute native idle evidence is separate.
 
-A fresh source inventory finds 145 Python/JS/JSX/CSS source files in `backend/` and `src/`, including archived modules. Current cleanup pressure points include `backend/server.py` (1505 lines), `backend/inara.py` (1403), `backend/printer_agent.py` (1092), archived `backend/core/server.py` (781), `backend/voice/pipeline.py` (733) and `src/app/workspace.css` (1769). Line counts locate ownership problems; they are not arbitrary file-size targets. Several direct legacy device, screenshot and clipboard handlers still call adapters outside the newer shared tool path. Do not expose those paths to a paired phone before migration.
+At roadmap checkpoint `5f79902`, the source inventory found 145 Python/JS/JSX/CSS source files in `backend/` and `src/`, including archived modules. Current cleanup pressure points include `backend/server.py` (1505 lines), `backend/inara.py` (1403), `backend/printer_agent.py` (1092), archived `backend/core/server.py` (781), `backend/voice/pipeline.py` (733) and `src/app/workspace.css` (1769). Line counts locate ownership problems; they are not arbitrary file-size targets. Several direct legacy device, screenshot and clipboard handlers still call adapters outside the newer shared tool path. Do not expose those paths to a paired phone before migration.
 
-### R1. Vision studio v2: the next implementation
+### R1. Vision studio v2: implemented, hardware acceptance pending
+
+**Implementation update:** [Vision studio v2](VISION_STUDIO.md) now implements this software scope, with real-model/synthetic-stream verification. Actual camera/hand and physical sleep/device acceptance remain pending. R2a is next.
 
 Product outcome: a polished camera workspace with a clear off/requesting/preview/tracking/failed state, source selection, mirror control, useful hand overlays, confidence/presence information and a visible way to stop. Begin with the existing bundled hand model. Face/pose models are later optional capabilities; landmarks do not authenticate the owner.
 
@@ -363,7 +365,7 @@ Phone feasibility should be reviewed when the Android shell first exists, before
 5. Visually review desktop and narrow UI; respect reduced motion, readable contrast, keyboard access and useful recovery.
 6. Update handoff/status and keep the supported build usable. Do not expand remote access, add automatic replies or initialize heavy models as a side effect of refactoring.
 
-The next three bounded deliverables are R1 Vision studio, R2a runtime/session extraction and R2b route/policy migration. R3 begins once the core contract has a stable version; it can progress by feature rather than waiting for every legacy adapter to be rewritten. This ordering brings visible improvements while preventing the mobile app from inheriting legacy coupling and policy gaps.
+R1 software implementation is complete. The next bounded deliverables are R2a runtime/session extraction, R2b route/policy migration and R2c tool/declaration cleanup. R3 begins once the core contract has a stable version; it can progress by feature rather than waiting for every legacy adapter to be rewritten. This ordering brings visible improvements while preventing the mobile app from inheriting legacy coupling and policy gaps.
 
 ## Repository organization
 

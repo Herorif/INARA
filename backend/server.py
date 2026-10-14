@@ -371,7 +371,8 @@ async def deliver_reminders_once():
     # One designated local client identity, retained in the delivery on reconnect.
     for principal in dict.fromkeys(client_principals.values()):
         rooms = sorted([sid for sid, owner in client_principals.items() if owner == principal and client_roles.get(sid) != 'workspace'],
-                       key=lambda sid: client_roles.get(sid) == 'resident')
+                       key=lambda sid: (client_roles.get(sid) != 'resident') if resource_governor.state == 'resident'
+                       else (client_roles.get(sid) == 'resident'))
         if not rooms or not dispatcher.authenticated(principal):
             continue
         for delivery in reminder_store.claim_deliveries(principal):

@@ -26,7 +26,7 @@ app.whenReady().then(async () => {
       offscreen: true
     }
   });
-  window.webContents.on('console-message', event => { if(event.message.includes('Tracking initialization:')) console.error(event.message); });
+  window.webContents.on('console-message', event => { if(event.message.includes('Tracking initialization:') || event.message.includes('Local tracker:')) console.error(event.message); });
   const requests = [];
   window.webContents.session.webRequest.onBeforeRequest((details, callback) => {
     requests.push(details.url);
@@ -41,7 +41,7 @@ app.whenReady().then(async () => {
     assert.match(initial.title, /Ready when/);
     assert.equal(initial.overflow, false);
     assert.equal(initial.buttons, 0);
-    assert.ok(!requests.some(url => /CadWindow-|CadStudio-|tracker-|vision_wasm|hand_landmarker/.test(url)), 'Heavy assets loaded on startup');
+    assert.ok(!requests.some(url => /CadWindow-|CadStudio-|tracker-|tracking.worker-|vision_wasm|hand_landmarker/.test(url)), 'Heavy assets loaded on startup');
     fs.writeFileSync(path.join(output, 'command-desktop.png'), (await window.webContents.capturePage()).toPNG());
     await window.webContents.executeJavaScript(`document.querySelectorAll('nav button')[1].click()`);
     await sleep(350);
@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     await window.webContents.executeJavaScript(`document.querySelector('.reminders-card .text-button').click()`);
     await sleep(300);
     assert.equal(await window.webContents.executeJavaScript(`!!document.querySelector('[role="dialog"]')`), true);
-    assert.ok(!requests.some(url => /CadWindow-|CadStudio-|tracker-|vision_wasm|hand_landmarker/.test(url)));
+    assert.ok(!requests.some(url => /CadWindow-|CadStudio-|tracker-|tracking.worker-|vision_wasm|hand_landmarker/.test(url)));
     fs.writeFileSync(path.join(output, 'reminder-panel.png'), (await window.webContents.capturePage()).toPNG());
     await window.webContents.executeJavaScript(`document.querySelector('[aria-label="Close panel"]').click()`);
     assert.equal(await window.webContents.executeJavaScript(`!!document.querySelector('[role="dialog"]')`), false);
@@ -67,16 +67,16 @@ app.whenReady().then(async () => {
     await sleep(100);
     await window.webContents.executeJavaScript(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('Vision studio')).click()`);
     await sleep(300);
-    assert.ok(!requests.some(url => /tracker-|vision_wasm|hand_landmarker/.test(url)), 'Camera panel loaded tracking before activation');
+    assert.ok(!requests.some(url => /tracker-|tracking.worker-|vision_wasm|hand_landmarker/.test(url)), 'Camera panel loaded tracking before activation');
     // Empty test stream: exercise local model initialization without acquiring a camera.
-    await window.webContents.executeJavaScript(`navigator.mediaDevices.getUserMedia = async () => new MediaStream(); document.querySelector('.camera-controls .primary-button').click()`);
+    await window.webContents.executeJavaScript(`window.qaCameraCanvas=document.createElement('canvas'); qaCameraCanvas.width=640; qaCameraCanvas.height=480; navigator.mediaDevices.getUserMedia = async () => qaCameraCanvas.captureStream(15); document.querySelector('.camera-controls .primary-button').click()`);
     await sleep(200);
-    await window.webContents.executeJavaScript(`document.querySelector('.camera-controls .voice-button').click()`);
+    await window.webContents.executeJavaScript(`document.querySelector('.vision-tracking-card .voice-button').click()`);
     let trackerStatus = '';
     const deadline = Date.now() + 20000;
     while (Date.now() < deadline) {
-      trackerStatus = await window.webContents.executeJavaScript(`document.querySelector('.camera-details')?.textContent || ''`);
-      if (trackerStatus.includes('10 FPS') || trackerStatus.includes('could not load')) break;
+      trackerStatus = await window.webContents.executeJavaScript(`document.querySelector('.vision-tracking-status')?.textContent || ''`);
+      if (trackerStatus.includes('10 FPS') || trackerStatus.includes('Tracking stopped')) break;
       await sleep(200);
     }
     assert.match(trackerStatus, /10 FPS/, 'Bundled local model did not initialize');

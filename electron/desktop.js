@@ -8,8 +8,10 @@ const {
   nativeImage,
   globalShortcut,
   Notification,
-  shell
+  shell,
+  powerMonitor
 } = require('electron');
+const { bindCaptureLifecycle } = require('./capture-lifecycle.cjs');
 const path = require('path');
 const {
   spawn
@@ -106,6 +108,7 @@ function openWindow() {
     }
   });
   const window = mainWindow;
+  bindCaptureLifecycle(window, powerMonitor);
   window.webContents.setWindowOpenHandler(() => ({
     action: 'deny'
   }));

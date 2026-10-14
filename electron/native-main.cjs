@@ -1,9 +1,10 @@
 // On-demand workspace. The native Python host owns the core, tray and lifetime.
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, powerMonitor } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { io } = require('socket.io-client');
+const { bindCaptureLifecycle } = require('./capture-lifecycle.cjs');
 const root = path.resolve(__dirname, '..');
 const bootstrap = JSON.parse(fs.readFileSync(0, 'utf8'));
 if (!/^[a-f0-9]{64}$/.test(bootstrap.token) || !path.isAbsolute(bootstrap.profile)) throw Error('Invalid native bootstrap');
@@ -45,6 +46,7 @@ app.whenReady().then(async () => {
     frame: false, show: false, title: 'INARA · Command deck', backgroundColor: '#080d18',
     icon: path.join(root, 'assets/icons/inara.png'),
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: !bootstrap.hide, offscreen: !!bootstrap.hide, preload: path.join(__dirname, 'preload.js') } });
+  bindCaptureLifecycle(window, powerMonitor);
   ipcMain.on('desktop-bootstrap', event => { event.returnValue = trusted(event) ? { token: bootstrap.token, clientId: bootstrap.clientId } : {}; });
   ipcMain.on('window-minimize', event => { if (trusted(event)) window.minimize(); });
   ipcMain.on('window-maximize', event => { if (trusted(event)) window.isMaximized() ? window.unmaximize() : window.maximize(); });

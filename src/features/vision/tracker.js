@@ -17,7 +17,7 @@ export async function createTracker() {
         delegate: 'CPU'
       },
       runningMode: 'VIDEO',
-      numHands: 1
+      numHands: 2
     });
   } finally {
     URL.revokeObjectURL(wasmURL);

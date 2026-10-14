@@ -153,3 +153,28 @@ time.sleep(60)
         process.close()
         for handle in handles:
             kernel.CloseHandle(handle)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode,recipient", [("resident", "tray"), ("studio", "renderer")])
+async def test_reminder_destination_follows_lifetime_not_stale_renderer(
+    monkeypatch, mode, recipient
+):
+    import server
+
+    monkeypatch.setattr(
+        server, "client_principals", {"renderer": "owner", "tray": "owner", "control": "owner"}
+    )
+    monkeypatch.setattr(
+        server, "client_roles", {"renderer": "renderer", "tray": "resident", "control": "workspace"}
+    )
+    monkeypatch.setattr(server.resource_governor, "state", mode)
+    monkeypatch.setattr(server.dispatcher, "authenticated", lambda _: True)
+    monkeypatch.setattr(
+        server,
+        "reminder_store",
+        SimpleNamespace(claim_deliveries=lambda _: [{"delivery_id": "one"}]),
+    )
+    monkeypatch.setattr(server.sio, "emit", AsyncMock())
+    await server.deliver_reminders_once()
+    assert server.sio.emit.await_args.kwargs["room"] == recipient

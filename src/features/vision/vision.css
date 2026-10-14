@@ -1,0 +1,460 @@
+
+.vision-studio {
+  padding: 26px;
+  color: #c9d8e4;
+  background: #0a1420;
+}
+.vision-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.vision-intro h3 {
+  color: #e5eff6;
+  font-size: 29px;
+  font-weight: 450;
+  line-height: 1.2;
+  margin: 12px 0;
+  letter-spacing: -.6px;
+}
+.vision-intro h3>span {
+  color: #85e5e9;
+}
+.vision-intro h3 em {
+  font-style: normal;
+  color: #8da9bd;
+  font-weight: 350;
+}
+.vision-intro p {
+  font-size: 12px;
+  color: #7594aa;
+  margin: 0;
+}
+.vision-private {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #67bfc438;
+  background: #132c362e;
+  color: #95cfd5;
+  border-radius: 7px;
+  font: 8px monospace;
+  letter-spacing: .8px;
+  white-space: nowrap;
+}
+.vision-layout {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 250px;
+  gap: 24px;
+}
+.vision-workbench,.vision-controls {
+  min-width: 0;
+}
+.vision-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: #6c98ad;
+  font: 8px monospace;
+  margin-bottom: 14px;
+}
+.vision-section-title>span:last-child {
+  font-size: 8px;
+}
+.vision-preview {
+  min-height: 330px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #305163;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 45% 35%,#19394a7a,transparent 70%),linear-gradient(#2644541a 1px,transparent 1px),linear-gradient(90deg,#2644541a 1px,transparent 1px),#091521;
+  background-size: auto,32px 32px,32px 32px,auto;
+  aspect-ratio: 4/3;
+}
+.vision-feed {
+  position: absolute;
+  inset: 0;
+}
+.vision-feed.mirrored {
+  transform: scaleX(-1);
+}
+.vision-feed video,.vision-feed canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.vision-feed canvas {
+  pointer-events: none;
+}
+.vision-preview:not(.active) .vision-feed {
+  visibility: hidden;
+}
+.vision-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 30px;
+  color: #789bae;
+}
+.vision-lens {
+  width: 90px;
+  height: 90px;
+  border: 1px solid #6cadc244;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #83c3d3;
+  box-shadow: 0 0 0 13px #43829a08,0 0 0 14px #43829a10;
+  margin-bottom: 28px;
+}
+.vision-empty .eyebrow {
+  font-size: 8px;
+}
+.vision-empty h4 {
+  font-size: 24px;
+  font-weight: 400;
+  color: #c5dae5;
+  margin: 14px 0 9px;
+}
+.vision-empty p {
+  font-size: 11px;
+  line-height: 1.8;
+  max-width: 300px;
+  margin: 0;
+}
+.vision-view-label {
+  position: absolute;
+  top: 16px;
+  left: 15px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #8dbbc9;
+  background: #091623b3;
+  border-radius: 5px;
+  padding: 7px;
+  font: 8px monospace;
+  letter-spacing: 1px;
+}
+.vision-preview-bottom {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #a8d1dc;
+  font: 9px monospace;
+  background: #08121ccb;
+  padding: 8px;
+  border-radius: 5px;
+}
+.vision-preview-bottom span:first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.vision-preview-bottom span:last-child {
+  white-space: nowrap;
+}
+.vision-corner {
+  position: absolute;
+  pointer-events: none;
+  width: 17px;
+  height: 17px;
+  border-color: #77c9d275;
+  border-style: solid;
+}
+.vision-corner.tl {
+  top: 8px;
+  left: 8px;
+  border-width: 1px 0 0 1px;
+}
+.vision-corner.br {
+  bottom: 8px;
+  right: 8px;
+  border-width: 0 1px 1px 0;
+}
+.vision-status {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin: 20px 0;
+  color: #6eafc1;
+}
+.vision-status>svg {
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.vision-status>div {
+  display: grid;
+  gap: 7px;
+}
+.vision-status strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: #bfdde7;
+}
+.vision-status div span {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #6e90a8;
+}
+.vision-telemetry {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 12px;
+  border: 1px solid #2a4354;
+  border-radius: 9px;
+  padding: 16px;
+  background: #112130;
+}
+.vision-telemetry span {
+  font: 8px monospace;
+  color: #7198ad;
+}
+.vision-telemetry strong {
+  display: block;
+  color: #bddfe8;
+  font-size: 11px;
+  font-weight: 450;
+  line-height: 1.6;
+  margin-top: 9px;
+}
+.vision-controls {
+  border-left: 1px solid #8bb7cd18;
+  padding-left: 22px;
+  display: grid;
+  gap: 17px;
+  align-content: start;
+}
+.vision-field {
+  display: grid;
+  gap: 9px;
+  color: #a7c5d5;
+  font-size: 11px;
+}
+.vision-field select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #30485b;
+  color: #d1e5ef;
+  background: #0b1926;
+  border-radius: 7px;
+  padding: 11px 8px;
+  font-size: 11px;
+}
+.vision-source {
+  display: flex;
+  gap: 6px;
+}
+.vision-source select {
+  flex: 1;
+}
+.vision-source button {
+  flex-shrink: 0;
+}
+.vision-session-buttons {
+  display: grid;
+  gap: 10px;
+}
+.vision-session-buttons .primary-button {
+  width: 100%;
+  justify-content: center;
+  padding: 12px;
+}
+.vision-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 8px;
+  color: #adc9da;
+  border: 1px solid #30485b;
+  border-radius: 7px;
+  background: #112231;
+  font-size: 11px;
+}
+.vision-toggle>span {
+  margin-left: auto;
+  color: #77cbd9;
+  font: 9px monospace;
+}
+.vision-toggle[aria-pressed=false]>span {
+  color: #708b9e;
+}
+.vision-tracking-card {
+  padding: 14px;
+  border: 1px solid #36617070;
+  border-radius: 9px;
+  background: linear-gradient(130deg,#15374463,#0f1f2f);
+}
+.vision-tracking-card>div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9cd9e2;
+}
+.vision-tracking-card strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.vision-tracking-card>div:first-child>span {
+  margin-left: auto;
+  font: 7px monospace;
+  color: #6a9dad;
+}
+.vision-tracking-card p {
+  font-size: 10px;
+  color: #7fa2b6;
+  line-height: 1.8;
+  margin: 12px 0;
+}
+.vision-tracking-card .voice-button {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  align-items: center;
+  width: 100%;
+  font-size: 10px;
+  min-height: 38px;
+}
+.vision-tracking-card .voice-button:disabled {
+  opacity: .45;
+}
+.vision-tracking-status {
+  font: 9px monospace;
+  line-height: 1.7;
+  color: #88b3c3;
+  margin-top: 10px;
+}
+.vision-hand-summary {
+  border-top: 1px solid #8bb7cd18;
+  padding-top: 18px;
+}
+.vision-hand-summary>div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+}
+.vision-hand-summary strong {
+  font-size: 11px;
+  font-weight: 450;
+  flex: 1;
+  color: #b9d3df;
+}
+.vision-hand-summary strong small {
+  color: #7794a7;
+}
+.vision-hand-summary>div>span:last-child {
+  font: 10px monospace;
+  color: #98d2dc;
+}
+.vision-hand-summary p,.vision-hand-summary>small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.8;
+  color: #6e8fa4;
+  margin-top: 12px;
+}
+.vision-hand-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #86edf2;
+}
+.vision-hand-dot.hand-1 {
+  background: #ffc987;
+}
+.vision-footer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 25px;
+  border-top: 1px solid #8bb7cd18;
+  padding-top: 18px;
+  font-size: 10px;
+  line-height: 1.8;
+  color: #678b9e;
+}
+.vision-footer svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.vision-warning {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #dbb791;
+  margin: 0;
+}
+.vision-studio button:focus-visible,.vision-studio select:focus-visible {
+  outline: 2px solid #90dce7;
+  outline-offset: 3px;
+}
+@media(max-width:760px) {
+.vision-layout {
+  grid-template-columns: minmax(0,1fr);
+  gap: 25px;
+}
+.vision-controls {
+  border: 0;
+  padding-left: 0;
+}
+.vision-preview {
+  min-height: 270px;
+}
+.vision-intro {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 14px;
+}
+.vision-telemetry {
+  padding: 12px;
+}
+.vision-telemetry strong {
+  font-size: 10px;
+}
+.vision-session-buttons {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+.vision-session-buttons button {
+  font-size: 10px;
+}
+.vision-studio {
+  padding: 18px;
+}
+.vision-intro h3 {
+  font-size: 26px;
+}
+.vision-empty {
+  padding: 20px;
+}
+.vision-empty h4 {
+  font-size: 21px;
+}
+.vision-lens {
+  width: 65px;
+  height: 65px;
+  margin-bottom: 22px;
+}
+.vision-empty p {
+  font-size: 10px;
+}
+}
+.vision-preview {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+

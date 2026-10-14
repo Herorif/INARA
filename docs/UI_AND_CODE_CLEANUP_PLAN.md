@@ -192,3 +192,5 @@ Optional workers should gain explicit launch profiles at R4: selected interprete
 Cross-platform context is an explicit value: owner/device/project/conversation/request IDs plus capability grants. Local single-owner globals must not silently become a multi-device protocol. Pairing and mobile outbox recovery require this boundary before Android can start privileged work.
 
 Refactor completion is: one owner for the responsibility, a working user flow, meaningful regression evidence, preserved private/project data, measured startup/idle behavior when affected, and a short migration note. Formatting alone, a relocated large file, fixture-only inference or a test that swallows an exception does not complete a feature.
+
+R1 update: camera ownership, tracking scheduling/worker protocol and overlays are separated in `features/vision/`. The old global camera style block and unreferenced `useVideoCapture`/`useHandTracking` hooks are retired. [Vision studio](VISION_STUDIO.md) records synthetic versus hardware acceptance; R2a composition/session extraction is next.

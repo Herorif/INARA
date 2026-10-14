@@ -2,7 +2,7 @@
 
 Updated 14 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge and Image atelier/job adapter are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter and Vision studio v2 are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md) and [Persistence](PERSISTENCE.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -53,7 +53,7 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 
 | Order | Product outcome | Refactor outcome |
 | --- | --- | --- |
-| R1 | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
+| R1 implemented; hardware acceptance pending | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
 | R2a/R2b/R2c | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
 | R3 | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
 | R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
@@ -62,16 +62,22 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | R7 | Native foldable Android companion and secure pairing | Device/project context, scoped grants, revocation and idempotent sync |
 | R8 | Read-only selected-notification inbox and summaries | Native ingestion, dedupe, retention and owner-controlled summarization; no WhatsApp reply tools |
 
-The next three bounded deliverables are R1, R2a and R2b. The rows are milestones, not promises that a whole subsystem fits one coding turn. Memory/backup, browser/devices/printing, call feasibility and signed packaging have explicit follow-on tracks. Phone feasibility is assessed once the Android shell exists, before committing to a call engine. Keep the next task below scoped to R1; do not implement the whole roadmap at once.
+R1 implementation is complete with synthetic-stream/real-model verification; owner-hardware acceptance remains pending. The next bounded deliverables are R2a, R2b and R2c. The rows are milestones, not promises that a whole subsystem fits one coding turn. Memory/backup, browser/devices/printing, call feasibility and signed packaging have explicit follow-on tracks. Phone feasibility is assessed once the Android shell exists, before committing to a call engine. Keep the next task below scoped to R2a; do not implement the whole roadmap at once.
 
 ## Next implementation task
 
-1. Preserve the resident, offline solids/scenes, Image atelier, shared creative-job lifetime, protected history, identity and JARVIS workspace. Keep provider/model configuration deferred and WhatsApp replies excluded.
-2. Improve the on-demand Vision studio with explicit session state, local tracking overlays and useful controls. Inspect existing camera/tracker modules first; reuse working local assets.
-3. Keep camera acquisition and heavy analysis opt-in. Handle permission failure, device loss, duplicate starts, panel closure, workspace loss and gaming mode without retaining streams or analysis work. Default to preview; do not add automatic recording or desktop actions.
-4. Verify synthetic-stream/tracker behavior, rendered narrow/desktop controls, lazy startup assets and resource recovery. Actual owner-camera acceptance remains separate when hardware access is available.
-5. Real diffusion and Blender generation remain installation-dependent acceptance checks. Do not claim quality/GPU recovery from fixture plumbing checks. Read [Image atelier](IMAGE_ATELIER.md) and [Scene Studio](SCENE_STUDIO.md).
-6. Android pairing/calls follow the vision work. The real-game benchmark is deferred; signing/packaging, optional worker dependency locks and GPU/thermal admission remain release/setup work.
+1. Implement R2a only: extract application construction/lifetime, session identity, project context and event delivery from `backend/server.py`. Preserve it as the compatible supported entry point.
+2. Use explicit constructor dependencies and a composition root; move thin feature registration/transport by ownership. Keep native identity/token scope, reminders, shared CAD/image jobs and all current UI behavior intact.
+3. Preserve active imports from `backend/core/` until individually mapped. Avoid replacing the supported server with its archived counterpart or introducing another authoritative runtime.
+4. Keep event names/payloads compatible; verify owner/project context, reconnect/no replay, startup/shutdown and lazy model imports. Update tests away from production globals where a public injection boundary is available, retaining a narrow facade for required compatibility.
+5. Run the existing deterministic/native/renderer checks affected by extraction and record any remaining legacy bypass. R2b then performs the complete route/policy migration; do not claim it is completed by moving files.
+6. Provider/model configuration, real-hand/camera acceptance, real diffusion/Blender execution and the real-game benchmark remain deferred or unverified as documented. WhatsApp replies remain excluded.
+
+## Completed Vision studio milestone (R1)
+
+The local camera workspace now has source/mirror/overlay/rate controls, two-hand skeletons, explicit capture/tracking state and side-classification metrics. Inference runs in an opt-in bounded Web Worker, with stream/model cleanup for source changes, device loss, close/hidden/suspend/minimize and gaming. Unused duplicate capture/tracking hooks are retired; no recording, uploads or actions were added.
+
+146 Python and 26 frontend checks pass. Actual hidden renderer verification initializes the real bundled model and infers blank synthetic frames; labelled fixture landmarks verify overlay controls. Seven workers terminate and resident recovery is around 64 MB. Actual camera/hand accuracy and physical sleep/device acceptance remain pending. See [Vision studio](VISION_STUDIO.md).
 
 ## Completed Image atelier milestone
 
@@ -93,7 +99,7 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Implement the on-demand Vision studio improvement in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/IMAGE_ATELIER.md, docs/SCENE_STUDIO.md and docs/NATIVE_RESIDENT.md. Preserve shared CAD/image jobs, native lifetime, history, permissions and the JARVIS UI. Inspect existing camera/tracker code before changing it. Add explicit session state, useful local tracking overlays/controls, robust acquisition/device-loss/closure/gaming cleanup, responsive visuals and synthetic-stream verification. Do not add automatic recording or actions. Provider/model configuration and the real-game benchmark remain deferred; WhatsApp replies remain excluded. Real diffusion and Blender acceptance are still pending installation/setup.
+> Implement R2a core composition/session extraction in docs/IMPLEMENTATION_HANDOFF.md. Read docs/IMPLEMENTATION_STATUS.md, docs/INARA_REVAMP_PLAN.md, docs/UI_AND_CODE_CLEANUP_PLAN.md and docs/VISION_STUDIO.md. Extract explicit construction/lifetime, identity/project context and event delivery from backend/server.py while preserving the supported entry point, event contracts, native identity/token scope, durable reminders, shared creative jobs and lazy UI/model lifetime. Do not switch to the archived server or combine the entire R2b policy migration with this checkpoint. Verify startup/shutdown, owner/project context, reconnect/no replay and affected native/renderer flows. Configuration and real-game benchmarking remain deferred; WhatsApp replies stay excluded.
 
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

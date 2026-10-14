@@ -1,40 +1,62 @@
-// Own each camera acquisition, including permission prompts that finish after closing.
+// Own one acquisition, including permission results that arrive after stop/switch.
 export function createCapture({
   acquire,
   attach,
-  status
+  status,
+  error = () => {}
 }) {
   let generation = 0,
     stream = null,
-    pending = null;
+    pending = null,
+    detach = [];
   const release = value => value?.getTracks().forEach(track => track.stop());
+  const stop = (reason = 'idle') => {
+    generation++;
+    detach.forEach(remove => remove());
+    detach = [];
+    const old = stream;
+    stream = null;
+    pending = null;
+    release(old);
+    attach(null);
+    status(reason);
+  };
   return {
-    start() {
+    start(options) {
       if (stream || pending) return pending;
       const current = ++generation;
       status('requesting');
-      pending = Promise.resolve().then(acquire).then(value => {
+      pending = Promise.resolve().then(() => acquire(options)).then(value => {
         if (current !== generation) {
           release(value);
           return;
         }
         stream = value;
+        const tracks = value.getVideoTracks?.() || value.getTracks();
+        if (!tracks.length || tracks.some(track => track.readyState === 'ended')) throw new Error('No live video');
+        for (const track of tracks) {
+          const ended = () => {
+            if (current === generation) stop('lost');
+          };
+          track.addEventListener?.('ended', ended);
+          detach.push(() => track.removeEventListener?.('ended', ended));
+        }
         attach(value);
         status('active');
-      }).catch(() => {
-        if (current === generation) status('failed');
+      }).catch(failure => {
+        if (current !== generation) return;
+        detach.forEach(remove => remove());
+        detach = [];
+        release(stream);
+        stream = null;
+        attach(null);
+        error(failure?.name || 'CaptureError');
+        status('failed');
       }).finally(() => {
         if (current === generation) pending = null;
       });
       return pending;
     },
-    stop() {
-      generation++;
-      release(stream);
-      stream = null;
-      pending = null;
-      attach(null);
-      status('idle');
-    }
+    stop
   };
 }

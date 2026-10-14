@@ -19,5 +19,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('resident-state', listener);
     return () => ipcRenderer.removeListener('resident-state', listener);
   },
+  onCapturePause: callback => {
+    const listener = (_, reason) => callback(reason);
+    ipcRenderer.on('capture-pause', listener);
+    return () => ipcRenderer.removeListener('capture-pause', listener);
+  },
   openExternal: url => ipcRenderer.invoke('open-external', url)
 });

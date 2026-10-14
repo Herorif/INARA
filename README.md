@@ -64,12 +64,18 @@ still deferred; the app shows that clearly and does not fabricate output. Models
 load only inside owned workers, sharing one execution slot with CAD. See
 [Image atelier and verification](docs/IMAGE_ATELIER.md).
 
+**Vision studio v2:** local preview with source/mirror controls and opt-in two-hand
+landmarks in a bounded Web Worker. No recording, frame sharing or gesture actions.
+Camera/model resources stop on close, source/device loss, hide/sleep and gaming;
+restart is deliberate. Real camera/hand acceptance remains pending. See
+[Vision studio and verification](docs/VISION_STUDIO.md).
+
 Run the deterministic milestone and desktop-contract checks with:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py -q
 .\.venv\Scripts\python.exe -m ruff check backend/services tests/test_conversation_service.py
-node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs tests/test_cad_ui.mjs
+node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs tests/test_cad_ui.mjs tests/test_vision.mjs
 npm run build
 ```
 
