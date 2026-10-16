@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 # Ensure we can import inara
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from services.lazy import LazyService
 from services.tools import ServiceError
 
 
@@ -267,37 +266,17 @@ startup_event = runtime.start
 close_services = runtime.close
 
 
-def load_saved_printers_into_agent():
-    saved_printers = SETTINGS.get("printers", [])
-    if not saved_printers:
-        return
-
-    print(f"[SERVER] Loading {len(saved_printers)} saved printers...")
-    for p in saved_printers:
-        printer_agent.add_printer_manually(
-            name=p.get("name", p["host"]),
-            host=p["host"],
-            port=p.get("port", 80),
-            printer_type=p.get("type", "moonraker"),
-            camera_url=p.get("camera_url")
-        )
-
-
-def ensure_printer_monitor_running():
-    global printer_monitor_task
-    if printer_monitor_task and not printer_monitor_task.done():
-        return
-    printer_monitor_task = asyncio.create_task(monitor_printers_loop())
-    background_tasks.append(printer_monitor_task)
-
-
 def activate_printers():
-    """Hydrate saved printers and start monitoring only on a printer/voice request."""
-    if isinstance(printer_agent, LazyService):
-        if printer_agent.instance is None:
-            printer_agent.get()
-            load_saved_printers_into_agent()
-        ensure_printer_monitor_running()
+    runtime.compat_service.activate_printer()
+    if runtime.sessions.local_owner:
+        runtime.compat_service.start_monitor(runtime.sessions.local_owner)
+
+
+discover_kasa = runtime.compat_transport.discover_kasa
+control_kasa = runtime.compat_transport.control_kasa
+discover_printers = runtime.compat_transport.discover_printers
+add_printer = runtime.compat_transport.add_printer
+get_slicer_profiles = runtime.compat_transport.get_slicer_profiles
 
 @sio.event
 async def connect(sid, environ, auth=None):
@@ -556,38 +535,6 @@ async def start_audio(sid, data=None):
         audio_loop = None # Ensure we can try again
 
 
-async def monitor_printers_loop():
-    """Background task to query printer status periodically."""
-    print("[SERVER] Starting Printer Monitor Loop")
-    while True:
-        try:
-            agent = printer_agent
-            if not agent.printers:
-                await asyncio.sleep(5)
-                continue
-                
-            tasks = []
-            for host, printer in agent.printers.items():
-                if printer.printer_type.value != "unknown" and agent.should_poll_printer(host):
-                    tasks.append(agent.get_print_status(host))
-            
-            if tasks:
-                results = await asyncio.gather(*tasks, return_exceptions=True)
-                for res in results:
-                    if isinstance(res, Exception):
-                        pass # Ignore errors for now
-                    elif res:
-                        # res is PrintStatus object
-                        await sio.emit('print_status_update', res.to_dict())
-                        
-        except asyncio.CancelledError:
-            print("[SERVER] Printer Monitor Cancelled")
-            break
-        except Exception as e:
-            print(f"[SERVER] Monitor Loop Error: {e}")
-            
-        await asyncio.sleep(2) # Update every 2 seconds for responsiveness
-
 @sio.event
 async def stop_audio(sid, data=None):
     global audio_loop
@@ -743,36 +690,6 @@ async def upload_memory(sid, data):
         await sio.emit('error', {'msg': f"Failed to upload memory: {str(e)}"})
 
 @sio.event
-async def discover_kasa(sid, data=None):
-    print(f"Received discover_kasa request")
-    try:
-        devices = await kasa_agent.discover_devices()
-        await sio.emit('kasa_devices', devices)
-        await sio.emit('status', {'msg': f"Found {len(devices)} Kasa devices"})
-        
-        # Save to settings
-        # devices is a list of full device info dicts. minimizing for storage.
-        saved_devices = []
-        for d in devices:
-            saved_devices.append({
-                "ip": d["ip"],
-                "alias": d["alias"],
-                "model": d["model"]
-            })
-        
-        # Merge with existing to preserve any manual overrides? 
-        # For now, just overwrite with latest scan result + previously known if we want to be fancy,
-        # but user asked for "Any new devices that are scanned are added there".
-        # A simple full persistence of current state is safest.
-        SETTINGS["kasa_devices"] = saved_devices
-        save_settings()
-        print(f"[SERVER] Saved {len(saved_devices)} Kasa devices to settings.")
-        
-    except Exception as e:
-        print(f"Error discovering kasa: {e}")
-        await sio.emit('error', {'msg': f"Kasa Discovery Failed: {str(e)}"})
-
-@sio.event
 async def iterate_cad(sid, data):
     if not await allow_heavy(sid):
         return
@@ -897,94 +814,6 @@ async def prompt_web_agent(sid, data):
             await sio.emit('error', {'msg': f"Web Agent Error: {str(e)}"}, room=sid)
 
 @sio.event
-async def discover_printers(sid, data=None):
-    print("Received discover_printers request")
-
-    try:
-        activate_printers()
-        await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
-        printers = await printer_agent.discover_printers()
-        await sio.emit('printer_list', printer_agent.get_printer_list())
-        await sio.emit('status', {'msg': f"Found {len(printers)} printers"})
-    except Exception as e:
-        print(f"Error discovering printers: {e}")
-        await sio.emit('error', {'msg': f"Printer Discovery Failed: {str(e)}"})
-
-@sio.event
-async def add_printer(sid, data):
-    # data: { host: "192.168.1.50", name: "My Printer", type: "moonraker" }
-    raw_host = data.get('host')
-    name = data.get('name') or raw_host
-    ptype = data.get('type', "moonraker")
-    
-    # Parse port if present
-    if ":" in raw_host:
-        host, port_str = raw_host.split(":")
-        port = int(port_str)
-    else:
-        host = raw_host
-        port = 80
-    
-    print(f"Received add_printer request: {host}:{port} ({ptype})")
-        
-    try:
-        # Add manually
-        activate_printers()
-        camera_url = data.get('camera_url')
-        printer = printer_agent.add_printer_manually(name, host, port=port, printer_type=ptype, camera_url=camera_url)
-        
-        # Save to settings
-        new_printer_config = {
-            "name": name,
-            "host": host,
-            "port": port,
-            "type": ptype,
-            "camera_url": camera_url
-        }
-        
-        # Check if already exists to avoid duplicates
-        exists = False
-        for p in SETTINGS.get("printers", []):
-            if p["host"] == host and p["port"] == port:
-                exists = True
-                break
-        
-        if not exists:
-            if "printers" not in SETTINGS:
-                SETTINGS["printers"] = []
-            SETTINGS["printers"].append(new_printer_config)
-            save_settings()
-            print(f"[SERVER] Saved printer {name} to settings.")
-        
-        # Probe to confirm/correct type
-        print(f"Probing {host} to confirm type...")
-        # Try port 7125 (Moonraker) and 4408 (Fluidd/K1) 
-        ports_to_try = [80, 7125, 4408]
-        
-        actual_type = "unknown"
-        for port in ports_to_try:
-             found_type = await printer_agent._probe_printer_type(host, port)
-             if found_type.value != "unknown":
-                 actual_type = found_type
-                 # Update port if different
-                 if port != 80:
-                     printer.port = port
-                 break
-        
-        if actual_type != "unknown" and actual_type != printer.printer_type:
-             printer.printer_type = actual_type
-             print(f"Corrected type to {actual_type.value} on port {printer.port}")
-             
-        # Refresh list for everyone
-        printers = printer_agent.get_printer_list()
-        await sio.emit('printer_list', printers)
-        await sio.emit('status', {'msg': f"Added printer: {name}"})
-        
-    except Exception as e:
-        print(f"Error adding printer: {e}")
-        await sio.emit('error', {'msg': f"Failed to add printer: {str(e)}"})
-
-@sio.event
 async def print_stl(sid, data):
     print(f"Received print_stl request: {data}")
     # data: { stl_path: "path/to.stl" | "current", printer: "name_or_ip", profile: "optional" }
@@ -1051,55 +880,6 @@ async def print_stl(sid, data):
     except Exception as e:
         print(f"Error printing STL: {e}")
         await sio.emit('error', {'msg': f"Print Failed: {str(e)}"})
-
-@sio.event
-async def get_slicer_profiles(sid, data=None):
-    """Get available OrcaSlicer profiles for manual selection."""
-    print("Received get_slicer_profiles request")
-    try:
-        await sio.emit('printer_system_status', printer_agent.get_slicer_status(), room=sid)
-        profiles = printer_agent.get_available_profiles()
-        await sio.emit('slicer_profiles', profiles)
-    except Exception as e:
-        print(f"Error getting slicer profiles: {e}")
-        await sio.emit('error', {'msg': f"Failed to get profiles: {str(e)}"})
-
-@sio.event
-async def control_kasa(sid, data):
-    # data: { ip, action: "on"|"off"|"brightness"|"color", value: ... }
-    ip = data.get('ip')
-    action = data.get('action')
-    print(f"Kasa Control: {ip} -> {action}")
-    
-    try:
-        success = False
-        if action == "on":
-            success = await kasa_agent.turn_on(ip)
-        elif action == "off":
-            success = await kasa_agent.turn_off(ip)
-        elif action == "brightness":
-            val = data.get('value')
-            success = await kasa_agent.set_brightness(ip, val)
-        elif action == "color":
-            # value is {h, s, v} - convert to tuple for set_color
-            h = data.get('value', {}).get('h', 0)
-            s = data.get('value', {}).get('s', 100)
-            v = data.get('value', {}).get('v', 100)
-            success = await kasa_agent.set_color(ip, (h, s, v))
-        
-        if success:
-            await sio.emit('kasa_update', {
-                'ip': ip,
-                'is_on': True if action == "on" else (False if action == "off" else None),
-                'brightness': data.get('value') if action == "brightness" else None,
-            })
- 
-        else:
-             await sio.emit('error', {'msg': f"Failed to control device {ip}"})
-
-    except Exception as e:
-         print(f"Error controlling kasa: {e}")
-         await sio.emit('error', {'msg': f"Kasa Control Error: {str(e)}"})
 
 if __name__ == "__main__":
     uvicorn_server = uvicorn.Server(uvicorn.Config(app_socketio, host="127.0.0.1", port=8000, loop="asyncio"))

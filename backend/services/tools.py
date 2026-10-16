@@ -44,6 +44,8 @@ class ToolSpec:
     arguments: type[BaseModel]
     execute: Callable
     execution_timeout: float | None = None
+    permission: str | None = None
+    model_visible: bool = True
 
 
 def inline_tool_schema(model):
@@ -93,6 +95,7 @@ class ToolDispatcher:
                 "parameters": inline_tool_schema(spec.arguments),
             }
             for spec in self.tools.values()
+            if spec.model_visible
         ]
 
     def resolve(self, principal, request_id, confirmed):
@@ -117,7 +120,8 @@ class ToolDispatcher:
         if spec is None:
             raise ServiceError("tool_unavailable", "This tool is not available in text mode.")
         validated = spec.arguments.model_validate(arguments)
-        policy = self.permissions().get(name, True)
+        permission = spec.permission or name
+        policy = self.permissions().get(permission, True)
         if policy == "deny":
             raise ServiceError("permission_denied", "This action is disabled.")
         if policy not in (False, "allow_within_scope"):
@@ -138,11 +142,13 @@ class ToolDispatcher:
             if not approved:
                 raise ServiceError("permission_denied", "The action was declined.")
         # Recheck authentication and disablement after waiting, before side effects.
-        if not self.authenticated(principal) or self.permissions().get(name) == "deny":
+        if not self.authenticated(principal) or self.permissions().get(permission) == "deny":
             raise ServiceError("permission_denied", "This action is no longer authorized.")
 
         async def execute():
-            result = spec.execute(validated, context)
+            result = spec.execute(
+                validated, {**context, "principal": principal, "request_approval": request_approval}
+            )
             return await result if inspect.isawaitable(result) else result
 
         if spec.execution_timeout is None:

@@ -13,15 +13,15 @@
       "status": "existing-partial"
     },
     "add_printer": {
-      "schema": "Legacy host/name/type/camera_url mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "AddPrinter",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
       "effects": "Persist printer config and probe network",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
     },
     "cad_artifact": {
       "schema": "ArtifactRequest",
@@ -134,15 +134,15 @@
       "status": "migrated"
     },
     "control_kasa": {
-      "schema": "Legacy ip/action/value mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "KasaControl",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
       "effects": "control kasa",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
     },
     "create_reminder": {
       "schema": "CreateReminder",
@@ -178,26 +178,26 @@
       "status": "existing"
     },
     "discover_kasa": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "NoArguments",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
       "effects": "Discover network devices and persist device settings",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
     },
     "discover_printers": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "NoArguments",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
       "effects": "Discover network printers; activate lazy monitor",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
     },
     "dismiss_reminder": {
       "schema": "Legacy delivery_id mapping",
@@ -244,15 +244,15 @@
       "status": "migrated"
     },
     "get_slicer_profiles": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "NoArguments",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
       "effects": "get slicer profiles",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
     },
     "get_system_info": {
       "schema": "NoArguments",
@@ -692,6 +692,41 @@
       "context": "Authenticated principal and resolved project",
       "lifetime": "Existing provider/service/worker lifetime",
       "replacement": "Current shared tool; declarations consolidated at R2c"
+    },
+    "discover_kasa": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService"
+    },
+    "control_kasa": {
+      "schema": "KasaControl",
+      "policy": "control_device alias",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService"
+    },
+    "discover_printers": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService"
+    },
+    "add_printer": {
+      "schema": "AddPrinter",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService"
+    },
+    "get_slicer_profiles": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService"
     }
   },
   "legacy_voice_declarations": {

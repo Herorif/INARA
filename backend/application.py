@@ -23,6 +23,8 @@ from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
 from services.lazy import LazyService
 from services.local_actions import LocalActions
+from services.device_printers import DevicePrinterService
+from transport.compatibility import CompatibilityTransport
 from services.settings import SettingsService, SettingsStore
 from transport.settings import SettingsTransport
 from transport.lifecycle import LifecycleTransport
@@ -112,6 +114,16 @@ class Application:
             set(permission_names) | set(self.dispatcher.tools),
             settings_changed,
         )
+        self.compat_service = DevicePrinterService(
+            self.dispatcher,
+            self.sessions,
+            self.settings_service,
+            self.kasa,
+            self.printer,
+            self.delivery.publish_job,
+        )
+        self.compat_transport = CompatibilityTransport(sio, self.dispatcher, self.sessions)
+        self.settings_service.permission_names |= frozenset(self.dispatcher.tools)
         self.settings_transport = SettingsTransport(sio, self.sessions, self.settings_service)
         self.lifecycle = LifecycleTransport(
             sio, self.sessions, resources, self.restrict_resources, self.close, request_exit
@@ -142,6 +154,8 @@ class Application:
             self.cad_transport.close(),
             self.image_transport.close(),
             self.local_transport.stop_sid(),
+            self.compat_transport.stop_sid(),
+            self.compat_service.close(),
         ]
         if self.stop_resource_media:
             operations.append(self.stop_resource_media())
@@ -155,6 +169,7 @@ class Application:
 
     async def disconnect(self, sid):
         await self.local_transport.stop_sid(sid)
+        await self.compat_transport.stop_sid(sid)
         principal, role = self.sessions.remove(sid)
         if role == "renderer" and not self.sessions.rooms(principal, "renderer"):
             await self.cad_transport.stop_owner(principal)
@@ -184,6 +199,8 @@ class Application:
                 self.cad_transport.close(),
                 self.image_transport.close(),
                 self.local_transport.stop_sid(),
+                self.compat_transport.stop_sid(),
+                self.compat_service.close(),
                 return_exceptions=True,
             )
             if self.stop_legacy:

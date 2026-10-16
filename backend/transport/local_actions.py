@@ -44,7 +44,7 @@ class LocalActionTransport:
         async def handle(sid, data=None):
             task = asyncio.current_task()
             try:
-                context = self.sessions.context(sid, renderer=True)
+                context = self.context(sid)
                 if not self.dispatcher.authenticated(context.principal):
                     raise ServiceError("authentication_required", "Authentication is required.")
                 self.running[task] = sid
@@ -55,24 +55,7 @@ class LocalActionTransport:
                 result = await self.dispatcher.dispatch(
                     context.principal, name, {} if data is None else data, context.tools(), approve
                 )
-                if name == "launch_app":
-                    await self.sio.emit("status", {"msg": result["message"]}, room=sid)
-                elif name == "take_screenshot":
-                    await self.sio.emit(
-                        "desktop_screenshot",
-                        {"description": result["message"], "data": result["data"]},
-                        room=sid,
-                    )
-                elif name == "read_clipboard":
-                    await self.sio.emit("clipboard_content", {"text": result["message"]}, room=sid)
-                elif name == "control_device":
-                    await self.sio.emit(
-                        "device_control", {"success": True, "message": result["message"]}, room=sid
-                    )
-                elif name == "stop_watching":
-                    await self.sio.emit("vision_watches", {"watches": result["watches"]}, room=sid)
-                    await self.sio.emit("status", {"msg": result["message"]}, room=sid)
-                # System/device list data keeps its existing agent event contract.
+                await self.emit_result(name, result, sid)
             except (ServiceError, ValidationError) as exc:
                 await self.sio.emit(
                     "error",
@@ -94,6 +77,29 @@ class LocalActionTransport:
                 self.running.pop(task, None)
 
         return handle
+
+    def context(self, sid):
+        return self.sessions.context(sid, renderer=True)
+
+    async def emit_result(self, name, result, sid):
+        if name == "launch_app":
+            await self.sio.emit("status", {"msg": result["message"]}, room=sid)
+        elif name == "take_screenshot":
+            await self.sio.emit(
+                "desktop_screenshot",
+                {"description": result["message"], "data": result["data"]},
+                room=sid,
+            )
+        elif name == "read_clipboard":
+            await self.sio.emit("clipboard_content", {"text": result["message"]}, room=sid)
+        elif name == "control_device":
+            await self.sio.emit(
+                "device_control", {"success": True, "message": result["message"]}, room=sid
+            )
+        elif name == "stop_watching":
+            await self.sio.emit("vision_watches", {"watches": result["watches"]}, room=sid)
+            await self.sio.emit("status", {"msg": result["message"]}, room=sid)
+        # System/device list data keeps its existing agent event contract.
 
     async def stop_sid(self, sid=None):
         tasks = [
