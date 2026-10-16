@@ -23,6 +23,9 @@ from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
 from services.lazy import LazyService
 from services.local_actions import LocalActions
+from services.settings import SettingsService, SettingsStore
+from transport.settings import SettingsTransport
+from transport.lifecycle import LifecycleTransport
 from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
 from services.scheduler_tools import register_scheduler_tools
@@ -52,6 +55,11 @@ class Application:
         startup_summary=None,
         status_summary=None,
         instance_id=None,
+        settings_path=None,
+        permission_names=(),
+        settings_changed=None,
+        stop_resource_media=None,
+        request_exit=lambda: None,
     ):
         self.sio, self.database, self.projects, self.settings = sio, database, projects, settings
         self.reminders, self.bus, self.resources = reminders, bus, resources
@@ -97,6 +105,17 @@ class Application:
             self.dispatcher, self.desktop, self.devices, self.vision, self.vision_loop
         )
         self.local_transport = LocalActionTransport(sio, self.dispatcher, self.sessions)
+        self.stop_resource_media = stop_resource_media
+        self.settings_service = SettingsService(
+            settings,
+            SettingsStore(settings_path),
+            set(permission_names) | set(self.dispatcher.tools),
+            settings_changed,
+        )
+        self.settings_transport = SettingsTransport(sio, self.sessions, self.settings_service)
+        self.lifecycle = LifecycleTransport(
+            sio, self.sessions, resources, self.restrict_resources, self.close, request_exit
+        )
         self.tasks = []
         self.started = False
 
@@ -117,6 +136,19 @@ class Application:
                 status_summary() if status_summary else {"status": "running", "text_ready": True}
             )
             return {**summary, "instance_id": instance_id, "resources": resources.snapshot()}
+
+    async def restrict_resources(self):
+        operations = [
+            self.cad_transport.close(),
+            self.image_transport.close(),
+            self.local_transport.stop_sid(),
+        ]
+        if self.stop_resource_media:
+            operations.append(self.stop_resource_media())
+        results = await asyncio.gather(*operations, return_exceptions=True)
+        for result in results:
+            if isinstance(result, BaseException):
+                raise result
 
     def studio_context(self, sid):
         return self.sessions.context(sid, renderer=True).tools()
@@ -182,6 +214,11 @@ def create_application(
     startup_summary=None,
     status_summary=None,
     instance_id=None,
+    settings_path=None,
+    permission_names=(),
+    settings_changed=None,
+    stop_resource_media=None,
+    request_exit=lambda: None,
 ):
     """Explicit production/test injection boundary; no private profile opened until called."""
     database = database if database is not None else Database()
@@ -218,4 +255,9 @@ def create_application(
         startup_summary=startup_summary,
         status_summary=status_summary,
         instance_id=instance_id,
+        settings_path=settings_path,
+        permission_names=permission_names,
+        settings_changed=settings_changed,
+        stop_resource_media=stop_resource_media,
+        request_exit=request_exit,
     )

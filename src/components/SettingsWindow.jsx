@@ -33,7 +33,6 @@ const SettingsWindow = ({ onClose }) => {
     const cursorSensitivity = useStore(s => s.cursorSensitivity);
     const setCursorSensitivity = useStore(s => s.setCursorSensitivity);
     const isCameraFlipped = useStore(s => s.isCameraFlipped);
-    const setIsCameraFlipped = useStore(s => s.setIsCameraFlipped);
     const addMessage = useStore(s => s.addMessage);
 
     const [permissions, setPermissions] = useState({});
@@ -61,14 +60,11 @@ const SettingsWindow = ({ onClose }) => {
 
     const toggleFaceAuth = () => {
         const newVal = !faceAuthEnabled;
-        setFaceAuthEnabled(newVal);
-        localStorage.setItem('face_auth_enabled', newVal);
         emitSocket('update_settings', { face_auth_enabled: newVal });
     };
 
     const toggleCameraFlip = () => {
         const newVal = !isCameraFlipped;
-        setIsCameraFlipped(newVal);
         emitSocket('update_settings', { camera_flipped: newVal });
     };
 

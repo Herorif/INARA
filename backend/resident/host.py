@@ -192,7 +192,6 @@ class NativeHost:
             return
 
         async def announce():
-            self.runtime.resource_governor.select(self.state.resource_state())
             await self.runtime.set_resource_state(
                 "native-resident", {"state": self.state.resource_state()}
             )

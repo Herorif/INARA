@@ -1,5 +1,5 @@
 {
-  "checkpoint": "R2b1 inventory and desktop/device group; other groups pending",
+  "checkpoint": "R2b2 owner settings/native-resource policy implemented; R2b3 compatibility groups pending",
   "socket_routes": {
     "acknowledge_reminder": {
       "schema": "Legacy delivery_id mapping",
@@ -156,15 +156,15 @@
       "status": "existing"
     },
     "desktop_control": {
-      "schema": "Legacy action mapping validated by host",
-      "caller": "Workspace role; native owner check",
-      "context": "NativeHost identity",
-      "effects": "Register/open/close/gaming/quit",
-      "policy": "Workspace role and native ownership",
-      "response": "Scoped ACK; owner renderer disconnection",
-      "lifetime": "Native control timeout",
-      "replacement": "R2b2 native transport schema",
-      "status": "existing-partial"
+      "schema": "DesktopControl discriminated union",
+      "caller": "Owner workspace channel; registration allowed before native owner pin",
+      "context": "NativeHost identity checked at transport and host; no payload identity",
+      "effects": "Native register/state/close/quit/gaming",
+      "policy": "Strict action schemas; gaming boolean strict; owner safety control allowed while face-locked",
+      "response": "Scoped ACK/error; close disconnects same-owner renderers",
+      "lifetime": "Native host 5-second control timeout",
+      "replacement": "LifecycleTransport",
+      "status": "migrated"
     },
     "disconnect": {
       "schema": "Socket lifecycle SID",
@@ -233,15 +233,15 @@
       "status": "existing-partial"
     },
     "get_settings": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "Read settings/permissions",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "Next R2b2 authenticated settings/permission transport",
-      "status": "pending"
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Read owner settings",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
     },
     "get_slicer_profiles": {
       "schema": "Ignored optional mapping",
@@ -266,15 +266,15 @@
       "status": "migrated"
     },
     "get_tool_permissions": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "get tool permissions",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "Next R2b2 authenticated settings/permission transport",
-      "status": "pending"
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Read owner settings",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
     },
     "image_artifact": {
       "schema": "ImageArtifactRequest",
@@ -443,25 +443,25 @@
     },
     "set_resource_state": {
       "schema": "ResourceRequest",
-      "caller": "Connected SID; role unrestricted",
-      "context": "Global governor; native gaming override",
-      "effects": "Change mode and close jobs/media",
-      "policy": "Connected identity; no shared permission",
-      "response": "Broadcast resource_state; invalid input ignored",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b2 native/resource policy",
-      "status": "existing-partial"
+      "caller": "Owner renderer (unlocked) or trusted owner resident channel",
+      "context": "Native identity or launch-local owner; native-resident reserved for actual native host",
+      "effects": "Select governor state; resident/gaming closes creative/local/media work",
+      "policy": "Independent owner/role check; native/tray manual gaming latch wins over renderer requests",
+      "response": "Scoped ACK/error; resource_state to same-owner channels",
+      "lifetime": "Serialized transitions; service/task cancellation owners; cleanup failure remains restricted",
+      "replacement": "LifecycleTransport + Application.restrict_resources",
+      "status": "migrated"
     },
     "shutdown": {
-      "schema": "Ignored optional mapping",
-      "caller": "Connected SID; role unrestricted",
-      "context": "Global desktop/project/media state",
-      "effects": "Close application and exit uvicorn",
-      "policy": "Identity presence only",
-      "response": "No response",
-      "lifetime": "Application.close",
-      "replacement": "R2b2 native lifecycle policy",
-      "status": "existing-partial"
+      "schema": "EmptyRequest",
+      "caller": "Fallback owner resident channel only, including locked cleanup",
+      "context": "Pinned local owner; native mode rejects socket shutdown",
+      "effects": "Close application before requesting uvicorn exit",
+      "policy": "Independent role/owner check; native quit uses desktop_control",
+      "response": "Scoped ACK/error",
+      "lifetime": "Application.close owns cleanup; failed cleanup does not request exit",
+      "replacement": "LifecycleTransport",
+      "status": "migrated"
     },
     "snooze_reminder": {
       "schema": "SnoozeReminder",
@@ -519,26 +519,26 @@
       "status": "migrated"
     },
     "update_settings": {
-      "schema": "Legacy settings mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "Mutate/persist permissions, face gate and camera settings",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "Next R2b2 authenticated settings/permission transport",
-      "status": "pending"
+      "schema": "SettingsPatch",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Validate settings/known permissions; persist atomically before active integration refresh",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
     },
     "update_tool_permissions": {
-      "schema": "Legacy permission mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "Mutate/persist shared permission settings",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "Next R2b2 authenticated settings/permission transport",
-      "status": "pending"
+      "schema": "PermissionPatch (flat wire mapping)",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Validate settings/known permissions; persist atomically before active integration refresh",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
     },
     "upload_memory": {
       "schema": "Legacy memory text mapping",

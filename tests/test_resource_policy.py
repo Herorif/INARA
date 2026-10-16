@@ -55,17 +55,21 @@ async def test_reminder_prefers_renderer_then_resident_on_close(tmp_path, monkey
 
 
 @pytest.mark.asyncio
-async def test_shutdown_requires_connected_identity_and_cleans_before_exit(monkeypatch):
-    import server
-
+async def test_shutdown_requires_connected_identity_and_cleans_before_exit(application_factory):
+    runtime = application_factory()
     cleanup = AsyncMock()
     instance = SimpleNamespace(should_exit=False)
-    monkeypatch.setattr(server, "uvicorn_server", instance)
-    monkeypatch.setattr(server, "close_services", cleanup)
-    monkeypatch.setattr(server, "client_principals", {"owner": "identity"})
-    await server.shutdown("unknown")
+    def request_exit():
+        instance.should_exit = True
+    runtime.lifecycle.close_app = cleanup
+    runtime.lifecycle.request_exit = request_exit
+    runtime.sessions.local_owner = "identity"
+    runtime.sessions.principals.update({"owner": "identity", "renderer": "identity"})
+    runtime.sessions.roles.update({"owner": "resident", "renderer": "renderer"})
+    await runtime.lifecycle.shutdown("unknown")
+    await runtime.lifecycle.shutdown("renderer")
     cleanup.assert_not_called()
-    await server.shutdown("owner")
+    await runtime.lifecycle.shutdown("owner")
     cleanup.assert_awaited_once()
     assert instance.should_exit
 

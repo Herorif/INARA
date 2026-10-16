@@ -409,3 +409,5 @@ Cloud spending is optional for routine local work. Model, image and call usage m
 Phase 0 should finish with recorded laptop specifications, Fold8 firmware and regional capabilities, the actual carrier and forwarding behavior, accepted cloud budget, languages and the first three representative CAD/image/message tasks. Those facts determine the tested default profile while preserving this overall architecture.
 
 R2b1 update: the [complete route inventory](ROUTE_POLICY_MATRIX.md) and [first desktop/device policy group](ROUTE_POLICY_MIGRATION.md) are implemented. R2b2 settings/permission/native-resource policy is next; remaining legacy groups and R2c are still pending.
+
+R2b2 update (16 October 2026): [owner settings and lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) now separate authorization, validation, atomic settings and native/resource controls. Kasa/printer compatibility is the next bounded R2b3 group; other pending matrix rows and R2c remain open.

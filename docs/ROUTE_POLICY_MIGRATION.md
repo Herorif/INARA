@@ -30,8 +30,6 @@ All **26 frontend checks pass** and scoped Ruff checks pass. No frontend source 
 
 Actual native verification passes busy-port recovery, same-identity close/reopen, hotkey-message reopen, renderer crash cleanup, reminder receipt, gaming guard and graceful core stop. A short 10-second sample measured **65.61 MB mean working set / 47.97 MB peak private bytes**, including the venv launcher, with zero Electron processes after close. This is not a new long idle or gaming benchmark. The injected-crash case retains the existing bounded Engine.IO shutdown-timeout log. [Recorded native evidence](qa/r2b1-native-verification.json).
 
-## Next implementation: R2b2
+## R2b2 update (16 October 2026)
 
-Migrate settings/permission mutation and native/resource lifecycle routes. These currently include unauthenticated direct settings changes, unrestricted connected-role controls and broad settings/state broadcasts; they are marked pending/partial in the matrix. Add strict schemas, renderer/native role and owner checks, scoped errors/responses, and an explicit settings policy that cannot be bypassed by changing its own permission gate. Preserve native token/identity, reminder receipt, explicit quit and gaming override. Use injected feature transports rather than adding a second runtime.
-
-Then migrate Kasa/printer compatibility, memory/media/legacy creative/browser routes; finish receipt schemas, planner permission, legacy event producers and voice confirmation binding. R2c declaration/reference cleanup follows. Provider/model setup, physical camera/hand accuracy, real diffusion/Blender execution, real-game benchmarking and WhatsApp replies remain deferred or unverified as previously recorded.
+Settings/permission reads and mutations plus native/resource/shutdown controls are now migrated. [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) records strict schemas, independent owner authority, atomic saves, native/fallback cleanup and actual socket verification. The next group is R2b3 Kasa/printer compatibility. Other pending matrix rows remain unresolved; the whole R2b milestone is not complete.

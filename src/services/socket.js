@@ -9,13 +9,16 @@ if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem('inara_client_id', clientId);
 }
-window.electronAPI?.registerResident(clientId).catch(() => {
-    // The desktop status bridge reports a core failure; avoid an unhandled IPC rejection.
-});
 const socket = io('http://localhost:8000', {
+    autoConnect: false,
     auth: { client_id: clientId, token: window.electronAPI?.sessionToken
         || import.meta.env.VITE_INARA_SESSION_TOKEN || '' },
 });
+
+// Complete native owner registration before the renderer hydrates owner-only state.
+Promise.resolve(window.electronAPI?.registerResident(clientId)).catch(() => {
+    // The desktop status bridge reports registration failure. Text reconnect remains available.
+}).finally(() => socket.connect());
 
 /** Subscribe to a socket event, returns unsubscribe function. */
 export const onSocket = (event, handler) => {

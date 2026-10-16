@@ -7,6 +7,7 @@ from ctypes import wintypes as W
 import json
 import os
 import socket
+import subprocess
 from pathlib import Path
 import sys
 import threading
@@ -18,6 +19,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--idle-seconds", type=int, default=600)
 parser.add_argument("--failure-recovery", action="store_true")
+parser.add_argument("--fresh-identity", action="store_true")
 args = parser.parse_args()
 output = ROOT / ".runtime/native-qa" / f"run-{uuid.uuid4()}"
 output.mkdir(parents=True)
@@ -34,7 +36,8 @@ from resident.state import Identity  # noqa: E402
 from resident.win32 import api, kernel, user, Tray, WPARAM, LPARAM  # noqa: E402
 
 owner = str(uuid.uuid4())
-Identity(output / "profile").register(owner)
+if not args.fresh_identity:
+    Identity(output / "profile").register(owner)
 host = NativeHost(
     ROOT, output / "profile", resident_only=True, suppress_notifications=True, hide_workspace=True
 )
@@ -153,6 +156,7 @@ def close_workspace():
 
 
 def verify():
+    global owner
     try:
         if busy:
             deadline = time.monotonic() + 25
@@ -170,6 +174,47 @@ def verify():
             time.sleep(0.1)
             result["busy_port_failure_recovery"] = True
         until(lambda: host.state.phase == "ready")
+        if args.fresh_identity:
+            host.tray.post(host.open_workspace)
+            until(
+                lambda: (
+                    role_count("workspace") == 1
+                    and role_count("renderer") == 1
+                    and host.state.identity.owner is not None
+                )
+            )
+            owner = host.state.identity.owner
+            assert host.runtime.runtime.sessions.local_owner == owner
+            close_workspace()
+            result["fresh_owner_registration_before_renderer"] = True
+        node = ROOT / ".tools/node-v24.21.0-win-x64/node.exe"
+        if not node.exists():
+            import shutil
+
+            node = shutil.which("node")
+        assert node, "Node is required for admin RPC verification."
+        client_env = {
+            key: os.environ[key]
+            for key in ("SystemRoot", "PATH", "APPDATA", "LOCALAPPDATA", "TEMP", "TMP")
+            if key in os.environ
+        }
+        client = subprocess.run(
+            [str(node), str(ROOT / "scripts/verify-admin-client.cjs")],
+            input=json.dumps({"token": host.token, "owner": owner}),
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            env=client_env,
+            timeout=35,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        assert client.returncode == 0, client.stderr
+        result.update(json.loads(client.stdout))
+        persisted = json.loads((output / "settings.json").read_text())
+        assert (
+            persisted["camera_flipped"] is True
+            and persisted["tool_permissions"]["write_file"] == "deny"
+        )
         for attempt in range(2):
             started = time.monotonic()
             if attempt == 0:
@@ -233,9 +278,12 @@ def verify():
 
         async def override():
             host.runtime.client_principals["qa-renderer"] = owner
-            await host.runtime.set_resource_state("qa-renderer", {"state": "studio"})
+            host.runtime.client_roles["qa-renderer"] = "renderer"
+            response = await host.runtime.set_resource_state("qa-renderer", {"state": "studio"})
+            assert response["ok"]
             assert host.runtime.resource_governor.state == "gaming"
             host.runtime.client_principals.pop("qa-renderer")
+            host.runtime.client_roles.pop("qa-renderer")
 
         core(override())
         assert not core(host.notify({"delivery_id": "gaming-suppressed"}))

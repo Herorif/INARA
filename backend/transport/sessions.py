@@ -29,6 +29,7 @@ class DesktopSessions:
         self.principals = {}
         self.roles = {}
         self.native_desktop = None
+        self.local_owner = None
 
     def accept(self, sid, auth, token=None):
         auth = auth if isinstance(auth, dict) else {}
@@ -43,6 +44,8 @@ class DesktopSessions:
         native = self.native_desktop
         if native and native.state.identity.owner and principal != native.state.identity.owner:
             return False
+        if self.local_owner is None:
+            self.local_owner = principal
         self.principals[sid] = principal
         self.roles[sid] = (
             auth.get("role") if auth.get("role") in ("resident", "workspace") else "renderer"
@@ -50,6 +53,7 @@ class DesktopSessions:
         return True
 
     def attach_native(self, owner):
+        self.local_owner = owner
         self.principals["native-resident"] = owner
         self.roles["native-resident"] = "resident"
 
@@ -80,3 +84,19 @@ class DesktopSessions:
     def remove(self, sid):
         role = self.roles.pop(sid, None)
         return self.principals.pop(sid, sid), role
+
+    def require_owner(self, sid, roles, *, allow_locked=False, allow_registration=False):
+        principal = self.principals.get(sid)
+        if principal is None or self.roles.get(sid) not in roles:
+            raise ServiceError("authentication_required", "Use the authorized desktop channel.")
+        native = self.native_desktop
+        owner = native.state.identity.owner if native else self.local_owner
+        if owner is None and not (native and allow_registration):
+            raise ServiceError("permission_denied", "Register the desktop owner first.")
+        if owner is not None and principal != owner:
+            raise ServiceError("permission_denied", "This action belongs to the desktop owner.")
+        if not allow_locked and not self.authenticated(principal):
+            raise ServiceError(
+                "authentication_required", "Unlock INARA before changing desktop settings."
+            )
+        return principal

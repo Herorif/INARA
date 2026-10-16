@@ -1,6 +1,6 @@
 # INARA revival implementation status
 
-Updated 14 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
+Updated 16 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
 ## Completed behavior
 
@@ -46,7 +46,7 @@ The command deck, responsive workspace, local reminder panel, lazy 3D/camera loa
 
 ## Next milestone
 
-R2b2 settings/permission and native/resource policy migration is next. R2b1's complete route inventory and desktop/device actions are implemented; the whole R2b milestone remains incomplete. See [Route policy migration](ROUTE_POLICY_MIGRATION.md) and its matrix for exact pending groups. Provider setup and real-game benchmarking remain deferred.
+R2b3 Kasa/printer compatibility is next. R2b1 and R2b2 are implemented; the whole R2b milestone remains incomplete. [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) records the independent owner gate, strict transports, atomic settings and native/fallback evidence. The matrix identifies remaining groups. Configuration and real-game benchmarking remain deferred.
 
 ## Second milestone verification (13 October 2026)
 
@@ -120,3 +120,10 @@ The injected application root now owns construction, FastAPI/ASGI lifetime, remi
 52 socket routes, `/status`, 15 shared tools and 26 legacy voice declarations are inventoried with schema/caller/context/effects/policy/response/lifetime/replacement fields. Seven direct desktop/device actions now share strict schemas and dispatcher policy with typed model tools. Renderer/auth checks, scoped responses and stamped event ownership prevent those actions from broadcasting across owners. Origin disconnect/app close cancels tracked local requests; shared confirmation input is strict and owner-bound.
 
 222 Python checks pass (one real-Blender skip), including 61 new policy checks; all 26 frontend checks and scoped lint pass. Actual native failure/reopen/reminder/gaming/shutdown verification passes, with short idle 65.61 MB mean working set and zero Electron processes. Desktop/device action tests use injected adapters; no real app/device/screenshot/clipboard action is claimed. [Migration, evidence and remaining bypasses](ROUTE_POLICY_MIGRATION.md). R2b2 settings/lifecycle is next; remaining legacy groups are explicitly pending.
+
+
+## Settings/lifecycle verification (16 October 2026, R2b2)
+
+Owner-only settings/permission reads and mutations, strict native/resource requests and fallback resident-only shutdown are implemented in injected transports. Settings authorization is outside editable tool permissions; locked/wrong-role/foreign calls cannot grant themselves access. Atomic replacement precedes in-memory commit. Native gaming and fallback resident gaming override renderer requests; restricted transitions release creative/local/media work and report cleanup failures without lifting restriction. Native identity registration and owner safety cleanup remain usable while face-locked.
+
+288 Python checks pass (one real-Blender skip), including 66 new policy checks; all 26 frontend checks, build and lint pass. Real native admin socket checks prove persistence/reconnect, schema/role denial and scoped settings; a fresh profile verifies owner registration before renderer hydration, alongside native reopen/reminder/gaming/shutdown and fallback lifecycle checks. Short idle is 66.72 MB mean working set / 49.48 MB peak private bytes with zero Electron processes after close. The initial intermittent scene-worker failure, subsequent passing run and remaining legacy limits are recorded in [evidence and limits](SETTINGS_LIFECYCLE_POLICY.md). R2b3 is next.

@@ -98,16 +98,16 @@ async def test_native_receipt_only_after_notice_queued_and_workspace_excluded(mo
 
 
 @pytest.mark.asyncio
-async def test_desktop_control_requires_workspace_role(monkeypatch):
-    import server
-
-    desktop = SimpleNamespace(control=AsyncMock(return_value={"gaming": True}))
-    monkeypatch.setattr(server.runtime.sessions, "native_desktop", desktop)
-    monkeypatch.setattr(server, "client_principals", {"renderer": "owner", "main": "owner"})
-    monkeypatch.setattr(server, "client_roles", {"renderer": "renderer", "main": "workspace"})
-    assert not (await server.desktop_control("renderer", {"action": "quit"}))["ok"]
+async def test_desktop_control_requires_workspace_role(application_factory):
+    runtime = application_factory()
+    desktop = SimpleNamespace(control=AsyncMock(return_value={"gaming": True}),
+        state=SimpleNamespace(identity=SimpleNamespace(owner="owner", gaming=False)))
+    runtime.sessions.native_desktop = desktop
+    runtime.sessions.principals.update({"renderer": "owner", "main": "owner"})
+    runtime.sessions.roles.update({"renderer": "renderer", "main": "workspace"})
+    assert not (await runtime.lifecycle.desktop_control("renderer", {"action": "quit"}))["ok"]
     desktop.control.assert_not_called()
-    assert (await server.desktop_control("main", {"action": "gaming", "gaming": True}))["ok"]
+    assert (await runtime.lifecycle.desktop_control("main", {"action": "gaming", "gaming": True}))["ok"]
     desktop.control.assert_awaited_once_with("owner", {"action": "gaming", "gaming": True})
 
 

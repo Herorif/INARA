@@ -13,7 +13,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from pydantic import ValidationError
 
 
 
@@ -21,7 +20,6 @@ from pydantic import ValidationError
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.lazy import LazyService
-from services.resources import ResourceRequest
 from services.tools import ServiceError
 
 
@@ -187,12 +185,7 @@ def load_settings():
             print(f"Error loading settings: {e}")
 
 def save_settings():
-    try:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(SETTINGS, f, indent=4)
-        print("Settings saved.")
-    except Exception as e:
-        print(f"Error saving settings: {e}")
+    runtime.settings_service.store.save(SETTINGS)
 
 # Load on startup
 load_settings()
@@ -209,6 +202,31 @@ async def _stop_legacy_media():
     audio_loop = loop_task = authenticator = printer_monitor_task = vision_task = None
 
 
+async def _stop_resource_media():
+    """Legacy media compatibility boundary for resident/gaming transitions."""
+    global audio_loop, loop_task, vision_task
+    if audio_loop:
+        audio_loop.stop()
+        audio_loop = None
+    tasks = [task for task in (loop_task, vision_task) if task and not task.done()]
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
+    loop_task = vision_task = None
+
+
+def _settings_changed(patch):
+    if "tool_permissions" in patch and audio_loop:
+        audio_loop.update_permissions(SETTINGS["tool_permissions"])
+    if patch.get("face_auth_enabled") is False and authenticator:
+        authenticator.stop()
+
+
+def _request_exit():
+    if uvicorn_server is not None:
+        uvicorn_server.should_exit = True
+
+
 from application import create_application
 
 runtime = create_application(
@@ -216,7 +234,10 @@ runtime = create_application(
     legacy_data_dir=os.getenv('INARA_LEGACY_DATA_DIR'),
     face_authenticated=lambda: authenticator is not None and authenticator.authenticated,
     stop_legacy=_stop_legacy_media, startup_summary=print_startup_summary,
-    status_summary=get_runtime_summary, instance_id=os.getenv("INARA_INSTANCE_ID"))
+    status_summary=get_runtime_summary, instance_id=os.getenv("INARA_INSTANCE_ID"),
+    settings_path=SETTINGS_FILE, permission_names=DEFAULT_SETTINGS["tool_permissions"],
+    settings_changed=_settings_changed, stop_resource_media=_stop_resource_media,
+    request_exit=_request_exit)
 # Compatibility aliases for the resident host and unmigrated legacy adapters.
 # Extracted transports hold explicit dependencies and never import this facade.
 sio, app, app_socketio = runtime.sio, runtime.app, runtime.asgi
@@ -336,43 +357,13 @@ async def disconnect(sid):
     print(f"Client disconnected: {sid}")
 
 
-@sio.event
-async def set_resource_state(sid, data):
-    if sid not in client_principals:
-        return
-    try:
-        request = ResourceRequest.model_validate(data)
-    except ValidationError:
-        return
-    if runtime.sessions.native_desktop and sid != 'native-resident' and runtime.sessions.native_desktop.state.identity.gaming:
-        request = ResourceRequest(state='gaming')
-    resource_governor.select(request.state)
-    if request.state in ('resident', 'gaming'):
-        await cad_transport.close()
-        await image_transport.close()
-        await stop_audio(sid)
-        global vision_task
-        if vision_task and not vision_task.done():
-            vision_task.cancel()
-            await asyncio.gather(vision_task, return_exceptions=True)
-            vision_task = None
-    await sio.emit('resource_state', resource_governor.snapshot())
-
-
-@sio.event
-async def desktop_control(sid, data):
-    if not runtime.sessions.native_desktop or client_roles.get(sid) != 'workspace' or not isinstance(data, dict):
-        return {'ok': False, 'error': 'Desktop control unavailable'}
-    try:
-        principal = client_principals[sid]
-        state = await runtime.sessions.native_desktop.control(principal, data)
-        if data.get('action') == 'close':
-            for renderer, owner in tuple(client_principals.items()):
-                if owner == principal and client_roles.get(renderer) == 'renderer':
-                    await sio.disconnect(renderer)
-        return {'ok': True, 'state': state}
-    except (ValueError, asyncio.TimeoutError):
-        return {'ok': False, 'error': 'Desktop action rejected'}
+set_resource_state = runtime.lifecycle.set_resource_state
+desktop_control = runtime.lifecycle.desktop_control
+shutdown = runtime.lifecycle.shutdown
+get_settings = runtime.settings_transport.get_settings
+update_settings = runtime.settings_transport.update_settings
+get_tool_permissions = runtime.settings_transport.get_tool_permissions
+update_tool_permissions = runtime.settings_transport.update_tool_permissions
 
 
 async def allow_heavy(sid):
@@ -648,15 +639,6 @@ take_screenshot = runtime.local_transport.take_screenshot
 read_clipboard = runtime.local_transport.read_clipboard
 list_all_devices = runtime.local_transport.list_all_devices
 get_system_info = runtime.local_transport.get_system_info
-
-@sio.event
-async def shutdown(sid, data=None):
-    """Only the connected desktop owner can request graceful shutdown."""
-    if sid not in client_principals:
-        return
-    await close_services()
-    if uvicorn_server is not None:
-        uvicorn_server.should_exit = True
 
 import json
 from datetime import datetime
@@ -1118,55 +1100,6 @@ async def control_kasa(sid, data):
     except Exception as e:
          print(f"Error controlling kasa: {e}")
          await sio.emit('error', {'msg': f"Kasa Control Error: {str(e)}"})
-
-@sio.event
-async def get_settings(sid, data=None):
-    await sio.emit('settings', SETTINGS)
-
-@sio.event
-async def update_settings(sid, data):
-    # Generic update
-    print(f"Updating settings: {data}")
-    
-    # Handle specific keys if needed
-    if "tool_permissions" in data:
-        SETTINGS["tool_permissions"].update(data["tool_permissions"])
-        if audio_loop:
-            audio_loop.update_permissions(SETTINGS["tool_permissions"])
-            
-    if "face_auth_enabled" in data:
-        SETTINGS["face_auth_enabled"] = data["face_auth_enabled"]
-        # If turned OFF, maybe emit auth status true?
-        if not data["face_auth_enabled"]:
-             await sio.emit('auth_status', {'authenticated': True})
-             # Stop auth loop if running?
-             if authenticator:
-                 authenticator.stop() 
-
-    if "camera_flipped" in data:
-        SETTINGS["camera_flipped"] = data["camera_flipped"]
-        print(f"[SERVER] Camera flip set to: {data['camera_flipped']}")
-
-    save_settings()
-    # Broadcast new full settings
-    await sio.emit('settings', SETTINGS)
-
-
-# Deprecated/Mapped for compatibility if frontend still uses specific events
-@sio.event
-async def get_tool_permissions(sid, data=None):
-    await sio.emit('tool_permissions', SETTINGS["tool_permissions"])
-
-@sio.event
-async def update_tool_permissions(sid, data):
-    print(f"Updating permissions (legacy event): {data}")
-    SETTINGS["tool_permissions"].update(data)
-    save_settings()
-    
-    if audio_loop:
-        audio_loop.update_permissions(SETTINGS["tool_permissions"])
-    # Broadcast update to all
-    await sio.emit('tool_permissions', SETTINGS["tool_permissions"])
 
 if __name__ == "__main__":
     uvicorn_server = uvicorn.Server(uvicorn.Config(app_socketio, host="127.0.0.1", port=8000, loop="asyncio"))
