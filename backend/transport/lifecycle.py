@@ -26,11 +26,12 @@ class DesktopControl(
 class LifecycleTransport:
     events = ("set_resource_state", "desktop_control", "shutdown")
 
-    def __init__(self, sio, sessions, resources, restrict, close_app, request_exit):
+    def __init__(self, sio, sessions, resources, restrict, close_app, request_exit, after_resource=None):
         self.sio, self.sessions, self.resources = sio, sessions, resources
         self.restrict, self.close_app, self.request_exit = restrict, close_app, request_exit
         self.lock = asyncio.Lock()
         self.fallback_gaming = False
+        self.after_resource = after_resource
         for name in self.events:
             sio.on(name, handler=getattr(self, name))
 
@@ -68,6 +69,8 @@ class LifecycleTransport:
                 self.resources.select(state)
                 if state in ("resident", "gaming"):
                     await self.restrict()
+                if self.after_resource:
+                    await self.after_resource(state)
                 for room in self.sessions.rooms(principal):
                     if room != "native-resident":
                         await self.sio.emit("resource_state", self.resources.snapshot(), room=room)

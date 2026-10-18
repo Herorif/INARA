@@ -59,6 +59,7 @@ class WorkspaceService:
     def __init__(self, app):
         self.app, self.sessions, self.dispatcher = app, app.sessions, app.dispatcher
         self.audio = self.audio_task = self.binding = self.vision_task = None
+        self.voice_bridge = None
         self.callbacks, self.requests, self.confirmations = set(), {}, {}
         self.preflight = provider_ready
         self.audio_factory = lambda **kwargs: app.inara.get().AudioLoop(**kwargs)
@@ -163,10 +164,14 @@ class WorkspaceService:
             ),
             "on_status": ("status", lambda v: {"msg": v}),
         }
+        from services.voice import VoiceBridge
+        bridge = VoiceBridge(self.app, binding)
+        self.voice_bridge = bridge
         token = event_owner.set(binding["owner"])
         try:
             self.audio = self.audio_factory(
                 video_mode="none",
+                tool_bridge=bridge,
                 input_device_index=args.device_index,
                 input_device_name=args.device_name,
                 on_tool_confirmation=lambda v: self.request_confirmation(binding, v),
@@ -176,7 +181,7 @@ class WorkspaceService:
                 },
                 kasa_agent=self.app.kasa,
                 printer_agent=self.app.printer,
-                project_manager=self.app.projects,
+                project_manager=bridge.projects,
                 scheduler_agent=self.app.scheduler,
                 desktop_agent=self.app.desktop,
                 vision_agent=self.app.vision,
@@ -219,9 +224,12 @@ class WorkspaceService:
 
     async def stop_audio(self):
         audio, task = self.audio, self.audio_task
+        bridge, self.voice_bridge = self.voice_bridge, None
         self.binding = self.audio = self.audio_task = None
         self.confirmations.clear()
         self.last_frame = 0
+        if bridge:
+            await bridge.close()
         if audio:
             audio.stop()
         if task and task is not asyncio.current_task():
@@ -233,6 +241,11 @@ class WorkspaceService:
                 child.cancel()
             await asyncio.gather(*children, return_exceptions=True)
             await close_agent(getattr(audio, "web_agent", None))
+            close = getattr(audio, "close", None)
+            if close:
+                result = close()
+                if inspect.isawaitable(result):
+                    await result
         callbacks = tuple(t for t in self.callbacks if t is not asyncio.current_task())
         for callback in callbacks:
             callback.cancel()

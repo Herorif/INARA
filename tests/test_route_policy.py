@@ -268,6 +268,11 @@ def test_matrix_covers_registered_routes_and_shared_tools():
         if isinstance(key, ast.Constant) and key.value == "name" and isinstance(value, ast.Constant)
     }
     assert declared == set(matrix["legacy_voice_declarations"])
+    from services.voice import VOICE_TARGETS
+    assert set(matrix["voice_declarations"]) == set(VOICE_TARGETS)
+    for source, target in VOICE_TARGETS.items():
+        assert matrix["voice_declarations"][source]["target"] == target
+        assert matrix["voice_declarations"][source]["schema"] == server.dispatcher.tools[target].arguments.__name__
     assert set(ACTION_MODELS).issubset(matrix["shared_tools"])
 
 

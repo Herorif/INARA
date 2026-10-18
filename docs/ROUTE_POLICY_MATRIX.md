@@ -1,10 +1,10 @@
-# Supported route/policy matrix (R2b4 workspace batch)
+# Supported route/policy matrix (R2b5 voice and connection)
 
-The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) records all 52 socket routes, `/status`, 33 dispatcher tools and 26 separate legacy voice declarations. Name/schema inventory coverage does not establish full voice-policy parity. No mobile routes are enabled.
+The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) covers 52 socket routes, `/status`, 53 dispatcher tools (40 provider-visible) and the 37 active voice functions. Original 26-declaration metadata remains inventoried for R2c retirement; it no longer defines active voice execution.
 
 ## Policy conventions
 
-Persisted `False` / `allow_within_scope` permits validated actions, `deny` rejects, and `True` or missing policy requests approval. Alias denials cannot weaken canonical permissions. Owner safety controls such as stop/pause are independent of editable tool permissions. Migrated workspace envelopes own request/response scope and cooperative lifetime; legacy adapter interiors still have explicitly documented limits.
+Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and `True` or missing policy requests owner approval. Aliases preserve canonical, source and target denials. Active voice functions use shared schemas and the dispatcher, with a trusted session guard before and after approval. Voice-generated events retain that guard for delayed delivery. Owner safety controls remain independent of editable permissions.
 
 ## Socket routes
 
@@ -19,13 +19,13 @@ Persisted `False` / `allow_within_scope` permits validated actions, `deny` rejec
 | `cad_plan` | PlanRequest | Authenticated owner renderer; Registry owner and resolved selected project | Shared plan_cad tool aliases generate_cad permission; owner authorization and resource gate | Creative plan | Scoped ACK/error; job events to owner renderers | Approval deadline plus provider 30s/close 5s; origin owner/panel/resource shutdown cancellation | CadTransport + shared planner dispatch; **migrated** |
 | `cad_submit` | BuildRequest | Authenticated renderer; Registry owner and resolved selected project | Shared generation permission on submit; owner/project checks; planner permission review pending | Creative submit | Scoped ACK/error; job events to owner renderers | Owned service/worker/planner cancellation and deadlines | Existing creative transport; planner policy review in R2b; **existing** |
 | `cancel_reminder` | ReminderAction | Authenticated owner renderer; Registry owner; desktop-global reminder list; delivery IDs owner-bound | Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store | cancel reminder | SID errors/results and owner renderer/resident refresh; control channels excluded | Dispatcher approval deadline; store transaction/lease | ReminderTransport / owner-gated scheduler tools; **migrated** |
-| `confirm_tool` | Confirmation: strict id and boolean | Authenticated renderer; Registry owner; shared approval owner; voice fallback | Shared owner-bound approval; legacy public ID mapped to current voice-session generation and 60s deadline | Resolve shared or legacy voice confirmation | Scoped errors; no success ACK | Shared approval deadline; legacy 60s deadline; no stale session replay | Shared confirmation transport / WorkspaceService voice binding; **migrated-envelope** |
-| `connect` | Socket auth mapping; token/UUID validation | Launch-token client; native owner constrained; DesktopSessions principal/role; global project | Token, UUID and native-owner check; hydration partly before face gate | Register channel, hydrate state, optional face loop | SID state; auth events may broadcast | Socket lifecycle; optional face task remains legacy | DesktopSessions + future connection transport; **existing-partial** |
+| `confirm_tool` | Confirmation: strict id and boolean | Authenticated renderer; Registry owner; shared approval owner; voice fallback | Shared dispatcher only for active live voice/direct/typed tools; owner-bound approval and strict boolean | Resolve shared or legacy voice confirmation | Scoped errors; no success ACK | Shared approval deadline; legacy 60s deadline; no stale session replay | Shared dispatcher confirmation; obsolete fallback retained for R2c; **migrated** |
+| `connect` | Socket auth mapping; token/UUID checks | Launch-token channel; pinned/native desktop owner; Registry owner/role; owner-only renderer hydration after face gate | Control/resident channels receive no private hydration; locked renderers receive auth state/frames only | Register channel, hydrate state, optional face loop | Origin SID or verified owner renderer rooms; no broadcast | One owned face generation; last-renderer/resource/settings/quit cleanup | ConnectionTransport / owned FaceWorker; **migrated** |
 | `control_device` | ControlDevice | Authenticated renderer direct; authenticated owner via typed tools; Registry principal and immutable selected-project snapshot | Shared dispatcher per-tool denial/approval; recheck auth/denial after approval | control device | SID result/error; stamped bus events to owner renderers | Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel | LocalActions / LocalActionTransport; **migrated** |
 | `control_kasa` | KasaControl | Authenticated owner renderer; Pinned desktop owner and captured project | Shared dispatcher; control_kasa uses control_device permission alias | control kasa | Scoped result/error events to origin SID | 30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation | DevicePrinterService / CompatibilityTransport; **migrated** |
 | `create_reminder` | CreateReminder | Authenticated owner renderer; Registry owner; desktop-global reminder list; delivery IDs owner-bound | Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store | create reminder | SID errors/results and owner renderer/resident refresh; control channels excluded | Dispatcher approval deadline; store transaction/lease | ReminderTransport / owner-gated scheduler tools; **migrated** |
 | `desktop_control` | DesktopControl discriminated union | Owner workspace channel; registration allowed before native owner pin; NativeHost identity checked at transport and host; no payload identity | Strict action schemas; gaming boolean strict; owner safety control allowed while face-locked | Native register/state/close/quit/gaming | Scoped ACK/error; close disconnects same-owner renderers | Native host 5-second control timeout | LifecycleTransport; **migrated** |
-| `disconnect` | Socket lifecycle SID | Transport lifecycle; Registry SID -> owner/role | No caller-provided identity | Cancel origin local/workspace/conversation requests and bound voice; last-renderer creative cleanup | No response | Application cleanup | Application.disconnect; **existing** |
+| `disconnect` | Socket lifecycle SID | Launch-token channel; pinned/native desktop owner; Registry owner/role; owner-only renderer hydration after face gate | Control/resident channels receive no private hydration; locked renderers receive auth state/frames only | Cancel origin local/workspace/conversation requests and bound voice; last-renderer creative cleanup | Origin SID or verified owner renderer rooms; no broadcast | One owned face generation; last-renderer/resource/settings/quit cleanup | ConnectionTransport / owned FaceWorker; **migrated** |
 | `discover_kasa` | NoArguments | Authenticated owner renderer; Pinned desktop owner and captured project | Shared per-tool denial/approval; owner authorization rechecked before execution | Discover network devices and persist device settings | Scoped result/error events to origin SID | 30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation | DevicePrinterService / CompatibilityTransport; **migrated** |
 | `discover_printers` | NoArguments | Authenticated owner renderer; Pinned desktop owner and captured project | Shared per-tool denial/approval; owner authorization rechecked before execution | Discover network printers; activate lazy monitor | Scoped result/error events to origin SID | 30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation | DevicePrinterService / CompatibilityTransport; **migrated** |
 | `dismiss_reminder` | DeliveryReceipt (UUID; extra fields forbidden) | Authenticated owner renderer; Registry owner; desktop-global reminder list; delivery IDs owner-bound | Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store | dismiss reminder | SID errors/results and owner renderer/resident refresh; control channels excluded | Dispatcher approval deadline; store transaction/lease | ReminderTransport / owner-gated scheduler tools; **migrated** |
@@ -65,11 +65,9 @@ Persisted `False` / `allow_within_scope` permits validated actions, `deny` rejec
 
 ## HTTP routes
 
-`/status`: local runtime metadata read; immediate HTTP snapshot without a privileged action.
+`/status`: local runtime metadata snapshot without privileged actions or private image/state hydration.
 
 ## Shared tools
-
-33 registered tools, 24 provider-visible. Internal print stages require a bound plan. `legacy_generate_cad` keeps the old event separate from the public typed `generate_cad` build schema. Start/resume/frame tools and compatibility CAD tools remain hidden from provider schemas.
 
 | Tool | Schema | Policy | Provider visible | Lifetime |
 | --- | --- | --- | --- | --- |
@@ -77,69 +75,100 @@ Persisted `False` / `allow_within_scope` permits validated actions, `deny` rejec
 | `cancel_reminder` | ReminderAction | Shared permissions[cancel_reminder]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
 | `control_device` | ControlDevice | Shared permissions[control_device]; absent/True requires approval; deny rejects | Yes | 30s cooperative execution |
 | `control_kasa` | KasaControl | control_device alias | No | 30s cooperative execution |
+| `control_light` | ControlLight | Canonical control_device permission plus source/target alias denial | No | Inherited target cooperative deadline; caller-owned cancellation |
+| `create_project` | ProjectRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `create_reminder` | CreateReminder | Shared permissions[create_reminder]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
+| `create_routine` | RoutineRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
+| `describe_camera` | CameraQuestion | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
+| `detect_presence` | NoArguments | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `discover_kasa` | NoArguments | Shared per-tool approval/deny | Yes | 30s cooperative execution |
 | `discover_printers` | NoArguments | Shared per-tool approval/deny | Yes | 30s cooperative execution |
+| `focus_window` | LaunchApp | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `generate_cad` | BuildRequest | Shared permissions[generate_cad]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
+| `generate_cad_prototype` | PromptRequest | Canonical legacy_generate_cad permission plus source/target alias denial | No | Inherited target cooperative deadline; caller-owned cancellation |
 | `generate_image` | ImageRequest | Shared permissions[generate_image]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
+| `get_device_state` | DeviceRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
+| `get_print_status` | PrinterStatusRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `get_slicer_profiles` | NoArguments | Shared per-tool approval/deny | Yes | 30s cooperative execution |
 | `get_system_info` | NoArguments | Shared permissions[get_system_info]; absent/True requires approval; deny rejects | Yes | 30s cooperative execution |
 | `iterate_cad` | PromptRequest | Shared generate_cad permission; own alias deny also enforced | No | 300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
 | `launch_app` | LaunchApp | Shared permissions[launch_app]; absent/True requires approval; deny rejects | Yes | 30s cooperative execution |
 | `legacy_generate_cad` | PromptRequest | Shared generate_cad permission; own alias deny also enforced | No | 300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
 | `list_all_devices` | NoArguments | Shared permissions[list_all_devices]; absent/True requires approval; deny rejects | Yes | 30s cooperative execution |
+| `list_projects` | NoArguments | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `list_reminders` | ListReminders | Shared permissions[list_reminders]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
+| `list_routines` | NoArguments | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
+| `list_running_apps` | NoArguments | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
+| `list_smart_devices` | NoArguments | Canonical list_all_devices permission plus source/target alias denial | No | Inherited target cooperative deadline; caller-owned cancellation |
+| `list_watches` | NoArguments | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `plan_cad` | PlanRequest | generate_cad permission alias | Yes | 40s cooperative execution; provider 30s plus cleanup; separate approval deadline |
 | `print_stl` | PrintRequest | print_stl outer permission plus three phase gates | Yes | Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines |
 | `prompt_web_agent` | PromptRequest | Shared run_web_agent permission; own alias deny also enforced | Yes | 180s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
 | `read_clipboard` | NoArguments | Shared permissions[read_clipboard]; absent/True requires approval; deny rejects | Yes | 30s cooperative execution |
+| `read_directory` | DirectoryRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `read_file` | PathArguments | Shared permissions[read_file]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
 | `resume_audio` | EmptyRequest | Shared start_audio permission; own alias deny also enforced | No | 10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
+| `run_web_agent` | PromptRequest | Canonical prompt_web_agent permission plus source/target alias denial | No | Inherited target cooperative deadline; caller-owned cancellation |
 | `save_memory` | SaveMemory | Shared save_memory permission; own alias deny also enforced | Yes | 10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
+| `search_files` | SearchRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `slice_stl` | PrintStage | Independent per-stage shared permission; root print workflow required | No | Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines |
 | `snooze_reminder` | SnoozeReminder | Shared permissions[snooze_reminder]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
 | `start_audio` | StartAudio | Shared start_audio permission; own alias deny also enforced | No | 30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
 | `start_print` | PrintStage | Independent per-stage shared permission; root print workflow required | No | Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines |
 | `stop_watching` | StopWatching | Shared permissions[stop_watching]; absent/True requires approval; deny rejects | Yes | 30s cooperative execution |
+| `switch_project` | ProjectRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `take_screenshot` | Screenshot | Shared permissions[take_screenshot]; absent/True requires approval; deny rejects | Yes | 30s cooperative execution |
 | `upload_gcode` | PrintStage | Independent per-stage shared permission; root print workflow required | No | Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines |
 | `upload_memory` | UploadMemory | Shared upload_memory permission; own alias deny also enforced | Yes | 30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
 | `video_frame` | VideoFrame | Shared video_frame permission; own alias deny also enforced | No | 10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending |
+| `watch_for` | WatchRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
+| `write_clipboard` | ClipboardRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `write_file` | WriteArguments | Shared permissions[write_file]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
 
-## Legacy voice declarations
+## Active voice functions
 
-Voice events carry session owner context and approvals have a bounded, deny-aware gate. These declarations still execute through the separate AudioLoop dispatcher; strict per-tool argument/schema parity remains pending.
+These schemas are generated from the target dispatcher contracts. `generate_cad` retains the legacy prompt workflow under the explicit `legacy_generate_cad` target; the typed parametric build tool keeps its existing schema. Filesystem listing/search is project-contained. No implicit Google Search tool or WhatsApp reply function is exposed.
 
-| Declaration | Status |
-| --- | --- |
-| `cancel_reminder` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `control_device` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `create_reminder` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `create_routine` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `describe_camera` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `detect_presence` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `focus_window` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `generate_cad_prototype` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `get_device_state` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `get_system_info` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `launch_app` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `list_all_devices` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `list_reminders` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `list_routines` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `list_running_apps` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `list_watches` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `read_clipboard` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `read_directory` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `read_file` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `search_files` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `snooze_reminder` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `stop_watching` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `take_screenshot` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `watch_for` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `write_clipboard` | Session-scoped gate; shared-dispatch/schema parity pending |
-| `write_file` | Session-scoped gate; shared-dispatch/schema parity pending |
+| Voice name | Shared target | Schema |
+| --- | --- | --- |
+| `cancel_reminder` | `cancel_reminder` | ReminderAction |
+| `control_device` | `control_device` | ControlDevice |
+| `control_light` | `control_light` | ControlLight |
+| `create_project` | `create_project` | ProjectRequest |
+| `create_reminder` | `create_reminder` | CreateReminder |
+| `create_routine` | `create_routine` | RoutineRequest |
+| `describe_camera` | `describe_camera` | CameraQuestion |
+| `detect_presence` | `detect_presence` | NoArguments |
+| `discover_printers` | `discover_printers` | NoArguments |
+| `focus_window` | `focus_window` | LaunchApp |
+| `generate_cad` | `legacy_generate_cad` | PromptRequest |
+| `generate_cad_prototype` | `generate_cad_prototype` | PromptRequest |
+| `get_device_state` | `get_device_state` | DeviceRequest |
+| `get_print_status` | `get_print_status` | PrinterStatusRequest |
+| `get_system_info` | `get_system_info` | NoArguments |
+| `iterate_cad` | `iterate_cad` | PromptRequest |
+| `launch_app` | `launch_app` | LaunchApp |
+| `list_all_devices` | `list_all_devices` | NoArguments |
+| `list_projects` | `list_projects` | NoArguments |
+| `list_reminders` | `list_reminders` | ListReminders |
+| `list_routines` | `list_routines` | NoArguments |
+| `list_running_apps` | `list_running_apps` | NoArguments |
+| `list_smart_devices` | `list_smart_devices` | NoArguments |
+| `list_watches` | `list_watches` | NoArguments |
+| `print_stl` | `print_stl` | PrintRequest |
+| `read_clipboard` | `read_clipboard` | NoArguments |
+| `read_directory` | `read_directory` | DirectoryRequest |
+| `read_file` | `read_file` | PathArguments |
+| `run_web_agent` | `run_web_agent` | PromptRequest |
+| `search_files` | `search_files` | SearchRequest |
+| `snooze_reminder` | `snooze_reminder` | SnoozeReminder |
+| `stop_watching` | `stop_watching` | StopWatching |
+| `switch_project` | `switch_project` | ProjectRequest |
+| `take_screenshot` | `take_screenshot` | Screenshot |
+| `watch_for` | `watch_for` | WatchRequest |
+| `write_clipboard` | `write_clipboard` | ClipboardRequest |
+| `write_file` | `write_file` | WriteArguments |
 
 ## Remaining sequence
 
-R2b1-R2b4 envelopes are implemented. See [workspace policy evidence and limits](WORKSPACE_POLICY.md). Finish the remaining R2b voice/tool parity and connection/face lifecycle seams before retiring declarations/references at R2c. R3 UI/contracts follows. The default resident remains local; no mobile grants or WhatsApp reply tools are introduced.
+The authorized R2b5 voice and connection/face steps are implemented. [Evidence and limits](VOICE_CONNECTION_POLICY.md) distinguish dispatcher parity from unverified physical media and optional generated-code/browser adapters. R2c should now remove dead AudioLoop helpers, static legacy declarations, fallback approval code and obsolete facade references, then proceed to R3 UI/contracts consolidation. R4/R5/R6 retain hard worker isolation and hardware/provider acceptance.

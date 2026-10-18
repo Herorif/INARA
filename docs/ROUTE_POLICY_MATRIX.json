@@ -1,5 +1,5 @@
 {
-  "checkpoint": "R2b4 workspace memory/media/legacy creative/browser envelopes implemented; legacy voice dispatcher parity and R2c pending",
+  "checkpoint": "R2b5 live voice uses shared dispatcher; owner hydration and owned face lifecycle implemented; R2c next",
   "socket_routes": {
     "acknowledge_reminder": {
       "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
@@ -105,22 +105,22 @@
       "caller": "Authenticated renderer",
       "context": "Registry owner; shared approval owner; voice fallback",
       "effects": "Resolve shared or legacy voice confirmation",
-      "policy": "Shared owner-bound approval; legacy public ID mapped to current voice-session generation and 60s deadline",
+      "policy": "Shared dispatcher only for active live voice/direct/typed tools; owner-bound approval and strict boolean",
       "response": "Scoped errors; no success ACK",
       "lifetime": "Shared approval deadline; legacy 60s deadline; no stale session replay",
-      "replacement": "Shared confirmation transport / WorkspaceService voice binding",
-      "status": "migrated-envelope"
+      "replacement": "Shared dispatcher confirmation; obsolete fallback retained for R2c",
+      "status": "migrated"
     },
     "connect": {
-      "schema": "Socket auth mapping; token/UUID validation",
-      "caller": "Launch-token client; native owner constrained",
-      "context": "DesktopSessions principal/role; global project",
+      "schema": "Socket auth mapping; token/UUID checks",
+      "caller": "Launch-token channel; pinned/native desktop owner",
+      "context": "Registry owner/role; owner-only renderer hydration after face gate",
       "effects": "Register channel, hydrate state, optional face loop",
-      "policy": "Token, UUID and native-owner check; hydration partly before face gate",
-      "response": "SID state; auth events may broadcast",
-      "lifetime": "Socket lifecycle; optional face task remains legacy",
-      "replacement": "DesktopSessions + future connection transport",
-      "status": "existing-partial"
+      "policy": "Control/resident channels receive no private hydration; locked renderers receive auth state/frames only",
+      "response": "Origin SID or verified owner renderer rooms; no broadcast",
+      "lifetime": "One owned face generation; last-renderer/resource/settings/quit cleanup",
+      "replacement": "ConnectionTransport / owned FaceWorker",
+      "status": "migrated"
     },
     "control_device": {
       "schema": "ControlDevice",
@@ -168,14 +168,14 @@
     },
     "disconnect": {
       "schema": "Socket lifecycle SID",
-      "caller": "Transport lifecycle",
-      "context": "Registry SID -> owner/role",
+      "caller": "Launch-token channel; pinned/native desktop owner",
+      "context": "Registry owner/role; owner-only renderer hydration after face gate",
       "effects": "Cancel origin local/workspace/conversation requests and bound voice; last-renderer creative cleanup",
-      "policy": "No caller-provided identity",
-      "response": "No response",
-      "lifetime": "Application cleanup",
-      "replacement": "Application.disconnect",
-      "status": "existing"
+      "policy": "Control/resident channels receive no private hydration; locked renderers receive auth state/frames only",
+      "response": "Origin SID or verified owner renderer rooms; no broadcast",
+      "lifetime": "One owned face generation; last-renderer/resource/settings/quit cleanup",
+      "replacement": "ConnectionTransport / owned FaceWorker",
+      "status": "migrated"
     },
     "discover_kasa": {
       "schema": "NoArguments",
@@ -851,6 +851,166 @@
       "lifetime": "180s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
       "replacement": "WorkspaceService / WorkspaceTransport",
       "model_visible": true
+    },
+    "read_directory": {
+      "schema": "DirectoryRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "search_files": {
+      "schema": "SearchRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "create_project": {
+      "schema": "ProjectRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "switch_project": {
+      "schema": "ProjectRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_projects": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "create_routine": {
+      "schema": "RoutineRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_routines": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_running_apps": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "focus_window": {
+      "schema": "LaunchApp",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "write_clipboard": {
+      "schema": "ClipboardRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "describe_camera": {
+      "schema": "CameraQuestion",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "detect_presence": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "watch_for": {
+      "schema": "WatchRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_watches": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "get_device_state": {
+      "schema": "DeviceRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "get_print_status": {
+      "schema": "PrinterStatusRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "generate_cad_prototype": {
+      "schema": "PromptRequest",
+      "policy": "Canonical legacy_generate_cad permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false
+    },
+    "run_web_agent": {
+      "schema": "PromptRequest",
+      "policy": "Canonical prompt_web_agent permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false
+    },
+    "list_smart_devices": {
+      "schema": "NoArguments",
+      "policy": "Canonical list_all_devices permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false
+    },
+    "control_light": {
+      "schema": "ControlLight",
+      "policy": "Canonical control_device permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false
     }
   },
   "legacy_voice_declarations": {
@@ -862,8 +1022,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "control_device": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -873,8 +1033,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "create_reminder": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -884,8 +1044,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "create_routine": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -895,8 +1055,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "describe_camera": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -906,8 +1066,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "detect_presence": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -917,8 +1077,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "focus_window": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -928,8 +1088,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "generate_cad_prototype": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -939,8 +1099,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "get_device_state": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -950,8 +1110,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "get_system_info": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -961,8 +1121,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "launch_app": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -972,8 +1132,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "list_all_devices": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -983,8 +1143,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "list_reminders": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -994,8 +1154,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "list_routines": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1005,8 +1165,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "list_running_apps": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1016,8 +1176,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "list_watches": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1027,8 +1187,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "read_clipboard": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1038,8 +1198,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "read_directory": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1049,8 +1209,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "read_file": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1060,8 +1220,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "search_files": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1071,8 +1231,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "snooze_reminder": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1082,8 +1242,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "stop_watching": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1093,8 +1253,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "take_screenshot": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1104,8 +1264,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "watch_for": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1115,8 +1275,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "write_clipboard": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1126,8 +1286,8 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
     },
     "write_file": {
       "schema": "Legacy provider declaration; ad-hoc runtime validation",
@@ -1137,8 +1297,232 @@
       "policy": "Separate AudioLoop permission/confirmation path, not the shared dispatcher",
       "response": "Voice response and legacy callbacks, possibly broadcast",
       "lifetime": "Legacy AudioLoop/adapter; no uniform action deadline",
-      "replacement": "R2b policy adapter then R2c declarations/R6 media consolidation",
-      "status": "pending"
+      "replacement": "VoiceBridge shared schema catalog; original metadata retained for R2c cleanup",
+      "status": "replaced-active"
+    }
+  },
+  "voice_declarations": {
+    "cancel_reminder": {
+      "target": "cancel_reminder",
+      "schema": "ReminderAction",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "control_device": {
+      "target": "control_device",
+      "schema": "ControlDevice",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "control_light": {
+      "target": "control_light",
+      "schema": "ControlLight",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "create_project": {
+      "target": "create_project",
+      "schema": "ProjectRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "create_reminder": {
+      "target": "create_reminder",
+      "schema": "CreateReminder",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "create_routine": {
+      "target": "create_routine",
+      "schema": "RoutineRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "describe_camera": {
+      "target": "describe_camera",
+      "schema": "CameraQuestion",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "detect_presence": {
+      "target": "detect_presence",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "discover_printers": {
+      "target": "discover_printers",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "focus_window": {
+      "target": "focus_window",
+      "schema": "LaunchApp",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "generate_cad": {
+      "target": "legacy_generate_cad",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "generate_cad_prototype": {
+      "target": "generate_cad_prototype",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "get_device_state": {
+      "target": "get_device_state",
+      "schema": "DeviceRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "get_print_status": {
+      "target": "get_print_status",
+      "schema": "PrinterStatusRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "get_system_info": {
+      "target": "get_system_info",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "iterate_cad": {
+      "target": "iterate_cad",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "launch_app": {
+      "target": "launch_app",
+      "schema": "LaunchApp",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_all_devices": {
+      "target": "list_all_devices",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_projects": {
+      "target": "list_projects",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_reminders": {
+      "target": "list_reminders",
+      "schema": "ListReminders",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_routines": {
+      "target": "list_routines",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_running_apps": {
+      "target": "list_running_apps",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_smart_devices": {
+      "target": "list_smart_devices",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_watches": {
+      "target": "list_watches",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "print_stl": {
+      "target": "print_stl",
+      "schema": "PrintRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "read_clipboard": {
+      "target": "read_clipboard",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "read_directory": {
+      "target": "read_directory",
+      "schema": "DirectoryRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "read_file": {
+      "target": "read_file",
+      "schema": "PathArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "run_web_agent": {
+      "target": "run_web_agent",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "search_files": {
+      "target": "search_files",
+      "schema": "SearchRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "snooze_reminder": {
+      "target": "snooze_reminder",
+      "schema": "SnoozeReminder",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "stop_watching": {
+      "target": "stop_watching",
+      "schema": "StopWatching",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "switch_project": {
+      "target": "switch_project",
+      "schema": "ProjectRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "take_screenshot": {
+      "target": "take_screenshot",
+      "schema": "Screenshot",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "watch_for": {
+      "target": "watch_for",
+      "schema": "WatchRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "write_clipboard": {
+      "target": "write_clipboard",
+      "schema": "ClipboardRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "write_file": {
+      "target": "write_file",
+      "schema": "WriteArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
     }
   }
 }

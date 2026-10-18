@@ -35,7 +35,6 @@ MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025"
 DEFAULT_MODE = "camera"
 
 load_dotenv()
-client = genai.Client(http_options={"api_version": "v1beta"}, api_key=os.getenv("GEMINI_API_KEY"))
 
 
 def is_invalid_api_key_error(error):
@@ -210,16 +209,23 @@ config = types.LiveConnectConfig(
     )
 )
 
-pya = pyaudio.PyAudio()
 
-from cad_agent import CadAgent
-from web_agent import WebAgent
-from kasa_agent import KasaAgent
-from printer_agent import PrinterAgent
 from project_manager import ProjectManager
 
 class AudioLoop:
-    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, on_status=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None, printer_agent=None, project_manager=None, scheduler_agent=None, desktop_agent=None, vision_agent=None, device_agent=None):
+    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, on_status=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None, printer_agent=None, project_manager=None, scheduler_agent=None, desktop_agent=None, vision_agent=None, device_agent=None, tool_bridge=None):
+        self.tool_bridge = tool_bridge
+        self.config = types.LiveConnectConfig(**{
+            **config.model_dump(exclude={"tools"}, exclude_none=True),
+            "tools": [{"function_declarations": tool_bridge.schemas()}] if tool_bridge else [],
+        })
+        self.client = genai.Client(http_options={"api_version": "v1beta"}, api_key=os.getenv("GEMINI_API_KEY"))
+        try:
+            self.pya = pyaudio.PyAudio()
+        except Exception:
+            self.client.close()
+            raise
+        self.output_stream = None
         self.video_mode = video_mode
         self.on_audio_data = on_audio_data
         self.on_video_frame = on_video_frame
@@ -262,10 +268,8 @@ class AudioLoop:
             if self.on_cad_status:
                 self.on_cad_status(status_info)
         
-        self.cad_agent = CadAgent(on_thought=handle_cad_thought, on_status=handle_cad_status)
-        self.web_agent = WebAgent()
-        self.kasa_agent = kasa_agent if kasa_agent else KasaAgent()
-        self.printer_agent = printer_agent if printer_agent else PrinterAgent()
+        # Optional creative/device execution belongs to the shared application.
+        self.cad_agent = self.web_agent = self.kasa_agent = self.printer_agent = None
 
         # Phase 4-7 agents (injected via set_agents() or constructor)
         self.scheduler_agent = scheduler_agent
@@ -343,6 +347,19 @@ class AudioLoop:
         for task in tuple(self.background_tasks):
             task.cancel()
         
+    def close(self):
+        errors = []
+        for name in ("audio_stream", "output_stream", "pya", "client"):
+            value = getattr(self, name, None)
+            setattr(self, name, None)
+            if value is not None:
+                try:
+                    value.terminate() if name == "pya" else value.close()
+                except Exception as exc:
+                    errors.append(exc)
+        if errors:
+            raise errors[0]
+
     def resolve_tool_confirmation(self, request_id, confirmed):
         print(f"[INARA DEBUG] [RESOLVE] resolve_tool_confirmation called. ID: {request_id}, Confirmed: {confirmed}")
         if request_id in self._pending_confirmations:
@@ -384,19 +401,19 @@ class AudioLoop:
             await self.session.send(input=msg, end_of_turn=False)
 
     async def listen_audio(self):
-        mic_info = pya.get_default_input_device_info()
+        mic_info = self.pya.get_default_input_device_info()
 
         # Resolve Input Device by Name if provided
         resolved_input_device_index = None
         
         if self.input_device_name:
             print(f"[INARA] Attempting to find input device matching: '{self.input_device_name}'")
-            count = pya.get_device_count()
+            count = self.pya.get_device_count()
             best_match = None
             
             for i in range(count):
                 try:
-                    info = pya.get_device_info_by_index(i)
+                    info = self.pya.get_device_info_by_index(i)
                     if info['maxInputChannels'] > 0:
                         name = info.get('name', '')
                         # Simple case-insensitive check
@@ -428,7 +445,7 @@ class AudioLoop:
 
         try:
             self.audio_stream = await asyncio.to_thread(
-                pya.open,
+                self.pya.open,
                 format=FORMAT,
                 channels=CHANNELS,
                 rate=SEND_SAMPLE_RATE,
@@ -750,428 +767,17 @@ class AudioLoop:
                         # but usually better to wait for sender switch or explicit end.
                         # We can also check turn_complete signal if available in response.server_content.model_turn etc
 
-                    # 3. Handle Tool Calls
+                    # All advertised functions use the injected shared dispatcher.
                     if response.tool_call:
-                        print("The tool was called")
                         function_responses = []
                         for fc in response.tool_call.function_calls:
-                            if fc.name in [
-                                "generate_cad", "run_web_agent", "write_file", "read_directory", "read_file",
-                                "create_project", "switch_project", "list_projects",
-                                "list_smart_devices", "control_light",
-                                "discover_printers", "print_stl", "get_print_status", "iterate_cad",
-                                # Scheduler
-                                "create_reminder", "list_reminders", "cancel_reminder", "snooze_reminder",
-                                "create_routine", "list_routines",
-                                # Desktop
-                                "get_system_info", "launch_app", "list_running_apps", "focus_window",
-                                "take_screenshot", "search_files", "read_clipboard", "write_clipboard",
-                                # Vision
-                                "describe_camera", "detect_presence", "watch_for", "stop_watching", "list_watches",
-                                # Devices
-                                "list_all_devices", "control_device", "get_device_state",
-                            ]:
-                                prompt = fc.args.get("prompt", "") # Prompt is not present for all tools
-                                
-                                from services.voice_policy import approve_voice
-                                confirmed = await approve_voice(
-                                    fc.name, fc.args, self.permissions,
-                                    self._pending_confirmations, self.on_tool_confirmation,
-                                )
-                                if not confirmed:
-                                    function_responses.append(types.FunctionResponse(
-                                        id=fc.id, name=fc.name,
-                                        response={"result": "Action declined, disabled or approval expired."},
-                                    ))
-                                    continue
-
-                                # If confirmed (or no callback configured, or auto-allowed), proceed
-                                if fc.name == "generate_cad":
-                                    print(f"\n[INARA DEBUG] --------------------------------------------------")
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call Detected: 'generate_cad'")
-                                    print(f"[INARA DEBUG] [IN] Arguments: prompt='{prompt}'")
-                                    
-                                    self.spawn(self.handle_cad_request(prompt))
-                                    # No function response needed - model already acknowledged when user asked
-                                
-                                elif fc.name == "run_web_agent":
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'run_web_agent' with prompt='{prompt}'")
-                                    self.spawn(self.handle_web_agent_request(prompt))
-                                    
-                                    result_text = "Web Navigation started. Do not reply to this message."
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id,
-                                        name=fc.name,
-                                        response={
-                                            "result": result_text,
-                                        }
-                                    )
-                                    print(f"[INARA DEBUG] [RESPONSE] Sending function response: {function_response}")
-                                    function_responses.append(function_response)
-
-
-
-                                elif fc.name == "write_file":
-                                    path = fc.args["path"]
-                                    content = fc.args["content"]
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'write_file' path='{path}'")
-                                    self.spawn(self.handle_write_file(path, content))
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": "Writing file..."}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "read_directory":
-                                    path = fc.args["path"]
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'read_directory' path='{path}'")
-                                    self.spawn(self.handle_read_directory(path))
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": "Reading directory..."}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "read_file":
-                                    path = fc.args["path"]
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'read_file' path='{path}'")
-                                    self.spawn(self.handle_read_file(path))
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": "Reading file..."}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "create_project":
-                                    name = fc.args["name"]
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'create_project' name='{name}'")
-                                    success, msg = self.project_manager.create_project(name)
-                                    if success:
-                                        # Auto-switch to the newly created project
-                                        self.project_manager.switch_project(name)
-                                        msg += f" Switched to '{name}'."
-                                        if self.on_project_update:
-                                            self.on_project_update(name)
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": msg}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "switch_project":
-                                    name = fc.args["name"]
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'switch_project' name='{name}'")
-                                    success, msg = self.project_manager.switch_project(name)
-                                    if success:
-                                        if self.on_project_update:
-                                            self.on_project_update(name)
-                                        # Gather project context and send to AI (silently, no response expected)
-                                        context = self.project_manager.get_project_context()
-                                        print(f"[INARA DEBUG] [PROJECT] Sending project context to AI ({len(context)} chars)")
-                                        try:
-                                            await self.session.send(input=f"System Notification: {msg}\n\n{context}", end_of_turn=False)
-                                        except Exception as e:
-                                            print(f"[INARA DEBUG] [ERR] Failed to send project context: {e}")
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": msg}
-                                    )
-                                    function_responses.append(function_response)
-                                
-                                elif fc.name == "list_projects":
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'list_projects'")
-                                    projects = self.project_manager.list_projects()
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": f"Available projects: {', '.join(projects)}"}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "list_smart_devices":
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'list_smart_devices'")
-                                    # Use cached devices directly for speed
-                                    # devices_dict is {ip: SmartDevice}
-                                    
-                                    dev_summaries = []
-                                    frontend_list = []
-                                    
-                                    for ip, d in self.kasa_agent.devices.items():
-                                        dev_type = "unknown"
-                                        if d.is_bulb: dev_type = "bulb"
-                                        elif d.is_plug: dev_type = "plug"
-                                        elif d.is_strip: dev_type = "strip"
-                                        elif d.is_dimmer: dev_type = "dimmer"
-                                        
-                                        # Format for Model
-                                        info = f"{d.alias} (IP: {ip}, Type: {dev_type})"
-                                        if d.is_on:
-                                            info += " [ON]"
-                                        else:
-                                            info += " [OFF]"
-                                        dev_summaries.append(info)
-                                        
-                                        # Format for Frontend
-                                        frontend_list.append({
-                                            "ip": ip,
-                                            "alias": d.alias,
-                                            "model": d.model,
-                                            "type": dev_type,
-                                            "is_on": d.is_on,
-                                            "brightness": d.brightness if d.is_bulb or d.is_dimmer else None,
-                                            "hsv": d.hsv if d.is_bulb and d.is_color else None,
-                                            "has_color": d.is_color if d.is_bulb else False,
-                                            "has_brightness": d.is_dimmable if d.is_bulb or d.is_dimmer else False
-                                        })
-                                    
-                                    result_str = "No devices found in cache."
-                                    if dev_summaries:
-                                        result_str = "Found Devices (Cached):\n" + "\n".join(dev_summaries)
-                                    
-                                    # Trigger frontend update
-                                    if self.on_device_update:
-                                        self.on_device_update(frontend_list)
-
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_str}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "control_light":
-                                    target = fc.args["target"]
-                                    action = fc.args["action"]
-                                    brightness = fc.args.get("brightness")
-                                    color = fc.args.get("color")
-                                    
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'control_light' Target='{target}' Action='{action}'")
-                                    
-                                    result_msg = f"Action '{action}' on '{target}' failed."
-                                    success = False
-                                    
-                                    if action == "turn_on":
-                                        success = await self.kasa_agent.turn_on(target)
-                                        if success:
-                                            result_msg = f"Turned ON '{target}'."
-                                    elif action == "turn_off":
-                                        success = await self.kasa_agent.turn_off(target)
-                                        if success:
-                                            result_msg = f"Turned OFF '{target}'."
-                                    elif action == "set":
-                                        success = True
-                                        result_msg = f"Updated '{target}':"
-                                    
-                                    # Apply extra attributes if 'set' or if we just turned it on and want to set them too
-                                    if success or action == "set":
-                                        if brightness is not None:
-                                            sb = await self.kasa_agent.set_brightness(target, brightness)
-                                            if sb:
-                                                result_msg += f" Set brightness to {brightness}."
-                                        if color is not None:
-                                            sc = await self.kasa_agent.set_color(target, color)
-                                            if sc:
-                                                result_msg += f" Set color to {color}."
-
-                                    # Notify Frontend of State Change
-                                    if success:
-                                        # We don't need full discovery, just refresh known state or push update
-                                        # But for simplicity, let's get the standard list representation
-                                        # KasaAgent updates its internal state on control, so we can rebuild the list
-                                        
-                                        # Quick rebuild of list from internal dict
-                                        updated_list = []
-                                        for ip, dev in self.kasa_agent.devices.items():
-                                            # We need to ensure we have the correct dict structure expected by frontend
-                                            # We duplicate logic from KasaAgent.discover_devices a bit, but that's okay for now or we can add a helper
-                                            # Ideally KasaAgent has a 'get_devices_list()' method.
-                                            # Use the cached objects in self.kasa_agent.devices
-                                            
-                                            dev_type = "unknown"
-                                            if dev.is_bulb: dev_type = "bulb"
-                                            elif dev.is_plug: dev_type = "plug"
-                                            elif dev.is_strip: dev_type = "strip"
-                                            elif dev.is_dimmer: dev_type = "dimmer"
-
-                                            d_info = {
-                                                "ip": ip,
-                                                "alias": dev.alias,
-                                                "model": dev.model,
-                                                "type": dev_type,
-                                                "is_on": dev.is_on,
-                                                "brightness": dev.brightness if dev.is_bulb or dev.is_dimmer else None,
-                                                "hsv": dev.hsv if dev.is_bulb and dev.is_color else None,
-                                                "has_color": dev.is_color if dev.is_bulb else False,
-                                                "has_brightness": dev.is_dimmable if dev.is_bulb or dev.is_dimmer else False
-                                            }
-                                            updated_list.append(d_info)
-                                            
-                                        if self.on_device_update:
-                                            self.on_device_update(updated_list)
-                                    else:
-                                        # Report Error
-                                        if self.on_error:
-                                            self.on_error(result_msg)
-
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_msg}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "discover_printers":
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'discover_printers'")
-                                    printers = await self.printer_agent.discover_printers()
-                                    # Format for model
-                                    if printers:
-                                        printer_list = []
-                                        for p in printers:
-                                            printer_list.append(f"{p['name']} ({p['host']}:{p['port']}, type: {p['printer_type']})")
-                                        result_str = "Found Printers:\n" + "\n".join(printer_list)
-                                    else:
-                                        result_str = "No printers found on network. Ensure printers are on and running OctoPrint/Moonraker."
-                                    
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_str}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "print_stl":
-                                    stl_path = fc.args["stl_path"]
-                                    printer = fc.args["printer"]
-                                    profile = fc.args.get("profile")
-                                    
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'print_stl' STL='{stl_path}' Printer='{printer}'")
-                                    
-                                    # Resolve 'current' to project STL
-                                    if stl_path.lower() == "current":
-                                        stl_path = "output.stl" # Let printer agent resolve it in root_path
-
-                                    # Get current project path
-                                    project_path = str(self.project_manager.get_current_project_path())
-                                    
-                                    result = await self.printer_agent.print_stl(
-                                        stl_path, 
-                                        printer, 
-                                        profile, 
-                                        root_path=project_path
-                                    )
-                                    result_str = result.get("message", "Unknown result")
-                                    
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_str}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "get_print_status":
-                                    printer = fc.args["printer"]
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'get_print_status' Printer='{printer}'")
-                                    
-                                    status = await self.printer_agent.get_print_status(printer)
-                                    if status:
-                                        result_str = f"Printer: {status.printer}\n"
-                                        result_str += f"State: {status.state}\n"
-                                        result_str += f"Progress: {status.progress_percent:.1f}%\n"
-                                        if status.time_remaining:
-                                            result_str += f"Time Remaining: {status.time_remaining}\n"
-                                        if status.time_elapsed:
-                                            result_str += f"Time Elapsed: {status.time_elapsed}\n"
-                                        if status.filename:
-                                            result_str += f"File: {status.filename}\n"
-                                        if status.temperatures:
-                                            temps = status.temperatures
-                                            if "hotend" in temps:
-                                                result_str += f"Hotend: {temps['hotend']['current']:.0f}°C / {temps['hotend']['target']:.0f}°C\n"
-                                            if "bed" in temps:
-                                                result_str += f"Bed: {temps['bed']['current']:.0f}°C / {temps['bed']['target']:.0f}°C"
-                                    else:
-                                        result_str = f"Could not get status for printer '{printer}'. Ensure it is discovered first."
-                                    
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_str}
-                                    )
-                                    function_responses.append(function_response)
-
-                                elif fc.name == "iterate_cad":
-                                    prompt = fc.args["prompt"]
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: 'iterate_cad' Prompt='{prompt}'")
-                                    
-                                    # Emit status
-                                    if self.on_cad_status:
-                                        self.on_cad_status("generating")
-                                    
-                                    # Get project cad folder path
-                                    cad_output_dir = str(self.project_manager.get_current_project_path() / "cad")
-                                    
-                                    # Call CadAgent to iterate on the design
-                                    cad_data = await self.cad_agent.iterate_prototype(prompt, output_dir=cad_output_dir)
-                                    
-                                    if cad_data:
-                                        print(f"[INARA DEBUG] [OK] CadAgent iteration returned data successfully.")
-                                        
-                                        # Dispatch to frontend
-                                        if self.on_cad_data:
-                                            print(f"[INARA DEBUG] [SEND] Dispatching iterated CAD data to frontend...")
-                                            self.on_cad_data(cad_data)
-                                            print(f"[INARA DEBUG] [SENT] Dispatch complete.")
-                                        
-                                        # Save to Project
-                                        self.project_manager.save_cad_artifact("output.stl", f"Iteration: {prompt}")
-                                        
-                                        result_str = f"Successfully iterated design: {prompt}. The updated 3D model is now displayed."
-                                    else:
-                                        print(f"[INARA DEBUG] [ERR] CadAgent iteration returned None.")
-                                        result_str = f"Failed to iterate design with prompt: {prompt}"
-                                    
-                                    function_response = types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_str}
-                                    )
-                                    function_responses.append(function_response)
-                                # ---- Scheduler tools ----
-                                elif fc.name in ("create_reminder", "list_reminders", "cancel_reminder",
-                                                  "snooze_reminder", "create_routine", "list_routines"):
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
-                                    if self.scheduler_agent:
-                                        result = await self.scheduler_agent.handle_tool_call(fc.name, dict(fc.args))
-                                        result_text = result.message
-                                    else:
-                                        result_text = "Scheduler agent not available."
-                                    function_responses.append(types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_text}
-                                    ))
-
-                                # ---- Desktop tools ----
-                                elif fc.name in ("get_system_info", "launch_app", "list_running_apps",
-                                                  "focus_window", "take_screenshot", "search_files",
-                                                  "read_clipboard", "write_clipboard"):
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
-                                    if self.desktop_agent:
-                                        result = await self.desktop_agent.handle_tool_call(fc.name, dict(fc.args))
-                                        result_text = result.message
-                                    else:
-                                        result_text = "Desktop agent not available."
-                                    function_responses.append(types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_text}
-                                    ))
-
-                                # ---- Vision tools ----
-                                elif fc.name in ("describe_camera", "detect_presence", "watch_for",
-                                                  "stop_watching", "list_watches"):
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
-                                    if self.vision_agent:
-                                        result = await self.vision_agent.handle_tool_call(fc.name, dict(fc.args))
-                                        result_text = result.message
-                                    else:
-                                        result_text = "Vision agent not available."
-                                    function_responses.append(types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_text}
-                                    ))
-
-                                # ---- Unified device tools ----
-                                elif fc.name in ("list_all_devices", "control_device", "get_device_state"):
-                                    print(f"[INARA DEBUG] [TOOL] Tool Call: '{fc.name}' args={fc.args}")
-                                    if self.device_agent:
-                                        result = await self.device_agent.handle_tool_call(fc.name, dict(fc.args))
-                                        result_text = result.message
-                                    else:
-                                        result_text = "Device agent not available."
-                                    function_responses.append(types.FunctionResponse(
-                                        id=fc.id, name=fc.name, response={"result": result_text}
-                                    ))
-
+                            result = await self.tool_bridge.call(fc.name, dict(fc.args or {})) if self.tool_bridge else {
+                                "error": "tool_unavailable", "message": "Voice tools require the supported application."
+                            }
+                            function_responses.append(types.FunctionResponse(id=fc.id, name=fc.name, response={"result": result}))
                         if function_responses:
                             await self.session.send_tool_response(function_responses=function_responses)
-                
+
                 # Turn/Response Loop Finished
                 self.flush_chat()
 
@@ -1185,13 +791,14 @@ class AudioLoop:
 
     async def play_audio(self):
         stream = await asyncio.to_thread(
-            pya.open,
+            self.pya.open,
             format=FORMAT,
             channels=CHANNELS,
             rate=RECEIVE_SAMPLE_RATE,
             output=True,
             output_device_index=self.output_device_index,
         )
+        self.output_stream = stream
         while True:
             bytestream = await self.audio_in_queue.get()
             if self.on_audio_data:
@@ -1238,7 +845,7 @@ class AudioLoop:
             try:
                 print(f"[INARA DEBUG] [CONNECT] Connecting to Gemini Live API...")
                 async with (
-                    client.aio.live.connect(model=MODEL, config=config) as session,
+                    self.client.aio.live.connect(model=MODEL, config=self.config) as session,
                     asyncio.TaskGroup() as tg,
                 ):
                     self.session = session
@@ -1332,6 +939,7 @@ class AudioLoop:
                 if hasattr(self, 'audio_stream') and self.audio_stream:
                     try:
                         self.audio_stream.close()
+                        self.audio_stream = None
                     except: 
                         pass
 

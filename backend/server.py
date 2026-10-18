@@ -20,15 +20,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from services.tools import ServiceError
 
 
-def FaceAuthenticator(**kwargs):
-    from authenticator import FaceAuthenticator as factory
-    return factory(**kwargs)
-
 ACTIVE_RUNTIME = "legacy-desktop-backend"
 ACTIVE_ENTRYPOINT = "backend/server.py"
 
 # Global state
-authenticator = None
 SETTINGS_FILE = os.getenv('INARA_SETTINGS_FILE') or str(Path(__file__).parent / "settings.json")
 load_dotenv(Path(__file__).parent.parent / '.env')
 
@@ -116,6 +111,8 @@ async def emit_ai_unavailable(sid, reason):
 def get_runtime_summary():
     ai_preflight_error = get_ai_preflight_error()
     reference_image_path = Path(backend_dir) / "reference.jpg"
+    if not reference_image_path.is_file():
+        reference_image_path = Path(project_root) / "reference.jpg"
     face_auth_enabled = SETTINGS.get("face_auth_enabled", False)
     slicer_status = (printer_agent.get_slicer_status() if printer_agent.instance is not None else
                     {'available': False, 'message': 'Printer capability loads when requested.'})
@@ -183,19 +180,9 @@ def save_settings():
 # Load on startup
 load_settings()
 
-async def _stop_legacy_media():
-    """The root owns media; retain only the pending face-auth compatibility seam."""
-    global authenticator
-    if authenticator:
-        authenticator.stop()
-        authenticator = None
-
-
 def _settings_changed(patch):
     if "tool_permissions" in patch and runtime.workspace.audio:
         runtime.workspace.audio.update_permissions(SETTINGS["tool_permissions"])
-    if patch.get("face_auth_enabled") is False and authenticator:
-        authenticator.stop()
 
 
 def _request_exit():
@@ -208,8 +195,7 @@ from application import create_application
 runtime = create_application(
     settings=SETTINGS, project_root=project_root,
     legacy_data_dir=os.getenv('INARA_LEGACY_DATA_DIR'),
-    face_authenticated=lambda: authenticator is not None and authenticator.authenticated,
-    stop_legacy=_stop_legacy_media, startup_summary=print_startup_summary,
+    startup_summary=print_startup_summary,
     status_summary=get_runtime_summary, instance_id=os.getenv("INARA_INSTANCE_ID"),
     settings_path=SETTINGS_FILE, permission_names=DEFAULT_SETTINGS["tool_permissions"],
     settings_changed=_settings_changed,
@@ -255,62 +241,9 @@ discover_printers = runtime.compat_transport.discover_printers
 add_printer = runtime.compat_transport.add_printer
 get_slicer_profiles = runtime.compat_transport.get_slicer_profiles
 
-@sio.event
-async def connect(sid, environ, auth=None):
-    if not runtime.sessions.accept(sid, auth, os.getenv('INARA_SESSION_TOKEN')):
-        return False
-    principal = client_principals[sid]
-    print(f"Client connected: {sid}")
-    await sio.emit('status', {'msg': 'Connected to INARA Backend'}, room=sid)
-    await sio.emit('text_ready', {'model': os.getenv('INARA_TEXT_MODEL', 'gemini-3.8-flash')}, room=sid)
-    await sio.emit('resource_state', resource_governor.snapshot(), room=sid)
-    await sio.emit('printer_list', SETTINGS.get('printers', []), room=sid)
-    await sio.emit('project_update', {'project': project_manager.current_project}, room=sid)
-
-    global authenticator
-    face_auth_enabled = SETTINGS.get("face_auth_enabled", False)
-    
-    # Callback for Auth Status
-    async def on_auth_status(is_auth):
-        print(f"[SERVER] Auth status change: {is_auth}")
-        await runtime.delivery.publish_job('auth_status', principal, {'authenticated': is_auth})
-
-    # Callback for Auth Camera Frames
-    async def on_auth_frame(frame_b64):
-        await runtime.delivery.publish_job('auth_frame', principal, {'image': frame_b64})
-
-    if face_auth_enabled:
-        # Initialize Authenticator if not already done
-        if authenticator is None:
-            authenticator = FaceAuthenticator(
-                reference_image_path="reference.jpg",
-                on_status_change=on_auth_status,
-                on_frame=on_auth_frame
-            )
-
-        # Check if already authenticated or needs to start
-        if authenticator.authenticated:
-            await sio.emit('auth_status', {'authenticated': True})
-        else:
-            await sio.emit('auth_status', {'authenticated': False})
-            # Start the auth loop in background
-            asyncio.create_task(authenticator.start_authentication_loop())
-    else:
-        print("Face Auth Disabled. Auto-authenticating.")
-        await sio.emit('auth_status', {'authenticated': True})
-
-    # Startup hydration — push current state to new client
-    pending = [r.to_dict() for r in reminder_store.list_reminders(filter="all") if r.status == "pending"]
-    if runtime.reminder_transport.can_read(sid):
-        await sio.emit('reminder_list', pending, room=sid)
-        await sio.emit('reminder_deliveries', reminder_store.open_deliveries(principal), room=sid)
-    watches = vision_loop.list_watches() if hasattr(vision_loop, 'list_watches') else []
-    await sio.emit('vision_watches', {"watches": watches}, room=sid)
-
-@sio.event
-async def disconnect(sid):
-    await runtime.disconnect(sid)
-    print(f"Client disconnected: {sid}")
+# Connection/face hydration and tasks are owned by the injected application.
+connect = runtime.connection.connect
+disconnect = runtime.connection.disconnect
 
 
 set_resource_state = runtime.lifecycle.set_resource_state

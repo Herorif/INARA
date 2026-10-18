@@ -26,6 +26,8 @@ from services.local_actions import LocalActions
 from services.device_printers import DevicePrinterService
 from services.printing import PrintService
 from services.workspace import WorkspaceService
+from services.extended_actions import ExtendedActions
+from transport.connection import ConnectionTransport
 from transport.workspace import WorkspaceTransport
 from transport.compatibility import CompatibilityTransport
 from services.settings import SettingsService, SettingsStore
@@ -135,10 +137,17 @@ class Application:
         self.compat_transport = CompatibilityTransport(sio, self.dispatcher, self.sessions)
         self.workspace = WorkspaceService(self)
         self.workspace_transport = WorkspaceTransport(sio, self.dispatcher, self.sessions, self.workspace)
+        self.extended_actions = ExtendedActions(self)
+        self.connection = ConnectionTransport(self)
+        self.sessions.face_authenticated = lambda: self.connection.authenticated or face_authenticated()
         self.settings_service.permission_names |= frozenset(self.dispatcher.tools)
-        self.settings_transport = SettingsTransport(sio, self.sessions, self.settings_service)
+        self.settings_transport = SettingsTransport(
+            sio, self.sessions, self.settings_service,
+            self.connection.settings_changed, self.connection.validate_settings,
+        )
         self.lifecycle = LifecycleTransport(
-            sio, self.sessions, resources, self.restrict_resources, self.close, request_exit
+            sio, self.sessions, resources, self.restrict_resources, self.close, request_exit,
+            after_resource=self.connection.resource_changed,
         )
         self.tasks = []
         self.started = False
@@ -180,6 +189,7 @@ class Application:
             self.printing.close(),
             self.workspace_transport.stop_sid(),
             self.workspace.close(),
+            self.connection.close(),
         ]
         if self.stop_resource_media:
             operations.append(self.stop_resource_media())
@@ -199,6 +209,7 @@ class Application:
         await self.workspace_transport.stop_sid(sid)
         await self.workspace.disconnect(sid)
         principal, role = self.sessions.remove(sid)
+        await self.connection.detached()
         if role == "renderer" and not self.sessions.rooms(principal, "renderer"):
             await self.cad_transport.stop_owner(principal)
             await self.image_transport.stop_owner(principal)
@@ -234,6 +245,7 @@ class Application:
                 self.printing.close(),
                 self.workspace_transport.stop_sid(),
                 self.workspace.close(),
+                self.connection.close(),
                 return_exceptions=True,
             )
             if self.stop_legacy:

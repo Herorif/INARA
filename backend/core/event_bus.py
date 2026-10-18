@@ -12,6 +12,7 @@ from typing import Any, Callable, Coroutine
 
 
 event_owner = ContextVar("event_owner", default=None)
+event_guard = ContextVar("event_guard", default=None)
 
 
 @dataclass
@@ -22,6 +23,7 @@ class Event:
     data: dict[str, Any] = field(default_factory=dict)
     source: str = ""  # Which agent/module emitted this
     principal: str | None = field(default_factory=event_owner.get)
+    authorized: Callable | None = field(default_factory=event_guard.get, repr=False)
 
 
 # Type alias for event handlers

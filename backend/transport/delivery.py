@@ -29,6 +29,8 @@ class EventDelivery:
             await self.sio.emit(event, job, room=sid)
 
     async def bridge_legacy(self, event):
+        if event.authorized is not None and not event.authorized():
+            return
         name = LEGACY_EVENTS.get(event.type)
         if name:
             if event.principal is not None:

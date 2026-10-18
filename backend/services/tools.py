@@ -1,6 +1,7 @@
 """One validated dispatch boundary for model and direct-client tools."""
 
 import asyncio
+import base64
 import inspect
 import uuid
 from dataclasses import dataclass
@@ -46,6 +47,7 @@ class ToolSpec:
     execution_timeout: float | None = None
     permission: str | None = None
     model_visible: bool = True
+    alias_for: str | None = None
 
 
 def inline_tool_schema(model):
@@ -113,7 +115,9 @@ class ToolDispatcher:
             if owner == principal and not future.done():
                 future.set_result(False)
 
-    async def dispatch(self, principal, name, arguments, context, request_approval=None):
+    async def dispatch(self, principal, name, arguments, context, request_approval=None, *, authorize=None):
+        if authorize:
+            authorize()
         if not self.authenticated(principal):
             raise ServiceError("authentication_required", "Authentication is required.")
         spec = self.tools.get(name)
@@ -122,7 +126,7 @@ class ToolDispatcher:
         validated = spec.arguments.model_validate(arguments)
         permission = spec.permission or name
         policy = self.permissions().get(permission, True)
-        if policy == "deny" or self.permissions().get(name) == "deny":
+        if policy == "deny" or self.permissions().get(name) == "deny" or self.permissions().get(spec.alias_for) == "deny":
             raise ServiceError("permission_denied", "This action is disabled.")
         if policy not in (False, "allow_within_scope"):
             if request_approval is None:
@@ -132,7 +136,7 @@ class ToolDispatcher:
             self.pending[request_id] = (principal, future)
             try:
                 await request_approval(
-                    {"id": request_id, "tool": name, "args": validated.model_dump()}
+                    {"id": request_id, "tool": name, "args": approval_arguments(validated.model_dump())}
                 )
                 approved = await asyncio.wait_for(future, self.timeout)
             except TimeoutError as exc:
@@ -142,10 +146,13 @@ class ToolDispatcher:
             if not approved:
                 raise ServiceError("permission_denied", "The action was declined.")
         # Recheck authentication and disablement after waiting, before side effects.
+        if authorize:
+            authorize()
         if (
             not self.authenticated(principal)
             or self.permissions().get(permission) == "deny"
             or self.permissions().get(name) == "deny"
+            or self.permissions().get(spec.alias_for) == "deny"
         ):
             raise ServiceError("permission_denied", "This action is no longer authorized.")
 
@@ -164,6 +171,19 @@ class ToolDispatcher:
             raise ServiceError(
                 "action_timeout", "The local action timed out; check its state before retrying."
             ) from exc
+
+
+def approval_arguments(value):
+    """Socket-safe review data; execution retains the validated typed arguments."""
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    if isinstance(value, bytes):
+        return base64.b64encode(value).decode("ascii")
+    if isinstance(value, dict):
+        return {key: approval_arguments(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [approval_arguments(item) for item in value]
+    return value
 
 
 def register_project_tools(dispatcher):

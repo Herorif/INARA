@@ -8,8 +8,10 @@ from services.tools import ServiceError
 class SettingsTransport:
     events = ("get_settings", "update_settings", "get_tool_permissions", "update_tool_permissions")
 
-    def __init__(self, sio, sessions, service):
+    def __init__(self, sio, sessions, service, after_change=None, before_change=None):
         self.sio, self.sessions, self.service = sio, sessions, service
+        self.after_change = after_change
+        self.before_change = before_change
         for name in self.events:
             handler = self.handler(name)
             setattr(self, name, handler)
@@ -30,7 +32,11 @@ class SettingsTransport:
                             tool_permissions=PermissionPatch.model_validate({"values": data}).values
                         )
                     )
+                    if self.before_change:
+                        self.before_change(request.model_dump(exclude_unset=True))
                     snapshot = self.service.apply(request)
+                    if self.after_change:
+                        await self.after_change(request.model_dump(exclude_unset=True))
                 event = "tool_permissions" if name.endswith("tool_permissions") else "settings"
                 payload = snapshot["tool_permissions"] if event == "tool_permissions" else snapshot
                 rooms = (

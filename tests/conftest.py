@@ -100,6 +100,9 @@ def application_factory(tmp_path):
         values.update(overrides)
         runtime = create_application(**values)
         runtime.sio.emit = AsyncMock()
+        from types import SimpleNamespace
+        runtime.connection.check_setup = lambda: None
+        runtime.connection.worker_factory = lambda: SimpleNamespace(run=AsyncMock(), close=AsyncMock())
         applications.append(runtime)
         return runtime
 
