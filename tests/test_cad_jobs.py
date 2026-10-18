@@ -329,3 +329,26 @@ async def test_storage_failure_after_claim_keeps_uncertain_record_and_releases_w
     assert (
         instance.load("owner", context["project_path"], args.request_id)["state"] == "interrupted"
     )
+
+
+def test_progress_sharing_violation_does_not_abort_valid_cad_exports(tmp_path, monkeypatch):
+    import io
+    from pathlib import Path
+    from workers import cad_worker
+
+    original_replace = Path.replace
+
+    def locked_progress(path, target):
+        if Path(target).name == "progress.json":
+            raise PermissionError("Simulated Windows reader sharing violation")
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", locked_progress)
+    payload = json.dumps({"staging": str(tmp_path), "recipe": Recipe(shape="bracket").model_dump()})
+    monkeypatch.setattr(cad_worker.sys, "stdin", SimpleNamespace(buffer=io.BytesIO(payload.encode())))
+    cad_worker.main()
+    result = json.loads((tmp_path / "result.json").read_text())
+    assert result["stats"]["volume_mm3"] == pytest.approx(20880)
+    assert set(result["artifacts"]) == {"stl", "glb", "json"}
+    for extension, metadata in result["artifacts"].items():
+        assert (tmp_path / f"model.{extension}").stat().st_size == metadata["bytes"]

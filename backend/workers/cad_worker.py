@@ -16,7 +16,12 @@ def main():
     def progress(phase):
         temporary = folder / "progress.tmp"
         temporary.write_text(json.dumps({"phase": phase}), encoding="utf-8")
-        temporary.replace(folder / "progress.json")
+        try:
+            temporary.replace(folder / "progress.json")
+        except PermissionError:
+            # Windows readers can briefly deny replacement. Progress is advisory;
+            # output writes and final validation must still succeed or fail normally.
+            pass
 
     progress("building")
     stats, mesh_stl, mesh_glb = assemble(recipe)
