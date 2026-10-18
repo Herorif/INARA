@@ -5,12 +5,15 @@ const { io } = require('socket.io-client');
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const connect = async role => {
   const client = io('http://127.0.0.1:8000', {
-    auth: { token: input.token, client_id: input.owner, role }, reconnection: false,
+    auth: { token: input.token, client_id: input.owner, role }, reconnection: false, autoConnect: false,
     transports: ['websocket'], timeout: 5000,
   });
+  client.qaEvents = [];
+  client.onAny(event => client.qaEvents.push(event));
   await new Promise((resolve, reject) => {
     client.once('connect', resolve);
     client.once('connect_error', reject);
+    client.connect();
   });
   return client;
 };
@@ -19,6 +22,9 @@ const connect = async role => {
   try {
     const renderer = await connect('renderer'); clients.push(renderer);
     const control = await connect('workspace'); clients.push(control);
+    const privateStartup = ['settings', 'printer_list', 'project_update', 'vision_watches', 'reminder_list', 'reminder_deliveries', 'auth_frame'];
+    assert.equal(control.qaEvents.some(event => privateStartup.includes(event)), false);
+    assert.equal(renderer.qaEvents.includes('settings'), true);
     const snapshots = [];
     let leaked = false;
     renderer.on('settings', value => snapshots.push(value));
@@ -69,7 +75,7 @@ const connect = async role => {
     assert.equal(restored.tool_permissions.write_file, 'deny');
     assert.equal(leaked, false);
     process.stdout.write(JSON.stringify({ admin_rpc_settings_persisted: true,
-      admin_rpc_role_and_schema_denials: true, admin_rpc_reconnect_and_scoped_settings: true, workflow_policy_denials_over_socket: true, workspace_policy_denials_over_socket: true }));
+      admin_rpc_role_and_schema_denials: true, admin_rpc_reconnect_and_scoped_settings: true, workflow_policy_denials_over_socket: true, workspace_policy_denials_over_socket: true, owner_scoped_startup_hydration: true }));
   } finally {
     clients.forEach(client => client.disconnect());
   }

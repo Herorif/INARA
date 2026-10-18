@@ -143,3 +143,11 @@ Ten remaining memory/media/legacy CAD/browser wire routes use strict owned servi
 Legacy voice schema/dispatcher parity, connection/face lifecycle and hard isolation remain explicit follow-up work before R2c/R3. No provider or hardware configuration and no WhatsApp reply functionality was added.
 
 462 Python checks pass with one Blender-dependent skip; all 26 frontend checks, lint/build and actual native/fallback/CAD desktop integration pass. Short native idle remains about 67 MB with zero Electron processes after close.
+
+## Shared voice and connection checkpoint (R2b5)
+
+The two authorized steps are implemented: 37 live voice functions share validated dispatcher execution, and connection/private hydration plus face worker lifetime belong to the application. Owner/session guards survive approvals and delayed bus delivery. Missing face setup is rejected before enabling it; heavy camera/model work stays in a bounded owned process. See [implementation, tests and hardware limits](VOICE_CONNECTION_POLICY.md).
+
+R2c can now retire unused voice declarations, ad-hoc helper/confirmation paths and dead facade lifecycle references. Provider/model setup, real media/face/device behavior and generated-code/browser hard isolation remain deferred/unverified. WhatsApp replies remain excluded.
+
+666 Python checks and 26 frontend checks pass, with one Blender-dependent skip. Lint/build and actual native/fallback/CAD desktop integration pass. Short native idle is about 67 MB with zero Electron processes after workspace close.

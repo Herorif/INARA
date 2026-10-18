@@ -216,7 +216,7 @@ def verify():
         )
         assert client.returncode == 0, client.stderr
         result.update(json.loads(client.stdout))
-        assert not {"printer_agent", "kasa_agent", "torch", "diffusers", "inara", "cad_agent", "web_agent", "pyaudio"} & set(sys.modules)
+        assert not {"printer_agent", "kasa_agent", "torch", "diffusers", "inara", "cad_agent", "web_agent", "pyaudio", "authenticator", "cv2", "mediapipe"} & set(sys.modules)
         result["denied_workflows_stay_lazy"] = True
         persisted = json.loads((output / "settings.json").read_text())
         assert (

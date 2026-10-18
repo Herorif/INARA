@@ -77,3 +77,7 @@ R2b2 update: settings and native/resource lifecycle routes now belong to injecte
 ## R2b4 ownership update (19 October 2026)
 
 The root now owns workspace compatibility services and transports for memory/media/CAD/browser routes. Voice state and request callbacks no longer live in facade globals. Conversation origin tracking closes pending/active typed work on disconnect and shutdown. Unstamped bus events stay internal; only trusted scoped events reach owner renderers. [Workspace evidence and remaining adapter limits](WORKSPACE_POLICY.md).
+
+## R2b5 connection and voice update (19 October 2026)
+
+The root constructs `ExtendedActions`, dispatcher-backed `VoiceBridge`, and `ConnectionTransport`. The facade no longer creates authentication objects or untracked face tasks. Private state is hydrated only to unlocked owner renderers. One fixed face worker owns blocking camera/model work and invalidates callbacks before cleanup. Shared schemas define active live voice declarations and calls; source-specific static helpers await R2c deletion. [Evidence and material limits](VOICE_CONNECTION_POLICY.md).
