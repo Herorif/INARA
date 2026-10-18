@@ -68,69 +68,6 @@ The existing persisted semantics are: `False` / `allow_within_scope` allows a va
 
 `/status`: local runtime metadata read, no privileged action, immediate HTTP JSON snapshot.
 
-## Shared model tools
-
-These tools use the common dispatcher. Typed ownership is not evidence that a same-named legacy voice declaration has been migrated.
-
-| Tool | Schema | Execution lifetime |
-| --- | --- | --- |
-| `cancel_reminder` | ReminderAction | Existing provider/service/worker lifetime |
-| `control_device` | ControlDevice | 30s cooperative execution |
-| `create_reminder` | CreateReminder | Existing provider/service/worker lifetime |
-| `generate_cad` | BuildRequest | Existing provider/service/worker lifetime |
-| `generate_image` | ImageRequest | Existing provider/service/worker lifetime |
-| `get_system_info` | NoArguments | 30s cooperative execution |
-| `launch_app` | LaunchApp | 30s cooperative execution |
-| `list_all_devices` | NoArguments | 30s cooperative execution |
-| `list_reminders` | ListReminders | Existing provider/service/worker lifetime |
-| `read_clipboard` | NoArguments | 30s cooperative execution |
-| `read_file` | PathArguments | Existing provider/service/worker lifetime |
-| `snooze_reminder` | SnoozeReminder | Existing provider/service/worker lifetime |
-| `stop_watching` | StopWatching | 30s cooperative execution |
-| `take_screenshot` | Screenshot | 30s cooperative execution |
-| `write_file` | WriteArguments | Existing provider/service/worker lifetime |
-
-Additional shared compatibility tools: `discover_kasa` (`NoArguments`), `control_kasa` (`KasaControl`, permission alias `control_device`), `discover_printers` (`NoArguments`), `add_printer` (`AddPrinter`) and `get_slicer_profiles` (`NoArguments`). These require the authenticated desktop owner and preserve the existing event names with scoped delivery.
-
-## Legacy voice declarations
-
-All following declarations remain on the separate AudioLoop path, with individual metadata in JSON. Validation/authorization parity remains pending.
-
-| Declaration | Status |
-| --- | --- |
-| `cancel_reminder` | Legacy voice policy; pending migration |
-| `control_device` | Legacy voice policy; pending migration |
-| `create_reminder` | Legacy voice policy; pending migration |
-| `create_routine` | Legacy voice policy; pending migration |
-| `describe_camera` | Legacy voice policy; pending migration |
-| `detect_presence` | Legacy voice policy; pending migration |
-| `focus_window` | Legacy voice policy; pending migration |
-| `generate_cad_prototype` | Legacy voice policy; pending migration |
-| `get_device_state` | Legacy voice policy; pending migration |
-| `get_system_info` | Legacy voice policy; pending migration |
-| `launch_app` | Legacy voice policy; pending migration |
-| `list_all_devices` | Legacy voice policy; pending migration |
-| `list_reminders` | Legacy voice policy; pending migration |
-| `list_routines` | Legacy voice policy; pending migration |
-| `list_running_apps` | Legacy voice policy; pending migration |
-| `list_watches` | Legacy voice policy; pending migration |
-| `read_clipboard` | Legacy voice policy; pending migration |
-| `read_directory` | Legacy voice policy; pending migration |
-| `read_file` | Legacy voice policy; pending migration |
-| `search_files` | Legacy voice policy; pending migration |
-| `snooze_reminder` | Legacy voice policy; pending migration |
-| `stop_watching` | Legacy voice policy; pending migration |
-| `take_screenshot` | Legacy voice policy; pending migration |
-| `watch_for` | Legacy voice policy; pending migration |
-| `write_clipboard` | Legacy voice policy; pending migration |
-| `write_file` | Legacy voice policy; pending migration |
-
-## Remaining sequence
-
-R2b1 and R2b2 are implemented. The next bounded R2b3 group is Kasa/printer compatibility: strict requests, independent discovery/add policy, shared device control, and explicit printer file containment and slice/upload/start authorization. Follow with memory/media/legacy creative/browser routes, reminder receipt/role validation, planner permission, unstamped legacy event ownership and voice confirmation binding. R2c declaration/reference cleanup remains separate.
-
-Settings/native/resource controls now have explicit owner authority and strict schemas. Their authority is outside editable tool permissions and no admin tool is exposed to models. The local owner/role/token contract is not a mobile grants protocol. The complete R2b milestone remains unfinished; pending rows still describe legacy bypasses. See [migration evidence and limits](SETTINGS_LIFECYCLE_POLICY.md).
-
 ## Shared tools
 
 25 registered tools; 21 provider-visible. Internal print stages require a bound owner/project plan and cannot be invoked as free-standing model actions. `control_kasa` is a hidden compatibility alias; `control_device` remains the public model tool. Alias denials cannot weaken canonical permissions.

@@ -34,6 +34,23 @@ const connect = async role => {
     assert.equal(snapshots.at(-1).tool_permissions.write_file, 'deny');
     assert.equal((await call(control, 'desktop_control', { action: 'state' })).ok, true);
     assert.equal((await call(control, 'desktop_control', { action: 'gaming', gaming: 'false' })).code, 'invalid_arguments');
+    // These are negative real-wire checks: no adapter, discovery, provider or printer action runs.
+    const expectError = (client, event, payload, code) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { client.off('error', receive); reject(Error('Missing workflow denial')); }, 5000);
+      const receive = data => { clearTimeout(timer); client.off('error', receive);
+        try { assert.equal(data.code, code); resolve(); } catch (error) { reject(error); } };
+      client.once('error', receive); client.emit(event, payload);
+    });
+    assert.equal((await call(renderer, 'update_tool_permissions', {
+      discover_kasa: 'deny', discover_printers: 'deny', print_stl: 'deny', generate_cad: 'deny'
+    })).ok, true);
+    await expectError(renderer, 'discover_kasa', {}, 'permission_denied');
+    await expectError(renderer, 'discover_printers', {}, 'permission_denied');
+    await expectError(renderer, 'print_stl', { printer: 'not-a-real-printer' }, 'permission_denied');
+    await expectError(control, 'discover_kasa', {}, 'authentication_required');
+    await expectError(renderer, 'acknowledge_reminder', { delivery_id: 'malformed' }, 'invalid_arguments');
+    await expectError(control, 'get_reminders', {}, 'authentication_required');
+    assert.equal((await call(renderer, 'cad_plan', { prompt: 'fixture must never reach a provider' })).code, 'permission_denied');
     assert.equal((await call(renderer, 'shutdown')).ok, false);
     assert.equal((await call(renderer, 'set_resource_state', { state: 'resident' })).ok, true);
     renderer.disconnect();
@@ -45,7 +62,7 @@ const connect = async role => {
     assert.equal(restored.tool_permissions.write_file, 'deny');
     assert.equal(leaked, false);
     process.stdout.write(JSON.stringify({ admin_rpc_settings_persisted: true,
-      admin_rpc_role_and_schema_denials: true, admin_rpc_reconnect_and_scoped_settings: true }));
+      admin_rpc_role_and_schema_denials: true, admin_rpc_reconnect_and_scoped_settings: true, workflow_policy_denials_over_socket: true }));
   } finally {
     clients.forEach(client => client.disconnect());
   }

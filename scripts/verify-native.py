@@ -126,7 +126,11 @@ def until(condition, timeout=25):
         if host.state.phase == "failed":
             raise AssertionError(host.state.error)
         time.sleep(0.1)
-    raise AssertionError("Native integration condition timed out")
+    raise AssertionError(
+        f"Native integration condition timed out: {host.state.phase}; "
+        f"roles={dict(host.runtime.client_roles)}; workspace={host.workspace is not None}; "
+        f"owner={host.state.identity.owner is not None}"
+    )
 
 
 def core(coroutine):
@@ -175,6 +179,7 @@ def verify():
             result["busy_port_failure_recovery"] = True
         until(lambda: host.state.phase == "ready")
         if args.fresh_identity:
+            result["stage"] = "fresh_workspace_open"
             host.tray.post(host.open_workspace)
             until(
                 lambda: (
@@ -185,6 +190,7 @@ def verify():
             )
             owner = host.state.identity.owner
             assert host.runtime.runtime.sessions.local_owner == owner
+            result["stage"] = "fresh_workspace_close"
             close_workspace()
             result["fresh_owner_registration_before_renderer"] = True
         node = ROOT / ".tools/node-v24.21.0-win-x64/node.exe"
@@ -210,6 +216,8 @@ def verify():
         )
         assert client.returncode == 0, client.stderr
         result.update(json.loads(client.stdout))
+        assert not {"printer_agent", "kasa_agent", "torch", "diffusers"} & set(sys.modules)
+        result["denied_workflows_stay_lazy"] = True
         persisted = json.loads((output / "settings.json").read_text())
         assert (
             persisted["camera_flipped"] is True
@@ -313,6 +321,7 @@ def verify():
             "electron_processes": 0,
             "samples": samples,
         }
+        result.pop("stage", None)
         result["passed"] = True
     except BaseException as exc:
         result["passed"], result["error"] = False, repr(exc)

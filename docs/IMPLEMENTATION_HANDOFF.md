@@ -1,8 +1,8 @@
 # INARA implementation handoff and model choice
 
-Updated 16 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
+Updated 19 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1/R2b2 route-policy groups are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1/R2b2/R2b3 route-policy groups are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) and [Device/print workflow policy](DEVICE_PRINT_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -54,7 +54,7 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | Order | Product outcome | Refactor outcome |
 | --- | --- | --- |
 | R1 implemented; hardware acceptance pending | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
-| R2a/R2b1/R2b2 implemented; R2b3/R2c next | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
+| R2a/R2b1/R2b2/R2b3 implemented; remaining R2b/R2c next | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
 | R3 | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
 | R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
 | R5 | Deeper 3D vibe coding and image workflows | Validated change sets, selected-revision edits, kernel/Blender/image adapters with real acceptance gates |
@@ -62,16 +62,22 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | R7 | Native foldable Android companion and secure pairing | Device/project context, scoped grants, revocation and idempotent sync |
 | R8 | Read-only selected-notification inbox and summaries | Native ingestion, dedupe, retention and owner-controlled summarization; no WhatsApp reply tools |
 
-R1 software, R2a, R2b1 and R2b2 are implemented. Vision hardware acceptance remains pending. R2b is delivered in bounded groups; Kasa/printer compatibility is next, followed by the remaining pending routes in the matrix. The whole R2b milestone and R2c are not complete. Keep the next task scoped to R2b3.
+R1 software, R2a and R2b1-R2b3 are implemented. Vision/device/printer hardware acceptance remains pending. The combined R2b3 batch covers Kasa/printer setup, a separately authorized print pipeline, reminder receipt/role policy and CAD planner authorization. Remaining legacy routes and voice ownership keep R2b unfinished; R2c follows them.
 
 ## Next implementation task
 
-1. Implement the next bounded R2b3 Kasa/printer compatibility group. Read [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md), [Route matrix](ROUTE_POLICY_MATRIX.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Core composition](CORE_COMPOSITION.md).
-2. Add strict schemas, owner/role checks, shared action permissions/approvals and scoped responses for Kasa discovery/control and printer discovery/add/profile routes. Preserve saved device/printer configuration and useful adapters. Keep construction and transport ownership in the injected application root.
-3. Address print file containment and separate slice/upload/start authorization explicitly before claiming `print_stl` migration. Use fixture adapters; do not discover or control real devices/printers merely to verify the refactor. Split this group if required rather than hiding an incomplete print path.
-4. Update matrix rows and direct/model denial, malformed-input, owner/project scope, disconnected/expired approval and cancellation tests. Preserve native identity/token, reminder receipt, explicit quit, gaming override, atomic settings and accepted UI payloads.
-5. Remaining groups include memory/media/legacy creative/browser paths, receipt/role schemas, planner permission and unstamped voice/event ownership. R2c declarations/reference cleanup remains separate. Do not expose mobile grants or replace the active server with the archived runtime.
-6. Provider/model setup, hardware/model acceptance and real-game benchmarking remain deferred or unverified. WhatsApp replies remain excluded.
+1. Read [Device/print workflow policy](DEVICE_PRINT_POLICY.md), [Route matrix](ROUTE_POLICY_MATRIX.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Core composition](CORE_COMPOSITION.md).
+2. Continue a related batch of remaining memory/media/legacy creative/browser routes. Inventory actual consumers and payloads first; preserve useful adapters and migrate policy/ownership/lifetime without enabling devices or providers.
+3. Add strict schemas, owner/role checks, shared permissions where applicable, scoped results and owned cancellation. Cover direct/model denial, malformed inputs, immutable project context, origin disconnect and resource/close behavior.
+4. Address unstamped voice/event ownership and legacy confirmation binding explicitly. The AudioLoop device/printer path remains separate from the new desktop print pipeline. Do not claim parity until it is tested.
+5. Retire obsolete declarations/references at R2c only after replacement consumers are verified. Keep the supported application root; do not replace it with the archive. R3 UI/contracts consolidation follows these boundaries.
+6. Preserve native identity/token, reminder receipt, quit/gaming authority and atomic settings. Run focused checks, production build and affected native/fallback integration. Provider setup, hardware/model acceptance and real-game benchmarking remain deferred; WhatsApp replies remain excluded.
+
+## Completed combined compatibility checkpoint (R2b3)
+
+Owner-scoped Kasa/printer compatibility tools preserve saved settings and endpoint selection. The print pipeline snapshots contained project inputs, independently authorizes slice/upload/start, owns slicer process lifetime and records non-replayable attempts durably. Reminder receipts/roles and CAD planner permissions now use the owner/shared policy boundaries. The route inventory remains 52 socket routes and now contains 25 dispatcher tools, 21 provider-visible, plus 26 separate legacy voice declarations.
+
+377 Python and 26 frontend checks pass, with one Blender-dependent skip; lint/build and actual native/fallback/CAD desktop integration pass. A reproduced Windows progress-file sharing failure no longer aborts CAD exports. Two earlier native timing failures remain a documented limitation. See [evidence, limitations and next batch](DEVICE_PRINT_POLICY.md). Real devices, printers and slicer output remain unverified; this checkpoint does not complete all R2b work.
 
 ## Completed settings/lifecycle checkpoint (R2b2)
 

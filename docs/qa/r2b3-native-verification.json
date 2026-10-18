@@ -1,0 +1,87 @@
+{
+  "pid": 29376,
+  "output": "C:\\Users\\Harif\\Downloads\\INARA-main\\INARA-main\\.runtime\\native-qa\\run-e88c2b2a-5d31-439e-8b5a-c1786a1feb2b",
+  "real_game_benchmark": "deferred by user",
+  "resident_process_count": 2,
+  "busy_port_failure_recovery": true,
+  "fresh_owner_registration_before_renderer": true,
+  "admin_rpc_settings_persisted": true,
+  "admin_rpc_role_and_schema_denials": true,
+  "admin_rpc_reconnect_and_scoped_settings": true,
+  "workflow_policy_denials_over_socket": true,
+  "denied_workflows_stay_lazy": true,
+  "open_1_seconds": 3.016,
+  "open_2_seconds": 2.672,
+  "close_reopen_same_core_identity": true,
+  "hotkey_message_and_single_instance_reopen": true,
+  "hotkey_registered": true,
+  "workspace_crash_transport_cleanup": true,
+  "resident_reminder_receipt": true,
+  "manual_gaming_guard": true,
+  "idle": {
+    "seconds": 10.01,
+    "working_set_mean_mb": 67.22,
+    "working_set_peak_mb": 67.22,
+    "private_peak_mb": 49.8,
+    "cpu_percent_one_core": 0.312,
+    "electron_processes": 0,
+    "samples": [
+      {
+        "elapsed": 399372.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 63.01171875,
+            "private_mb": 48.9921875,
+            "cpu_seconds": 2.0625
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.203125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.03125
+          }
+        },
+        "working_set_mb": 67.21484375,
+        "private_mb": 49.8046875,
+        "cpu_seconds": 2.09375
+      },
+      {
+        "elapsed": 399377.156,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 63.01171875,
+            "private_mb": 48.9921875,
+            "cpu_seconds": 2.078125
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.203125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.03125
+          }
+        },
+        "working_set_mb": 67.21484375,
+        "private_mb": 49.8046875,
+        "cpu_seconds": 2.109375
+      },
+      {
+        "elapsed": 399382.171,
+        "processes": {
+          "core_and_tray": {
+            "working_set_mb": 63.015625,
+            "private_mb": 48.9921875,
+            "cpu_seconds": 2.09375
+          },
+          "venv_launcher": {
+            "working_set_mb": 4.203125,
+            "private_mb": 0.8125,
+            "cpu_seconds": 0.03125
+          }
+        },
+        "working_set_mb": 67.21875,
+        "private_mb": 49.8046875,
+        "cpu_seconds": 2.125
+      }
+    ]
+  },
+  "passed": true,
+  "graceful_core_stop": true
+}

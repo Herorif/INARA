@@ -1,6 +1,6 @@
 # INARA revival implementation status
 
-Updated 16 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
+Updated 19 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
 ## Completed behavior
 
@@ -127,3 +127,11 @@ The injected application root now owns construction, FastAPI/ASGI lifetime, remi
 Owner-only settings/permission reads and mutations, strict native/resource requests and fallback resident-only shutdown are implemented in injected transports. Settings authorization is outside editable tool permissions; locked/wrong-role/foreign calls cannot grant themselves access. Atomic replacement precedes in-memory commit. Native gaming and fallback resident gaming override renderer requests; restricted transitions release creative/local/media work and report cleanup failures without lifting restriction. Native identity registration and owner safety cleanup remain usable while face-locked.
 
 288 Python checks pass (one real-Blender skip), including 66 new policy checks; all 26 frontend checks, build and lint pass. Real native admin socket checks prove persistence/reconnect, schema/role denial and scoped settings; a fresh profile verifies owner registration before renderer hydration, alongside native reopen/reminder/gaming/shutdown and fallback lifecycle checks. Short idle is 66.72 MB mean working set / 49.48 MB peak private bytes with zero Electron processes after close. The initial intermittent scene-worker failure, subsequent passing run and remaining legacy limits are recorded in [evidence and limits](SETTINGS_LIFECYCLE_POLICY.md). R2b3 is next.
+
+## Combined compatibility and workflow policy checkpoint (R2b3)
+
+Kasa/printer setup and a contained, staged print workflow now use injected owner-scoped services. Slice/upload/start have independent shared permissions; uploads cannot implicitly start a printer. Protected attempt records prevent replay after cancellation, uncertainty or restart. Reminder UUID receipts/role gates and canonical CAD planner authorization are implemented. See [implementation and verification limits](DEVICE_PRINT_POLICY.md) and the refreshed [route matrix](ROUTE_POLICY_MATRIX.md).
+
+Remaining memory/media/legacy creative/browser routes and voice/event ownership keep R2b open. No provider/hardware configuration or WhatsApp reply behavior was added.
+
+Final verification: 377 Python checks passed, one Blender-dependent skip; 26 frontend checks, scoped lint, production build and actual native/fallback/CAD desktop integration passed. CAD advisory progress now tolerates the reproduced Windows replacement sharing failure. Earlier native timing failures and hardware acceptance remain documented in the checkpoint evidence.
