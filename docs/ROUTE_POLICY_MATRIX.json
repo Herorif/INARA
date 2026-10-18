@@ -1,5 +1,5 @@
 {
-  "checkpoint": "R2b3 device/printer pipeline, reminder receipts and CAD planner policy implemented; remaining legacy groups pending",
+  "checkpoint": "R2b4 workspace memory/media/legacy creative/browser envelopes implemented; legacy voice dispatcher parity and R2c pending",
   "socket_routes": {
     "acknowledge_reminder": {
       "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
@@ -105,11 +105,11 @@
       "caller": "Authenticated renderer",
       "context": "Registry owner; shared approval owner; voice fallback",
       "effects": "Resolve shared or legacy voice confirmation",
-      "policy": "Role/auth/strict input; shared owner-binding; voice fallback remains legacy",
+      "policy": "Shared owner-bound approval; legacy public ID mapped to current voice-session generation and 60s deadline",
       "response": "Scoped errors; no success ACK",
-      "lifetime": "Dispatcher approval deadline; legacy voice separate",
-      "replacement": "Shared confirmation transport; bind voice pending IDs in R6",
-      "status": "migrated-partial"
+      "lifetime": "Shared approval deadline; legacy 60s deadline; no stale session replay",
+      "replacement": "Shared confirmation transport / WorkspaceService voice binding",
+      "status": "migrated-envelope"
     },
     "connect": {
       "schema": "Socket auth mapping; token/UUID validation",
@@ -170,7 +170,7 @@
       "schema": "Socket lifecycle SID",
       "caller": "Transport lifecycle",
       "context": "Registry SID -> owner/role",
-      "effects": "Cancel origin local actions; last-renderer jobs; final-owner approvals",
+      "effects": "Cancel origin local/workspace/conversation requests and bound voice; last-renderer creative cleanup",
       "policy": "No caller-provided identity",
       "response": "No response",
       "lifetime": "Application cleanup",
@@ -211,15 +211,15 @@
       "status": "migrated"
     },
     "generate_cad": {
-      "schema": "Legacy prompt mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "generate cad",
-      "policy": "Heavy-resource gate only; no common direct-action authorization",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "schema": "PromptRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Retained CAD adapter in captured project cad/legacy folder",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "get_reminders": {
       "schema": "EmptyRequest",
@@ -332,15 +332,15 @@
       "status": "existing"
     },
     "iterate_cad": {
-      "schema": "Legacy prompt mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "iterate cad",
-      "policy": "Heavy-resource gate only; no common direct-action authorization",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "schema": "PromptRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Retained CAD iteration in captured project cad/legacy folder",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "launch_app": {
       "schema": "LaunchApp",
@@ -365,15 +365,15 @@
       "status": "migrated"
     },
     "pause_audio": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
       "effects": "pause audio",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Independent owner safety control",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "print_stl": {
       "schema": "PrintRequest",
@@ -387,15 +387,15 @@
       "status": "migrated"
     },
     "prompt_web_agent": {
-      "schema": "Legacy prompt mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "prompt web agent",
-      "policy": "Heavy-resource gate only; no common direct-action authorization",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "schema": "PromptRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Explicitly approved browser task; browser/client cleanup",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "read_clipboard": {
       "schema": "NoArguments",
@@ -409,15 +409,15 @@
       "status": "migrated"
     },
     "resume_audio": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
       "effects": "resume audio",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "resume_conversation": {
       "schema": "ResumeConversation",
@@ -431,15 +431,15 @@
       "status": "existing"
     },
     "save_memory": {
-      "schema": "Legacy messages/filename mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "Write plaintext legacy memory file",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "schema": "SaveMemory",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Exclusive project transcript export; no overwrite",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "set_resource_state": {
       "schema": "ResourceRequest",
@@ -475,26 +475,26 @@
       "status": "migrated"
     },
     "start_audio": {
-      "schema": "Legacy optional device mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "StartAudio",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
       "effects": "start audio",
-      "policy": "Heavy-resource gate only; no common direct-action authorization",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "stop_audio": {
-      "schema": "Ignored optional mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
       "effects": "stop audio",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "policy": "Independent owner safety control",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "stop_watching": {
       "schema": "StopWatching",
@@ -541,37 +541,37 @@
       "status": "migrated"
     },
     "upload_memory": {
-      "schema": "Legacy memory text mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "Send untrusted memory context to legacy voice model",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "schema": "UploadMemory",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Send bounded user context to the current project voice session",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     },
     "user_input": {
       "schema": "ConversationRequest",
       "caller": "Authenticated connected owner; role unrestricted",
-      "context": "Registry owner and captured selected project",
+      "context": "Registry principal, immutable project snapshot and trusted origin SID for tool execution",
       "effects": "Provider/shared tool work",
       "policy": "Shared dispatcher tool gates; durable owner/project request scope",
       "response": "Result/transcript/error or restore/failure to SID",
-      "lifetime": "Existing provider/tool deadlines; durable dedupe; bounded restore",
+      "lifetime": "Serialized turn/provider deadlines; origin-disconnect and app-close cancellation; provider cleanup",
       "replacement": "ConversationTransport; role policy review remains",
       "status": "existing"
     },
     "video_frame": {
-      "schema": "Legacy image bytes/base64 mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "video frame",
-      "policy": "Heavy-resource gate only; no common direct-action authorization",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "schema": "VideoFrame",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Bounded JPEG/PNG frame; <=2 FPS; current voice session only",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
     }
   },
   "http_routes": {
@@ -786,6 +786,70 @@
       "context": "Authenticated desktop owner and captured project",
       "lifetime": "40s cooperative execution; provider 30s plus cleanup; separate approval deadline",
       "replacement": "CadTransport planner",
+      "model_visible": true
+    },
+    "save_memory": {
+      "schema": "SaveMemory",
+      "policy": "Shared save_memory permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": true
+    },
+    "upload_memory": {
+      "schema": "UploadMemory",
+      "policy": "Shared upload_memory permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": true
+    },
+    "start_audio": {
+      "schema": "StartAudio",
+      "policy": "Shared start_audio permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "resume_audio": {
+      "schema": "EmptyRequest",
+      "policy": "Shared start_audio permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "video_frame": {
+      "schema": "VideoFrame",
+      "policy": "Shared video_frame permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "legacy_generate_cad": {
+      "schema": "PromptRequest",
+      "policy": "Shared generate_cad permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "iterate_cad": {
+      "schema": "PromptRequest",
+      "policy": "Shared generate_cad permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "prompt_web_agent": {
+      "schema": "PromptRequest",
+      "policy": "Shared run_web_agent permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "180s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
       "model_visible": true
     }
   },

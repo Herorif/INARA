@@ -135,3 +135,11 @@ Kasa/printer setup and a contained, staged print workflow now use injected owner
 Remaining memory/media/legacy creative/browser routes and voice/event ownership keep R2b open. No provider/hardware configuration or WhatsApp reply behavior was added.
 
 Final verification: 377 Python checks passed, one Blender-dependent skip; 26 frontend checks, scoped lint, production build and actual native/fallback/CAD desktop integration passed. CAD advisory progress now tolerates the reproduced Windows replacement sharing failure. Earlier native timing failures and hardware acceptance remain documented in the checkpoint evidence.
+
+## Workspace compatibility checkpoint (R2b4)
+
+Ten remaining memory/media/legacy CAD/browser wire routes use strict owned services, shared action policy and scoped callbacks. Legacy session approvals expire and cannot resolve across stopped generations; unstamped bus events remain internal. Typed conversations now carry trusted origin context and cancel on disconnect/shutdown. Project transcript exports preserve existing files. See [workspace contracts, verification and limits](WORKSPACE_POLICY.md).
+
+Legacy voice schema/dispatcher parity, connection/face lifecycle and hard isolation remain explicit follow-up work before R2c/R3. No provider or hardware configuration and no WhatsApp reply functionality was added.
+
+462 Python checks pass with one Blender-dependent skip; all 26 frontend checks, lint/build and actual native/fallback/CAD desktop integration pass. Short native idle remains about 67 MB with zero Electron processes after close.

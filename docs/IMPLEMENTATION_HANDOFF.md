@@ -2,7 +2,7 @@
 
 Updated 19 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1/R2b2/R2b3 route-policy groups are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) and [Device/print workflow policy](DEVICE_PRINT_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1-R2b4 route-policy groups are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) and [Device/print workflow policy](DEVICE_PRINT_POLICY.md) and [Workspace policy](WORKSPACE_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -54,7 +54,7 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | Order | Product outcome | Refactor outcome |
 | --- | --- | --- |
 | R1 implemented; hardware acceptance pending | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
-| R2a/R2b1/R2b2/R2b3 implemented; remaining R2b/R2c next | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
+| R2a/R2b1-R2b4 implemented; R2b5 voice parity/R2c next | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
 | R3 | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
 | R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
 | R5 | Deeper 3D vibe coding and image workflows | Validated change sets, selected-revision edits, kernel/Blender/image adapters with real acceptance gates |
@@ -62,16 +62,22 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | R7 | Native foldable Android companion and secure pairing | Device/project context, scoped grants, revocation and idempotent sync |
 | R8 | Read-only selected-notification inbox and summaries | Native ingestion, dedupe, retention and owner-controlled summarization; no WhatsApp reply tools |
 
-R1 software, R2a and R2b1-R2b3 are implemented. Vision/device/printer hardware acceptance remains pending. The combined R2b3 batch covers Kasa/printer setup, a separately authorized print pipeline, reminder receipt/role policy and CAD planner authorization. Remaining legacy routes and voice ownership keep R2b unfinished; R2c follows them.
+R1 software, R2a and R2b1-R2b4 envelopes are implemented. The latest batch covers memory/media/legacy CAD/browser wire routes, scoped voice callbacks, bounded session confirmations and typed origin cancellation. Hardware acceptance, legacy voice argument/dispatch parity and hard adapter isolation remain open; R2c follows the remaining R2b boundaries.
 
 ## Next implementation task
 
-1. Read [Device/print workflow policy](DEVICE_PRINT_POLICY.md), [Route matrix](ROUTE_POLICY_MATRIX.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Core composition](CORE_COMPOSITION.md).
-2. Continue a related batch of remaining memory/media/legacy creative/browser routes. Inventory actual consumers and payloads first; preserve useful adapters and migrate policy/ownership/lifetime without enabling devices or providers.
-3. Add strict schemas, owner/role checks, shared permissions where applicable, scoped results and owned cancellation. Cover direct/model denial, malformed inputs, immutable project context, origin disconnect and resource/close behavior.
-4. Address unstamped voice/event ownership and legacy confirmation binding explicitly. The AudioLoop device/printer path remains separate from the new desktop print pipeline. Do not claim parity until it is tested.
-5. Retire obsolete declarations/references at R2c only after replacement consumers are verified. Keep the supported application root; do not replace it with the archive. R3 UI/contracts consolidation follows these boundaries.
-6. Preserve native identity/token, reminder receipt, quit/gaming authority and atomic settings. Run focused checks, production build and affected native/fallback integration. Provider setup, hardware/model acceptance and real-game benchmarking remain deferred; WhatsApp replies remain excluded.
+1. Complete R2b5 voice/tool parity and connection/face lifecycle seams. Read [Workspace policy](WORKSPACE_POLICY.md), [Route matrix](ROUTE_POLICY_MATRIX.md), [Core composition](CORE_COMPOSITION.md) and the supported `inara.py` consumers before editing.
+2. Map every retained voice declaration to a validated shared action or an explicit unsupported capability. Use one schema/permission authority where the replacement exists; preserve useful adapters and immutable owner/project context. Do not treat the current bounded voice confirmation bridge as full dispatcher parity.
+3. Verify canonical/alias deny, malformed arguments, expiry, stopped/disconnected session generations, resource/close cancellation and scoped delayed events across voice, direct and typed calls. Preserve strict boolean confirmations, renderer/native identity and reminder receipt semantics.
+4. Inspect connection hydration and face callback/task lifetime. Scope private settings/device/watch/project state to the authorized owner; track authentication tasks and stop them deterministically. Face landmarks remain a convenience gate, not OS authentication.
+5. Keep cooperative legacy CAD/browser/audio cancellation distinct from hard process-tree isolation. The generated-code CAD adapter and autonomous browser internals remain unverified; do not execute generated scripts, navigate real accounts or enable hardware to test the migration. Follow the dedicated R4/R5 acceptance/isolation tracks.
+6. Retire obsolete declarations/references and duplicate lifecycle code at R2c only after replacement consumers pass. Then proceed to R3 shared UI/RPC/TypeScript consolidation. Provider configuration, physical acceptance and the real-game benchmark remain deferred; WhatsApp reply drafting/sending stays excluded.
+
+## Completed workspace compatibility checkpoint (R2b4)
+
+Ten memory/media/legacy CAD/browser wire routes now use strict owner-scoped service/transport envelopes. Memory exports stay inside the captured project and preserve existing files. Voice callbacks, bounded confirmations and detached work belong to one session generation; unstamped bus events stay internal. Direct and typed requests cancel on origin disconnect, with provider/browser cleanup. The inventory remains 52 socket routes and now contains 33 dispatcher tools (24 provider-visible), plus 26 separate legacy voice declarations.
+
+462 Python checks pass with one Blender-dependent skip; all 26 frontend checks, lint/build and actual native/fallback/CAD desktop integration pass. Short native idle remains about 67 MB with zero Electron processes after close. See [verification and material limits](WORKSPACE_POLICY.md). Live voice/media, provider-generated CAD and autonomous browser effects were not exercised. This checkpoint does not complete voice/shared-dispatch parity or legacy worker isolation.
 
 ## Completed combined compatibility checkpoint (R2b3)
 

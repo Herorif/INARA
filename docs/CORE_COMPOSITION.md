@@ -73,3 +73,7 @@ R2b: enumerate every supported socket/direct tool route and its request schema, 
 R2b1 update: local desktop/device tool registration now belongs to the composition root, replacing the facade launch-app closure. Seven direct routes use the shared policy path; stamped bus events are owner-scoped. [Route policy migration](ROUTE_POLICY_MIGRATION.md) records exact completion and pending seams.
 
 R2b2 update: settings and native/resource lifecycle routes now belong to injected transports. Legacy media refresh/stop/exit callbacks remain explicit compatibility dependencies. [Owner policy and verification](SETTINGS_LIFECYCLE_POLICY.md) document authority and persistence; pending routes stay inventoried.
+
+## R2b4 ownership update (19 October 2026)
+
+The root now owns workspace compatibility services and transports for memory/media/CAD/browser routes. Voice state and request callbacks no longer live in facade globals. Conversation origin tracking closes pending/active typed work on disconnect and shutdown. Unstamped bus events stay internal; only trusted scoped events reach owner renderers. [Workspace evidence and remaining adapter limits](WORKSPACE_POLICY.md).
