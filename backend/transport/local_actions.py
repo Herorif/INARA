@@ -57,26 +57,29 @@ class LocalActionTransport:
                 )
                 await self.emit_result(name, result, sid)
             except (ServiceError, ValidationError) as exc:
-                await self.sio.emit(
-                    "error",
+                await self.emit_error(
+                    name,
+                    sid,
                     {
                         "msg": str(exc)
                         if isinstance(exc, ServiceError)
                         else "Invalid local action arguments.",
                         "code": getattr(exc, "code", "invalid_arguments"),
                     },
-                    room=sid,
                 )
             except Exception:
-                await self.sio.emit(
-                    "error",
+                await self.emit_error(
+                    name,
+                    sid,
                     {"msg": "The local action could not complete.", "code": "action_failed"},
-                    room=sid,
                 )
             finally:
                 self.running.pop(task, None)
 
         return handle
+
+    async def emit_error(self, name, sid, payload):
+        await self.sio.emit("error", payload, room=sid)
 
     def context(self, sid):
         return self.sessions.context(sid, renderer=True)

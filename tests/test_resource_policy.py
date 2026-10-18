@@ -37,6 +37,7 @@ async def test_reminder_prefers_renderer_then_resident_on_close(tmp_path, monkey
     store = ReminderStore(tmp_path)
     store.add_reminder("test reminder", 1)
     runtime.delivery.reminders = runtime.reminder_transport.store = store
+    runtime.sessions.local_owner = "owner"
     runtime.sessions.principals.update({"tray": "owner", "window": "owner"})
     runtime.sessions.roles.update({"tray": "resident", "window": "renderer"})
     runtime.resources.select("studio")
@@ -89,6 +90,8 @@ async def test_direct_reminder_creation_needs_no_ai_configuration(tmp_path, monk
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     runtime.reminder_transport.dispatcher = dispatcher
     runtime.sessions.principals["client"] = "owner"
+    runtime.sessions.roles["client"] = "renderer"
+    runtime.sessions.local_owner = "owner"
     runtime.delivery.reminders = runtime.reminder_transport.store = store
     monkeypatch.setattr(runtime.sio, "emit", AsyncMock())
     await runtime.reminder_transport.create_reminder(

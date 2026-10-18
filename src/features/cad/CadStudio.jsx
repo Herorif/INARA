@@ -171,7 +171,7 @@ export default function CadStudio() {
     try {
       const response = await cadRpc(socket, 'cad_plan', {
         prompt
-      }, 40000);
+      }, 110000);
       if (alive.current && generation === epoch.current) setRecipe(response.recipe);
     } catch (failure) {
       if (alive.current && generation === epoch.current) setError(failure.message);

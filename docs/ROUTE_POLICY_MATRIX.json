@@ -1,23 +1,23 @@
 {
-  "checkpoint": "R2b2 owner settings/native-resource policy implemented; R2b3 compatibility groups pending",
+  "checkpoint": "R2b3 device/printer pipeline, reminder receipts and CAD planner policy implemented; remaining legacy groups pending",
   "socket_routes": {
     "acknowledge_reminder": {
-      "schema": "Legacy delivery_id mapping",
-      "caller": "Authenticated connected owner; role unrestricted",
+      "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
+      "caller": "Authenticated owner renderer; resident receipt ACK permitted while face-locked",
       "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
       "effects": "acknowledge reminder",
-      "policy": "Authentication and store delivery ownership; receipt schema pending",
-      "response": "SID result/error; same-owner refresh",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
       "lifetime": "Dispatcher approval deadline; store transaction/lease",
-      "replacement": "ReminderTransport; receipt schema/role policy review remains",
-      "status": "existing-partial"
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
     },
     "add_printer": {
       "schema": "AddPrinter",
       "caller": "Authenticated owner renderer",
       "context": "Pinned desktop owner and captured project",
-      "effects": "Persist printer config and probe network",
-      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "effects": "Persist exact configured printer endpoint and protocol; no implicit probe",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
       "response": "Scoped result/error events to origin SID",
       "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
       "replacement": "DevicePrinterService / CompatibilityTransport",
@@ -69,14 +69,14 @@
     },
     "cad_plan": {
       "schema": "PlanRequest",
-      "caller": "Authenticated renderer",
+      "caller": "Authenticated owner renderer",
       "context": "Registry owner and resolved selected project",
       "effects": "Creative plan",
-      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "policy": "Shared plan_cad tool aliases generate_cad permission; owner authorization and resource gate",
       "response": "Scoped ACK/error; job events to owner renderers",
-      "lifetime": "Owned service/worker/planner cancellation and deadlines",
-      "replacement": "Existing creative transport; planner policy review in R2b",
-      "status": "existing-partial"
+      "lifetime": "Approval deadline plus provider 30s/close 5s; origin owner/panel/resource shutdown cancellation",
+      "replacement": "CadTransport + shared planner dispatch",
+      "status": "migrated"
     },
     "cad_submit": {
       "schema": "BuildRequest",
@@ -91,14 +91,14 @@
     },
     "cancel_reminder": {
       "schema": "ReminderAction",
-      "caller": "Authenticated connected owner; role unrestricted",
+      "caller": "Authenticated owner renderer",
       "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
       "effects": "cancel reminder",
-      "policy": "Shared dispatcher mutation gates",
-      "response": "SID result/error; same-owner refresh",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
       "lifetime": "Dispatcher approval deadline; store transaction/lease",
-      "replacement": "ReminderTransport; receipt schema/role policy review remains",
-      "status": "existing"
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
     },
     "confirm_tool": {
       "schema": "Confirmation: strict id and boolean",
@@ -146,14 +146,14 @@
     },
     "create_reminder": {
       "schema": "CreateReminder",
-      "caller": "Authenticated connected owner; role unrestricted",
+      "caller": "Authenticated owner renderer",
       "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
       "effects": "create reminder",
-      "policy": "Shared dispatcher mutation gates",
-      "response": "SID result/error; same-owner refresh",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
       "lifetime": "Dispatcher approval deadline; store transaction/lease",
-      "replacement": "ReminderTransport; receipt schema/role policy review remains",
-      "status": "existing"
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
     },
     "desktop_control": {
       "schema": "DesktopControl discriminated union",
@@ -182,7 +182,7 @@
       "caller": "Authenticated owner renderer",
       "context": "Pinned desktop owner and captured project",
       "effects": "Discover network devices and persist device settings",
-      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
       "response": "Scoped result/error events to origin SID",
       "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
       "replacement": "DevicePrinterService / CompatibilityTransport",
@@ -193,22 +193,22 @@
       "caller": "Authenticated owner renderer",
       "context": "Pinned desktop owner and captured project",
       "effects": "Discover network printers; activate lazy monitor",
-      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
       "response": "Scoped result/error events to origin SID",
       "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
       "replacement": "DevicePrinterService / CompatibilityTransport",
       "status": "migrated"
     },
     "dismiss_reminder": {
-      "schema": "Legacy delivery_id mapping",
-      "caller": "Authenticated connected owner; role unrestricted",
+      "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
+      "caller": "Authenticated owner renderer",
       "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
       "effects": "dismiss reminder",
-      "policy": "Authentication and store delivery ownership; receipt schema pending",
-      "response": "SID result/error; same-owner refresh",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
       "lifetime": "Dispatcher approval deadline; store transaction/lease",
-      "replacement": "ReminderTransport; receipt schema/role policy review remains",
-      "status": "existing-partial"
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
     },
     "generate_cad": {
       "schema": "Legacy prompt mapping",
@@ -222,15 +222,15 @@
       "status": "pending"
     },
     "get_reminders": {
-      "schema": "Ignored optional mapping",
-      "caller": "Authenticated connected owner; role unrestricted",
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer",
       "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
       "effects": "get reminders",
-      "policy": "Authentication and store delivery ownership; receipt schema pending",
-      "response": "SID result/error; same-owner refresh",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
       "lifetime": "Dispatcher approval deadline; store transaction/lease",
-      "replacement": "ReminderTransport; receipt schema/role policy review remains",
-      "status": "existing-partial"
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
     },
     "get_settings": {
       "schema": "EmptyRequest",
@@ -248,7 +248,7 @@
       "caller": "Authenticated owner renderer",
       "context": "Pinned desktop owner and captured project",
       "effects": "get slicer profiles",
-      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
       "response": "Scoped result/error events to origin SID",
       "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
       "replacement": "DevicePrinterService / CompatibilityTransport",
@@ -376,15 +376,15 @@
       "status": "pending"
     },
     "print_stl": {
-      "schema": "Legacy stl_path/printer/profile mapping",
-      "caller": "No explicit per-route authentication/role gate",
-      "context": "Global desktop/project/media state",
-      "effects": "Resolve file, preview, slice, upload/start printer job; containment/grant migration pending",
-      "policy": "Legacy route bypass; no common dispatcher",
-      "response": "Legacy events/errors may broadcast",
-      "lifetime": "Legacy adapter/task; no uniform route deadline",
-      "replacement": "R2b feature transport/policy migration",
-      "status": "pending"
+      "schema": "PrintRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured project/owner; snapshot hash and printer endpoint bound",
+      "effects": "Separate slice, upload (no start), then physical start permissions",
+      "policy": "print_stl and slice_stl/upload_gcode/start_print gates; protected request ledger rejects replay",
+      "response": "Scoped print_result/error; owner progress",
+      "lifetime": "Owned slicer/job tree and bounded network phases; cancellation/uncertainty persisted",
+      "replacement": "PrintService / CompatibilityTransport",
+      "status": "migrated"
     },
     "prompt_web_agent": {
       "schema": "Legacy prompt mapping",
@@ -465,14 +465,14 @@
     },
     "snooze_reminder": {
       "schema": "SnoozeReminder",
-      "caller": "Authenticated connected owner; role unrestricted",
+      "caller": "Authenticated owner renderer",
       "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
       "effects": "snooze reminder",
-      "policy": "Shared dispatcher mutation gates",
-      "response": "SID result/error; same-owner refresh",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
       "lifetime": "Dispatcher approval deadline; store transaction/lease",
-      "replacement": "ReminderTransport; receipt schema/role policy review remains",
-      "status": "existing"
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
     },
     "start_audio": {
       "schema": "Legacy optional device mapping",
@@ -591,142 +591,202 @@
     "cancel_reminder": {
       "schema": "ReminderAction",
       "policy": "Shared permissions[cancel_reminder]; absent/True requires approval; deny rejects",
-      "context": "Authenticated principal and resolved project",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "control_device": {
       "schema": "ControlDevice",
       "policy": "Shared permissions[control_device]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "create_reminder": {
       "schema": "CreateReminder",
       "policy": "Shared permissions[create_reminder]; absent/True requires approval; deny rejects",
-      "context": "Authenticated principal and resolved project",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "generate_cad": {
       "schema": "BuildRequest",
       "policy": "Shared permissions[generate_cad]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "generate_image": {
       "schema": "ImageRequest",
       "policy": "Shared permissions[generate_image]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "get_system_info": {
       "schema": "NoArguments",
       "policy": "Shared permissions[get_system_info]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "launch_app": {
       "schema": "LaunchApp",
       "policy": "Shared permissions[launch_app]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "list_all_devices": {
       "schema": "NoArguments",
       "policy": "Shared permissions[list_all_devices]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "list_reminders": {
       "schema": "ListReminders",
       "policy": "Shared permissions[list_reminders]; absent/True requires approval; deny rejects",
-      "context": "Authenticated principal and resolved project",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "read_clipboard": {
       "schema": "NoArguments",
       "policy": "Shared permissions[read_clipboard]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "read_file": {
       "schema": "PathArguments",
       "policy": "Shared permissions[read_file]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "snooze_reminder": {
       "schema": "SnoozeReminder",
       "policy": "Shared permissions[snooze_reminder]; absent/True requires approval; deny rejects",
-      "context": "Authenticated principal and resolved project",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "stop_watching": {
       "schema": "StopWatching",
       "policy": "Shared permissions[stop_watching]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "take_screenshot": {
       "schema": "Screenshot",
       "policy": "Shared permissions[take_screenshot]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "write_file": {
       "schema": "WriteArguments",
       "policy": "Shared permissions[write_file]; absent/True requires approval; deny rejects",
       "context": "Authenticated principal and resolved project",
       "lifetime": "Existing provider/service/worker lifetime",
-      "replacement": "Current shared tool; declarations consolidated at R2c"
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
     },
     "discover_kasa": {
       "schema": "NoArguments",
       "policy": "Shared per-tool approval/deny",
       "context": "Authenticated desktop owner",
       "lifetime": "30s cooperative execution",
-      "replacement": "DevicePrinterService"
+      "replacement": "DevicePrinterService",
+      "model_visible": true
     },
     "control_kasa": {
       "schema": "KasaControl",
       "policy": "control_device alias",
       "context": "Authenticated desktop owner",
       "lifetime": "30s cooperative execution",
-      "replacement": "DevicePrinterService"
+      "replacement": "DevicePrinterService",
+      "model_visible": false
     },
     "discover_printers": {
       "schema": "NoArguments",
       "policy": "Shared per-tool approval/deny",
       "context": "Authenticated desktop owner",
       "lifetime": "30s cooperative execution",
-      "replacement": "DevicePrinterService"
+      "replacement": "DevicePrinterService",
+      "model_visible": true
     },
     "add_printer": {
       "schema": "AddPrinter",
       "policy": "Shared per-tool approval/deny",
       "context": "Authenticated desktop owner",
       "lifetime": "30s cooperative execution",
-      "replacement": "DevicePrinterService"
+      "replacement": "DevicePrinterService",
+      "model_visible": true
     },
     "get_slicer_profiles": {
       "schema": "NoArguments",
       "policy": "Shared per-tool approval/deny",
       "context": "Authenticated desktop owner",
       "lifetime": "30s cooperative execution",
-      "replacement": "DevicePrinterService"
+      "replacement": "DevicePrinterService",
+      "model_visible": true
+    },
+    "print_stl": {
+      "schema": "PrintRequest",
+      "policy": "print_stl outer permission plus three phase gates",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": true
+    },
+    "slice_stl": {
+      "schema": "PrintStage",
+      "policy": "Independent per-stage shared permission; root print workflow required",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": false
+    },
+    "upload_gcode": {
+      "schema": "PrintStage",
+      "policy": "Independent per-stage shared permission; root print workflow required",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": false
+    },
+    "start_print": {
+      "schema": "PrintStage",
+      "policy": "Independent per-stage shared permission; root print workflow required",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": false
+    },
+    "plan_cad": {
+      "schema": "PlanRequest",
+      "policy": "generate_cad permission alias",
+      "context": "Authenticated desktop owner and captured project",
+      "lifetime": "40s cooperative execution; provider 30s plus cleanup; separate approval deadline",
+      "replacement": "CadTransport planner",
+      "model_visible": true
     }
   },
   "legacy_voice_declarations": {

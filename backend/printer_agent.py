@@ -918,6 +918,12 @@ class PrinterAgent:
             print(f"[PRINTER] Moonraker upload error: {e}")
             return False
 
+    async def start_print(self, target: str, filename: str) -> bool:
+        """Start an already-uploaded generated filename through a separate API request."""
+        from services.printer_protocol import start_uploaded
+        printer = self._resolve_printer(target)
+        return await start_uploaded(printer, filename) if printer else False
+
     async def get_print_status(self, target: str) -> Optional[PrintStatus]:
         """
         Get current status of a printer.

@@ -102,9 +102,37 @@ class PrintRequest(EmptyRequest):
     printer: StrictStr = Field(min_length=1, max_length=253)
     profile: StrictStr | None = Field(default=None, min_length=1, max_length=1024)
 
+    @field_validator("stl_path", "profile")
+    @classmethod
+    def relative_file(cls, value):
+        from pathlib import PureWindowsPath
+
+        if value is None:
+            return value
+        path = PureWindowsPath(value)
+        if (
+            path.drive
+            or path.root
+            or ":" in value
+            or ".." in path.parts
+            or any(ord(c) < 32 for c in value)
+        ):
+            raise ValueError("Use a project-relative path.")
+        return value
+
+    @field_validator("printer")
+    @classmethod
+    def readable_target(cls, value):
+        if not value.strip() or any(ord(c) < 32 for c in value):
+            raise ValueError("Choose a configured printer.")
+        return value.strip()
+
 
 class PrintStage(EmptyRequest):
     request_id: uuid.UUID
     printer: StrictStr
     path: StrictStr
     sha256: StrictStr = Field(pattern=r"^[0-9a-f]{64}$")
+    source: StrictStr = Field(default="", max_length=1024)
+    target: StrictStr = Field(default="", max_length=300)
+    profile_sha256: StrictStr | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")

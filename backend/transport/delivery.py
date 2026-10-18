@@ -53,7 +53,11 @@ class EventDelivery:
                     else (self.sessions.roles.get(sid) == "resident")
                 ),
             )
-            if not rooms or not self.dispatcher.authenticated(principal):
+            if (
+                not rooms
+                or not self.sessions.is_owner(principal)
+                or not self.dispatcher.authenticated(principal)
+            ):
                 continue
             for delivery in self.reminders.claim_deliveries(principal):
                 native = self.sessions.native_desktop

@@ -329,6 +329,8 @@ async def test_transport_failure_retries_persistent_delivery(tmp_path, monkeypat
     store.add_reminder("offline reminder", 1)
     runtime.delivery.reminders = runtime.reminder_transport.store = store
     runtime.sessions.principals["socket"] = "owner"
+    runtime.sessions.roles["socket"] = "renderer"
+    runtime.sessions.local_owner = "owner"
     monkeypatch.setattr(runtime.dispatcher, "authenticated", lambda _: True)
     emit = AsyncMock(side_effect=OSError("fake disconnected transport"))
     monkeypatch.setattr(runtime.sio, "emit", emit)
@@ -454,6 +456,8 @@ async def test_direct_reminder_edit_enforces_shared_denial(tmp_path, monkeypatch
     register_scheduler_tools(dispatcher, SchedulerAgent(EventBus(), store), store)
     runtime.reminder_transport.dispatcher = dispatcher
     runtime.sessions.principals["socket"] = "owner"
+    runtime.sessions.roles["socket"] = "renderer"
+    runtime.sessions.local_owner = "owner"
     runtime.delivery.reminders = runtime.reminder_transport.store = store
     emit = AsyncMock()
     monkeypatch.setattr(runtime.sio, "emit", emit)

@@ -122,7 +122,7 @@ class ToolDispatcher:
         validated = spec.arguments.model_validate(arguments)
         permission = spec.permission or name
         policy = self.permissions().get(permission, True)
-        if policy == "deny":
+        if policy == "deny" or self.permissions().get(name) == "deny":
             raise ServiceError("permission_denied", "This action is disabled.")
         if policy not in (False, "allow_within_scope"):
             if request_approval is None:
@@ -142,7 +142,11 @@ class ToolDispatcher:
             if not approved:
                 raise ServiceError("permission_denied", "The action was declined.")
         # Recheck authentication and disablement after waiting, before side effects.
-        if not self.authenticated(principal) or self.permissions().get(permission) == "deny":
+        if (
+            not self.authenticated(principal)
+            or self.permissions().get(permission) == "deny"
+            or self.permissions().get(name) == "deny"
+        ):
             raise ServiceError("permission_denied", "This action is no longer authorized.")
 
         async def execute():

@@ -27,6 +27,7 @@ class DevicePrinterService:
                     self.execute(name),
                     execution_timeout=30,
                     permission=permission,
+                    model_visible=name != "control_kasa",
                 )
             )
 

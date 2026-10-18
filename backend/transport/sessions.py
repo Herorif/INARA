@@ -100,3 +100,8 @@ class DesktopSessions:
                 "authentication_required", "Unlock INARA before changing desktop settings."
             )
         return principal
+
+    def is_owner(self, principal):
+        native = self.native_desktop
+        owner = native.state.identity.owner if native else self.local_owner
+        return owner is not None and principal == owner

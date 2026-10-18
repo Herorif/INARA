@@ -30,7 +30,7 @@ class SnoozeReminder(ReminderAction):
     minutes: StrictInt = Field(ge=1, le=10080)
 
 
-def register_scheduler_tools(dispatcher, agent, store):
+def register_scheduler_tools(dispatcher, agent, store, authorize=None):
     for name, arguments, description in (
         (
             "create_reminder",
@@ -44,6 +44,8 @@ def register_scheduler_tools(dispatcher, agent, store):
     ):
 
         async def execute(args, context, tool_name=name):
+            if authorize:
+                authorize(context)
             if getattr(args, "delivery_id", None):
                 if tool_name not in ("cancel_reminder", "snooze_reminder"):
                     raise ServiceError("invalid_arguments", "Unexpected reminder delivery.")
@@ -55,7 +57,13 @@ def register_scheduler_tools(dispatcher, agent, store):
                         "stale_reminder", "This reminder alert is no longer actionable."
                     )
                 return {"success": True, "message": "Reminder updated."}
-            result = await agent.handle_tool_call(tool_name, args.model_dump(exclude_none=True))
+            from core.event_bus import event_owner
+
+            token = event_owner.set(context["principal"])
+            try:
+                result = await agent.handle_tool_call(tool_name, args.model_dump(exclude_none=True))
+            finally:
+                event_owner.reset(token)
             return {"success": result.success, "message": result.message, "data": result.data}
 
         dispatcher.register(ToolSpec(name, description, arguments, execute))

@@ -10,6 +10,7 @@ class CompatibilityTransport(LocalActionTransport):
         "discover_printers",
         "add_printer",
         "get_slicer_profiles",
+        "print_stl",
     )
 
     def context(self, sid):
@@ -32,3 +33,12 @@ class CompatibilityTransport(LocalActionTransport):
             await self.sio.emit("print_result", result, room=sid)
         if "message" in result:
             await self.sio.emit("status", {"msg": result["message"]}, room=sid)
+
+    async def emit_error(self, name, sid, payload):
+        if name == "print_stl":
+            await self.sio.emit(
+                "print_result",
+                {"status": "error", "message": payload["msg"], "code": payload["code"]},
+                room=sid,
+            )
+        await super().emit_error(name, sid, payload)

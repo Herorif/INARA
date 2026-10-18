@@ -79,7 +79,7 @@ async def test_native_receipt_only_after_notice_queued_and_workspace_excluded(mo
     # The production store's acknowledgement is synchronous.
     receipts = []
     store.acknowledge = lambda key, owner: receipts.append((key, owner))
-    desktop = SimpleNamespace(notify=AsyncMock(return_value=False))
+    desktop = SimpleNamespace(notify=AsyncMock(return_value=False), state=SimpleNamespace(identity=SimpleNamespace(owner="owner")))
     runtime.sessions.native_desktop = desktop
     runtime.delivery.reminders = store
     runtime.sessions.principals.update({"native-resident": "owner", "main": "owner"})
@@ -161,6 +161,7 @@ async def test_reminder_destination_follows_lifetime_not_stale_renderer(
     monkeypatch, mode, recipient, application_factory
 ):
     runtime = application_factory()
+    runtime.sessions.local_owner = "owner"
 
     monkeypatch.setattr(
         runtime.sessions, "principals", {"renderer": "owner", "tray": "owner", "control": "owner"}

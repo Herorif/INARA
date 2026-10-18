@@ -324,7 +324,7 @@ async def connect(sid, environ, auth=None):
 
     # Startup hydration — push current state to new client
     pending = [r.to_dict() for r in reminder_store.list_reminders(filter="all") if r.status == "pending"]
-    if dispatcher.authenticated(principal):
+    if runtime.reminder_transport.can_read(sid):
         await sio.emit('reminder_list', pending, room=sid)
         await sio.emit('reminder_deliveries', reminder_store.open_deliveries(principal), room=sid)
     watches = vision_loop.list_watches() if hasattr(vision_loop, 'list_watches') else []
@@ -813,73 +813,7 @@ async def prompt_web_agent(sid, data):
         else:
             await sio.emit('error', {'msg': f"Web Agent Error: {str(e)}"}, room=sid)
 
-@sio.event
-async def print_stl(sid, data):
-    print(f"Received print_stl request: {data}")
-    # data: { stl_path: "path/to.stl" | "current", printer: "name_or_ip", profile: "optional" }
-        
-    try:
-        stl_path = data.get('stl_path', 'current')
-        printer_name = data.get('printer')
-        profile = data.get('profile')
-        
-        if not printer_name:
-             await sio.emit('error', {'msg': "No printer specified"})
-             return
-             
-        await sio.emit('status', {'msg': f"Preparing print for {printer_name}..."})
-        
-        # Get current project path for resolution
-        current_project_path = str(project_manager.get_current_project_path())
-        print(f"[SERVER DEBUG] Using project path: {current_project_path}")
-
-        # Resolve STL path before slicing so we can preview it
-        resolved_stl = printer_agent._resolve_file_path(stl_path, current_project_path)
-        
-        if resolved_stl and os.path.exists(resolved_stl):
-            # Open the STL in the CAD module for preview
-            try:
-                import base64
-                with open(resolved_stl, 'rb') as f:
-                    stl_data = f.read()
-                stl_b64 = base64.b64encode(stl_data).decode('utf-8')
-                stl_filename = os.path.basename(resolved_stl)
-                
-                print(f"[SERVER] Opening STL in CAD module: {stl_filename}")
-                await sio.emit('cad_data', {
-                    'format': 'stl',
-                    'data': stl_b64,
-                    'filename': stl_filename
-                })
-            except Exception as e:
-                print(f"[SERVER] Warning: Could not preview STL: {e}")
-        
-        # Progress Callback
-        async def on_slicing_progress(percent, message):
-            await sio.emit('slicing_progress', {
-                'printer': printer_name,
-                'percent': percent,
-                'message': message
-            })
-            if percent < 100:
-                 await sio.emit('status', {'msg': f"Slicing: {percent}%"})
-
-        result = await printer_agent.print_stl(
-            stl_path, 
-            printer_name, 
-            profile,
-            progress_callback=on_slicing_progress,
-            root_path=current_project_path
-        )
-        
-        await sio.emit('print_result', result)
-        if result.get('status') == 'error':
-            await sio.emit('error', {'msg': result.get('message', 'Print failed.')}, room=sid)
-        await sio.emit('status', {'msg': f"Print Job: {result.get('status', 'unknown')}"})
-        
-    except Exception as e:
-        print(f"Error printing STL: {e}")
-        await sio.emit('error', {'msg': f"Print Failed: {str(e)}"})
+print_stl = runtime.compat_transport.print_stl
 
 if __name__ == "__main__":
     uvicorn_server = uvicorn.Server(uvicorn.Config(app_socketio, host="127.0.0.1", port=8000, loop="asyncio"))
