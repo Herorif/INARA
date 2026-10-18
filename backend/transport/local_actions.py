@@ -1,15 +1,9 @@
 """Renderer-only deterministic local actions using the common tool dispatcher."""
 
 import asyncio
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, ValidationError
+from pydantic import ValidationError
 from services.local_actions import ACTION_MODELS
 from services.tools import ServiceError
-
-
-class Confirmation(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    id: StrictStr = Field(min_length=1, max_length=128)
-    confirmed: StrictBool
 
 
 class LocalActionTransport:
@@ -23,22 +17,6 @@ class LocalActionTransport:
             setattr(self, name, handler)
             sio.on(name, handler=handler)
 
-    async def validate_confirmation(self, sid, data):
-        try:
-            context = self.sessions.context(sid, renderer=True)
-            if not self.dispatcher.authenticated(context.principal):
-                raise ServiceError("authentication_required", "Authentication is required.")
-            return Confirmation.model_validate(data).model_dump()
-        except (ServiceError, ValidationError) as exc:
-            await self.sio.emit(
-                "error",
-                {
-                    "msg": "Invalid or unauthorized confirmation.",
-                    "code": getattr(exc, "code", "invalid_arguments"),
-                },
-                room=sid,
-            )
-            return None
 
     def handler(self, name):
         async def handle(sid, data=None):

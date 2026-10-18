@@ -226,8 +226,8 @@ async def test_lifetime_restarts_without_duplicate_pollers_or_bus_delivery(appli
 
 @pytest.mark.asyncio
 async def test_cleanup_failure_still_stops_other_owners_and_unsubscribes(application_factory):
-    legacy_stop = AsyncMock()
-    runtime = application_factory(stop_legacy=legacy_stop)
+    runtime = application_factory()
+    runtime.workspace.close = AsyncMock()
     await runtime.start()
     tasks = tuple(runtime.tasks)
     runtime.cad_transport.close = AsyncMock(side_effect=RuntimeError("test cleanup failure"))
@@ -235,7 +235,7 @@ async def test_cleanup_failure_still_stops_other_owners_and_unsubscribes(applica
     with pytest.raises(RuntimeError, match="test cleanup failure"):
         await runtime.close()
     runtime.image_transport.close.assert_awaited_once()
-    legacy_stop.assert_awaited_once()
+    runtime.workspace.close.assert_awaited_once()
     assert not runtime.started and not runtime.tasks and all(task.done() for task in tasks)
     await runtime.bus.emit(Event(Events.VISION_ALERT, {}))
     runtime.sio.emit.assert_not_called()

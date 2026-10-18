@@ -151,3 +151,7 @@ The two authorized steps are implemented: 37 live voice functions share validate
 R2c can now retire unused voice declarations, ad-hoc helper/confirmation paths and dead facade lifecycle references. Provider/model setup, real media/face/device behavior and generated-code/browser hard isolation remain deferred/unverified. WhatsApp replies remain excluded.
 
 666 Python checks and 26 frontend checks pass, with one Blender-dependent skip. Lint/build and actual native/fallback/CAD desktop integration pass. Short native idle is about 67 MB with zero Electron processes after workspace close.
+
+## R2c cleanup complete
+
+Duplicate static voice catalogs/helpers, fallback approvals and obsolete facade/lifecycle hooks are retired. Live configuration uses generated shared schemas; `ConfirmationTransport` owns strict renderer confirmations. The inventory remains 52 socket routes, 53 tools and 37 voice functions. 668 Python and 26 frontend checks pass, with one Blender skip; lint/build and native/fallback/CAD integration pass. [Retirement map, evidence and limits](RETIRED_PATHS.md). R3 shared UI/RPC and JARVIS panel consolidation is next.

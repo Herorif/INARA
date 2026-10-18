@@ -33,6 +33,7 @@ from transport.compatibility import CompatibilityTransport
 from services.settings import SettingsService, SettingsStore
 from transport.settings import SettingsTransport
 from transport.lifecycle import LifecycleTransport
+from transport.confirmations import ConfirmationTransport
 from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
 from services.scheduler_tools import register_scheduler_tools
@@ -58,19 +59,16 @@ class Application:
         bus,
         resources,
         face_authenticated,
-        stop_legacy=None,
         startup_summary=None,
         status_summary=None,
         instance_id=None,
         settings_path=None,
         permission_names=(),
-        settings_changed=None,
-        stop_resource_media=None,
         request_exit=lambda: None,
     ):
         self.sio, self.database, self.projects, self.settings = sio, database, projects, settings
         self.reminders, self.bus, self.resources = reminders, bus, resources
-        self.stop_legacy, self.startup_summary = stop_legacy, startup_summary
+        self.startup_summary = startup_summary
         self.sessions = DesktopSessions(projects, settings, face_authenticated)
         self.scheduler = SchedulerAgent(event_bus=bus, reminder_store=reminders)
         self.dispatcher = ToolDispatcher(
@@ -116,12 +114,11 @@ class Application:
             self.dispatcher, self.desktop, self.devices, self.vision, self.vision_loop
         )
         self.local_transport = LocalActionTransport(sio, self.dispatcher, self.sessions)
-        self.stop_resource_media = stop_resource_media
+        self.confirmation_transport = ConfirmationTransport(sio, self.dispatcher, self.sessions)
         self.settings_service = SettingsService(
             settings,
             SettingsStore(settings_path),
             set(permission_names) | set(self.dispatcher.tools),
-            settings_changed,
         )
         self.compat_service = DevicePrinterService(
             self.dispatcher,
@@ -191,8 +188,6 @@ class Application:
             self.workspace.close(),
             self.connection.close(),
         ]
-        if self.stop_resource_media:
-            operations.append(self.stop_resource_media())
         results = await asyncio.gather(*operations, return_exceptions=True)
         for result in results:
             if isinstance(result, BaseException):
@@ -248,8 +243,6 @@ class Application:
                 self.connection.close(),
                 return_exceptions=True,
             )
-            if self.stop_legacy:
-                await self.stop_legacy()
             for result in results:
                 if isinstance(result, BaseException):
                     raise result
@@ -272,14 +265,11 @@ def create_application(
     projects=None,
     sio=None,
     face_authenticated=lambda: False,
-    stop_legacy=None,
     startup_summary=None,
     status_summary=None,
     instance_id=None,
     settings_path=None,
     permission_names=(),
-    settings_changed=None,
-    stop_resource_media=None,
     request_exit=lambda: None,
 ):
     """Explicit production/test injection boundary; no private profile opened until called."""
@@ -313,13 +303,10 @@ def create_application(
         bus=bus,
         resources=ResourceGovernor(),
         face_authenticated=face_authenticated,
-        stop_legacy=stop_legacy,
         startup_summary=startup_summary,
         status_summary=status_summary,
         instance_id=instance_id,
         settings_path=settings_path,
         permission_names=permission_names,
-        settings_changed=settings_changed,
-        stop_resource_media=stop_resource_media,
         request_exit=request_exit,
     )

@@ -321,13 +321,13 @@ async def test_resource_cleanup_failure_stays_restricted(admin_runtime):
 
 @pytest.mark.asyncio
 async def test_application_resource_transition_closes_all_owners(application_factory):
-    stop_media = AsyncMock()
-    app = application_factory(stop_resource_media=stop_media)
+    app = application_factory()
+    app.workspace.close = AsyncMock()
     app.cad_transport.close = AsyncMock(side_effect=RuntimeError("failed worker close"))
     app.image_transport.close = AsyncMock()
     app.local_transport.stop_sid = AsyncMock()
     with pytest.raises(RuntimeError):
         await app.restrict_resources()
-    stop_media.assert_awaited_once()
+    app.workspace.close.assert_awaited_once()
     app.image_transport.close.assert_awaited_once()
     app.local_transport.stop_sid.assert_awaited_once()

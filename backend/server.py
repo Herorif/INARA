@@ -13,11 +13,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-
 # Ensure we can import inara
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from services.tools import ServiceError
 
 
 ACTIVE_RUNTIME = "legacy-desktop-backend"
@@ -30,7 +27,6 @@ load_dotenv(Path(__file__).parent.parent / '.env')
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.getenv('INARA_PROJECT_ROOT') or os.path.dirname(backend_dir)
 uvicorn_server = None
-background_tasks = []
 
 DEFAULT_SETTINGS = {
     "face_auth_enabled": False, # Default OFF as requested
@@ -97,24 +93,13 @@ def get_ai_preflight_error():
     return None
 
 
-def is_api_key_error(error):
-    message = str(error)
-    lowered = message.lower()
-    return "API_KEY_INVALID" in message or "api key not valid" in lowered or "invalid api key" in lowered
-
-
-async def emit_ai_unavailable(sid, reason):
-    await sio.emit('status', {'msg': 'AI Unavailable'}, room=sid)
-    await sio.emit('error', {'msg': f"AI unavailable: {reason}"}, room=sid)
-
-
 def get_runtime_summary():
     ai_preflight_error = get_ai_preflight_error()
     reference_image_path = Path(backend_dir) / "reference.jpg"
     if not reference_image_path.is_file():
         reference_image_path = Path(project_root) / "reference.jpg"
     face_auth_enabled = SETTINGS.get("face_auth_enabled", False)
-    slicer_status = (printer_agent.get_slicer_status() if printer_agent.instance is not None else
+    slicer_status = (runtime.printer.get_slicer_status() if runtime.printer.instance is not None else
                     {'available': False, 'message': 'Printer capability loads when requested.'})
 
     if ai_preflight_error:
@@ -174,15 +159,9 @@ def load_settings():
         except Exception as e:
             print(f"Error loading settings: {e}")
 
-def save_settings():
-    runtime.settings_service.store.save(SETTINGS)
 
 # Load on startup
 load_settings()
-
-def _settings_changed(patch):
-    if "tool_permissions" in patch and runtime.workspace.audio:
-        runtime.workspace.audio.update_permissions(SETTINGS["tool_permissions"])
 
 
 def _request_exit():
@@ -198,22 +177,14 @@ runtime = create_application(
     startup_summary=print_startup_summary,
     status_summary=get_runtime_summary, instance_id=os.getenv("INARA_INSTANCE_ID"),
     settings_path=SETTINGS_FILE, permission_names=DEFAULT_SETTINGS["tool_permissions"],
-    settings_changed=_settings_changed,
     request_exit=_request_exit)
 # Compatibility aliases for the resident host and unmigrated legacy adapters.
 # Extracted transports hold explicit dependencies and never import this facade.
 sio, app, app_socketio = runtime.sio, runtime.app, runtime.asgi
-database, project_manager = runtime.database, runtime.projects
-bus, reminder_store, scheduler_agent = runtime.bus, runtime.reminders, runtime.scheduler
 resource_governor, dispatcher = runtime.resources, runtime.dispatcher
+reminder_store, cad_service = runtime.reminders, runtime.cad
+confirm_tool = runtime.confirmation_transport.confirm_tool
 client_principals, client_roles = runtime.sessions.principals, runtime.sessions.roles
-background_tasks = runtime.tasks
-inara, printer_agent, desktop_agent = runtime.inara, runtime.printer, runtime.desktop
-vision_loop, vision_agent, device_agent, kasa_agent = runtime.vision_loop, runtime.vision, runtime.devices, runtime.kasa
-cad_service, image_service = runtime.cad, runtime.images
-cad_transport, image_transport = runtime.cad_transport, runtime.image_transport
-conversation_service = runtime.conversation
-cad_context = runtime.studio_context
 # Named facade methods remain for local adapters and existing launch scripts.
 user_input = runtime.conversation_transport.user_input
 resume_conversation = runtime.conversation_transport.resume_conversation
@@ -225,14 +196,7 @@ dismiss_reminder = runtime.reminder_transport.dismiss_reminder
 get_reminders = runtime.reminder_transport.get_reminders
 refresh_reminders = runtime.reminder_transport.refresh_reminders
 deliver_reminders_once = runtime.delivery.deliver_reminders_once
-startup_event = runtime.start
 close_services = runtime.close
-
-
-def activate_printers():
-    runtime.compat_service.activate_printer()
-    if runtime.sessions.local_owner:
-        runtime.compat_service.start_monitor(runtime.sessions.local_owner)
 
 
 discover_kasa = runtime.compat_transport.discover_kasa
@@ -266,20 +230,6 @@ upload_memory = runtime.workspace_transport.upload_memory
 generate_cad = runtime.workspace_transport.generate_cad
 iterate_cad = runtime.workspace_transport.iterate_cad
 prompt_web_agent = runtime.workspace_transport.prompt_web_agent
-
-
-@sio.event
-async def confirm_tool(sid, data):
-    data = await runtime.local_transport.validate_confirmation(sid, data)
-    if data is None:
-        return
-    principal = client_principals.get(sid, sid)
-    if dispatcher.resolve(principal, data["id"], data["confirmed"]):
-        return
-    try:
-        runtime.workspace.resolve_confirmation(sid, data["id"], data["confirmed"])
-    except ServiceError:
-        await sio.emit('error', {'msg': 'Unauthorized confirmation.', 'code': 'permission_denied'}, room=sid)
 
 
 # Compatible names; registration and execution are owned by the injected transport.

@@ -1,7 +1,6 @@
 """Direct and model policy parity for the first R2b feature group."""
 
 import asyncio
-import ast
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -120,7 +119,7 @@ async def test_valid_direct_action_preserves_scoped_contract(local_runtime, name
 )
 async def test_confirmation_is_strict_not_truthy(local_runtime, payload):
     app, _ = local_runtime
-    assert await app.local_transport.validate_confirmation("client", payload) is None
+    assert await app.confirmation_transport.validate_confirmation("client", payload) is None
     assert app.sio.emit.await_args.args[1]["code"] == "invalid_arguments"
 
 
@@ -258,16 +257,6 @@ def test_matrix_covers_registered_routes_and_shared_tools():
                 "status",
             )
         )
-    # Voice declarations remain separately inventoried, not mistaken for migrated shared tools.
-    tree = ast.parse((Path(__file__).resolve().parents[1] / "backend/tools.py").read_text())
-    declared = {
-        value.value
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Dict)
-        for key, value in zip(node.keys, node.values)
-        if isinstance(key, ast.Constant) and key.value == "name" and isinstance(value, ast.Constant)
-    }
-    assert declared == set(matrix["legacy_voice_declarations"])
     from services.voice import VOICE_TARGETS
     assert set(matrix["voice_declarations"]) == set(VOICE_TARGETS)
     for source, target in VOICE_TARGETS.items():
@@ -283,12 +272,14 @@ async def test_approved_direct_action_executes_once(local_runtime):
 
     async def approve_event(event, data, room=None):
         if event == "tool_confirmation_request":
-            checked = await app.local_transport.validate_confirmation(
+            await app.sio.handlers["/"]["confirm_tool"](
+                "second", {"id": data["id"], "confirmed": True}
+            )
+            assert data["id"] in app.dispatcher.pending
+            await app.sio.handlers["/"]["confirm_tool"](
                 room, {"id": data["id"], "confirmed": True}
             )
-            assert checked
-            assert app.dispatcher.resolve("owner", checked["id"], checked["confirmed"])
-            assert not app.dispatcher.resolve("owner", checked["id"], checked["confirmed"])
+            assert not app.dispatcher.resolve("owner", data["id"], True)
 
     app.sio.emit = approve_event
     await app.local_transport.control_device("client", VALID["control_device"])

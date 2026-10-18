@@ -38,8 +38,12 @@ The initial full regression passed 665 Python checks, with one Blender-dependent
 
 Legacy generated-code CAD and autonomous browser internals retain their cooperative cancellation/isolation limitations from the prior checkpoint; shared dispatch does not sandbox their effects. Real live voice/provider compatibility, actual printer/slicer output, diffusion/Blender and hardware acceptance remain unconfigured or unverified. The real-game benchmark remains deferred. WhatsApp reply drafting/sending is excluded.
 
-## Next: R2c
+## R2b5 handoff (completed by R2c)
 
 Remove unused static declarations and ad-hoc AudioLoop helper methods, the obsolete standalone voice approval gate/fallback, and dead facade/reference paths. Verify every remaining consumer before deletion and keep supported launchers/adapters. Reconcile historical docs with the active matrix, retain the regression gates, then proceed to R3 UI/TypeScript/shared RPC consolidation. Keep R4 worker reservations/isolation, R5 creative acceptance and R6 audio-stack work separate from this completed policy migration.
 
 [Native evidence](qa/r2b5-native-verification.json) verifies fresh owner registration, private startup hydration denial for control channels, actual socket policy checks, lazy imports, reminders, gaming, crash/reopen and graceful stop. A ten-second sample measured 67.41 MB mean working set with zero Electron processes and 0.625% of one CPU core. This is not a game benchmark. [Fallback evidence](qa/r2b5-fallback-verification.json) covers close/reopen/reminder/gaming/quit. [CAD desktop evidence](qa/r2b5-cad-verification.json) covers real offline exports, scene editing, Three.js GLB import, responsive widths and four worker exits; warmed resident recovery was about 67 MB. Hosted CI is configured but has not run remotely.
+
+## R2c follow-up complete
+
+Duplicate static voice catalogs/helpers, fallback approvals and obsolete facade/lifecycle hooks are retired. Live configuration uses generated shared schemas; `ConfirmationTransport` owns strict renderer confirmations. The inventory remains 52 socket routes, 53 tools and 37 voice functions. 668 Python and 26 frontend checks pass, with one Blender skip; lint/build and native/fallback/CAD integration pass. [Retirement map, evidence and limits](RETIRED_PATHS.md). R3 shared UI/RPC and JARVIS panel consolidation is next.

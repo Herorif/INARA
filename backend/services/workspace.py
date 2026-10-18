@@ -60,7 +60,7 @@ class WorkspaceService:
         self.app, self.sessions, self.dispatcher = app, app.sessions, app.dispatcher
         self.audio = self.audio_task = self.binding = self.vision_task = None
         self.voice_bridge = None
-        self.callbacks, self.requests, self.confirmations = set(), {}, {}
+        self.callbacks, self.requests = set(), {}
         self.preflight = provider_ready
         self.audio_factory = lambda **kwargs: app.inara.get().AudioLoop(**kwargs)
         self.cad_factory = self.make_cad
@@ -113,29 +113,6 @@ class WorkspaceService:
 
         return receive
 
-    def request_confirmation(self, binding, value):
-        self.confirmations = {
-            key: item for key, item in self.confirmations.items() if item[2] > time.monotonic()
-        }
-        if self.binding is not binding or len(self.confirmations) >= 32:
-            return
-        public_id = str(uuid.uuid4())
-        self.confirmations[public_id] = (binding, value["id"], time.monotonic() + 60)
-        self.callback(binding, "tool_confirmation_request")({**value, "id": public_id})
-
-    def resolve_confirmation(self, sid, request_id, confirmed):
-        owner = self.sessions.require_owner(sid, {"renderer"})
-        pending = self.confirmations.get(request_id)
-        if not pending:
-            return False
-        binding, original, deadline = pending
-        if binding is not self.binding or binding["owner"] != owner:
-            return False
-        self.confirmations.pop(request_id, None)
-        if time.monotonic() > deadline or type(confirmed) is not bool:
-            return False
-        self.audio.resolve_tool_confirmation(original, confirmed)
-        return True
 
     async def start_audio(self, args, context):
         self.preflight()
@@ -151,13 +128,8 @@ class WorkspaceService:
         self.binding = binding
         callbacks = {
             "on_audio_data": ("audio_data", lambda v: {"data": list(v)}),
-            "on_cad_data": ("cad_data", lambda v: v),
-            "on_web_data": ("browser_frame", lambda v: v),
             "on_transcription": ("transcription", lambda v: v),
-            "on_cad_status": ("cad_status", lambda v: v if isinstance(v, dict) else {"status": v}),
-            "on_cad_thought": ("cad_thought", lambda v: {"text": v}),
             "on_project_update": ("project_update", lambda v: {"project": v}),
-            "on_device_update": ("kasa_devices", lambda v: v),
             "on_error": (
                 "error",
                 lambda v: {"msg": "Voice capability failed.", "code": "audio_failed"},
@@ -174,20 +146,12 @@ class WorkspaceService:
                 tool_bridge=bridge,
                 input_device_index=args.device_index,
                 input_device_name=args.device_name,
-                on_tool_confirmation=lambda v: self.request_confirmation(binding, v),
                 **{
                     key: self.callback(binding, event, transform)
                     for key, (event, transform) in callbacks.items()
                 },
-                kasa_agent=self.app.kasa,
-                printer_agent=self.app.printer,
                 project_manager=bridge.projects,
-                scheduler_agent=self.app.scheduler,
-                desktop_agent=self.app.desktop,
-                vision_agent=self.app.vision,
-                device_agent=self.app.devices,
             )
-            self.audio.update_permissions(self.app.settings["tool_permissions"])
             self.audio.set_paused(args.muted)
             self.audio_task = asyncio.create_task(self.run_audio(binding, self.audio))
         except BaseException:
@@ -226,7 +190,6 @@ class WorkspaceService:
         audio, task = self.audio, self.audio_task
         bridge, self.voice_bridge = self.voice_bridge, None
         self.binding = self.audio = self.audio_task = None
-        self.confirmations.clear()
         self.last_frame = 0
         if bridge:
             await bridge.close()
@@ -236,11 +199,6 @@ class WorkspaceService:
             task.cancel()
             await asyncio.gather(task, return_exceptions=True)
         if audio:
-            children = tuple(getattr(audio, "background_tasks", ()))
-            for child in children:
-                child.cancel()
-            await asyncio.gather(*children, return_exceptions=True)
-            await close_agent(getattr(audio, "web_agent", None))
             close = getattr(audio, "close", None)
             if close:
                 result = close()

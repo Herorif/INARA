@@ -12,7 +12,6 @@ from core.event_bus import Event, Events, event_owner
 from services.tools import ServiceError
 from services.workspace import WORKSPACE_TOOLS
 from services.workspace_contracts import SaveMemory, StartAudio, VideoFrame
-from services.voice_policy import approve_voice
 
 
 PAYLOADS = {
@@ -34,21 +33,14 @@ class Audio:
         self.send_frame = AsyncMock()
         self.stopped = False
         self.paused = False
-        self.resolved = []
-        self.web_agent = None
-        self.background_tasks = set()
 
     def stop(self):
         self.stopped = True
 
-    def update_permissions(self, permissions):
-        self.permissions = permissions
 
     def set_paused(self, value):
         self.paused = value
 
-    def resolve_tool_confirmation(self, identifier, value):
-        self.resolved.append((identifier, value))
 
     async def run(self):
         await asyncio.Event().wait()
@@ -191,27 +183,16 @@ async def audio_start(app):
 
 
 @pytest.mark.asyncio
-async def test_audio_callbacks_and_confirmation_are_owner_session_bound(workspace):
+async def test_audio_callbacks_are_owner_session_bound(workspace):
     audio = await audio_start(workspace)
     audio.callbacks["on_transcription"]({"sender": "User", "text": "private"})
-    audio.callbacks["on_tool_confirmation"](
-        {"id": "original", "tool": "write_file", "args": {"path": "x"}}
-    )
     await asyncio.sleep(0)
     events = [
         call
         for call in workspace.sio.emit.await_args_list
-        if call.args[0] in ("transcription", "tool_confirmation_request")
+        if call.args[0] == "transcription"
     ]
     assert {call.kwargs["room"] for call in events} == {"client", "sibling"}
-    public_id = next(
-        call.args[1]["id"] for call in events if call.args[0] == "tool_confirmation_request"
-    )
-    with pytest.raises(ServiceError):
-        workspace.workspace.resolve_confirmation("other", public_id, True)
-    assert workspace.workspace.resolve_confirmation("client", public_id, True)
-    assert audio.resolved == [("original", True)]
-    assert not workspace.workspace.resolve_confirmation("client", public_id, True)
     old = audio.callbacks["on_transcription"]
     await workspace.disconnect("client")
     assert audio.stopped and not workspace.workspace.audio
@@ -330,25 +311,6 @@ async def test_unstamped_events_stay_internal_and_voice_events_capture_owner(wor
 
 
 @pytest.mark.asyncio
-async def test_voice_gate_denial_expiry_and_post_approval_disable():
-    pending, permissions, asked = {}, {"write_file": "deny"}, []
-    assert not await approve_voice("write_file", {}, permissions, pending, asked.append)
-    assert not asked
-    permissions["write_file"] = True
-    assert not await approve_voice(
-        "write_file", {}, permissions, pending, asked.append, timeout=0.001
-    )
-    assert not pending
-
-    def approve(payload):
-        permissions["write_file"] = "deny"
-        pending[payload["id"]].set_result(True)
-
-    assert not await approve_voice("write_file", {}, permissions, pending, approve)
-    assert not pending
-
-
-@pytest.mark.asyncio
 async def test_stop_voice_cancels_sibling_media_approval_without_cancelling_other_tools(workspace):
     await audio_start(workspace)
     workspace.settings["tool_permissions"]["upload_memory"] = True
@@ -404,18 +366,6 @@ async def test_typed_browser_origin_disconnect_cancels_execution_and_closes_adap
 
 
 @pytest.mark.asyncio
-async def test_expired_voice_confirmation_does_not_resolve_replacement_session(workspace):
-    old = await audio_start(workspace)
-    old.callbacks["on_tool_confirmation"]({"id": "old-internal", "tool": "write_file", "args": {}})
-    identifier = next(iter(workspace.workspace.confirmations))
-    await workspace.workspace_transport.stop_audio("client")
-    new = await audio_start(workspace)
-    assert not workspace.workspace.resolve_confirmation("client", identifier, True)
-    assert old.resolved == [] and new.resolved == []
-    await workspace.close()
-
-
-@pytest.mark.asyncio
 async def test_locked_owner_can_pause_and_stop_but_malformed_stop_preserves_session(workspace):
     audio = await audio_start(workspace)
     workspace.settings["face_auth_enabled"] = True
@@ -426,3 +376,29 @@ async def test_locked_owner_can_pause_and_stop_but_malformed_stop_preserves_sess
     assert workspace.sio.emit.await_args.args[1]["code"] == "invalid_arguments"
     await workspace.workspace_transport.stop_audio("client")
     assert audio.stopped and workspace.workspace.audio is None
+
+@pytest.mark.asyncio
+async def test_stopped_voice_approval_cannot_resolve_replacement_session(workspace):
+    old = await audio_start(workspace)
+    workspace.settings["tool_permissions"]["launch_app"] = True
+    requested = asyncio.Event()
+    captured = {}
+    original_emit = workspace.sio.emit
+
+    async def emit(event, payload, **kwargs):
+        await original_emit(event, payload, **kwargs)
+        if event == "tool_confirmation_request":
+            captured.update(payload)
+            requested.set()
+
+    workspace.sio.emit = emit
+    bridge = old.callbacks["tool_bridge"]
+    task = asyncio.create_task(bridge.call("launch_app", {"name": "fixture"}))
+    await asyncio.wait_for(requested.wait(), 2)
+    await workspace.workspace_transport.stop_audio("client")
+    replacement = await audio_start(workspace)
+    assert replacement.callbacks["tool_bridge"] is not bridge
+    assert not workspace.dispatcher.resolve("owner", captured["id"], True)
+    await asyncio.gather(task, return_exceptions=True)
+    assert not workspace.dispatcher.pending
+    await workspace.close()

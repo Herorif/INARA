@@ -1,0 +1,47 @@
+{
+  "closeReopenSameBackend": true,
+  "residentReminderAcknowledged": true,
+  "gamingEnforced": true,
+  "before": [
+    {
+      "pid": 35120,
+      "memoryMB": 103.82421875
+    },
+    {
+      "pid": 16888,
+      "memoryMB": 181.39453125
+    },
+    {
+      "pid": 29160,
+      "memoryMB": 55.0546875
+    },
+    {
+      "pid": 31216,
+      "memoryMB": 95.8125
+    },
+    {
+      "pid": 9612,
+      "memoryMB": 82.2109375
+    }
+  ],
+  "residentMetrics": [
+    {
+      "pid": 35120,
+      "memoryMB": 104.4296875
+    },
+    {
+      "pid": 16888,
+      "memoryMB": 184.66796875
+    },
+    {
+      "pid": 29160,
+      "memoryMB": 55.06640625
+    },
+    {
+      "pid": 9612,
+      "memoryMB": 82.2109375
+    }
+  ],
+  "backendWorkingSetMB": 4.2421875,
+  "note": "One startup snapshot, not a ten-minute idle/gaming benchmark."
+}

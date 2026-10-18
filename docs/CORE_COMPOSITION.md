@@ -46,7 +46,9 @@ This inventory records current behavior, not a new universal role/grant policy. 
 
 Job updates retain their project field and owner/renderer routing. Persistent artifact access is project-scoped. The global desktop selected-project model and unscoped legacy broadcasts must not be exposed as a multi-device authorization boundary.
 
-## Explicit remaining legacy seams (R2b/R2c/R6)
+## Historical seams at the R2a checkpoint
+
+These describe the original checkpoint. The R2b updates and [R2c retirement record](RETIRED_PATHS.md) below supersede migrated items.
 
 - `server.py` still contains connection hydration/optional face callbacks, native control/resource handlers, legacy audio/browser/CAD/memory, printer/device actions and settings handlers. Its named aliases map to root-owned services rather than duplicating implementations.
 - Several direct device/desktop/printer/memory/settings/legacy creative routes still bypass the common dispatcher or use broad broadcasts. The `LEGACY_EVENTS` bridge intentionally preserves those existing broadcast contracts and makes no owner-isolation claim. No mobile exposure is enabled. R2b must inventory every handler, migrate grants/validation/scoped errors and test direct calls.
@@ -81,3 +83,7 @@ The root now owns workspace compatibility services and transports for memory/med
 ## R2b5 connection and voice update (19 October 2026)
 
 The root constructs `ExtendedActions`, dispatcher-backed `VoiceBridge`, and `ConnectionTransport`. The facade no longer creates authentication objects or untracked face tasks. Private state is hydrated only to unlocked owner renderers. One fixed face worker owns blocking camera/model work and invalidates callbacks before cleanup. Shared schemas define active live voice declarations and calls; source-specific static helpers await R2c deletion. [Evidence and material limits](VOICE_CONNECTION_POLICY.md).
+
+## R2c ownership and reference cleanup
+
+Duplicate static voice catalogs/helpers, fallback approvals and obsolete facade/lifecycle hooks are retired. Live configuration uses generated shared schemas; `ConfirmationTransport` owns strict renderer confirmations. The inventory remains 52 socket routes, 53 tools and 37 voice functions. 668 Python and 26 frontend checks pass, with one Blender skip; lint/build and native/fallback/CAD integration pass. [Retirement map, evidence and limits](RETIRED_PATHS.md). R3 shared UI/RPC and JARVIS panel consolidation is next.
