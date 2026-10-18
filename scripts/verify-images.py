@@ -132,6 +132,19 @@ def verify():
             partial(application.delivery.publish_job, "image_job"),
             process_factory=worker,
         )
+        # One explicit fixture-only history error exercises the real recovery panel.
+        original_list = fixture.list
+        history_error_seen = False
+
+        def history(*args, **kwargs):
+            nonlocal history_error_seen
+            if (output / "history-error-requested.json").exists() and not history_error_seen:
+                from services.tools import ServiceError
+                history_error_seen = True
+                raise ServiceError("qa_history_error", "History temporarily unavailable. Refresh to try again.")
+            return original_list(*args, **kwargs)
+
+        fixture.list = history
         fixture.enabled = False
         application.images = fixture
         application.image_transport.service = fixture

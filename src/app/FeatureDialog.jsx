@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import PanelHeader from './PanelHeader';
+import PanelState from './PanelState';
 const panels = {
   image: lazy(() => import('../features/images/ImageStudio')),
   cad: lazy(() => import('../features/cad/CadStudio')),
@@ -40,7 +41,7 @@ class PanelBoundary extends React.Component {
     };
   }
   render() {
-    return this.state.failed ? <div className="panel-empty">This panel could not load. Close it and try again.</div> : this.props.children;
+    return this.state.failed ? <PanelState kind="error" title="Workspace interrupted" detail="Your saved work is preserved. Close and reopen this panel to try again." /> : this.props.children;
   }
 }
 export default function FeatureDialog({
@@ -85,10 +86,9 @@ export default function FeatureDialog({
     if (event.target === event.currentTarget) onClose();
   }}>
         <section ref={dialog} className={`feature-dialog ${feature === 'cad' ? 'cad-dialog' : feature === 'image' ? 'image-dialog' : ''}`} role="dialog" aria-modal="true" aria-labelledby="feature-title" tabIndex={-1}>
-            <header><div><span className="eyebrow">INARA WORKSPACE</span><h2 id="feature-title">{labels[feature]}</h2></div>
-                <button className="icon-button" aria-label="Close panel" onClick={onClose}><X size={20} /></button></header>
+            <PanelHeader title={labels[feature]} onClose={onClose} />
             <div className={`legacy-panel ${feature === 'camera' ? 'camera-host' : ''}`}>
-                <PanelBoundary><Suspense fallback={<div className="panel-empty"><span className="status-dot" />Preparing your workspace…</div>}>
+                <PanelBoundary key={feature}><Suspense fallback={<PanelState kind="loading" title="Preparing your workspace" detail="Bringing the tools you need into focus." />}>
                     <Panel position={{
               x: 0,
               y: 0

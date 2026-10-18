@@ -55,7 +55,7 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | --- | --- | --- |
 | R1 implemented; hardware acceptance pending | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
 | R2a/R2b1-R2b5/R2c implemented | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
-| R3 | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
+| R3a foundation implemented; R3b next | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
 | R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
 | R5 | Deeper 3D vibe coding and image workflows | Validated change sets, selected-revision edits, kernel/Blender/image adapters with real acceptance gates |
 | R6 | Quick assistant and push-to-talk voice | One audio/session stack feeding existing conversation and tool services; optional wake profile later |
@@ -66,12 +66,16 @@ R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented.
 
 ## Next implementation task
 
-1. Start R3 with a bounded UI/RPC foundation. Read the [cleanup/JARVIS plan](UI_AND_CODE_CLEANUP_PLAN.md), [active route matrix](ROUTE_POLICY_MATRIX.json) and [retirement record](RETIRED_PATHS.md).
-2. Audit `src/services/socket.js`, `socketEvents.js`, `socketSubscriptions.js` and creative client lifecycle. Introduce shared typed request/result/error contracts incrementally, with generated backend schema exports where practical. Preserve all wire event names and backend ownership checks.
-3. Migrate one representative feature end to end before extending the pattern. Keep subscriptions scoped and removable; handle reconnect, pending requests, timeout, close and stale responses consistently. Do not perform a whole-codebase TypeScript conversion in one pass.
-4. Consolidate reusable JARVIS panel/header/status/empty/error/loading controls around `src/app/FeatureDialog.jsx` and existing workspace styles. Preserve lazy feature loading and readable keyboard/focus/reduced-motion behavior; visually verify desktop and narrow layouts.
-5. Run affected frontend lifecycle tests, Python contract inventory, build/lint and native/creative integration for migrated features. Update this handoff with the completed slice and exact next slice.
+1. Continue R3b from [R3 UI/RPC foundation](R3_UI_RPC.md). First install/pin a verified TypeScript compiler and update the lock; run `tsc -p tsconfig.ui.json` and gate CI. Registry certificate failures prevented this in R3a; runtime tests and bundling passed, but semantic type checking is still pending.
+2. Migrate CAD request/planner/artifact lifecycle to `src/transport/rpc.ts` and export its Pydantic request contracts. Keep original events, shared backend ownership/approval, scene revisions, artifact integrity and lazy Three.js behavior.
+3. Consolidate repeated creative history/status/toolbar controls around the new `PanelHeader`/`PanelState` only where the behavior is shared. Keep project/reconnect/deadline/close handling explicit and test stale callbacks.
+4. Visually review desktop/narrow layouts, keyboard focus, reduced motion and DPI. Run affected frontend lifecycle/backend contract checks, build/lint, schema drift and native creative integration; update this handoff with the completed slice.
+5. Remaining R3: feature-specific socket/store registration, other legacy panel interiors, command palette and unified activity/artifact view. Do not claim a whole-codebase TypeScript conversion or completed R3 yet.
 6. R4 reservations/hard isolation, R5 creative/provider acceptance and R6 audio-stack/physical media work remain separate. Configuration and the real-game benchmark remain deferred; WhatsApp reply drafting/sending stays excluded.
+
+## Completed R3a foundation
+
+Image atelier now uses a panel-owned TypeScript RPC scope with generated request declarations, disconnect/deadline/close cleanup, guarded ACKs and snapshot/live-job reconciliation. The lazy workspace shell shares a responsive JARVIS header and loading/offline/recovery states. 34 frontend and 104 focused Python checks, lint/schema drift/build and native image/CAD integration pass. [Evidence, screenshots, compiler limitation and next slice](R3_UI_RPC.md).
 
 ## Completed obsolete-path retirement (R2c)
 

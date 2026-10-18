@@ -155,3 +155,7 @@ R2c can now retire unused voice declarations, ad-hoc helper/confirmation paths a
 ## R2c cleanup complete
 
 Duplicate static voice catalogs/helpers, fallback approvals and obsolete facade/lifecycle hooks are retired. Live configuration uses generated shared schemas; `ConfirmationTransport` owns strict renderer confirmations. The inventory remains 52 socket routes, 53 tools and 37 voice functions. 668 Python and 26 frontend checks pass, with one Blender skip; lint/build and native/fallback/CAD integration pass. [Retirement map, evidence and limits](RETIRED_PATHS.md). R3 shared UI/RPC and JARVIS panel consolidation is next.
+
+## R3a UI/RPC foundation
+
+The shared responsive JARVIS panel header/loading/recovery surfaces and panel-owned TypeScript RPC scope are implemented. Image atelier is the first migrated feature, with generated request contracts, no automatic replay, reconnect history recovery and stale-callback/snapshot guards. 34 frontend and 104 focused Python checks plus build/lint/drift and native image/CAD integration pass. Semantic compiler verification is pending because registry certificate validation blocked installation; no full frontend type-check claim is made. [Evidence, screenshots and R3b task](R3_UI_RPC.md).
