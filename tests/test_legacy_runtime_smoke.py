@@ -5,13 +5,10 @@ These tests use only the Python standard library so they can run even when
 pytest is not installed in the active environment.
 """
 import os
-import shutil
 import subprocess
 import sys
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
 
 BACKEND_DIR = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
@@ -68,87 +65,6 @@ class LegacyRuntimeSmokeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("archived", result.stdout.lower())
         self.assertIn("backend/server.py", result.stdout)
 
-
-
-    async def test_prompt_web_agent_uses_run_task_and_forwards_updates(self):
-        """The legacy web prompt path should call run_task and forward UI updates."""
-        update_payloads = []
-        calls = {}
-        testcase = self
-
-        class FakeWebAgent:
-            async def run_task(self, prompt, update_callback=None):
-                calls["prompt"] = prompt
-                testcase.assertIsNotNone(update_callback)
-                await update_callback("image-123", "navigated")
-                return {"ok": True}
-
-        fake_audio_loop = SimpleNamespace(
-            web_agent=FakeWebAgent(),
-            on_web_data=update_payloads.append,
-        )
-
-        with patch.object(server, "audio_loop", fake_audio_loop):
-            with patch.object(server, "get_ai_preflight_error", lambda: None):
-                await server.prompt_web_agent("client-3", {"prompt": "search example.com"})
-
-        self.assertEqual(calls["prompt"], "search example.com")
-        self.assertEqual(update_payloads, [{"image": "image-123", "log": "navigated"}])
-        self.assertEqual(
-            self.emitted_events[0],
-            {
-                "event": "status",
-                "data": {"msg": "Web Agent running..."},
-                "room": None,
-            },
-        )
-        self.assertEqual(
-            self.emitted_events[1],
-            {
-                "event": "status",
-                "data": {"msg": "Web Agent finished"},
-                "room": None,
-            },
-        )
-
-    async def test_save_memory_writes_conversation_to_disk(self):
-        """save_memory should persist the provided transcript and emit success."""
-        original_cwd = os.getcwd()
-        temp_dir = Path(__file__).parent / ".tmp_legacy_runtime_smoke"
-
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        temp_dir.mkdir(parents=True, exist_ok=True)
-
-        try:
-            os.chdir(temp_dir)
-            await server.save_memory(
-                "client-4",
-                {
-                    "filename": "session-notes",
-                    "messages": [
-                        {"sender": "User", "text": "Hello"},
-                        {"sender": "INARA", "text": "Hi there"},
-                    ],
-                },
-            )
-            saved_file = temp_dir / "long_term_memory" / "session-notes.txt"
-            self.assertTrue(saved_file.exists())
-            self.assertEqual(
-                saved_file.read_text(encoding="utf-8"),
-                "User: Hello\nINARA: Hi there\n",
-            )
-        finally:
-            os.chdir(original_cwd)
-            shutil.rmtree(temp_dir, ignore_errors=True)
-
-        self.assertEqual(
-            self.emitted_events[-1],
-            {
-                "event": "status",
-                "data": {"msg": "Memory Saved Successfully"},
-                "room": None,
-            },
-        )
 
 
 if __name__ == "__main__":

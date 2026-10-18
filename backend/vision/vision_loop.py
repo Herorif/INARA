@@ -7,7 +7,7 @@ condition is met, fires a VISION_ALERT event on the event bus.
 """
 
 import asyncio
-import base64
+import inspect
 import logging
 import os
 import time
@@ -83,12 +83,23 @@ class VisionLoop:
     def stop(self):
         self._stop_event.set()
 
+    async def close(self):
+        """The owning service cancels run(), then releases its last frame/client."""
+        self.stop()
+        self._frame = None
+        client, self._client = self._client, None
+        if client:
+            result = client.close()
+            if inspect.isawaitable(result):
+                await result
+
     # ------------------------------------------------------------------
     # Internal loop
     # ------------------------------------------------------------------
 
     async def run(self):
         """Main loop — polls active watches every self._interval seconds."""
+        self._stop_event.clear()
         logger.info("[VisionLoop] Started")
         self._api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         # Create the Gemini client once for all watch evaluations

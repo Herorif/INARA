@@ -1,5 +1,6 @@
 """Typed conversation Socket.IO adapter with injected service and session context."""
 
+import asyncio
 import uuid
 from pydantic import BaseModel, ConfigDict, ValidationError
 from services.conversation import ConversationRequest
@@ -17,6 +18,7 @@ class ConversationTransport:
 
     def __init__(self, sio, service, dispatcher, sessions):
         self.sio, self.service, self.dispatcher, self.sessions = sio, service, dispatcher, sessions
+        self.running = {}
         for name in self.events:
             sio.on(name, handler=getattr(self, name))
 
@@ -57,6 +59,8 @@ class ConversationTransport:
 
     async def user_input(self, sid, data):
         request = None
+        task = asyncio.current_task()
+        self.running[task] = sid
         try:
             request = ConversationRequest.model_validate(data)
             if not request.text.strip():
@@ -74,7 +78,9 @@ class ConversationTransport:
                 {"state": "processing", "request_id": str(request.request_id)},
                 room=sid,
             )
-            result = await self.service.reply(principal, request, context.project_path, approve)
+            result = await self.service.reply(
+                principal, request, context.project_path, approve, origin_sid=sid
+            )
             await self.sio.emit("conversation_result", result.model_dump(mode="json"), room=sid)
             # Preserve the existing desktop transcript event contract.
             await self.sio.emit(
@@ -105,4 +111,15 @@ class ConversationTransport:
                 room=sid,
             )
         finally:
+            self.running.pop(task, None)
             await self.sio.emit("text_status", {"state": "idle"}, room=sid)
+
+    async def stop_sid(self, sid=None):
+        tasks = [
+            task
+            for task, origin in tuple(self.running.items())
+            if (sid is None or origin == sid) and task is not asyncio.current_task()
+        ]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)

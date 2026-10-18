@@ -50,10 +50,11 @@ class LocalActionTransport:
                 self.running[task] = sid
 
                 async def approve(payload):
-                    await self.sio.emit("tool_confirmation_request", payload, room=sid)
+                    await self.sio.emit("tool_confirmation_request", self.approval_payload(payload), room=sid)
 
                 result = await self.dispatcher.dispatch(
-                    context.principal, name, {} if data is None else data, context.tools(), approve
+                    context.principal, name, {} if data is None else data,
+                    self.tool_context(sid, context), approve
                 )
                 await self.emit_result(name, result, sid)
             except (ServiceError, ValidationError) as exc:
@@ -83,6 +84,12 @@ class LocalActionTransport:
 
     def context(self, sid):
         return self.sessions.context(sid, renderer=True)
+
+    def tool_context(self, sid, context):
+        return context.tools()
+
+    def approval_payload(self, payload):
+        return payload
 
     async def emit_result(self, name, result, sid):
         if name == "launch_app":

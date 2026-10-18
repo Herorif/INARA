@@ -1,4 +1,4 @@
-"""Socket delivery ownership; legacy unscoped bus events remain mapped for R2b."""
+"""Owner-scoped socket delivery; unstamped bus events stay internal."""
 
 import asyncio
 from core.event_bus import Events
@@ -35,9 +35,8 @@ class EventDelivery:
                 if self.dispatcher.authenticated(event.principal):
                     for sid in self.sessions.rooms(event.principal, "renderer"):
                         await self.sio.emit(name, event.data, room=sid)
-            else:
-                # Unmigrated legacy producers remain explicitly inventoried in R2b.
-                await self.sio.emit(name, event.data)
+            # Unstamped producers have no trusted recipient. Keep bus delivery
+            # internal rather than guessing an owner or broadcasting private data.
 
     async def deliver_reminders_once(self):
         for principal in dict.fromkeys(self.sessions.principals.values()):

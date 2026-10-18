@@ -221,7 +221,7 @@ async def test_lifetime_restarts_without_duplicate_pollers_or_bus_delivery(appli
         calls = runtime.sio.emit.await_count
         await runtime.bus.emit(Event(Events.VISION_ALERT, {}))
         assert runtime.sio.emit.await_count == calls
-    assert runtime.sio.emit.await_count == 2
+    assert runtime.sio.emit.await_count == 0  # Unstamped events stay internal.
 
 
 @pytest.mark.asyncio

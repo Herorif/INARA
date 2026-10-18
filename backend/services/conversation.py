@@ -80,7 +80,7 @@ class ConversationService:
         # Preserve history on socket reconnect; ownership is the stable desktop client ID.
         self.dispatcher.disconnect(owner)
 
-    async def reply(self, owner, request, project, request_approval=None):
+    async def reply(self, owner, request, project, request_approval=None, *, origin_sid=None):
         key = str(request.conversation_id)
         conversation = self.conversations.get(key)
         if conversation is None:
@@ -176,7 +176,7 @@ class ConversationService:
                                 owner,
                                 call.name,
                                 call.args,
-                                {"project_path": project, "principal": owner},
+                                {"project_path": project, "principal": owner, "origin_sid": origin_sid},
                                 request_approval,
                             )
                         except (ServiceError, ValidationError) as exc:

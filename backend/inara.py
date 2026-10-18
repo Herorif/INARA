@@ -280,6 +280,7 @@ class AudioLoop:
         
         self.permissions = {} # Default Empty (Will treat unset as True)
         self._pending_confirmations = {}
+        self.background_tasks = set()
 
         # Video buffering state
         self._latest_image_payload = None
@@ -328,8 +329,19 @@ class AudioLoop:
     def set_paused(self, paused):
         self.paused = paused
 
+    def spawn(self, coroutine):
+        task = asyncio.create_task(coroutine)
+        self.background_tasks.add(task)
+        task.add_done_callback(self.background_tasks.discard)
+        return task
+
     def stop(self):
         self.stop_event.set()
+        for future in tuple(self._pending_confirmations.values()):
+            if not future.done():
+                future.set_result(False)
+        for task in tuple(self.background_tasks):
+            task.cancel()
         
     def resolve_tool_confirmation(self, request_id, confirmed):
         print(f"[INARA DEBUG] [RESOLVE] resolve_tool_confirmation called. ID: {request_id}, Confirmed: {confirmed}")
@@ -761,61 +773,17 @@ class AudioLoop:
                             ]:
                                 prompt = fc.args.get("prompt", "") # Prompt is not present for all tools
                                 
-                                # Check Permissions (Default to True if not set)
-                                confirmation_required = self.permissions.get(fc.name, True)
-                                
-                                if not confirmation_required:
-                                    print(f"[INARA DEBUG] [TOOL] Permission check: '{fc.name}' -> AUTO-ALLOW")
-                                    # Skip confirmation block and jump to execution
-                                    pass
-                                else:
-                                    # Confirmation Logic
-                                    if self.on_tool_confirmation:
-                                        import uuid
-                                        request_id = str(uuid.uuid4())
-                                    print(f"[INARA DEBUG] [STOP] Requesting confirmation for '{fc.name}' (ID: {request_id})")
-                                    
-                                    future = asyncio.Future()
-                                    self._pending_confirmations[request_id] = future
-                                    
-                                    self.on_tool_confirmation({
-                                        "id": request_id, 
-                                        "tool": fc.name, 
-                                        "args": fc.args
-                                    })
-                                    
-                                    try:
-                                        # Wait for user response
-                                        confirmed = await future
-
-                                    finally:
-                                        self._pending_confirmations.pop(request_id, None)
-
-                                    print(f"[INARA DEBUG] [CONFIRM] Request {request_id} resolved. Confirmed: {confirmed}")
-
-                                    if not confirmed:
-                                        print(f"[INARA DEBUG] [DENY] Tool call '{fc.name}' denied by user.")
-                                        function_response = types.FunctionResponse(
-                                            id=fc.id,
-                                            name=fc.name,
-                                            response={
-                                                "result": "User denied the request to use this tool.",
-                                            }
-                                        )
-                                        function_responses.append(function_response)
-                                        continue
-
-                                    if not confirmed:
-                                        print(f"[INARA DEBUG] [DENY] Tool call '{fc.name}' denied by user.")
-                                        function_response = types.FunctionResponse(
-                                            id=fc.id,
-                                            name=fc.name,
-                                            response={
-                                                "result": "User denied the request to use this tool.",
-                                            }
-                                        )
-                                        function_responses.append(function_response)
-                                        continue
+                                from services.voice_policy import approve_voice
+                                confirmed = await approve_voice(
+                                    fc.name, fc.args, self.permissions,
+                                    self._pending_confirmations, self.on_tool_confirmation,
+                                )
+                                if not confirmed:
+                                    function_responses.append(types.FunctionResponse(
+                                        id=fc.id, name=fc.name,
+                                        response={"result": "Action declined, disabled or approval expired."},
+                                    ))
+                                    continue
 
                                 # If confirmed (or no callback configured, or auto-allowed), proceed
                                 if fc.name == "generate_cad":
@@ -823,12 +791,12 @@ class AudioLoop:
                                     print(f"[INARA DEBUG] [TOOL] Tool Call Detected: 'generate_cad'")
                                     print(f"[INARA DEBUG] [IN] Arguments: prompt='{prompt}'")
                                     
-                                    asyncio.create_task(self.handle_cad_request(prompt))
+                                    self.spawn(self.handle_cad_request(prompt))
                                     # No function response needed - model already acknowledged when user asked
                                 
                                 elif fc.name == "run_web_agent":
                                     print(f"[INARA DEBUG] [TOOL] Tool Call: 'run_web_agent' with prompt='{prompt}'")
-                                    asyncio.create_task(self.handle_web_agent_request(prompt))
+                                    self.spawn(self.handle_web_agent_request(prompt))
                                     
                                     result_text = "Web Navigation started. Do not reply to this message."
                                     function_response = types.FunctionResponse(
@@ -847,7 +815,7 @@ class AudioLoop:
                                     path = fc.args["path"]
                                     content = fc.args["content"]
                                     print(f"[INARA DEBUG] [TOOL] Tool Call: 'write_file' path='{path}'")
-                                    asyncio.create_task(self.handle_write_file(path, content))
+                                    self.spawn(self.handle_write_file(path, content))
                                     function_response = types.FunctionResponse(
                                         id=fc.id, name=fc.name, response={"result": "Writing file..."}
                                     )
@@ -856,7 +824,7 @@ class AudioLoop:
                                 elif fc.name == "read_directory":
                                     path = fc.args["path"]
                                     print(f"[INARA DEBUG] [TOOL] Tool Call: 'read_directory' path='{path}'")
-                                    asyncio.create_task(self.handle_read_directory(path))
+                                    self.spawn(self.handle_read_directory(path))
                                     function_response = types.FunctionResponse(
                                         id=fc.id, name=fc.name, response={"result": "Reading directory..."}
                                     )
@@ -865,7 +833,7 @@ class AudioLoop:
                                 elif fc.name == "read_file":
                                     path = fc.args["path"]
                                     print(f"[INARA DEBUG] [TOOL] Tool Call: 'read_file' path='{path}'")
-                                    asyncio.create_task(self.handle_read_file(path))
+                                    self.spawn(self.handle_read_file(path))
                                     function_response = types.FunctionResponse(
                                         id=fc.id, name=fc.name, response={"result": "Reading file..."}
                                     )

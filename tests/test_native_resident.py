@@ -121,8 +121,9 @@ def test_job_owns_descendants_and_pipe_keeps_credentials_out_of_argv_env(tmp_pat
     script.write_text("""import json, os, subprocess, sys, time
 data=json.load(sys.stdin)
 child=subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])
-with open(data['report'], 'w') as f:
+with open(data['report'] + '.tmp', 'w') as f:
     json.dump({'child': child.pid, 'argv': sys.argv, 'secret': os.getenv('OPENAI_API_KEY'), 'token': os.getenv('INARA_SESSION_TOKEN'), 'pipe': data['token']}, f)
+os.replace(data['report'] + '.tmp', data['report'])
 time.sleep(60)
 """)
     monkeypatch.setenv("OPENAI_API_KEY", "test-secret")

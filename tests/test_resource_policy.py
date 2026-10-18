@@ -17,16 +17,16 @@ def test_resource_policy_blocks_heavy_activation_in_resident_and_gaming():
 
 
 @pytest.mark.asyncio
-async def test_gaming_blocks_legacy_camera_before_audio_or_worker_access(monkeypatch):
-    import server
-
-    policy = ResourceGovernor()
-    policy.select("gaming")
-    monkeypatch.setattr(server, "resource_governor", policy)
-    emit = AsyncMock()
-    monkeypatch.setattr(server.sio, "emit", emit)
-    await server.video_frame("client", {"image": "fake-frame"})
-    assert emit.call_args.args[1]["code"] == "resource_policy"
+async def test_gaming_blocks_legacy_camera_before_audio_or_worker_access(application_factory):
+    runtime = application_factory()
+    runtime.sessions.principals["client"] = "owner"
+    runtime.sessions.roles["client"] = "renderer"
+    runtime.sessions.local_owner = "owner"
+    runtime.settings["tool_permissions"]["video_frame"] = False
+    runtime.resources.select("gaming")
+    await runtime.workspace_transport.video_frame("client", {"image": b"\xff\xd8\xfffixture"})
+    assert runtime.sio.emit.call_args.args[1]["code"] == "resource_policy"
+    assert runtime.workspace.audio is None
 
 
 @pytest.mark.asyncio
