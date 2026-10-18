@@ -52,11 +52,26 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`document.querySelectorAll('nav button')[1].click()`);
     await until(() => evaluate(`[...document.querySelectorAll('.feature-card')].some(button => button.textContent.includes('3D studio'))`));
     await evaluate(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('3D studio')).click()`);
-    await until(() => evaluate(`!!document.querySelector('.cad-studio')`));
+    await until(() => evaluate(`!!document.querySelector('.cad-studio') && !document.querySelector('.cad-build').disabled`));
+    await evaluate(`{const input=document.querySelector('.cad-studio form input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'A'.repeat(60));input.dispatchEvent(new Event('input',{bubbles:true}));}`);
     for (const [shape, index] of [['box', 0], ['bracket', 1], ['enclosure', 2]]) {
       await evaluate(`document.querySelectorAll('.cad-shapes button')[${index}].click()`);
       await until(() => evaluate(`document.querySelectorAll('.cad-shapes button')[${index}].getAttribute('aria-pressed') === 'true'`));
+      await until(()=>evaluate(`!document.querySelector('.cad-build').disabled`));
       await evaluate(`document.querySelector('.cad-build').click()`);
+      await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+      if (shape==='box') {
+        await until(()=>evaluate(`document.activeElement?.textContent==='Deny Request'`));
+        window.webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'});window.webContents.sendInputEvent({type:'keyUp',keyCode:'Escape'});
+        await until(()=>evaluate(`!document.querySelector('.tool-confirmation-dialog') && document.querySelector('.cad-status strong')?.textContent==='Build stopped'`));
+        assert.equal(await evaluate(`!!document.querySelector('.cad-studio')`),true);
+        await evaluate(`document.querySelector('.cad-build').click()`);
+        await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+        fs.writeFileSync(path.join(output,'approval-desktop.png'),(await window.webContents.capturePage()).toPNG());
+        result.approval_escape_denies_without_closing_parent=true;
+      }
+      await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+
       const volume = {
         box: '144.00',
         bracket: '20.88',
@@ -109,7 +124,9 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`document.querySelector('.cad-ai').open = true; const input = document.querySelector('.cad-ai textarea'); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, 'An open enclosure'); input.dispatchEvent(new Event('input', { bubbles: true }))`);
     await until(() => evaluate(`!document.querySelector('.cad-ai button').disabled`));
     await evaluate(`document.querySelector('.cad-ai button').click()`);
-    await until(() => evaluate(`document.querySelector('.cad-error')?.textContent.includes('not configured yet')`));
+    await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await until(() => evaluate(`document.querySelector('.panel-state--error')?.textContent.includes('not configured yet')`));
     assert.equal(await evaluate(`document.querySelector('.cad-viewport').dataset.modelLoaded`), 'true');
     result.optional_planner_missing_key_preserves_offline_preview = true;
 
@@ -129,6 +146,8 @@ BrowserWindow.prototype.loadFile = async function (...args) {
       await evaluate(`{ const sceneInput=document.querySelector('[aria-label="${label}"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(sceneInput,'${value}'); sceneInput.dispatchEvent(new Event('input',{bubbles:true})); }`);
     }
     await evaluate(`document.querySelector('.cad-build').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
     await until(() => evaluate(`document.querySelector('.cad-status strong')?.textContent === 'Ready to explore' && document.querySelector('.cad-stats')?.textContent.includes('331.33') && document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true'`));
     await evaluate(`if(document.querySelector('.cad-preview-top button').getAttribute('aria-pressed') === 'true') document.querySelector('.cad-preview-top button').click(); document.querySelector('.cad-studio').scrollTop=0; document.querySelector('.cad-studio').parentElement.scrollTop=0;`);
     await sleep(400);
@@ -157,10 +176,20 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('3D studio')).click()`);
     await until(() => evaluate(`document.querySelectorAll('.scene-roster button').length === 3 && document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true' && document.querySelector('.cad-stats')?.textContent.includes('331.33')`));
     result.scene.restored_without_rebuild = true;
+    await evaluate(`document.querySelector('[aria-label="Close panel"]').click();document.querySelector('nav [aria-label="Activity"]').click()`);
+    await until(() => evaluate(`document.querySelectorAll('.activity-card').length >= 4 && !document.querySelector('.panel-state--loading')`));
+    assert.equal(await evaluate(`document.querySelector('.activity-center').textContent.includes('GLB')`), true);
+    fs.writeFileSync(path.join(output,'activity-desktop.png'), (await window.webContents.capturePage()).toPNG());
+    await evaluate(`document.querySelector('.activity-card footer button').click()`);
+    await until(() => evaluate(`document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true'`));
+    assert.equal(await evaluate(`document.querySelectorAll('.scene-roster button').length`),3);
+    result.activity_restores_selected_revision = true; result.long_revision_names = true;
     result.passed = true;
   } catch (error) {
     result.passed = false;
     result.error = error.stack;
+    result.dom = await evaluate(`({ status:document.querySelector('.cad-status')?.textContent, error:document.querySelector('.panel-state--error')?.textContent, disabled:document.querySelector('.cad-build')?.disabled })`);
+    fs.writeFileSync(path.join(output,'failure.png'),(await window.webContents.capturePage()).toPNG());
   }
   fs.writeFileSync(path.join(output, 'ui-verification.json'), JSON.stringify(result, null, 2));
   // Close through the actual titlebar/preload/native control bridge.

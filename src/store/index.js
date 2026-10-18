@@ -1,3 +1,4 @@
+import { createActivitySlice } from './activitySlice';
 import { create } from 'zustand';
 
 import { createConnectionSlice } from './connectionSlice';
@@ -18,6 +19,7 @@ import { createSmartHomeSlice } from './smartHomeSlice';
 
 const useStore = create((...args) => ({
     ...createConnectionSlice(...args),
+    ...createActivitySlice(...args),
     ...createChatSlice(...args),
     ...createAudioSlice(...args),
     ...createDeviceSlice(...args),

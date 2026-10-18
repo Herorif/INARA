@@ -1,15 +1,6 @@
-:root {
-  color-scheme:dark;
-  --deck-bg:#080d18;
-  --deck-panel:#101725;
-  --deck-border:#ffffff0d;
-  --deck-text:#e8edf5;
-  --deck-muted:#8593aa;
-  --deck-cyan:#7de5ed;
-  --deck-amber:#eab77f;
-  --deck-radius:20px;
-  --deck-nav:210px
-}
+@import "./dialog.css";
+@import "./tokens.css";
+
 * {
   box-sizing:border-box
 }
@@ -38,7 +29,7 @@ body {
   height:100dvh;
   background:radial-gradient(ellipse at 74% 16%,#17394b28,transparent 42%),var(--deck-bg);
   overflow:hidden;
-  font-size:14px
+  font-size:0.875rem
 }
 .titlebar {
   height:68px;
@@ -55,7 +46,7 @@ body {
   display:flex;
   align-items:center;
   gap:12px;
-  font-size:18px;
+  font-size:1.125rem;
   letter-spacing:3.6px;
   font-weight:650
 }
@@ -68,14 +59,14 @@ body {
   place-items:center;
   color:var(--deck-cyan);
   font-family:Georgia,serif;
-  font-size:28px;
+  font-size:1.75rem;
   font-style:italic;
   letter-spacing:0;
   box-shadow:inset 0 0 15px #7de5ed0b
 }
 .brand-sub {
   display:block;
-  font-size:7px;
+  font-size:0.4375rem;
   letter-spacing:2.2px;
   color:var(--deck-muted);
   margin-top:2px
@@ -154,7 +145,7 @@ body {
   border-radius:10px;
   padding:13px 14px;
   text-align:left;
-  font-size:13px
+  font-size:0.8125rem
 }
 .navigation button:hover {
   color:#e8edf5;
@@ -183,12 +174,12 @@ body {
   gap:10px;
   margin-top:16px;
   color:#b8c6d8;
-  font-size:12px;
+  font-size:0.75rem;
   overflow-wrap:anywhere
 }
 .nav-project small {
   display:block;
-  font-size:10px;
+  font-size:0.625rem;
   color:#66768e;
   line-height:1.6;
   margin-top:9px
@@ -201,7 +192,7 @@ body {
   border-top:1px solid var(--deck-border);
   padding-top:18px;
   color:#9aabc0;
-  font-size:11px;
+  font-size:0.6875rem;
   display:flex;
   align-items:center;
   flex-wrap:wrap;
@@ -282,7 +273,7 @@ body {
   color:#a7b8cc
 }
 .deck-clock span {
-  font-size:10px;
+  font-size:0.625rem;
   color:#6b7f97;
   padding-left:13px;
   border-left:1px solid #ffffff0b
@@ -304,7 +295,7 @@ body {
   gap:10px;
   align-items:center;
   color:var(--deck-amber);
-  font-size:8px
+  font-size:0.5rem
 }
 .tiny-line {
   width:23px;
@@ -324,7 +315,7 @@ body {
 }
 .hero-copy p,.page-intro p {
   color:var(--deck-muted);
-  font-size:13px;
+  font-size:0.8125rem;
   line-height:1.8;
   margin:0
 }
@@ -344,7 +335,7 @@ body {
   background:linear-gradient(115deg,#a8edf0,#71d1df);
   border-radius:9px;
   padding:11px 15px;
-  font-size:12px;
+  font-size:0.75rem;
   font-weight:600;
   box-shadow:0 4px 28px #66c5da0b
 }
@@ -359,7 +350,7 @@ body {
   border:0;
   background:none;
   color:#a3b1c6;
-  font-size:11px;
+  font-size:0.6875rem;
   padding:10px 0
 }
 .voice-button:hover {
@@ -474,7 +465,7 @@ body {
   gap:12px
 }
 .section-heading h2 {
-  font-size:19px;
+  font-size:1.1875rem;
   letter-spacing:-.5px;
   font-weight:450;
   margin:8px 0 0
@@ -489,7 +480,7 @@ body {
   display:inline-flex;
   gap:10px;
   align-items:center;
-  font-size:11px;
+  font-size:0.6875rem;
   padding:5px 0
 }
 .text-button:hover {
@@ -506,7 +497,7 @@ body {
   padding:22px 24px 13px
 }
 .conversation-panel .section-heading .eyebrow {
-  font-size:8px
+  font-size:0.5rem
 }
 .conversation-scroll {
   height:245px;
@@ -531,13 +522,13 @@ body {
   border-radius:14px
 }
 .chat-welcome h3 {
-  font-size:18px;
+  font-size:1.125rem;
   font-weight:450;
   letter-spacing:-.4px;
   margin:0 0 8px
 }
 .chat-welcome p {
-  font-size:11px;
+  font-size:0.6875rem;
   line-height:1.6;
   color:#8493aa;
   margin:0 auto;
@@ -551,7 +542,7 @@ body {
   margin-top:20px
 }
 .suggestions button {
-  font-size:10px;
+  font-size:0.625rem;
   border:1px solid #ffffff0b;
   background:#ffffff02;
   padding:9px 10px;
@@ -569,7 +560,7 @@ body {
   display:flex;
   gap:13px;
   margin:8px 0 23px;
-  font-size:12px
+  font-size:0.75rem
 }
 .message-avatar {
   width:27px;
@@ -581,7 +572,7 @@ body {
   color:#8ec4cf;
   background:#7de5ed06;
   flex-shrink:0;
-  font-size:12px
+  font-size:0.75rem
 }
 .chat-message>div {
   min-width:0
@@ -595,10 +586,10 @@ body {
 .chat-message strong {
   font-weight:550;
   color:#bfcede;
-  font-size:11px
+  font-size:0.6875rem
 }
 .chat-message time {
-  font-size:9px;
+  font-size:0.5625rem;
   color:#64748a
 }
 .chat-message p {
@@ -620,7 +611,7 @@ body {
   display:flex;
   align-items:center;
   gap:5px;
-  font-size:10px;
+  font-size:0.625rem;
   color:#88b4c4;
   margin-bottom:12px
 }
@@ -668,7 +659,7 @@ body {
   flex:1;
   min-width:0;
   color:#dfebf5;
-  font-size:12px;
+  font-size:0.75rem;
   padding:4px 0
 }
 .composer input::placeholder {
@@ -695,7 +686,7 @@ body {
   display:flex;
   justify-content:space-between;
   gap:5px;
-  font-size:8px;
+  font-size:0.5rem;
   color:#667991;
   padding:10px 2px 0
 }
@@ -724,7 +715,7 @@ body {
   align-items:center;
   gap:9px;
   margin:21px 0;
-  font-size:12px
+  font-size:0.75rem
 }
 .pulse-status strong {
   font-weight:500
@@ -747,7 +738,7 @@ body {
   justify-content:space-between;
   gap:10px;
   color:#8192ac;
-  font-size:10px;
+  font-size:0.625rem;
   margin:14px 0
 }
 .system-row strong {
@@ -761,7 +752,7 @@ body {
   border-top:1px solid #ffffff08;
   padding-top:15px;
   color:#668897;
-  font-size:8px;
+  font-size:0.5rem;
   margin-top:20px
 }
 .reminders-card {
@@ -771,13 +762,13 @@ body {
   color:#879eb7
 }
 .reminders-card h2 {
-  font-size:17px;
+  font-size:1.0625rem;
   font-weight:450;
   letter-spacing:-.4px;
   margin:18px 0 12px
 }
 .reminders-card p {
-  font-size:10px;
+  font-size:0.625rem;
   line-height:1.7;
   color:#7c8da6;
   margin:0 0 15px
@@ -800,19 +791,19 @@ body {
 }
 .radar-reminder strong {
   display:block;
-  font-size:11px;
+  font-size:0.6875rem;
   color:#c2cede;
   font-weight:450;
   overflow-wrap:anywhere
 }
 .radar-reminder div span {
   display:block;
-  font-size:9px;
+  font-size:0.5625rem;
   color:#7c8da6;
   margin-top:5px
 }
 .reminders-card .text-button {
-  font-size:10px
+  font-size:0.625rem
 }
 .quick-launch {
   display:flex;
@@ -822,14 +813,14 @@ body {
   flex-wrap:wrap
 }
 .quick-launch>.eyebrow {
-  font-size:7px;
+  font-size:0.4375rem;
   margin-right:auto
 }
 .quick-launch button {
   display:flex;
   gap:8px;
   align-items:center;
-  font-size:10px;
+  font-size:0.625rem;
   color:#859ab4;
   background:none;
   border:0;
@@ -862,7 +853,7 @@ body {
   color:#8e9cb0
 }
 .system-banner {
-  font-size:12px;
+  font-size:0.75rem;
   color:#d3a7a0;
   background:#d3a7a00a;
   border:1px solid #d3a7a025;
@@ -884,14 +875,14 @@ body {
 }
 .page-intro>.eyebrow {
   color:var(--deck-amber);
-  font-size:8px
+  font-size:0.5rem
 }
 .page-intro h1 {
-  font-size:58px
+  font-size:3.625rem
 }
 .page-intro p {
   max-width:470px;
-  font-size:12px
+  font-size:0.75rem
 }
 .feature-grid {
   display:grid;
@@ -936,12 +927,12 @@ body {
   padding:5px 7px
 }
 .feature-card strong {
-  font-size:20px;
+  font-size:1.25rem;
   font-weight:450;
   letter-spacing:-.5px
 }
 .feature-card p {
-  font-size:11px;
+  font-size:0.6875rem;
   color:#889db6;
   line-height:1.8;
   max-width:82%;
@@ -962,87 +953,8 @@ body {
   gap:13px;
   color:#6d839d;
   line-height:1.7;
-  font-size:10px;
+  font-size:0.625rem;
   padding:27px 4px
-}
-.dialog-backdrop {
-  position:fixed;
-  inset:0;
-  z-index:120;
-  background:#050914c9;
-  backdrop-filter:blur(10px);
-  display:grid;
-  place-items:center;
-  padding:24px
-}
-.feature-dialog {
-  width:min(960px,100%);
-  height:min(820px,88dvh);
-  background:#0e1725;
-  border:1px solid #7de5ed26;
-  border-radius:20px;
-  box-shadow:0 20px 100px #0008;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  outline:none
-}
-.feature-dialog>header {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:20px 25px;
-  border-bottom:1px solid var(--deck-border)
-}
-.feature-dialog h2 {
-  font-size:20px;
-  font-weight:450;
-  margin:6px 0 0
-}
-.icon-button {
-  display:grid;
-  place-items:center;
-  width:36px;
-  height:36px;
-  color:#9aafc5;
-  background:#ffffff04;
-  border:1px solid #ffffff08;
-  border-radius:9px
-}
-.icon-button:hover {
-  color:white;
-  background:#ffffff0a
-}
-.legacy-panel {
-  flex:1;
-  min-height:0;
-  position:relative;
-  overflow:auto
-}
-.legacy-panel>div {
-  position:relative!important;
-  inset:auto!important;
-  left:auto!important;
-  top:auto!important;
-  transform:none!important;
-  width:100%!important;
-  height:100%!important;
-  max-width:none!important;
-  border-radius:0!important;
-  box-shadow:none!important
-}
-.legacy-panel>div>div {
-  max-width:100%
-}
-.panel-empty {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:10px;
-  height:100%;
-  min-height:150px;
-  color:#829ab3;
-  font-size:13px
 }
 .feature-dialog input,.feature-dialog textarea,.feature-dialog select {
   max-width:100%
@@ -1100,7 +1012,7 @@ body {
   }
   .navigation button {
     gap:9px;
-    font-size:12px;
+    font-size:0.75rem;
     padding-left:10px;
     padding-right:10px
   }
@@ -1120,7 +1032,7 @@ body {
     min-height:310px
   }
   .hero h1 {
-    font-size:60px
+    font-size:3.75rem
   }
   .assistant-grid {
     grid-template-columns:minmax(0,1fr) 220px;
@@ -1134,19 +1046,19 @@ body {
     padding-right:20px
   }
   .section-heading h2 {
-    font-size:17px
+    font-size:1.0625rem
   }
   .text-button {
-    font-size:9px
+    font-size:0.5625rem
   }
   .suggestions button {
-    font-size:9px
+    font-size:0.5625rem
   }
   .hero-actions {
     gap:13px
   }
   .voice-button {
-    font-size:10px
+    font-size:0.625rem
   }
 }
 @media(max-width:950px) {
@@ -1154,10 +1066,10 @@ body {
     --deck-nav:76px
   }
   .brand {
-    font-size:15px
+    font-size:0.9375rem
   }
   .titlebar-center {
-    font-size:8px;
+    font-size:0.5rem;
     letter-spacing:1px
   }
   .navigation {
@@ -1180,13 +1092,13 @@ body {
     padding:26px 24px 0
   }
   .hero h1 {
-    font-size:56px
+    font-size:3.5rem
   }
   .hero-copy p {
-    font-size:11px
+    font-size:0.6875rem
   }
   .hero .eyebrow {
-    font-size:7px
+    font-size:0.4375rem
   }
   .core-orb {
     width:235px;
@@ -1215,7 +1127,7 @@ body {
     gap:14px
   }
   .page-intro h1 {
-    font-size:52px
+    font-size:3.25rem
   }
   .quick-launch {
     gap:15px
@@ -1235,10 +1147,10 @@ body {
   .brand-symbol {
     width:29px;
     height:29px;
-    font-size:23px
+    font-size:1.4375rem
   }
   .brand-sub {
-    font-size:6px
+    font-size:0.375rem
   }
   .titlebar-center {
     display:none
@@ -1291,7 +1203,7 @@ body {
     margin-bottom:0
   }
   .breadcrumb {
-    font-size:8px
+    font-size:0.5rem
   }
   .hero {
     min-height:360px;
@@ -1300,12 +1212,12 @@ body {
     padding-bottom:30px
   }
   .hero h1 {
-    font-size:59px;
+    font-size:3.6875rem;
     letter-spacing:-3px;
     margin-top:18px
   }
   .hero-copy p {
-    font-size:11px;
+    font-size:0.6875rem;
     max-width:260px
   }
   .core-orb {
@@ -1336,18 +1248,18 @@ body {
     flex-wrap:wrap
   }
   .hero .eyebrow {
-    font-size:7px
+    font-size:0.4375rem
   }
   .hero h1 span {
     color:#91a7c3
   }
   .primary-button {
-    font-size:11px;
+    font-size:0.6875rem;
     padding:10px 13px;
     gap:13px
   }
   .voice-button {
-    font-size:10px
+    font-size:0.625rem
   }
   .conversation-panel {
     min-height:390px
@@ -1356,10 +1268,10 @@ body {
     padding:19px 17px 13px
   }
   .section-heading h2 {
-    font-size:17px
+    font-size:1.0625rem
   }
   .conversation-panel .text-button {
-    font-size:9px;
+    font-size:0.5625rem;
     max-width:100px;
     text-align:right
   }
@@ -1375,23 +1287,23 @@ body {
     margin-top:16px
   }
   .suggestions button {
-    font-size:9px;
+    font-size:0.5625rem;
     padding:8px
   }
   .composer {
     padding:9px 14px 14px
   }
   .composer input {
-    font-size:11px
+    font-size:0.6875rem
   }
   .composer-field {
     gap:8px
   }
   .composer-foot {
-    font-size:7px
+    font-size:0.4375rem
   }
   .composer-foot>span:last-child {
-    font-size:6px
+    font-size:0.375rem
   }
   .context-column {
     gap:12px;
@@ -1401,40 +1313,40 @@ body {
     padding:16px 13px
   }
   .context-column .eyebrow {
-    font-size:7px;
+    font-size:0.4375rem;
     letter-spacing:1.2px
   }
   .pulse-status {
-    font-size:10px;
+    font-size:0.625rem;
     margin:18px 0
   }
   .system-row {
-    font-size:9px;
+    font-size:0.5625rem;
     gap:5px;
     margin:13px 0
   }
   .pulse-footer {
-    font-size:7px;
+    font-size:0.4375rem;
     gap:4px
   }
   .reminders-card h2 {
-    font-size:15px
+    font-size:0.9375rem
   }
   .reminders-card p {
-    font-size:9px
+    font-size:0.5625rem
   }
   .quick-launch {
     gap:16px;
     padding-top:22px
   }
   .quick-launch button {
-    font-size:9px
+    font-size:0.5625rem
   }
   .quick-launch button>svg:first-child {
     width:14px
   }
   .workspace-footer {
-    font-size:6px;
+    font-size:0.375rem;
     letter-spacing:1px;
     line-height:1.8
   }
@@ -1445,11 +1357,11 @@ body {
     padding-top:35px
   }
   .page-intro h1 {
-    font-size:48px;
+    font-size:3rem;
     letter-spacing:-2.5px
   }
   .page-intro p {
-    font-size:11px
+    font-size:0.6875rem
   }
   .feature-grid {
     grid-template-columns:1fr
@@ -1459,7 +1371,7 @@ body {
     min-height:195px
   }
   .future-note {
-    font-size:9px
+    font-size:0.5625rem
   }
   .dialog-backdrop {
     padding:12px
@@ -1472,7 +1384,7 @@ body {
     padding:17px
   }
   .feature-dialog h2 {
-    font-size:18px
+    font-size:1.125rem
   }
 }
 @media(prefers-reduced-motion:reduce) {
@@ -1510,13 +1422,13 @@ body {
   gap:16px
 }
 .reminder-toolbar h3 {
-  font-size:23px;
+  font-size:1.4375rem;
   font-weight:400;
   letter-spacing:-.6px;
   margin:9px 0 0
 }
 .reminder-toolbar .eyebrow {
-  font-size:8px
+  font-size:0.5rem
 }
 .reminder-create {
   padding:22px;
@@ -1531,7 +1443,7 @@ body {
   display:flex;
   flex-direction:column;
   gap:9px;
-  font-size:11px;
+  font-size:0.6875rem;
   color:#8da4bd
 }
 .reminder-create input,.reminder-create select {
@@ -1540,7 +1452,7 @@ body {
   border-radius:8px;
   padding:11px;
   color:#d6e4f0;
-  font-size:12px;
+  font-size:0.75rem;
   min-width:0
 }
 .reminder-create .primary-button {
@@ -1553,7 +1465,7 @@ body {
 }
 .reminder-feedback {
   color:#95c6d0;
-  font-size:12px;
+  font-size:0.75rem;
   line-height:1.6
 }
 .reminder-list {
@@ -1584,7 +1496,7 @@ body {
   min-width:0
 }
 .reminder-item h4 {
-  font-size:14px;
+  font-size:0.875rem;
   font-weight:450;
   overflow-wrap:anywhere;
   margin:0 0 7px
@@ -1593,7 +1505,7 @@ body {
   display:flex;
   align-items:center;
   gap:7px;
-  font-size:10px;
+  font-size:0.625rem;
   color:#88a0b9;
   flex-wrap:wrap;
   margin:0
@@ -1603,7 +1515,7 @@ body {
   border-radius:4px;
   border:1px solid #7de5ed15;
   color:#89c0ce;
-  font-size:8px
+  font-size:0.5rem
 }
 .reminder-empty {
   height:100%;
@@ -1622,14 +1534,14 @@ body {
   margin-bottom:20px
 }
 .reminder-empty h3 {
-  font-size:27px;
+  font-size:1.6875rem;
   font-weight:400;
   letter-spacing:-.5px;
   color:#cfdeee;
   margin:0 0 12px
 }
 .reminder-empty p {
-  font-size:12px;
+  font-size:0.75rem;
   line-height:1.9
 }
 .reminder-panel-footer {
@@ -1639,7 +1551,7 @@ body {
   gap:15px;
   border-top:1px solid var(--deck-border);
   padding-top:18px;
-  font-size:9px;
+  font-size:0.5625rem;
   color:#6e86a0
 }
 @media(max-width:620px) {
@@ -1651,7 +1563,7 @@ body {
     flex-direction:column
   }
   .reminder-toolbar h3 {
-    font-size:21px
+    font-size:1.3125rem
   }
   .reminder-form-grid {
     grid-template-columns:1fr
@@ -1669,3 +1581,6 @@ body {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
 }
+.command-trigger { display: inline-flex; align-items: center; gap: 9px; margin-left: auto; padding: 9px 12px; border: 1px solid #80e8ec24; border-radius: 8px; color: #a5c5d5; background: #0e1a28; font-size: 0.75rem; }
+.command-trigger kbd { font: 10px monospace; padding: 3px 5px; border: 1px solid #80e8ec24; border-radius: 4px; color: #7897aa; }
+@media(max-width: 540px) { .command-trigger { padding: 8px; margin-right: 12px; } .command-trigger span, .command-trigger kbd { display: none; } }

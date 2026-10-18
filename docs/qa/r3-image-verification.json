@@ -1,0 +1,53 @@
+{
+  "before_workspace": {
+    "working_set_mb": 63.57,
+    "private_mb": 46.27
+  },
+  "ui": {
+    "unconfigured_disabled_no_artwork": true,
+    "history_error_and_explicit_recovery": true,
+    "keyboard_wrap_and_escape": true,
+    "fixture_revisions_and_real_downloads": true,
+    "reopened_without_regeneration": true,
+    "cancel_preserves_previous_revision": true,
+    "activity_restores_image_revision": true,
+    "external_asset_requests": 0,
+    "responsive_widths": [
+      1440,
+      390,
+      768
+    ],
+    "real_model_ran": false,
+    "passed": true
+  },
+  "model_modules_in_resident": false,
+  "workers_started_and_exited": 3,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 66.45,
+      "private_mb": 48.9
+    },
+    {
+      "working_set_mb": 66.45,
+      "private_mb": 48.9
+    },
+    {
+      "working_set_mb": 66.45,
+      "private_mb": 48.9
+    },
+    {
+      "working_set_mb": 66.45,
+      "private_mb": 48.9
+    },
+    {
+      "working_set_mb": 66.45,
+      "private_mb": 48.9
+    },
+    {
+      "working_set_mb": 66.45,
+      "private_mb": 48.9
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

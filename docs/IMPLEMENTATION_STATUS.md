@@ -159,3 +159,7 @@ Duplicate static voice catalogs/helpers, fallback approvals and obsolete facade/
 ## R3a UI/RPC foundation
 
 The shared responsive JARVIS panel header/loading/recovery surfaces and panel-owned TypeScript RPC scope are implemented. Image atelier is the first migrated feature, with generated request contracts, no automatic replay, reconnect history recovery and stale-callback/snapshot guards. 34 frontend and 104 focused Python checks plus build/lint/drift and native image/CAD integration pass. Semantic compiler verification is pending because registry certificate validation blocked installation; no full frontend type-check claim is made. [Evidence, screenshots and R3b task](R3_UI_RPC.md).
+
+## R3 completed
+
+The command palette, unified project Activity/artifact view, shared JARVIS panels/approvals/forms, embedded legacy interiors, scoped CAD/image/planner lifecycle, generated contracts/version and feature-specific event bridges are implemented. Captured text-event scope prevents cross-project late updates. The project-local pinned compiler resolves the earlier semantic-check gap. 669 Python and 41 Node checks pass, with one Blender skip; semantic/drift/lint/build and renderer/native creative acceptance pass. [Evidence and material limits](R3_UI_RPC.md). The next milestone is R4 capabilities and resource-aware job ownership.

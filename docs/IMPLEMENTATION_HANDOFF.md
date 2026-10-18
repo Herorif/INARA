@@ -2,7 +2,7 @@
 
 Updated 19 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1-R2b5 policy groups and R2c retirement are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) and [Device/print workflow policy](DEVICE_PRINT_POLICY.md) and [Workspace policy](WORKSPACE_POLICY.md) and [Shared voice/connection policy](VOICE_CONNECTION_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1-R2b5 policy groups, R2c retirement and the R3 UI/contracts milestone are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) and [Device/print workflow policy](DEVICE_PRINT_POLICY.md) and [Workspace policy](WORKSPACE_POLICY.md) and [Shared voice/connection policy](VOICE_CONNECTION_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -55,7 +55,7 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | --- | --- | --- |
 | R1 implemented; hardware acceptance pending | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
 | R2a/R2b1-R2b5/R2c implemented | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
-| R3a foundation implemented; R3b next | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
+| R3 implemented | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
 | R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
 | R5 | Deeper 3D vibe coding and image workflows | Validated change sets, selected-revision edits, kernel/Blender/image adapters with real acceptance gates |
 | R6 | Quick assistant and push-to-talk voice | One audio/session stack feeding existing conversation and tool services; optional wake profile later |
@@ -66,16 +66,18 @@ R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented.
 
 ## Next implementation task
 
-1. Continue R3b from [R3 UI/RPC foundation](R3_UI_RPC.md). First install/pin a verified TypeScript compiler and update the lock; run `tsc -p tsconfig.ui.json` and gate CI. Registry certificate failures prevented this in R3a; runtime tests and bundling passed, but semantic type checking is still pending.
-2. Migrate CAD request/planner/artifact lifecycle to `src/transport/rpc.ts` and export its Pydantic request contracts. Keep original events, shared backend ownership/approval, scene revisions, artifact integrity and lazy Three.js behavior.
-3. Consolidate repeated creative history/status/toolbar controls around the new `PanelHeader`/`PanelState` only where the behavior is shared. Keep project/reconnect/deadline/close handling explicit and test stale callbacks.
-4. Visually review desktop/narrow layouts, keyboard focus, reduced motion and DPI. Run affected frontend lifecycle/backend contract checks, build/lint, schema drift and native creative integration; update this handoff with the completed slice.
-5. Remaining R3: feature-specific socket/store registration, other legacy panel interiors, command palette and unified activity/artifact view. Do not claim a whole-codebase TypeScript conversion or completed R3 yet.
-6. R4 reservations/hard isolation, R5 creative/provider acceptance and R6 audio-stack/physical media work remain separate. Configuration and the real-game benchmark remain deferred; WhatsApp reply drafting/sending stays excluded.
+1. Begin R4 from the [architecture sequence](INARA_REVAMP_PLAN.md) and [completed UI/contracts milestone](R3_UI_RPC.md). Build a capability/setup center distinguishing missing configuration, installed adapters, verified integration, resource blocking and measured performance.
+2. Centralize capability/configuration descriptors and worker launch profiles. Keep probes on demand or low rate; report unknown when unsupported, and never import Torch into the resident just to inspect a GPU. Exact Legion specifications remain unconfirmed.
+3. Extend the existing single creative slot with bounded CPU/RAM/VRAM reservations, admission/queue rules, cancellation, fairness and explicit release. Preserve owner/project snapshots and actual job state in Activity.
+4. Keep panel-close cancellation as the default. Continuing work in the background must be a deliberate user choice with clear lifetime and resource ownership. Do not enable automatic resource escalation or generated-code/browser execution outside a fixed owned profile.
+5. Verify missing configuration, gaming, resource rejection, cancellation, worker crash/exit and native recovery with injected/offline fixtures. Update this handoff with R4 outcome and remaining hardware acceptance.
+6. API/model configuration and the real-game benchmark remain deferred. R5 deeper creative work, R6 physical audio, R7 Android and R8 selected read-only notifications follow. Existing SIM/personal WhatsApp identity is retained; WhatsApp reply drafting/sending remains excluded.
 
-## Completed R3a foundation
+## Completed R3 UI and contract milestone
 
-Image atelier now uses a panel-owned TypeScript RPC scope with generated request declarations, disconnect/deadline/close cleanup, guarded ACKs and snapshot/live-job reconciliation. The lazy workspace shell shares a responsive JARVIS header and loading/offline/recovery states. 34 frontend and 104 focused Python checks, lint/schema drift/build and native image/CAD integration pass. [Evidence, screenshots, compiler limitation and next slice](R3_UI_RPC.md).
+The shared JARVIS design/panel/approval system, embedded legacy interiors, keyboard command palette and project-scoped CAD/image Activity/artifact view are implemented. CAD/image/planner/preview calls share scoped lifetime and runtime guards; schemas/types and UI contract version 1 are generated. Feature-specific event registrars replace the monolithic store bridge, and typed conversation updates retain their captured project/session scope. The pinned development compiler and semantic checks now pass, resolving the earlier installation/check gap.
+
+669 Python and 41 Node checks pass, with one Blender skip, alongside type checks, drift/lint/build and native/renderer acceptance. [Evidence, screenshots and remaining physical/provider limits](R3_UI_RPC.md). R4 is next; no additional R3 substep is pending.
 
 ## Completed obsolete-path retirement (R2c)
 

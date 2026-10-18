@@ -1,0 +1,12 @@
+:root {
+  color-scheme:dark;
+  --deck-bg:#080d18;
+  --deck-panel:#101725;
+  --deck-border:#ffffff0d;
+  --deck-text:#e8edf5;
+  --deck-muted:#8593aa;
+  --deck-cyan:#7de5ed;
+  --deck-amber:#eab77f;
+  --deck-radius:20px;
+  --deck-nav:210px
+}

@@ -134,7 +134,11 @@ async def test_request_captures_project_before_processing_emit(application_facto
     )
     runtime.conversation_transport.service = service
 
+    observed = []
+
     async def emit(event, *args, **kwargs):
+        if event in {"text_status", "transcription"}:
+            observed.append(args[0])
         if event == "text_status":
             runtime.projects.switch_project("Second")
 
@@ -143,6 +147,9 @@ async def test_request_captures_project_before_processing_emit(application_facto
     await runtime.conversation_transport.user_input("client", request.model_dump(mode="json"))
     assert service.conversations[str(request.conversation_id)].project == str(original)
     assert provider.calls == 1
+
+    assert observed and all(value["project"] == original.name for value in observed)
+    assert all(value["conversation_id"] == str(request.conversation_id) for value in observed)
 
 
 @pytest.mark.asyncio
@@ -252,3 +259,10 @@ async def test_failed_start_rolls_back_subscription_and_poller(application_facto
     assert not runtime.started and not runtime.tasks
     await runtime.bus.emit(Event(Events.VISION_ALERT, {}))
     runtime.sio.emit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_status_advertises_ui_contract_version(application_factory):
+    runtime = application_factory()
+    status = next(route for route in runtime.app.routes if getattr(route, "path", None) == "/status")
+    assert (await status.endpoint())["ui_contract_version"] == 1

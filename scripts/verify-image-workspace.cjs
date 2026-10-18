@@ -1,4 +1,4 @@
-﻿// Actual native renderer with an explicit test-only fixture service.
+// Actual native renderer with an explicit test-only fixture service.
 const {BrowserWindow}=require('electron');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const pipe=fs.readFileSync(0,'utf8'),bootstrap=JSON.parse(pipe),read=fs.readFileSync;
@@ -89,6 +89,15 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await until(()=>evaluate(`document.querySelector('.image-canvas img')?.naturalWidth===512`));
   result.cancel_preserves_previous_revision=true;
   assert.equal(requests.some(url=>/^https?:\/\//.test(url)&&!/^http:\/\/(localhost|127\.0\.0\.1):8000/.test(url)),false);
+  await evaluate(`document.querySelector('[aria-label="Close panel"]').click();document.querySelector('nav [aria-label="Activity"]').click()`);
+  await until(()=>evaluate(`document.querySelectorAll('.activity-card').length===3 && !document.querySelector('.panel-state--loading')`));
+  assert.equal(await evaluate(`document.querySelector('.activity-center').textContent.includes('PNG')`),true);
+  window.setContentSize(390,900);await sleep(150);
+  assert.equal(await evaluate(`document.documentElement.scrollWidth>innerWidth`),false);
+  await screenshot('activity-mobile.png');
+  await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.textContent.includes('succeeded')).querySelector('footer button').click()`);
+  await until(()=>evaluate(`document.querySelector('.image-canvas img')?.naturalWidth===512`));
+  result.activity_restores_image_revision=true;
   result.external_asset_requests=0;result.responsive_widths=[1440,390,768];result.real_model_ran=false;result.passed=true;
  }catch(error){result.passed=false;result.error=error.stack;await screenshot('image-failure.png');}
  fs.writeFileSync(path.join(output,'ui-verification.json'),JSON.stringify(result,null,2));

@@ -59,6 +59,7 @@ class ConversationTransport:
 
     async def user_input(self, sid, data):
         request = None
+        scope = {}
         task = asyncio.current_task()
         self.running[task] = sid
         try:
@@ -69,13 +70,14 @@ class ConversationTransport:
             if principal is None or not self.dispatcher.authenticated(principal):
                 raise ServiceError("authentication_required", "Authentication is required.")
             context = self.sessions.context(sid)
+            scope = {"request_id": str(request.request_id), "conversation_id": str(request.conversation_id), "project": context.project_path.name}
 
             async def approve(payload):
                 await self.sio.emit("tool_confirmation_request", payload, room=sid)
 
             await self.sio.emit(
                 "text_status",
-                {"state": "processing", "request_id": str(request.request_id)},
+                {"state": "processing", **scope},
                 room=sid,
             )
             result = await self.service.reply(
@@ -85,7 +87,7 @@ class ConversationTransport:
             # Preserve the existing desktop transcript event contract.
             await self.sio.emit(
                 "transcription",
-                {"sender": "INARA", "text": result.text, "request_id": str(request.request_id)},
+                {"sender": "INARA", "text": result.text, **scope},
                 room=sid,
             )
         except (ServiceError, ValidationError) as exc:
@@ -97,6 +99,7 @@ class ConversationTransport:
                     else "Invalid message payload.",
                     "code": getattr(exc, "code", "invalid_request"),
                     "request_id": str(request.request_id) if request else None,
+                    **scope,
                 },
                 room=sid,
             )
@@ -107,12 +110,13 @@ class ConversationTransport:
                     "msg": str(exc),
                     "code": "storage_unavailable",
                     "request_id": str(request.request_id) if request else None,
+                    **scope,
                 },
                 room=sid,
             )
         finally:
             self.running.pop(task, None)
-            await self.sio.emit("text_status", {"state": "idle"}, room=sid)
+            await self.sio.emit("text_status", {"state": "idle", **scope}, room=sid)
 
     async def stop_sid(self, sid=None):
         tasks = [

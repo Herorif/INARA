@@ -1,0 +1,597 @@
+{
+  "SolidRecipe": {
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      }
+    },
+    "title": "SolidRecipe",
+    "type": "object"
+  },
+  "SceneObject": {
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      },
+      "position": {
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "title": "Position",
+        "type": "array"
+      },
+      "rotation": {
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "title": "Rotation",
+        "type": "array"
+      },
+      "scale": {
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "title": "Scale",
+        "type": "array"
+      },
+      "material": {
+        "default": "cyan",
+        "enum": [
+          "cyan",
+          "titanium",
+          "amber",
+          "ceramic"
+        ],
+        "title": "Material",
+        "type": "string"
+      }
+    },
+    "title": "SceneObject",
+    "type": "object"
+  },
+  "Recipe": {
+    "$defs": {
+      "SceneObject": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "Untitled design",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "shape": {
+            "default": "box",
+            "enum": [
+              "box",
+              "bracket",
+              "enclosure"
+            ],
+            "title": "Shape",
+            "type": "string"
+          },
+          "width": {
+            "default": 80,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "default": 60,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "default": 30,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Height",
+            "type": "number"
+          },
+          "thickness": {
+            "default": 3,
+            "maximum": 100,
+            "minimum": 0.5,
+            "title": "Thickness",
+            "type": "number"
+          },
+          "position": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Position",
+            "type": "array"
+          },
+          "rotation": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Rotation",
+            "type": "array"
+          },
+          "scale": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Scale",
+            "type": "array"
+          },
+          "material": {
+            "default": "cyan",
+            "enum": [
+              "cyan",
+              "titanium",
+              "amber",
+              "ceramic"
+            ],
+            "title": "Material",
+            "type": "string"
+          }
+        },
+        "title": "SceneObject",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure",
+          "scene"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      },
+      "objects": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/SceneObject"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Objects"
+      },
+      "engine": {
+        "default": "offline",
+        "enum": [
+          "offline",
+          "blender"
+        ],
+        "title": "Engine",
+        "type": "string"
+      }
+    },
+    "title": "Recipe",
+    "type": "object"
+  },
+  "BuildRequest": {
+    "$defs": {
+      "SceneObject": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "Untitled design",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "shape": {
+            "default": "box",
+            "enum": [
+              "box",
+              "bracket",
+              "enclosure"
+            ],
+            "title": "Shape",
+            "type": "string"
+          },
+          "width": {
+            "default": 80,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "default": 60,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "default": 30,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Height",
+            "type": "number"
+          },
+          "thickness": {
+            "default": 3,
+            "maximum": 100,
+            "minimum": 0.5,
+            "title": "Thickness",
+            "type": "number"
+          },
+          "position": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Position",
+            "type": "array"
+          },
+          "rotation": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Rotation",
+            "type": "array"
+          },
+          "scale": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Scale",
+            "type": "array"
+          },
+          "material": {
+            "default": "cyan",
+            "enum": [
+              "cyan",
+              "titanium",
+              "amber",
+              "ceramic"
+            ],
+            "title": "Material",
+            "type": "string"
+          }
+        },
+        "title": "SceneObject",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure",
+          "scene"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      },
+      "objects": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/SceneObject"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Objects"
+      },
+      "engine": {
+        "default": "offline",
+        "enum": [
+          "offline",
+          "blender"
+        ],
+        "title": "Engine",
+        "type": "string"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "title": "BuildRequest",
+    "type": "object"
+  },
+  "ArtifactRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "format": {
+        "default": "stl",
+        "enum": [
+          "stl",
+          "glb",
+          "json",
+          "blend",
+          "png"
+        ],
+        "title": "Format",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "title": "ArtifactRequest",
+    "type": "object"
+  },
+  "PlanRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "prompt": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "title": "Prompt",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "PlanRequest",
+    "type": "object"
+  },
+  "MeshStats": {
+    "additionalProperties": false,
+    "properties": {
+      "vertices": {
+        "maximum": 8192,
+        "minimum": 4,
+        "title": "Vertices",
+        "type": "integer"
+      },
+      "triangles": {
+        "maximum": 4096,
+        "minimum": 4,
+        "title": "Triangles",
+        "type": "integer"
+      },
+      "watertight": {
+        "title": "Watertight",
+        "type": "boolean"
+      },
+      "volume_mm3": {
+        "exclusiveMinimum": 0,
+        "maximum": 1000000000000,
+        "title": "Volume Mm3",
+        "type": "number"
+      },
+      "bounds_mm": {
+        "items": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "title": "Bounds Mm",
+        "type": "array"
+      }
+    },
+    "required": [
+      "vertices",
+      "triangles",
+      "watertight",
+      "volume_mm3",
+      "bounds_mm"
+    ],
+    "title": "MeshStats",
+    "type": "object"
+  },
+  "JobRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "title": "JobRequest",
+    "type": "object"
+  }
+}

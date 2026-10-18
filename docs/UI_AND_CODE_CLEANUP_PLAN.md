@@ -200,3 +200,7 @@ R2a update: `application.py` and `transport/` now own construction/lifetime, des
 R2b1 update: `services/local_actions.py` and `transport/local_actions.py` replace seven direct bypasses with shared schemas/dispatcher policy. Event ownership and origin cancellation are explicit. [Route matrix](ROUTE_POLICY_MATRIX.md) tests cover all registered names and identify remaining groups; settings/lifecycle migration is next.
 
 R2b2 update: `services/settings.py` and `transport/settings.py` own validated atomic settings, while `transport/lifecycle.py` owns typed resource/native/shutdown policy. The legacy settings panel waits for accepted state. [Evidence and limits](SETTINGS_LIFECYCLE_POLICY.md) map the remaining legacy hooks and R2b3 compatibility work.
+
+## R3 implementation outcome ? 19 October 2026
+
+R3 is implemented as one milestone: generated/versioned CAD/image contracts, checked transport TypeScript, shared request/history lifetime, separate feature event registrars, shared JARVIS panels/fields/progress/approvals, embedded control interiors, searchable commands and a project Activity/artifact view. Existing JavaScript remains supported and the optional legacy CAD viewer is retained. [Acceptance, screenshots and limits](R3_UI_RPC.md). R4 capabilities/resource reservations is next.

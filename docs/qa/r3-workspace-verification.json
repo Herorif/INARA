@@ -1,0 +1,24 @@
+{
+  "sizes": [
+    "1440Ã—940",
+    "390Ã—844",
+    "768Ã—900"
+  ],
+  "initial": {
+    "title": "Ready whenyou are.",
+    "overflow": false,
+    "buttons": 0
+  },
+  "commandSearchKeyboardAndNinePanels": true,
+  "reducedMotion": true,
+  "widths": [
+    390,
+    768,
+    1440,
+    2560
+  ],
+  "zoom200Percent": true,
+  "rootText200Percent": true,
+  "heavyStartupRequests": 0,
+  "bundledTrackerInitializedWithoutCamera": true
+}

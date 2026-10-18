@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Image, SlidersHorizontal, Download, RefreshCw, Shuffle, Square, Loader2, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Image, SlidersHorizontal, Download, Shuffle, Square, Loader2, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import useStore from '../../store';
 import socket from '../../services/socket';
 import { artifactBytes, mergeJob, pendingJob } from '../creative/client';
-import { createImageClient, reconcileImageHistory } from '../../transport/imageClient.ts';
+import { createImageClient } from '../../transport/imageClient.ts';
+import { reconcileHistory } from '../../transport/history.ts';
 import PanelState from '../../app/PanelState';
+import RevisionHistory from '../../app/RevisionHistory';
+import JobStatus from '../../app/JobStatus';
+import Field from '../../app/Field';
 import './images.css';
 const defaults = {
   name: 'Untitled visual',
@@ -58,7 +62,7 @@ function Preview({
         id: job.request_id,
         url
       });
-    }).catch(failure => {
+    }).catch((failure) => {
       if (active) setError(failure.message);
     });
     return () => {
@@ -76,16 +80,16 @@ function Preview({
   </div>;
 }
 export default function ImageStudio() {
-  const project = useStore(state => state.currentProject);
+  const project = useStore((state) => state.currentProject);
   return <ImageSession key={project} project={project} />;
 }
 function ImageSession({ project }) {
-  const connected = useStore(state => state.backendConnected);
+  const connected = useStore((state) => state.backendConnected);
   const transport = useRef(null);
   const rpc = (...args) => transport.current.call(...args);
   const [refreshing, setRefreshing] = useState(true);
   const latestRefresh = useRef(0);
-  const historyVersion = useRef(0), jobVersions = useRef(new Map());
+  const historyVersion = useRef(0),jobVersions = useRef(new Map());
   const [uncertain, setUncertain] = useState(false);
   const [recipe, setRecipe] = useState(defaults),
     [jobs, setJobs] = useState([]),
@@ -96,23 +100,25 @@ function ImageSession({ project }) {
   const current = useRef(null),
     alive = useRef(false),
     epoch = useRef(0);
-  const job = jobs.find(value => value.request_id === selected),
+  const restoreRecipe = useRef(true);
+  const job = jobs.find((value) => value.request_id === selected),
     busy = pendingJob(job);
-  const patch = value => setRecipe(previous => ({
+  const patch = (value) => setRecipe((previous) => ({
     ...previous,
     ...value
   }));
-  const accept = value => {
+  const accept = (value) => {
     if (!alive.current || value.project !== useStore.getState().currentProject) return;
+    useStore.getState().recordActivity('image', value);
     jobVersions.current.set(value.request_id, ++historyVersion.current);
-    setJobs(previous => [mergeJob(previous.find(item => item.request_id === value.request_id), value), ...previous.filter(item => item.request_id !== value.request_id)].slice(0, 12));
+    setJobs((previous) => [mergeJob(previous.find((item) => item.request_id === value.request_id), value), ...previous.filter((item) => item.request_id !== value.request_id)].slice(0, 12));
     if (!current.current) {
       current.current = value.request_id;
       setSelected(value.request_id);
     }
   };
   const refresh = async () => {
-    const generation = epoch.current, refreshId = ++latestRefresh.current, version = historyVersion.current;
+    const generation = epoch.current,refreshId = ++latestRefresh.current,version = historyVersion.current;
     setRefreshing(true);
     try {
       const response = await rpc('image_list', {});
@@ -120,13 +126,14 @@ function ImageSession({ project }) {
       setError('');
       setCapability(response.capabilities);
       setUncertain(false);
-      setJobs(previous => reconcileImageHistory(previous, response.jobs, new Set(
+      setJobs((previous) => reconcileHistory(previous, response.jobs, new Set(
         [...jobVersions.current].filter(([, updated]) => updated > version).map(([id]) => id)
       )));
-      if (!current.current && response.jobs[0]) {
-        current.current = response.jobs[0].request_id;
-        setSelected(current.current);
-        setRecipe(response.jobs[0].recipe);
+      if (restoreRecipe.current) {
+        const restored = response.jobs.find(value => value.request_id === current.current) || (!current.current ? response.jobs[0] : null);
+        if (restored) { current.current = restored.request_id; setSelected(restored.request_id); setRecipe(restored.recipe); }
+        else if (current.current) setError('That revision is outside recent history. Select another saved revision.');
+        restoreRecipe.current = false;
       }
     } catch (failure) {
       if (alive.current && generation === epoch.current && refreshId === latestRefresh.current) setError(failure.message);
@@ -138,15 +145,17 @@ function ImageSession({ project }) {
     const client = createImageClient(socket);
     transport.current = client;
     epoch.current++;
+    restoreRecipe.current = true;
     alive.current = true;
-    current.current = null;
+    const selection = useStore.getState().studioSelection;
+    current.current = selection?.feature === 'image' && selection.project === project ? selection.requestId : null;
     setRecipe(defaults);
     setJobs([]);
-    setSelected(null);
+    setSelected(current.current);
     setCapability(null);
     setError('');
     setExporting('');
-    const update = value => accept(value);
+    const update = (value) => accept(value);
     client.on('image_job', update);
     client.on('connect', refresh);
     client.on('disconnect', () => {
@@ -166,7 +175,7 @@ function ImageSession({ project }) {
       });
     };
   }, [project]);
-  const submit = async event => {
+  const submit = async (event) => {
     event.preventDefault();
     setError('');
     setUncertain(false);
@@ -212,7 +221,7 @@ function ImageSession({ project }) {
       if (alive.current && generation === epoch.current) setError(failure.message);
     }
   };
-  const download = async format => {
+  const download = async (format) => {
     const generation = epoch.current;
     setExporting(format);
     setError('');
@@ -242,29 +251,29 @@ function ImageSession({ project }) {
   return <div className="image-studio">
     <div className="image-intro"><div><span className="eyebrow">INARA / IMAGE ATELIER</span><h3>Imagine beyond<br /><span>the ordinary.</span></h3><p>A focused space for your next visual direction.</p></div><div className={`image-backend-badge ${capability?.available ? 'available' : ''}`}><span className="status-dot" />{capability?.available ? 'LOCAL / ON DEMAND' : 'MODEL SETUP LATER'}</div></div>
     {(!connected || refreshing || error) && <PanelState compact
-      kind={!connected ? 'offline' : error ? 'error' : 'loading'}
-      title={!connected ? 'Core connection interrupted' : error ? 'Your attention is needed' : 'Syncing your atelier'}
-      detail={!connected ? 'Your saved revisions are safe. History refreshes when the core reconnects.' : error || 'Checking saved revisions and local model availability.'}
-      action={connected && !refreshing ? refresh : undefined} actionLabel="Refresh history" />}
+    kind={!connected ? 'offline' : error ? 'error' : 'loading'}
+    title={!connected ? 'Core connection interrupted' : error ? 'Your attention is needed' : 'Syncing your atelier'}
+    detail={!connected ? 'Your saved revisions are safe. History refreshes when the core reconnects.' : error || 'Checking saved revisions and local model availability.'}
+    action={connected && !refreshing ? refresh : undefined} actionLabel="Refresh history" />}
     <div className="image-layout"><form className="image-director" onSubmit={submit}>
       <div className="image-section-title"><span className="eyebrow">01 / ART DIRECTION</span><SlidersHorizontal size={15} /></div>
-      <label className="image-field">Visual name<input value={recipe.name} required maxLength={60} disabled={busy} onChange={event => patch({
+      <Field className="image-field" label="Visual name"><input value={recipe.name} required maxLength={60} disabled={busy} onChange={(event) => patch({
             name: event.target.value
-          })} /></label>
-      <label className="image-field">Your prompt<textarea value={recipe.prompt} minLength={3} maxLength={2000} required disabled={busy} placeholder="An architectural pavilion floating above a misty lake, soft dawn light, warm timber and glass…" onChange={event => patch({
+          })} /></Field>
+      <label className="image-field">Your prompt<textarea value={recipe.prompt} minLength={3} maxLength={2000} required disabled={busy} placeholder="An architectural pavilion floating above a misty lake, soft dawn light, warm timber and glass…" onChange={(event) => patch({
             prompt: event.target.value
           })} /><small>{recipe.prompt.length}/2000 · Describe subject, materials, light and mood.</small></label>
       <div className="image-field"><span>Frame</span><div className="image-frames" role="group" aria-label="Image frame">{frames.map(([name, width, height]) => <button key={name} type="button" disabled={busy} aria-pressed={recipe.width === width && recipe.height === height} onClick={() => patch({
               width,
               height
             })}><span className={`frame-icon ${width > height ? 'wide' : width < height ? 'tall' : ''}`} />{name}<small>{width} × {height}</small></button>)}</div></div>
-      <details className="image-tuning"><summary>Fine-tune your direction<span>SEED / QUALITY</span></summary><label className="image-field">Avoid in the image<textarea className="negative-prompt" value={recipe.negative_prompt} maxLength={1000} disabled={busy} onChange={event => patch({
+      <details className="image-tuning"><summary>Fine-tune your direction<span>SEED / QUALITY</span></summary><label className="image-field">Avoid in the image<textarea className="negative-prompt" value={recipe.negative_prompt} maxLength={1000} disabled={busy} onChange={(event) => patch({
               negative_prompt: event.target.value
-            })} /></label><div className="image-tuning-grid"><label className="image-field">Steps<input type="number" aria-label="Generation steps" min={1} max={40} required value={recipe.steps} disabled={busy} onChange={event => patch({
+            })} /></label><div className="image-tuning-grid"><label className="image-field">Steps<input type="number" aria-label="Generation steps" min={1} max={40} required value={recipe.steps} disabled={busy} onChange={(event) => patch({
                 steps: event.target.value === '' ? '' : Number(event.target.value)
-              })} /></label><label className="image-field">Guidance<input type="number" min={1} max={15} step=".1" required value={recipe.guidance} disabled={busy} onChange={event => patch({
+              })} /></label><label className="image-field">Guidance<input type="number" min={1} max={15} step=".1" required value={recipe.guidance} disabled={busy} onChange={(event) => patch({
                 guidance: event.target.value === '' ? '' : Number(event.target.value)
-              })} /></label></div><label className="image-field">Seed<div className="image-seed"><input type="number" min={0} max={2147483647} required value={recipe.seed} disabled={busy} onChange={event => patch({
+              })} /></label></div><label className="image-field">Seed<div className="image-seed"><input type="number" min={0} max={2147483647} required value={recipe.seed} disabled={busy} onChange={(event) => patch({
                 seed: event.target.value === '' ? '' : Number(event.target.value)
               })} /><button type="button" aria-label="Randomize seed" disabled={busy} onClick={() => patch({
                 seed: crypto.getRandomValues(new Uint32Array(1))[0] % 2147483648
@@ -272,13 +281,10 @@ function ImageSession({ project }) {
       <button className="primary-button image-generate" disabled={!connected || refreshing || !capability?.available || busy} type="submit">{busy ? <Loader2 size={17} className="image-spin" /> : <Sparkles size={17} />} {busy ? 'Generation in progress' : 'Generate new revision'}<ArrowUpRight size={16} /></button>
       {busy && <button className="image-cancel" type="button" onClick={cancel}><Square size={12} />Cancel generation</button>}
       <div className="image-availability" role="status"><ShieldCheck size={17} /><div><strong>{capability?.available ? capability.model || 'Local worker ready' : 'Your canvas is ready'}</strong><p>{!connected ? 'Connect to the core to check model availability.' : capability?.reason || 'Checking local model availability…'}</p><small>Models load only for a generation. Setup can wait.</small></div></div>
-    </form><section className="image-workbench" aria-label="Image preview and exports"><div className="image-section-title"><span className="eyebrow">02 / EXPLORE</span><span>{recipe.width} × {recipe.height} / PNG</span></div><Preview job={job} connected={connected} /><div className="image-result-status" role="status"><span className="status-dot" /><div><strong>{phases[job?.phase] || 'Waiting for a direction'}</strong><span>{job?.stats ? `${job.stats.width} × ${job.stats.height} / Seed ${job.stats.seed} / ${job.stats.device.toUpperCase()}` : 'One image. A separate revision. Your project.'}</span></div></div><div className="image-export"><div><span className="eyebrow">03 / KEEP YOUR WORK</span><p>PNG image + prompt, settings and provenance</p></div><div>{['png', 'json'].map(format => <button key={format} disabled={!connected || job?.state !== 'succeeded' || !!exporting} onClick={() => download(format)}>{exporting === format ? <Loader2 size={14} className="image-spin" /> : <Download size={14} />} {format === 'json' ? 'Recipe' : 'PNG'}</button>)}</div></div></section></div>
+    </form><section className="image-workbench" aria-label="Image preview and exports"><div className="image-section-title"><span className="eyebrow">02 / EXPLORE</span><span>{recipe.width} × {recipe.height} / PNG</span></div><Preview job={job} connected={connected} /><JobStatus className="image-result-status" title={phases[job?.phase] || 'Waiting for a direction'} subtitle={job?.stats ? `${job.stats.width} ? ${job.stats.height} / Seed ${job.stats.seed} / ${job.stats.device.toUpperCase()}` : 'One image. A separate revision. Your project.'} ready={job?.state === 'succeeded'} busy={busy} /><div className="image-export"><div><span className="eyebrow">03 / KEEP YOUR WORK</span><p>PNG image + prompt, settings and provenance</p></div><div>{['png', 'json'].map((format) => <button key={format} disabled={!connected || job?.state !== 'succeeded' || !!exporting} onClick={() => download(format)}>{exporting === format ? <Loader2 size={14} className="image-spin" /> : <Download size={14} />} {format === 'json' ? 'Recipe' : 'PNG'}</button>)}</div></div></section></div>
     {job?.error && !error && <PanelState compact kind="error" title="Revision stopped" detail={job.error} />}
-    <section className="image-history"><div className="image-section-title"><span className="eyebrow">RECENT REVISIONS / {project}</span><button className="text-button" aria-label="Refresh image history" disabled={!connected || refreshing || (busy && !uncertain)} onClick={refresh}><RefreshCw size={14} /></button></div><div className="image-history-list">{jobs.length ? jobs.map(value => <button key={value.request_id} disabled={busy} className={value.request_id === selected ? 'selected' : ''} onClick={() => {
-          current.current = value.request_id;
-          setSelected(value.request_id);
-          if (value.recipe) setRecipe(value.recipe);
-          setError('');
-        }}><Image size={20} /><span>{value.recipe?.name || 'New visual'}<small>{value.recipe?.width} × {value.recipe?.height} / {value.request_id.slice(0, 8)}</small></span><em>{value.state}</em></button>) : <p>Your saved image revisions will appear here. Nothing has been generated yet.</p>}</div></section>
+    <RevisionHistory kind="image" project={project} jobs={jobs} selected={selected} busy={busy} connected={connected} refreshing={refreshing} uncertain={uncertain} onRefresh={refresh} onSelect={(value) => {
+      current.current = value.request_id;setSelected(value.request_id);if (value.recipe) setRecipe(value.recipe);setError('');
+    }} />
   </div>;
 }

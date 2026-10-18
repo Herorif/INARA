@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { createRpcScope } from '../src/transport/rpc.ts';
-import { createImageClient, reconcileImageHistory } from '../src/transport/imageClient.ts';
+import { createImageClient } from '../src/transport/imageClient.ts';
+import { reconcileHistory } from '../src/transport/history.ts';
 
 class Socket extends EventEmitter {
   connected = true;
@@ -77,9 +78,9 @@ test('image client rejects unusable history before the panel renders it', async 
 test('a list snapshot cannot erase a revision delivered while it was in flight', () => {
   const ready = { request_id: 'one', project: 'temp', state: 'succeeded', phase: 'ready' };
   const fresh = { request_id: 'two', project: 'temp', state: 'running', phase: 'generating' };
-  const merged = reconcileImageHistory([fresh, ready], [{ ...ready, state: 'queued' }], new Set(['two']));
+  const merged = reconcileHistory([fresh, ready], [{ ...ready, state: 'queued' }], new Set(['two']));
   assert.deepEqual(merged, [fresh, ready]);
-  assert.deepEqual(reconcileImageHistory([fresh], [], new Set()), []);
+  assert.deepEqual(reconcileHistory([fresh], [], new Set()), []);
 });
 
 test('image events and export responses are guarded before use', async () => {

@@ -33,6 +33,7 @@ from transport.compatibility import CompatibilityTransport
 from services.settings import SettingsService, SettingsStore
 from transport.settings import SettingsTransport
 from transport.lifecycle import LifecycleTransport
+from transport.contracts import UI_CONTRACT_VERSION
 from transport.confirmations import ConfirmationTransport
 from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
@@ -165,7 +166,7 @@ class Application:
             summary = (
                 status_summary() if status_summary else {"status": "running", "text_ready": True}
             )
-            return {**summary, "instance_id": instance_id, "resources": resources.snapshot()}
+            return {**summary, "instance_id": instance_id, "resources": resources.snapshot(), "ui_contract_version": UI_CONTRACT_VERSION}
 
     def authorize_owner(self, context):
         from services.tools import ServiceError

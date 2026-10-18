@@ -5,7 +5,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { Box, Rotate3D } from 'lucide-react';
 import socket from '../../services/socket';
-import { artifactBytes, cadRpc } from './client';
+import { artifactBytes } from './client';
+import { createCadClient } from '../../transport/cadClient.ts';
+import useStore from '../../store';
 function Controls() {
   const {
     camera,
@@ -54,16 +56,18 @@ export default function ModelPreview({
   job,
   wireframe
 }) {
+  const connected = useStore(state => state.backendConnected);
   const [geometry, setGeometry] = useState(null),
     [loadedFor, setLoadedFor] = useState(null),
     [error, setError] = useState('');
   useEffect(() => {
+    const client = createCadClient(socket);
     let alive = true,
       model;
     setGeometry(null);
     setError('');
-    if (job?.state === 'succeeded') {
-      cadRpc(socket, 'cad_artifact', {
+    if (job?.state === 'succeeded' && connected) {
+      client.call('cad_artifact', {
         request_id: job.request_id,
         format: 'glb'
       }).then(async ({
@@ -91,9 +95,10 @@ export default function ModelPreview({
     }
     return () => {
       alive = false;
+      client.dispose();
       disposeModel(model);
     };
-  }, [job?.request_id, job?.state]);
+  }, [job?.request_id, job?.state, connected]);
   const visibleGeometry = loadedFor === job?.request_id && job?.state === 'succeeded' ? geometry : null;
   return <div className="cad-viewport" data-model-loaded={!!visibleGeometry}>
     <div className="cad-view-label"><span className="status-dot" /><span>PERSPECTIVE / {wireframe ? 'WIREFRAME' : 'SOLID'}{job?.recipe && ` · ${job.recipe.shape.toUpperCase()}`}</span></div>

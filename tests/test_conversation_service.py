@@ -212,7 +212,7 @@ async def test_socket_text_contract_no_audio(monkeypatch, tmp_path, application_
     await runtime.conversation_transport.user_input("client", {"text": "Hello"})
     assert (
         "transcription",
-        {"sender": "INARA", "text": "Text is ready.", "request_id": emitted[1][1]["request_id"]},
+        {"sender": "INARA", "text": "Text is ready.", "request_id": emitted[1][1]["request_id"], "conversation_id": emitted[1][1]["conversation_id"], "project": tmp_path.name},
         "client",
     ) in emitted
     assert emitted[0][1]["state"] == "processing"

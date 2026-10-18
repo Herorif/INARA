@@ -14,6 +14,7 @@ export const createChatSlice = (set, get) => ({
     messages: [],
     inputValue: '',
     textProcessing: false,
+    pendingTextRequest: null,
     conversationId: conversationForProject('temp'),
     conversationRestoring: false,
 
@@ -50,13 +51,16 @@ export const createChatSlice = (set, get) => ({
         });
     },
 
-    handleSend: (e) => {
-        if (e.key === 'Enter' && !e.isComposing && get().inputValue.trim()
-            && get().backendConnected && !get().textProcessing && !get().conversationRestoring) {
-            emitSocket('user_input', { text: get().inputValue,
-                conversation_id: get().conversationId, request_id: crypto.randomUUID() });
-            get().addMessage('You', get().inputValue);
-            set({ inputValue: '', textProcessing: true });
-        }
+    sendText: text => {
+        if (!text?.trim() || !get().backendConnected || get().textProcessing || get().conversationRestoring) return false;
+        const request_id = crypto.randomUUID();
+        if (!emitSocket('user_input', { text, conversation_id: get().conversationId, request_id })) return false;
+        set({ pendingTextRequest: request_id });
+        get().addMessage('You', text);
+        set({ textProcessing: true });
+        return true;
+    },
+    handleSend: e => {
+        if (e.key === 'Enter' && !e.isComposing && get().sendText(get().inputValue)) set({ inputValue: '' });
     },
 });

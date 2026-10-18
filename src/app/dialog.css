@@ -1,0 +1,79 @@
+.dialog-backdrop {
+  position:fixed;
+  inset:0;
+  z-index:120;
+  background:#050914c9;
+  backdrop-filter:blur(10px);
+  display:grid;
+  place-items:center;
+  padding:24px
+}
+.feature-dialog {
+  width:min(960px,100%);
+  height:min(820px,88dvh);
+  background:#0e1725;
+  border:1px solid #7de5ed26;
+  border-radius:20px;
+  box-shadow:0 20px 100px #0008;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  outline:none
+}
+.feature-dialog>header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:20px 25px;
+  border-bottom:1px solid var(--deck-border)
+}
+.feature-dialog h2 {
+  font-size:1.25rem;
+  font-weight:450;
+  margin:6px 0 0
+}
+.icon-button {
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  color:#9aafc5;
+  background:#ffffff04;
+  border:1px solid #ffffff08;
+  border-radius:9px
+}
+.icon-button:hover {
+  color:white;
+  background:#ffffff0a
+}
+.legacy-panel {
+  flex:1;
+  min-height:0;
+  position:relative;
+  overflow:auto
+}
+.legacy-panel>div {
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;
+  top:auto!important;
+  transform:none!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  border-radius:0!important;
+  box-shadow:none!important
+}
+.legacy-panel>div>div {
+  max-width:100%
+}
+.panel-empty {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  height:100%;
+  min-height:150px;
+  color:#829ab3;
+  font-size:0.8125rem
+}

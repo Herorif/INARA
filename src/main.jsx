@@ -12,3 +12,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <App />
     </React.StrictMode>,
 )
+
+// Release only this app bridge during hot module replacement.
+if (import.meta.hot) import.meta.hot.dispose(() => cleanupSocket());

@@ -23,7 +23,7 @@ for key, name in [
     os.environ[key] = str(output / name)
 os.environ["GEMINI_API_KEY"] = "changeme"  # Never use a real key in this verification.
 os.environ.pop("ELECTRON_RUN_AS_NODE", None)
-(output / "settings.json").write_text(json.dumps({"tool_permissions": {"generate_cad": False}}))
+(output / "settings.json").write_text(json.dumps({"tool_permissions": {"generate_cad": True}}))
 from resident.host import NativeHost  # noqa: E402
 from resident.state import Identity  # noqa: E402
 from resident.win32 import WorkspaceProcess, api, kernel  # noqa: E402

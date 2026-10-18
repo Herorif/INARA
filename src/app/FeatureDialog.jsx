@@ -1,6 +1,9 @@
-import React, { lazy, Suspense, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useRef } from 'react';
 import PanelHeader from './PanelHeader';
 import PanelState from './PanelState';
+import { labels } from './features';
+import { useDialogFocus } from './useDialogFocus';
+import useStore from '../store';
 const panels = {
   image: lazy(() => import('../features/images/ImageStudio')),
   cad: lazy(() => import('../features/cad/CadStudio')),
@@ -15,21 +18,6 @@ const panels = {
   device: lazy(() => import('../components/DeviceWindow')),
   settings: lazy(() => import('../components/SettingsWindow')),
   camera: lazy(() => import('../features/vision/CameraPanel'))
-};
-const labels = {
-  cad: '3D studio',
-  image: 'Image atelier',
-  browser: 'Research browser',
-  kasa: 'Smart home',
-  printer: 'Print workshop',
-  phone: 'Phone controls',
-  reminder: 'Reminders',
-  desktop: 'Desktop controls',
-  vision: 'Scene watches',
-  device: 'Connected devices',
-  settings: 'Preferences',
-  camera: 'Vision studio',
-  routines: 'Routine manager'
 };
 class PanelBoundary extends React.Component {
   state = {
@@ -48,45 +36,17 @@ export default function FeatureDialog({
   feature,
   onClose
 }) {
+  const connected = useStore(state => state.backendConnected);
   const dialog = useRef(null);
   const Panel = panels[feature];
-  useEffect(() => {
-    const previous = document.activeElement;
-    dialog.current?.focus();
-    const onKey = event => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-      }
-      if (event.key === 'Tab') {
-        const items = [...dialog.current.querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(el => el.getClientRects().length);
-        const first = items[0],
-          last = items.at(-1);
-        if (!first) {
-          event.preventDefault();
-          return;
-        }
-        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      previous?.focus();
-    };
-  }, [onClose]);
+  useDialogFocus(dialog, onClose);
   if (!Panel) return null;
   return <div className="dialog-backdrop" onMouseDown={event => {
     if (event.target === event.currentTarget) onClose();
   }}>
         <section ref={dialog} className={`feature-dialog ${feature === 'cad' ? 'cad-dialog' : feature === 'image' ? 'image-dialog' : ''}`} role="dialog" aria-modal="true" aria-labelledby="feature-title" tabIndex={-1}>
             <PanelHeader title={labels[feature]} onClose={onClose} />
+            {!connected && !['camera','cad','image'].includes(feature) && <PanelState compact kind="offline" title="Core offline" detail="Reconnect before using assistant actions. Offline clicks are not queued for later." />}
             <div className={`legacy-panel ${feature === 'camera' ? 'camera-host' : ''}`}>
                 <PanelBoundary key={feature}><Suspense fallback={<PanelState kind="loading" title="Preparing your workspace" detail="Bringing the tools you need into focus." />}>
                     <Panel position={{

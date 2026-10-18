@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, ArrowUpRight, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import CoreOrb from './CoreOrb';
@@ -7,22 +7,12 @@ import FeatureDialog from './FeatureDialog';
 import ReminderAlert from '../components/ReminderAlert';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import './workspace.css';
+import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
+import { flags, heavyFeatures } from './features';
+const CommandPalette = lazy(() => import('./CommandPalette'));
+const ActivityCenter = lazy(() => import('./ActivityCenter'));
+import PanelState from './PanelState';
 const AuthLock = lazy(() => import('../components/AuthLock'));
-const flags = {
-  cad: 'showCadWindow',
-  image: 'showImageStudio',
-  browser: 'showBrowserWindow',
-  kasa: 'showKasaWindow',
-  printer: 'showPrinterWindow',
-  phone: 'showPhoneWindow',
-  reminder: 'showReminderWindow',
-  desktop: 'showDesktopWindow',
-  vision: 'showVisionWindow',
-  device: 'showDeviceWindow',
-  settings: 'showSettings',
-  routines: 'showRoutineWindow'
-};
-const heavyFeatures = new Set(['cad', 'image', 'camera', 'browser', 'vision']);
 function Clock() {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
@@ -98,6 +88,8 @@ function FeatureCard({
         <span className="feature-tag">{tag}</span><strong>{title}</strong><p>{description}</p><span className="feature-arrow"><ArrowUpRight size={20} /></span></button>;
 }
 export default function CommandDeck() {
+  const [commands, setCommands] = useState(false);
+  const closeCommands = useCallback(() => setCommands(false), []);
   const [page, setPage] = useState('assistant'),
     [camera, setCamera] = useState(false);
   const [resident, setResident] = useState({
@@ -145,8 +137,9 @@ export default function CommandDeck() {
   useEffect(() => {
     if (gaming) closeFeature();
   }, [gaming, closeFeature]);
-  const openFeature = (feature, heavy = heavyFeatures.has(feature)) => {
-    if (gaming && heavy) return;
+  const openFeature = (feature, heavy = heavyFeatures.has(feature), requestId = null) => {
+    if (locked || (gaming && heavy)) return;
+    useStore.setState({ studioSelection: requestId ? { feature, requestId, project: currentProject } : null });
     closeFeature();
     if (heavy) emitSocket('set_resource_state', {
       state: 'studio'
@@ -177,8 +170,18 @@ export default function CommandDeck() {
       state: value ? 'gaming' : 'chat'
     });
   };
+  useEffect(() => {
+    const key = event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !activeFeature && !locked) {
+        event.preventDefault(); setCommands(value => !value);
+      }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [activeFeature, locked]);
+  useEffect(() => { if (locked) setCommands(false); }, [locked]);
   const pending = reminders.filter(r => r.status === 'pending' || r.status === 'snoozed');
-  return <div className={`command-deck ${gaming ? 'gaming-mode' : ''}`} data-resource-state={resource.state}>
+  return <div className={`command-deck ${gaming ? 'gaming-mode' : ''}`} data-resource-state={resource.state} data-ui-contract-version={UI_CONTRACT_VERSION}>
         <a href="#main-workspace" className="skip-link">Skip to workspace</a>
         <header className="titlebar"><div className="brand"><span className="brand-symbol">i</span><span>INARA<span className="brand-sub">PERSONAL INTELLIGENCE</span></span></div>
             <div className="titlebar-center"><span className={`status-dot ${connected ? '' : 'offline'}`} />{connected ? 'SYSTEM ONLINE' : 'CONNECTING'}<span className="title-divider" /> COMMAND DECK</div>
@@ -186,7 +189,7 @@ export default function CommandDeck() {
                 <button aria-label="Maximize window" onClick={() => window.electronAPI?.maximize()}><Maximize2 size={14} /></button>
                 <button aria-label="Close to tray" title="Close workspace; INARA stays in the tray" onClick={() => window.electronAPI?.close()}><X size={18} /></button></div></header>
         <div className="deck-layout"><aside className="navigation"><div className="nav-caption">WORKSPACE</div>
-            <nav aria-label="Main navigation">{[['assistant', LayoutDashboard, 'Command'], ['studio', Layers3, 'Studio'], ['devices', Cpu, 'Connections']].map(([key, Icon, label]) => <button key={key} className={page === key ? 'selected' : ''} aria-label={label} title={label} aria-current={page === key ? 'page' : undefined} onClick={() => setPage(key)}><Icon size={19} /><span>{label}</span>{page === key && <span className="nav-active-mark" />}</button>)}</nav>
+            <nav aria-label="Main navigation">{[['assistant', LayoutDashboard, 'Command'], ['studio', Layers3, 'Studio'], ['devices', Cpu, 'Connections'], ['activity', History, 'Activity']].map(([key, Icon, label]) => <button key={key} className={page === key ? 'selected' : ''} aria-label={label} title={label} aria-current={page === key ? 'page' : undefined} onClick={() => setPage(key)}><Icon size={19} /><span>{label}</span>{page === key && <span className="nav-active-mark" />}</button>)}</nav>
             <div className="nav-project"><span className="eyebrow">CURRENT PROJECT</span><span><Box size={16} />{currentProject || 'temp'}</span><small>Context kept across sessions</small></div>
             <div className="nav-bottom"><button aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={19} /><span>Gaming mode</span><span className="toggle-switch" /></button>
                 <button aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={19} /><span>Preferences</span></button>
@@ -194,10 +197,10 @@ export default function CommandDeck() {
                 <div className="resident-note"><span className="status-dot" />{window.electronAPI ? 'Always within reach' : 'Browser preview'}<small>{resident.hotkeyReady ? 'CTRL + SHIFT + SPACE' : window.electronAPI ? 'REOPEN FROM SYSTEM TRAY' : 'DESKTOP MODE IN ELECTRON'}</small></div></div>
         </aside>
         <main id="main-workspace" className="workspace" tabIndex={-1}>
-            <div className="workspace-top"><span className="breadcrumb">WORKSPACE <ChevronRight size={12} /><strong>{page === 'assistant' ? 'Command' : page === 'studio' ? 'Studio' : 'Connections'}</strong></span><Clock /></div>
+            <div className="workspace-top"><span className="breadcrumb">WORKSPACE <ChevronRight size={12} /><strong>{page === 'assistant' ? 'Command' : page === 'studio' ? 'Studio' : page === 'activity' ? 'Activity' : 'Connections'}</strong></span><button className="command-trigger" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={15} /><span>Find a tool</span><kbd>Ctrl K</kbd></button><Clock /></div>
             {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}
             {gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} /> Gaming mode active. Creative tools and camera are paused; text and reminders remain available.</div>}
-            {page === 'assistant' ? <>
+            {page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Preparing your activity" />}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)} /></Suspense> : page === 'assistant' ? <>
                 <section className="hero"><div className="hero-copy"><div className="eyebrow"><span className="tiny-line" /> A MIND FOR YOUR EVERYDAY</div>
                     <h1>Ready when<br /><span>you are.</span></h1><p>From the smallest task to your next big idea.<br className="desktop-break" /> Let’s make room for what matters.</p>
                     <div className="hero-actions"><button className="primary-button" onClick={() => setPage('studio')}>Explore Studio <ArrowUpRight size={16} /></button>
@@ -245,6 +248,7 @@ export default function CommandDeck() {
             <footer className="workspace-footer"><span>INARA <span className="footer-separator">/</span> YOUR PERSONAL INTELLIGENCE</span><span><span className="status-dot" /> {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span></footer>
         </main></div>
         {activeFeature && <FeatureDialog key={activeFeature} feature={activeFeature} onClose={closeFeature} />}
+        {commands && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={feature => feature === 'activity' ? setPage('activity') : openFeature(feature)} gaming={gaming} /></Suspense>}
         <ReminderAlert /><ConfirmationPopup />{locked && <Suspense fallback={null}><AuthLock /></Suspense>}
     </div>;
 }
