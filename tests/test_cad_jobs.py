@@ -79,7 +79,7 @@ def test_dimensions_and_code_like_arguments_are_rejected(args):
 def service(tmp_path, factory=None, timeout=30):
     project = tmp_path / "project"
     project.mkdir(exist_ok=True)
-    governor = ResourceGovernor()
+    governor = ResourceGovernor(probe=lambda: {"cpu_count": 8, "ram_available_mb": 16000, "vram_mb": None})
     instance = CadService(
         Database(tmp_path / "database"), governor, process_factory=factory, timeout=timeout
     )
@@ -109,7 +109,7 @@ async def test_real_owned_worker_exports_and_completed_duplicate_never_replays(t
         assert len(base64.b64decode(artifact["data"])) == artifact["bytes"]
     other = CadService(
         instance.database,
-        ResourceGovernor(),
+        ResourceGovernor(probe=lambda: {"cpu_count": 8, "ram_available_mb": 16000, "vram_mb": None}),
         process_factory=lambda *_: pytest.fail("Replayed completed job"),
     )
     assert (await other.start(args, context))["state"] == "succeeded"
@@ -162,8 +162,10 @@ async def test_cancel_gaming_shutdown_timeout_release_worker_and_temporary_files
     args = BuildRequest()
     await instance.start(args, context)
     await asyncio.sleep(0.01)
-    with pytest.raises(ServiceError, match="already running"):
-        await instance.start(BuildRequest(), context)
+    waiting = BuildRequest()
+    assert (await instance.start(waiting, context))["state"] == "queued"
+    assert len(processes) == 1
+    await instance.cancel("owner", context["project_path"], waiting.request_id)
     if stop == "cancel":
         await instance.cancel("owner", context["project_path"], args.request_id)
     elif stop == "gaming":

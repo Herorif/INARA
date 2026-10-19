@@ -1,3 +1,4 @@
+from services.capability_profiles import model_id
 import asyncio
 import base64
 import io
@@ -23,7 +24,7 @@ SEND_SAMPLE_RATE = 16000
 RECEIVE_SAMPLE_RATE = 24000
 CHUNK_SIZE = 1024
 
-MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025"
+MODEL = model_id("voice")
 DEFAULT_MODE = "camera"
 
 load_dotenv()

@@ -57,3 +57,7 @@ export type MeshStats = {
 export type JobRequest = {
   "request_id": string;
 };
+export type JobLifetime = {
+  "request_id": string;
+  "background": boolean;
+};

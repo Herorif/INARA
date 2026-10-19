@@ -1,5 +1,5 @@
 {
-  "checkpoint": "R2c retired duplicate voice paths; R3 UI/RPC consolidation next",
+  "checkpoint": "R4 capability diagnostics, bounded creative queue and explicit panel lifetime",
   "socket_routes": {
     "acknowledge_reminder": {
       "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
@@ -572,6 +572,39 @@
       "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
       "replacement": "WorkspaceService / WorkspaceTransport",
       "status": "migrated-envelope"
+    },
+    "capability_diagnostics": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Registry owner and captured project",
+      "effects": "Read-only diagnostics",
+      "policy": "Owner/renderer gate; no new generation or implicit provider calls",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "On-demand cached OS counters; no device probing",
+      "replacement": "CapabilityCenter",
+      "status": "migrated"
+    },
+    "cad_lifetime": {
+      "schema": "JobLifetime (UUID and strict background boolean; extras forbidden)",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Registry owner and captured project",
+      "effects": "Change active scoped job panel lifetime",
+      "policy": "Owner/renderer gate; no new generation or implicit provider calls",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel continuation only; disconnect, workspace/core close and gaming still cancel",
+      "replacement": "CreativeTransport / CreativeJobService",
+      "status": "migrated"
+    },
+    "image_lifetime": {
+      "schema": "JobLifetime (UUID and strict background boolean; extras forbidden)",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Registry owner and captured project",
+      "effects": "Change active scoped job panel lifetime",
+      "policy": "Owner/renderer gate; no new generation or implicit provider calls",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel continuation only; disconnect, workspace/core close and gaming still cancel",
+      "replacement": "CreativeTransport / CreativeJobService",
+      "status": "migrated"
     }
   },
   "http_routes": {

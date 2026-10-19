@@ -9,6 +9,8 @@ export function recordActivity(entries, kind, job, project) {
     created_at: job.created_at || old?.created_at,
     artifacts: job.artifacts ? Object.keys(job.artifacts) : old?.artifacts || [],
     error: job.error,
+    background: job.background === true,
+    resources: job.resources,
   });
   return [merged, ...entries.filter(item => item.key !== key)].slice(0, 48);
 }

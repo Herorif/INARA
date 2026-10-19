@@ -10,6 +10,7 @@ import { reconcileHistory } from '../../transport/history.ts';
 import PanelState from '../../app/PanelState';
 import RevisionHistory from '../../app/RevisionHistory';
 import JobStatus from '../../app/JobStatus';
+import JobLifetime from '../../app/JobLifetime';
 import Field from '../../app/Field';
 import './cad.css';
 const LegacyCad = lazy(() => import('../../components/CadWindow'));
@@ -274,7 +275,7 @@ function CadSession({ project }) {
       <section className="cad-workbench" aria-label="Model and exports">
         <div className="cad-preview-top"><span className="eyebrow">02 / EXPLORE</span><button className="text-button" aria-pressed={wireframe} onClick={() => setWireframe((value) => !value)}><Layers3 size={14} />{wireframe ? 'Show solid' : 'Wireframe'}</button></div>
         <ModelPreview job={job} wireframe={wireframe} />
-        <JobStatus className="cad-status" title={phases[job?.phase] || 'Ready to build'} subtitle={job?.state === 'succeeded' ? 'Revision saved to your project.' : 'Each build creates a separate revision.'} ready={job?.state === 'succeeded'} busy={busy} />
+        <JobLifetime job={job} connected={connected} onChange={async background => { try { const response = await rpc('cad_lifetime', { request_id: job.request_id, background }); accept(response.job); } catch (failure) { setError(failure.message); } }} /><JobStatus className="cad-status" title={phases[job?.phase] || 'Ready to build'} subtitle={job?.state === 'succeeded' ? 'Revision saved to your project.' : 'Each build creates a separate revision.'} ready={job?.state === 'succeeded'} busy={busy} />
         {job?.stats && <div className="cad-stats"><div><span>Dimensions</span><strong>{job.recipe.shape === 'scene' ? job.stats.bounds_mm[1].map((value, i) => (value - job.stats.bounds_mm[0][i]).toFixed(1)).join(' × ') : `${job.recipe.width} × ${job.recipe.depth} × ${job.recipe.height}`}<small> mm</small></strong></div><div><span>{job.recipe.shape === 'scene' ? 'Parts volume (sum)' : 'Volume'}</span><strong>{(job.stats.volume_mm3 / 1000).toFixed(2)}<small> cm³</small></strong></div><div><span>Mesh</span><strong>{job.stats.triangles}<small> triangles</small></strong></div><div><span>Topology</span><strong>{job.recipe.shape === 'scene' ? `${job.recipe.objects.length} closed parts` : 'Watertight'}</strong></div></div>}
         <div className="cad-export"><div><span className="eyebrow">03 / TAKE IT FURTHER</span><p>STL for fabrication · GLB for Blender and other 3D apps</p></div><div>{['stl', 'glb', 'json', ...(job?.artifacts?.blend ? ['blend', 'png'] : [])].map((format) => <button key={format} disabled={!connected || job?.state !== 'succeeded' || !!exporting} onClick={() => download(format)}>{exporting === format ? <Loader2 size={14} className="cad-spinner" /> : <Download size={14} />}{format === 'json' ? 'Recipe' : format.toUpperCase()}</button>)}</div></div>
       </section>

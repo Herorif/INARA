@@ -158,7 +158,7 @@ def verify():
         result["ui"] = json.loads((output / "ui-verification.json").read_text())
         assert result["ui"]["passed"], result["ui"]
         until(lambda: host.workspace is None and not application.images.active)
-        assert len(worker_pids) == 3
+        assert len(worker_pids) == 4
         for pid in worker_pids:
             handle = api(kernel, "OpenProcess", [W.DWORD, W.BOOL, W.DWORD], W.HANDLE)(
                 0x100000, False, pid

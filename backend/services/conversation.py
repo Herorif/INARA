@@ -1,8 +1,8 @@
 """Typed conversations independent of microphone, audio session and UI lifetime."""
 
+from services.capability_profiles import model_id, provider_key
 import asyncio
 import json
-import os
 import uuid
 from dataclasses import dataclass, field
 from typing import Literal
@@ -38,19 +38,14 @@ class Conversation:
 
 def create_text_provider():
     # SDK and credentials are touched only on a request, never during server startup.
-    key = (os.getenv("GEMINI_API_KEY") or "").strip()
-    if not key or key.lower() in {
-        "your_api_key_here",
-        "your_gemini_key",
-        "your_gemini_api_key_here",
-        "changeme",
-    }:
+    key = provider_key()
+    if not key:
         raise ServiceError(
             "provider_not_configured", "Set GEMINI_API_KEY in .env to enable AI text conversation."
         )
     from llm.gemini import GeminiProvider
 
-    return GeminiProvider(api_key=key, model=os.getenv("INARA_TEXT_MODEL", "gemini-3.8-flash"))
+    return GeminiProvider(api_key=key, model=model_id("text"))
 
 
 class ConversationService:

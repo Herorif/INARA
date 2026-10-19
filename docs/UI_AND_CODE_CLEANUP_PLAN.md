@@ -204,3 +204,7 @@ R2b2 update: `services/settings.py` and `transport/settings.py` own validated at
 ## R3 implementation outcome ? 19 October 2026
 
 R3 is implemented as one milestone: generated/versioned CAD/image contracts, checked transport TypeScript, shared request/history lifetime, separate feature event registrars, shared JARVIS panels/fields/progress/approvals, embedded control interiors, searchable commands and a project Activity/artifact view. Existing JavaScript remains supported and the optional legacy CAD viewer is retained. [Acceptance, screenshots and limits](R3_UI_RPC.md). R4 capabilities/resource reservations is next.
+
+## R4 completed
+
+Capability/setup diagnostics, shared fixed model/worker profiles, bounded FIFO creative admission with CPU/RAM/VRAM estimates, explicit per-job background continuation, and queue/process release are implemented. OS probes are on demand and do not import heavy models. Panel-close cancellation remains the default; workspace/core closure and gaming still stop background work. [Implementation, verification and deferred hardware acceptance](R4_RESOURCE_LIFETIME.md). The next whole milestone is R5 Creative Studio v2.

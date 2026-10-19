@@ -343,3 +343,15 @@ async def test_exact_installed_profile_selection_is_snapshotted(printing, tmp_pa
     plan = app.printing.slicer.run.await_args.args[0]
     assert plan.profile.is_relative_to(context["project_path"])
     assert plan.profile.read_text() == '{"fixture":true}'
+
+
+@pytest.mark.asyncio
+async def test_creative_reservation_blocks_print_before_slicing(printing):
+    app, context, _ = printing
+    app.resources.reservations[("fixture", "job")] = {"profile": "cad_offline"}
+    with pytest.raises(ServiceError) as error:
+        await run(app, context)
+    assert error.value.code == "creative_busy"
+    app.printing.slicer.run.assert_not_called()
+    app.compat_service.printer.upload_gcode.assert_not_called()
+    app.resources.reservations.clear()

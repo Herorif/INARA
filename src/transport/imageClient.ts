@@ -1,6 +1,6 @@
 import { isArtifact, isJobUpdate } from './guards.ts';
 import { RpcError, createRpcScope, type RpcSocket } from './rpc.ts';
-import type { ImageRequest, ImageArtifactRequest, ImageRecipe, ImageStats, JobRequest } from './generated/image.ts';
+import type { ImageRequest, ImageArtifactRequest, ImageRecipe, ImageStats, JobRequest, JobLifetime } from './generated/image.ts';
 export type ImageJob = {
   request_id: string; project: string; state: string; phase: string;
   recipe?: ImageRecipe; stats?: ImageStats; error?: string;
@@ -11,6 +11,7 @@ export interface ImageCalls {
   image_submit: { request: ImageRequest; result: { job: ImageJob } };
   image_cancel: { request: JobRequest; result: { job: ImageJob } };
   image_artifact: { request: ImageArtifactRequest; result: { artifact: ImageArtifact } };
+  image_lifetime: { request: JobLifetime; result: { job: ImageJob } };
   image_close: { request: Record<string, never>; result: Record<string, unknown> };
 }
 export function createImageClient(socket: RpcSocket) {
@@ -31,7 +32,7 @@ export function createImageClient(socket: RpcSocket) {
           throw new RpcError('Revision history could not be read. Refresh to try again.', 'invalid_response', true);
         }
       }
-      if (event === 'image_submit' || event === 'image_cancel') {
+      if (event === 'image_submit' || event === 'image_cancel' || event === 'image_lifetime') {
         if (!isJobUpdate((result as { job: unknown }).job)) throw new RpcError('The core returned an invalid revision. Refresh history.', 'invalid_response', true);
       }
       if (event === 'image_artifact') {

@@ -10,6 +10,7 @@ import sys
 import time
 import uuid
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from services.capability_profiles import worker_profile
 from services.storage import scope_hash, StorageError
 from services.tools import ServiceError, contained_path
 
@@ -114,6 +115,9 @@ class CreativeJobService:
                 "error",
                 "stats",
                 "artifacts",
+                "resources",
+                "background",
+                "duration_seconds",
             )
             if key in value
         }
@@ -139,6 +143,13 @@ class CreativeJobService:
         recipe = self.recipe_model.model_validate(
             args.model_dump(exclude={"request_id"})
         ).model_dump()
+        # The lock is otherwise held by legacy/print workflows. Reject rather
+        # than building an unbounded second queue outside the owned reservations.
+        if self.lock.locked():
+            raise ServiceError(
+                "worker_busy",
+                "A legacy creative or print workflow is active. Wait for it to finish.",
+            )
         async with self.lock:
             previous = self.load(owner, project, key)
             if previous:
@@ -149,9 +160,15 @@ class CreativeJobService:
                 return self.public(previous)
             self.governor.require_heavy()
             backend = self.admit(recipe)
-            if self.governor.creative_active:
+            profile = worker_profile(
+                self.namespace,
+                recipe,
+                getattr(self, "expected_backend", None) == "verification_fixture",
+            )
+            self.governor.check(profile)
+            if len(self.governor.reservations) >= self.governor.max_jobs:
                 raise ServiceError(
-                    "worker_busy", "One creative build is already running. Wait or cancel it first."
+                    "worker_busy", "The creative queue is full. Cancel a job or wait."
                 )
             kind = self.kind(owner, project)
             with self.database.transaction() as db:
@@ -179,23 +196,39 @@ class CreativeJobService:
                     "error": None,
                 }
                 self.database.put(db, kind, key, value)
+            try:
+                reservation = self.governor.reserve((kind, key), profile)
+            except ServiceError as exc:
+                value.update(state="failed", phase="stopped", error=str(exc))
+                self.save(owner, project, value)
+                raise
+            value.update(resources=reservation, background=False)
+            try:
+                self.save(owner, project, value)
+            except Exception:
+                self.governor.release((kind, key))
+                raise
             running = {
                 "owner": owner,
                 "project": project,
                 "cancel": asyncio.Event(),
                 "process": None,
                 "backend": backend,
+                "background": False,
+                "value": value,
                 "key": (kind, key),
             }
             self.active[running["key"]] = running
-            self.governor.creative_active[running["key"]] = running
             running["task"] = asyncio.create_task(self.run(value, running))
-            return self.public(value)
+        await self.publish(owner, value)
+        return self.public(value)
 
     async def run(self, value, running):
         owner, project = running["owner"], running["project"]
         staging = None
+        started = time.monotonic()
         try:
+            await self.governor.acquire(running["key"], running["cancel"])
             staging = contained_path(project, f"{self.artifact_root}/.work/{uuid.uuid4()}")
             staging.parent.mkdir(parents=True, exist_ok=True)
             staging = contained_path(project, str(staging.relative_to(project)))
@@ -221,8 +254,10 @@ class CreativeJobService:
             value.update(state="running", phase="building")
             self.save(owner, project, value)
             await self.publish(owner, value)
-            deadline = time.monotonic() + self.deadline_seconds(value["recipe"])
+            previous = time.monotonic()
+            deadline = previous + self.deadline_seconds(value["recipe"])
             while running["process"].alive():
+                previous = self.governor.poll(previous)
                 if running["cancel"].is_set() or self.governor.state in ("gaming", "resident"):
                     raise ServiceError(
                         "job_cancelled", "Build cancelled; worker resources released."
@@ -243,6 +278,7 @@ class CreativeJobService:
                         value["phase"] = phase
                         await self.publish(owner, value)
                 await asyncio.sleep(0.05)
+            self.governor.poll(previous)
             # Close the entire owned tree before publishing any completed artifact.
             exit_code = running["process"].exit_code()
             running["process"].close()
@@ -287,7 +323,11 @@ class CreativeJobService:
             )
         except ServiceError as exc:
             value.update(
-                state="cancelled" if exc.code == "job_cancelled" else "failed",
+                state="cancelled"
+                if exc.code == "job_cancelled"
+                else "interrupted"
+                if exc.code == "job_interrupted"
+                else "failed",
                 phase="stopped",
                 error=str(exc),
             )
@@ -299,7 +339,20 @@ class CreativeJobService:
             )
         finally:
             if running["process"]:
-                running["process"].close()
+                try:
+                    running["process"].close()
+                except Exception:
+                    value.update(
+                        state="failed",
+                        phase="stopped",
+                        error="Worker cleanup failed; restart the core before more creative work.",
+                    )
+                    self.governor.fault = (
+                        "Worker cleanup failed. Restart the core before more heavy work."
+                    )
+                    self.governor.select("resident")
+            value["background"] = running["background"]
+            value["duration_seconds"] = round(time.monotonic() - started, 3)
             if (
                 staging
                 and staging.resolve() == staging
@@ -336,7 +389,7 @@ class CreativeJobService:
                 )
             finally:
                 self.active.pop(running["key"], None)
-                self.governor.creative_active.pop(running["key"], None)
+                self.governor.release(running["key"])
             await self.publish(owner, value)
 
     async def cancel(self, owner, project, request_id):
@@ -350,11 +403,25 @@ class CreativeJobService:
             await running["task"]
         return self.public(self.load(owner, project, key))
 
-    async def cancel_owner(self, owner):
+    async def set_background(self, owner, project, request_id, enabled):
+        key = (self.kind(owner, project), str(request_id))
+        running = self.active.get(key)
+        if not running or running["owner"] != owner:
+            raise ServiceError("job_missing", "This job is no longer active in this project.")
+        value = {**running["value"], "background": enabled}
+        self.save(owner, project, value)
+        running["background"] = enabled
+        running["value"]["background"] = enabled
+        await self.publish(owner, value)
+        return self.public(value)
+
+    async def cancel_owner(self, owner, panel_only=False):
+        tasks = []
         for running in tuple(self.active.values()):
-            if running["owner"] == owner:
+            if running["owner"] == owner and not (panel_only and running["background"]):
                 running["cancel"].set()
-                await running["task"]
+                tasks.append(running["task"])
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     async def close(self):
         tasks = []

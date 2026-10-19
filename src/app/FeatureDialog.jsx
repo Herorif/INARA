@@ -5,6 +5,7 @@ import { labels } from './features';
 import { useDialogFocus } from './useDialogFocus';
 import useStore from '../store';
 const panels = {
+  capabilities: lazy(() => import('./CapabilityCenter')),
   image: lazy(() => import('../features/images/ImageStudio')),
   cad: lazy(() => import('../features/cad/CadStudio')),
   browser: lazy(() => import('../components/BrowserWindow')),

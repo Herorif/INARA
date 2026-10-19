@@ -16,6 +16,17 @@ BrowserWindow.prototype.loadFile=async function(...args){
  try {
   await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
   assert.equal(requests.some(url=>/ImageStudio/.test(url)),false);
+  await evaluate(`[...document.querySelectorAll('button')].find(button=>button.textContent.includes('Capability center / diagnostics')).click()`);
+  await until(()=>evaluate(`document.querySelectorAll('.capability-card').length===7`));
+  assert.equal(await evaluate(`document.querySelector('.capability-telemetry').textContent.includes('Unknown')`),true);
+  await screenshot('capabilities-desktop.png');
+  window.setContentSize(390,900);await sleep(200);
+  assert.equal(await evaluate(`document.documentElement.scrollWidth>innerWidth || document.querySelector('.capability-center').scrollWidth>document.querySelector('.capability-center').clientWidth`),false);
+  await screenshot('capabilities-mobile.png');
+  window.setContentSize(1440,900);
+  await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+  result.capability_center_desktop_mobile_unknown_hardware=true;
+
   await evaluate(`document.querySelectorAll('nav button')[1].click()`);
   await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.textContent.includes('Image atelier'))`));
   await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Image atelier')).click()`);
@@ -83,6 +94,16 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await setField('.image-director textarea','WAIT FOR CANCELLATION');
   await evaluate(`document.querySelector('.image-generate').click()`);
   await until(()=>evaluate(`document.querySelector('.image-result-status strong')?.textContent==='Bringing your idea into focus'`));
+
+  assert.equal(await evaluate(`document.querySelector('.job-lifetime input').checked`),false);
+  await evaluate(`document.querySelector('.job-lifetime input').click()`);
+  await until(()=>evaluate(`document.querySelector('.job-lifetime input').checked && !document.querySelector('.job-lifetime input').disabled`));
+  await evaluate(`document.querySelector('[aria-label="Close panel"]').click();document.querySelector('nav [aria-label="Activity"]').click()`);
+  await until(()=>evaluate(`[...document.querySelectorAll('.activity-card')].some(card=>card.textContent.includes('running')&&card.textContent.includes('BACKGROUND / WORKSPACE LIFETIME'))`));
+  await screenshot('background-activity.png');
+  await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.textContent.includes('running')).querySelector('footer button').click()`);
+  await until(()=>evaluate(`document.querySelector('.job-lifetime input')?.checked && !document.querySelector('.image-cancel').disabled`));
+  result.explicit_background_survives_panel_close_and_restores=true;
   await evaluate(`document.querySelector('.image-cancel').click()`);
   await until(()=>evaluate(`document.querySelector('.image-result-status strong')?.textContent==='Generation stopped'`));
   await evaluate(`[...document.querySelectorAll('.image-history-list button')].find(button=>button.textContent.includes('succeeded')).click()`);
@@ -98,6 +119,13 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.textContent.includes('succeeded')).querySelector('footer button').click()`);
   await until(()=>evaluate(`document.querySelector('.image-canvas img')?.naturalWidth===512`));
   result.activity_restores_image_revision=true;
+  await setField('.image-director textarea','WAIT FOR CANCELLATION');
+  await evaluate(`document.querySelector('.image-generate').click()`);
+  await until(()=>evaluate(`document.querySelector('.job-lifetime input') && !document.querySelector('.job-lifetime input').checked && document.querySelector('.image-result-status strong')?.textContent==='Bringing your idea into focus'`));
+  await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+  await until(()=>evaluate(`document.querySelectorAll('.activity-card').length===4 && ![...document.querySelectorAll('.activity-state')].some(span=>['running','queued'].includes(span.textContent))`));
+  result.default_panel_close_cancels_worker=true;
+
   result.external_asset_requests=0;result.responsive_widths=[1440,390,768];result.real_model_ran=false;result.passed=true;
  }catch(error){result.passed=false;result.error=error.stack;await screenshot('image-failure.png');}
  fs.writeFileSync(path.join(output,'ui-verification.json'),JSON.stringify(result,null,2));

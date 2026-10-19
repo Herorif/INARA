@@ -71,6 +71,7 @@ def image_backend():
     if not value:
         return {
             "available": False,
+            "configured": False,
             "backend": "local_diffusers",
             "reason": "Model setup deferred. No local image model is configured.",
         }
@@ -86,9 +87,11 @@ def image_backend():
                 "available": False,
                 "backend": "local_diffusers",
                 "reason": "The optional image-worker dependencies are not installed.",
+                "configured": True,
             }
         return {
             "available": True,
+            "configured": True,
             "backend": "local_diffusers",
             "model": folder.name,
             "pipeline": pipeline,
@@ -98,6 +101,7 @@ def image_backend():
     except (OSError, ValueError, TypeError):
         return {
             "available": False,
+            "configured": False,
             "backend": "local_diffusers",
             "reason": "The local model folder is missing or uses an unsupported pipeline.",
         }

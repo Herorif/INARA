@@ -2,7 +2,7 @@
 
 Updated 19 October 2026. Implement against the [architecture](INARA_REVAMP_PLAN.md), [project review](PROJECT_REVIEW.md) and [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md).
 
-The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1-R2b5 policy groups, R2c retirement and the R3 UI/contracts milestone are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) and [Device/print workflow policy](DEVICE_PRINT_POLICY.md) and [Workspace policy](WORKSPACE_POLICY.md) and [Shared voice/connection policy](VOICE_CONNECTION_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
+The core/persistence milestones, polished JARVIS workspace, native resident, offline CAD worker, typed scene assembly, optional Blender bridge, Image atelier/job adapter, Vision studio v2, R2a core composition/session extraction and R2b1-R2b5 policy groups, R2c retirement, the R3 UI/contracts milestone and R4 capabilities/resource lifetime are implemented. Real image generation remains unverified and unconfigured. Actual Blender execution remains unverified because it is not installed. Read [Implementation status](IMPLEMENTATION_STATUS.md), [CAD Studio](CAD_STUDIO.md), [Scene Studio](SCENE_STUDIO.md), [Image atelier](IMAGE_ATELIER.md), [Vision studio](VISION_STUDIO.md), [Native resident evidence](NATIVE_RESIDENT.md), [Persistence](PERSISTENCE.md), [Core composition](CORE_COMPOSITION.md), [Route policy migration](ROUTE_POLICY_MIGRATION.md) and [Settings/lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) and [Device/print workflow policy](DEVICE_PRINT_POLICY.md) and [Workspace policy](WORKSPACE_POLICY.md) and [Shared voice/connection policy](VOICE_CONNECTION_POLICY.md) before continuing. The user explicitly deferred the real-game benchmark; API configuration remains deferred.
 
 Use GPT-6.1 Sol as the primary implementation model, with Medium reasoning and Standard speed. Use High reasoning for difficult migrations or debugging. Reserve GPT-6 Astra for unusually demanding architecture, security and final integration reviews. Use GPT-6 Luna for small, clearly specified edits once contracts and examples are established.
 
@@ -56,7 +56,7 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 | R1 implemented; hardware acceptance pending | Vision studio v2: reliable local preview/tracking and polished controls | One capture/inference/overlay session; legacy tracking consolidation |
 | R2a/R2b1-R2b5/R2c implemented | Reliable shared actions and errors | Composition root, thin transports, route/policy matrix, one schema/tool authority, mapped legacy retirement |
 | R3 implemented | Consistent JARVIS panels, command palette and activity/artifact view | Incremental TypeScript/generated contracts, shared UI/RPC lifecycle, scoped styles/state |
-| R4 | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
+| R4 implemented | Capability/setup diagnostics and resource-aware job controls | Worker launch profiles, reservations/queue, hardware probes, explicit background-job lifetime |
 | R5 | Deeper 3D vibe coding and image workflows | Validated change sets, selected-revision edits, kernel/Blender/image adapters with real acceptance gates |
 | R6 | Quick assistant and push-to-talk voice | One audio/session stack feeding existing conversation and tool services; optional wake profile later |
 | R7 | Native foldable Android companion and secure pairing | Device/project context, scoped grants, revocation and idempotent sync |
@@ -66,18 +66,24 @@ R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented.
 
 ## Next implementation task
 
-1. Begin R4 from the [architecture sequence](INARA_REVAMP_PLAN.md) and [completed UI/contracts milestone](R3_UI_RPC.md). Build a capability/setup center distinguishing missing configuration, installed adapters, verified integration, resource blocking and measured performance.
-2. Centralize capability/configuration descriptors and worker launch profiles. Keep probes on demand or low rate; report unknown when unsupported, and never import Torch into the resident just to inspect a GPU. Exact Legion specifications remain unconfirmed.
-3. Extend the existing single creative slot with bounded CPU/RAM/VRAM reservations, admission/queue rules, cancellation, fairness and explicit release. Preserve owner/project snapshots and actual job state in Activity.
-4. Keep panel-close cancellation as the default. Continuing work in the background must be a deliberate user choice with clear lifetime and resource ownership. Do not enable automatic resource escalation or generated-code/browser execution outside a fixed owned profile.
-5. Verify missing configuration, gaming, resource rejection, cancellation, worker crash/exit and native recovery with injected/offline fixtures. Update this handoff with R4 outcome and remaining hardware acceptance.
-6. API/model configuration and the real-game benchmark remain deferred. R5 deeper creative work, R6 physical audio, R7 Android and R8 selected read-only notifications follow. Existing SIM/personal WhatsApp identity is retained; WhatsApp reply drafting/sending remains excluded.
+1. Implement R5 Creative Studio v2 as the next whole milestone from [the architecture sequence](INARA_REVAMP_PLAN.md). Start from [completed R4 resource/lifetime behavior](R4_RESOURCE_LIFETIME.md) and the existing shared UI/contracts.
+2. Add selected-object/revision editing, constrained dimensions/transforms, undo/redo, revision comparison and deliberate branching. Natural-language changes propose a typed change set against an explicit base revision; review before building and reject stale bases. Preserve artifacts and units; generated Python remains excluded.
+3. Improve artifact browsing, image gallery/compare and recipe reuse. Keep queued/background jobs within R4 ownership, captured scope and fixed profiles.
+4. Extend geometry/Blender/image adapters only through validated fixed operations and explicit availability. Missing kernels, Blender or model setup must not break the independent offline workflow. No automatic installation, provider configuration or GPU escalation.
+5. Verify offline schemas, stale-change rejection, history/branching, exports, responsive/keyboard UI and worker cancellation/recovery. Physical/provider acceptance remains separate and must be labelled unverified when unavailable.
+6. Keep API/model configuration, actual media/device acceptance and the real-game benchmark deferred. R6 voice, R7 Android and R8 selected read-only notifications follow. Existing SIM/personal WhatsApp stays in place; no WhatsApp reply drafting/sending.
+
+## Completed R4 capability/resource milestone
+
+The responsive Capability center, on-demand Windows CPU/RAM diagnostics, explicit unknown GPU information, centralized capability/model/worker profiles, shared bounded FIFO creative queue, capacity checks and explicit job release are implemented. Panel closure cancels by default; owner-scoped per-job background continuation lasts only within the current connected workspace/core session. Gaming/resident restrictions, interruption and cleanup-fault handling preserve ownership. Image generation now uses an explicit CPU profile rather than automatic CUDA selection.
+
+690 Python and 46 Node checks pass, with one Blender skip; types/drift/lint/build and native image/CAD/lifecycle acceptance pass. Short native idle remains about 67 MB with zero Electron processes after closure. See [implementation, acceptance evidence and limitations](R4_RESOURCE_LIFETIME.md). R5 is next; no additional R4 substep is pending.
 
 ## Completed R3 UI and contract milestone
 
 The shared JARVIS design/panel/approval system, embedded legacy interiors, keyboard command palette and project-scoped CAD/image Activity/artifact view are implemented. CAD/image/planner/preview calls share scoped lifetime and runtime guards; schemas/types and UI contract version 1 are generated. Feature-specific event registrars replace the monolithic store bridge, and typed conversation updates retain their captured project/session scope. The pinned development compiler and semantic checks now pass, resolving the earlier installation/check gap.
 
-669 Python and 41 Node checks pass, with one Blender skip, alongside type checks, drift/lint/build and native/renderer acceptance. [Evidence, screenshots and remaining physical/provider limits](R3_UI_RPC.md). R4 is next; no additional R3 substep is pending.
+669 Python and 41 Node checks pass, with one Blender skip, alongside type checks, drift/lint/build and native/renderer acceptance. [Evidence, screenshots and remaining physical/provider limits](R3_UI_RPC.md). R4 is now implemented; no additional R3 substep is pending.
 
 ## Completed obsolete-path retirement (R2c)
 

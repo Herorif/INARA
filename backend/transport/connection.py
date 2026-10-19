@@ -1,5 +1,6 @@
 """Owner-only startup hydration and one generation of optional face work."""
 
+from services.capability_profiles import model_id
 import asyncio
 import os
 from services.face_worker import FaceWorker
@@ -69,7 +70,7 @@ class ConnectionTransport:
             if self.sessions.roles[sid] != "renderer":
                 return
             await self.sio.emit(
-                "text_ready", {"model": os.getenv("INARA_TEXT_MODEL", "gemini-3.8-flash")}, room=sid
+                "text_ready", {"model": model_id("text")}, room=sid
             )
             await self.sio.emit("resource_state", self.app.resources.snapshot(), room=sid)
             await self.sio.emit(

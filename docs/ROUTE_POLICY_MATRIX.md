@@ -172,3 +172,7 @@ These schemas are generated from the target dispatcher contracts. `generate_cad`
 ## Remaining sequence
 
 R2c retirement is complete. [Retired paths and evidence](RETIRED_PATHS.md) records the removed declarations, helpers and fallback approvals. R3 shared UI/RPC/contracts and JARVIS panel consolidation is next. R4/R5/R6 retain worker isolation and hardware/provider acceptance.
+
+## R4 additive desktop controls
+
+`capability_diagnostics` accepts EmptyRequest from an authenticated owner renderer and returns an origin-only snapshot without launching an adapter or device. `cad_lifetime` and `image_lifetime` accept a generated JobLifetime UUID/strict boolean, require owner/project scope, and change only an active job's panel lifetime. Workspace/core closure, last-renderer disconnect and gaming/resident restrictions still cancel. The full JSON inventory and coverage tests now contain 55 socket routes, 53 tools and 37 voice mappings. [R4 details](R4_RESOURCE_LIFETIME.md).

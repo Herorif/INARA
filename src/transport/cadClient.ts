@@ -1,6 +1,6 @@
 import { isArtifact, isJobUpdate } from './guards.ts';
 import { RpcError, createRpcScope, type RpcSocket } from './rpc.ts';
-import type { BuildRequest, ArtifactRequest, PlanRequest, Recipe, JobRequest } from './generated/cad.ts';
+import type { BuildRequest, ArtifactRequest, PlanRequest, Recipe, JobRequest, JobLifetime } from './generated/cad.ts';
 export type CadJob = { request_id: string; project: string; state: string; phase: string; recipe?: Recipe; [key: string]: unknown };
 export interface CadCalls {
   cad_list: { request: Record<string, never>; result: { jobs: CadJob[]; capabilities: { blender: boolean } } };
@@ -8,6 +8,7 @@ export interface CadCalls {
   cad_cancel: { request: JobRequest; result: { job: CadJob } };
   cad_artifact: { request: ArtifactRequest; result: { artifact: { data: string; bytes: number; sha256: string; filename: string } } };
   cad_plan: { request: PlanRequest; result: { recipe: Recipe } };
+  cad_lifetime: { request: JobLifetime; result: { job: CadJob } };
   cad_close: { request: Record<string, never>; result: Record<string, unknown> };
 }
 export function createCadClient(socket: RpcSocket) {
@@ -22,7 +23,7 @@ export function createCadClient(socket: RpcSocket) {
         if (event === 'cad_list' && (!Array.isArray((result as CadCalls['cad_list']['result']).jobs) || !(result as CadCalls['cad_list']['result']).jobs.every(job => isJobUpdate(job) && job.recipe && typeof job.recipe.name === 'string'))) {
           throw new RpcError('Build history could not be read. Refresh to try again.', 'invalid_response', true);
         }
-        if ((event === 'cad_submit' || event === 'cad_cancel') && !isJobUpdate((result as { job: unknown }).job)) {
+        if ((event === 'cad_submit' || event === 'cad_cancel' || event === 'cad_lifetime') && !isJobUpdate((result as { job: unknown }).job)) {
           throw new RpcError('The core returned an invalid revision. Refresh history.', 'invalid_response', true);
         }
         if (event === 'cad_artifact' && !isArtifact((result as CadCalls['cad_artifact']['result']).artifact)) {

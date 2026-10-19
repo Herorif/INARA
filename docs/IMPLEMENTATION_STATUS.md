@@ -163,3 +163,9 @@ The shared responsive JARVIS panel header/loading/recovery surfaces and panel-ow
 ## R3 completed
 
 The command palette, unified project Activity/artifact view, shared JARVIS panels/approvals/forms, embedded legacy interiors, scoped CAD/image/planner lifecycle, generated contracts/version and feature-specific event bridges are implemented. Captured text-event scope prevents cross-project late updates. The project-local pinned compiler resolves the earlier semantic-check gap. 669 Python and 41 Node checks pass, with one Blender skip; semantic/drift/lint/build and renderer/native creative acceptance pass. [Evidence and material limits](R3_UI_RPC.md). The next milestone is R4 capabilities and resource-aware job ownership.
+
+## R4 completed
+
+Capability/setup diagnostics, shared fixed model/worker profiles, bounded FIFO creative admission with CPU/RAM/VRAM estimates, explicit per-job background continuation, and queue/process release are implemented. OS probes are on demand and do not import heavy models. Panel-close cancellation remains the default; workspace/core closure and gaming still stop background work. [Implementation, verification and deferred hardware acceptance](R4_RESOURCE_LIFETIME.md). The next whole milestone is R5 Creative Studio v2.
+
+R4 validation: 690 Python tests and 46 Node checks pass, with one Blender skip; semantic types, contracts, lint/build and native fixture/CAD/lifecycle acceptance pass. Short native idle is 67.24 MB mean with zero Electron processes; longer/gaming and physical/provider acceptance remain deferred.

@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'backend'))
 from services.images import ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats  # noqa: E402
 from transport.contracts import UI_CONTRACT_VERSION  # noqa: E402
+from services.creative_transport import JobLifetime  # noqa: E402
 from services.creative_jobs import JobRequest  # noqa: E402
 
 from services.cad import (  # noqa: E402
@@ -16,8 +17,8 @@ from services.cad import (  # noqa: E402
 )
 
 GROUPS = {
-    "image": (ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats, JobRequest),
-    "cad": (SolidRecipe, SceneObject, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest),
+    "image": (ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats, JobRequest, JobLifetime),
+    "cad": (SolidRecipe, SceneObject, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest, JobLifetime),
 }
 
 

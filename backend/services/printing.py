@@ -256,7 +256,7 @@ class PrintService:
                     "print_history_limit",
                     "This project has reached its protected print history limit. Preserve its artifacts before creating more jobs.",
                 )
-            if self.active or self.governor.creative_lock.locked():
+            if self.active or self.governor.creative_active or self.governor.creative_lock.locked():
                 raise ServiceError(
                     "creative_busy", "Another creative or print workflow is running."
                 )

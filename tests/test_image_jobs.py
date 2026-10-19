@@ -31,7 +31,7 @@ from services.cad import CadService, BuildRequest
 def service(tmp_path, **kwargs):
     project = tmp_path / "project"
     project.mkdir(exist_ok=True)
-    instance = FixtureImageService(Database(tmp_path / "database"), ResourceGovernor(), **kwargs)
+    instance = FixtureImageService(Database(tmp_path / "database"), ResourceGovernor(probe=lambda: {"cpu_count": 8, "ram_available_mb": 16000, "vram_mb": None}), **kwargs)
     return instance, {"principal": "owner", "project_path": project}
 
 
@@ -204,8 +204,9 @@ async def test_cad_and_images_share_one_creative_slot(tmp_path):
         instance.governor,
         process_factory=lambda *_: pytest.fail("Concurrent worker"),
     )
-    with pytest.raises(ServiceError, match="already running"):
-        await cad.start(BuildRequest(), context)
+    assert (await cad.start(BuildRequest(), context))["state"] == "queued"
+    await asyncio.sleep(0.06)
+    await cad.close()
     await instance.close()
     instance.governor.select("gaming")
     with pytest.raises(ServiceError):

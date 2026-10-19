@@ -1,3 +1,4 @@
+from services.capability_profiles import model_id
 import os
 import time
 import asyncio
@@ -15,7 +16,7 @@ API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 SCREEN_WIDTH = 1440
 SCREEN_HEIGHT = 900
 # UPDATED: Use the specific Computer Use preview model
-MODEL_ID = "gemini-2.5-computer-use-preview-10-2025"
+MODEL_ID = model_id("browser")
 
 class WebAgent:
     def __init__(self):

@@ -1,10 +1,14 @@
 """Shared authenticated creative RPCs and owner-bound approval cancellation."""
 
 import asyncio
-from pydantic import ValidationError
+from pydantic import StrictBool, ValidationError
 from services.creative_jobs import JobRequest
 from services.storage import StorageError
 from services.tools import ServiceError
+
+
+class JobLifetime(JobRequest):
+    background: StrictBool
 
 
 class CreativeTransport:
@@ -12,7 +16,7 @@ class CreativeTransport:
     tool = ""
     request_model = None
     artifact_model = None
-    operations = ("submit", "cancel", "list", "artifact", "close")
+    operations = ("submit", "cancel", "list", "artifact", "close", "lifetime")
 
     def capabilities(self):
         return {}
@@ -116,8 +120,12 @@ class CreativeTransport:
         }
 
     async def close_panel(self, sid, data, context):
-        await self.stop_owner(context["principal"])
+        await self.stop_owner(context["principal"], panel_only=True)
         return {}
+
+    async def lifetime(self, sid, data, context):
+        args = JobLifetime.model_validate(data)
+        return {"job": await self.service.set_background(context["principal"], context["project_path"], args.request_id, args.background)}
 
     async def artifact(self, sid, data, context):
         return {
@@ -128,7 +136,7 @@ class CreativeTransport:
             )
         }
 
-    async def stop_owner(self, owner):
+    async def stop_owner(self, owner, panel_only=False):
         for (principal, _), confirmation in tuple(self.approvals.items()):
             if owner == principal:
                 self.dispatcher.resolve(owner, confirmation, False)
@@ -136,7 +144,7 @@ class CreativeTransport:
         if task:
             task.cancel()
             await asyncio.gather(task, return_exceptions=True)
-        await self.service.cancel_owner(owner)
+        await self.service.cancel_owner(owner, panel_only=panel_only)
 
     async def close(self):
         for (principal, _), confirmation in tuple(self.approvals.items()):

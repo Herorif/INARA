@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 # Ensure backend/ is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from services.capability_profiles import model_id
 from google import genai
 from google.genai import types
 
@@ -41,7 +42,7 @@ from voice.tts import SpeechOutputManager, INARA_SYSTEM_INSTRUCTION, INARA_VOICE
 # Constants
 # ---------------------------------------------------------------------------
 
-MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025"
+MODEL = model_id("voice")
 DEFAULT_VIDEO_MODE = "camera"
 MAX_RETRY_DELAY = 10  # seconds
 

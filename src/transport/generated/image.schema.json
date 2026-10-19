@@ -224,5 +224,25 @@
     ],
     "title": "JobRequest",
     "type": "object"
+  },
+  "JobLifetime": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "background": {
+        "title": "Background",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "background"
+    ],
+    "title": "JobLifetime",
+    "type": "object"
   }
 }

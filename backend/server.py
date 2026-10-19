@@ -11,6 +11,7 @@ import os
 import json
 from pathlib import Path
 from dotenv import load_dotenv
+from services.capability_profiles import model_id
 
 
 # Ensure we can import inara
@@ -127,7 +128,7 @@ def get_runtime_summary():
         "slicer_message": slicer_status["message"],
         "saved_printers": len(SETTINGS.get("printers", [])),
         "text_ready": True,
-        "text_model": os.getenv('INARA_TEXT_MODEL', 'gemini-3.8-flash'),
+        "text_model": model_id("text"),
     }
 
 

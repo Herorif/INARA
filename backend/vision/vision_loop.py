@@ -6,6 +6,7 @@ watch conditions against it on a configurable interval. When a watch
 condition is met, fires a VISION_ALERT event on the event bus.
 """
 
+from services.capability_profiles import model_id
 import asyncio
 import inspect
 import logging
@@ -49,7 +50,7 @@ class VisionLoop:
         self._stop_event = asyncio.Event()
         self._api_key: Optional[str] = None
         self._client = None          # initialized once in run()
-        self._model = "gemini-2.0-flash"
+        self._model = model_id("vision")
 
     # ------------------------------------------------------------------
     # Public API

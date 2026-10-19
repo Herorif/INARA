@@ -16,6 +16,7 @@ from agents.scheduler_agent import SchedulerAgent
 from core.event_bus import EventBus
 from core.reminder_store import ReminderStore
 from project_manager import ProjectManager
+from services.capabilities import CapabilityCenter
 from services.cad import CadService, register_cad_tools
 from services.cad_transport import CadTransport
 from services.conversation import ConversationService
@@ -84,6 +85,7 @@ class Application:
         self.images = ImageService(
             database, resources, partial(self.delivery.publish_job, "image_job")
         )
+        self.capabilities = CapabilityCenter(self)
         register_cad_tools(self.dispatcher, self.cad)
         register_image_tool(self.dispatcher, self.images)
         self.cad_transport = CadTransport(

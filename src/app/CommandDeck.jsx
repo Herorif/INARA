@@ -214,7 +214,7 @@ export default function CommandDeck() {
                 <div className="assistant-grid"><Conversation /><aside className="context-column">
                     <section className="surface system-card"><div className="section-heading"><span className="eyebrow">SYSTEM PULSE</span><Zap size={15} /></div>
                         <div className="pulse-status"><span className={`status-dot ${connected ? '' : 'offline'}`} /><strong>{connected ? 'At your service' : 'Waiting for connection'}</strong></div>
-                        <div className="system-row"><span>Resource mode</span><strong>{gaming ? 'Gaming' : resource.state === 'studio' ? 'Studio' : 'Lightweight'}</strong></div>
+                        <button className="text-button" onClick={() => openFeature('capabilities')}>Capability center / diagnostics <ChevronRight size={14} /></button><div className="system-row"><span>Resource mode</span><strong>{gaming ? 'Gaming' : resource.state === 'studio' ? 'Studio' : 'Lightweight'}</strong></div>
                         <div className="system-row"><span>Voice</span><strong>{aiConnected ? 'Active' : 'Off'}</strong></div>
                         <div className="system-row"><span>Workspace memory</span><strong>{memory === null ? '—' : `${Math.round(memory)} MB`}</strong></div>
                         <div className="pulse-footer"><ShieldCheck size={13} /><span>Actions stay under your control</span></div></section>

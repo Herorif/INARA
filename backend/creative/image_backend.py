@@ -13,7 +13,8 @@ def generate(recipe, model_dir, progress):
 
     folder, pipeline_name = inspect_model(model_dir)
     torch.set_num_threads(2)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # Fixed admitted image_cpu profile: GPU use requires separate acceptance.
+    device = "cpu"
     dtype = torch.float16 if device == "cuda" else torch.float32
     progress("loading")
     pipeline = getattr(diffusers, pipeline_name).from_pretrained(
