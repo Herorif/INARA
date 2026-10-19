@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Plus, Copy, Trash2, Box } from 'lucide-react';
 export const newObject = (index = 0) => ({
   name: `Object ${index + 1}`,
@@ -15,9 +15,10 @@ export const newObject = (index = 0) => ({
 export default function SceneEditor({
   objects,
   onChange,
-  disabled
+  disabled,
+  selected = 0,
+  onSelect: select
 }) {
-  const [selected, select] = useState(0);
   const index = Math.min(selected, objects.length - 1),
     object = objects[index];
   const update = patch => onChange(objects.map((value, i) => i === index ? {

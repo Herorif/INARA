@@ -311,6 +311,8 @@ Acceptance: no worker/model/device leak, no unwanted GPU allocation in resident/
 
 ### R5. Creative Studio v2: stronger workflows and 3D vibe coding
 
+Status: the offline editing, branch/review, view/compare and image recipe/gallery workflow is implemented. See [R5 implementation and acceptance gates](R5_CREATIVE_STUDIO.md). Optional engineering-kernel and actual Blender/image/provider acceptance remains gated; R6 is the next whole milestone.
+
 Product outcome: edit an existing design through selection, constrained transforms, dimensions, undo/redo and revision comparison. A natural-language change should propose a validated change set against the selected revision, show its effect and build a new revision after review.
 
 R5a improves the offline workflow: shared artifact browser, reload/duplicate recipes, numeric/gizmo transform consistency, object selection, frame-to-selection, saved views and deliberate revision branching. Preserve units, closed-part/overlap semantics and previous artifacts. Add a constrained scene-change schema with an explicit base revision; reject stale changes rather than applying them to a different design. Prompt-generated Python remains excluded.

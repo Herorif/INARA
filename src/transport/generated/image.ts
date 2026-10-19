@@ -10,6 +10,8 @@ export type ImageRecipe = {
   "guidance"?: number;
 };
 export type ImageRequest = {
+  "base_request_id"?: string | null;
+  "base_fingerprint"?: string | null;
   "name"?: string;
   "prompt": string;
   "negative_prompt"?: string;

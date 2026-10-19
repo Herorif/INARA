@@ -72,7 +72,7 @@ class CreativeTransport:
                 {
                     "request_id": str(args.request_id),
                     "project": context["project_path"].name,
-                    "recipe": args.model_dump(mode="json", exclude={"request_id"}),
+                    "recipe": args.model_dump(mode="json", exclude={"request_id", "base_request_id", "base_fingerprint"}),
                     "state": "approval",
                     "phase": "awaiting_approval",
                 },

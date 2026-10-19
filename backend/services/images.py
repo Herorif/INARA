@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, StrictInt, field_validator
 from services.creative_jobs import CreativeJobService, ExportMetadata, JobRequest
 from services.image_config import image_backend
+from services.revisions import RevisionParent
 from services.tools import ServiceError, ToolSpec
 
 
@@ -44,7 +45,7 @@ class ImageRecipe(BaseModel):
         return value
 
 
-class ImageRequest(ImageRecipe):
+class ImageRequest(ImageRecipe, RevisionParent):
     request_id: uuid.UUID = Field(default_factory=uuid.uuid4)
 
 

@@ -141,6 +141,51 @@
     "title": "SceneObject",
     "type": "object"
   },
+  "ScenePresentation": {
+    "additionalProperties": false,
+    "properties": {
+      "camera": {
+        "default": "isometric",
+        "enum": [
+          "isometric",
+          "top",
+          "front"
+        ],
+        "title": "Camera",
+        "type": "string"
+      },
+      "lighting": {
+        "default": "studio",
+        "enum": [
+          "soft",
+          "studio",
+          "contrast"
+        ],
+        "title": "Lighting",
+        "type": "string"
+      },
+      "quality": {
+        "default": "preview",
+        "enum": [
+          "preview",
+          "standard"
+        ],
+        "title": "Quality",
+        "type": "string"
+      },
+      "background": {
+        "default": "dark",
+        "enum": [
+          "dark",
+          "neutral"
+        ],
+        "title": "Background",
+        "type": "string"
+      }
+    },
+    "title": "ScenePresentation",
+    "type": "object"
+  },
   "Recipe": {
     "$defs": {
       "SceneObject": {
@@ -232,6 +277,51 @@
         },
         "title": "SceneObject",
         "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
       }
     },
     "additionalProperties": false,
@@ -307,6 +397,9 @@
         ],
         "title": "Engine",
         "type": "string"
+      },
+      "presentation": {
+        "$ref": "#/$defs/ScenePresentation"
       }
     },
     "title": "Recipe",
@@ -403,10 +496,81 @@
         },
         "title": "SceneObject",
         "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
       }
     },
     "additionalProperties": false,
     "properties": {
+      "base_request_id": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Request Id"
+      },
+      "base_fingerprint": {
+        "anyOf": [
+          {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Fingerprint"
+      },
       "name": {
         "default": "Untitled design",
         "maxLength": 60,
@@ -478,6 +642,9 @@
         ],
         "title": "Engine",
         "type": "string"
+      },
+      "presentation": {
+        "$ref": "#/$defs/ScenePresentation"
       },
       "request_id": {
         "format": "uuid",
@@ -612,6 +779,716 @@
       "background"
     ],
     "title": "JobLifetime",
+    "type": "object"
+  },
+  "EditableFields": {
+    "$defs": {
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "anyOf": [
+          {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Name"
+      },
+      "width": {
+        "anyOf": [
+          {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Width"
+      },
+      "depth": {
+        "anyOf": [
+          {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Depth"
+      },
+      "height": {
+        "anyOf": [
+          {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Height"
+      },
+      "thickness": {
+        "anyOf": [
+          {
+            "maximum": 100,
+            "minimum": 0.5,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Thickness"
+      },
+      "position": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Position"
+      },
+      "rotation": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Rotation"
+      },
+      "scale": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Scale"
+      },
+      "presentation": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ScenePresentation"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "material": {
+        "anyOf": [
+          {
+            "maxLength": 20,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Material"
+      }
+    },
+    "title": "EditableFields",
+    "type": "object"
+  },
+  "ObjectEdit": {
+    "$defs": {
+      "EditableFields": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Depth"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height"
+          },
+          "thickness": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thickness"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Position"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rotation"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scale"
+          },
+          "presentation": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ScenePresentation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "material": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Material"
+          }
+        },
+        "title": "EditableFields",
+        "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "object_index": {
+        "anyOf": [
+          {
+            "maximum": 7,
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Object Index"
+      },
+      "fields": {
+        "$ref": "#/$defs/EditableFields"
+      }
+    },
+    "required": [
+      "fields"
+    ],
+    "title": "ObjectEdit",
+    "type": "object"
+  },
+  "ChangeSet": {
+    "$defs": {
+      "EditableFields": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Depth"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height"
+          },
+          "thickness": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thickness"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Position"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rotation"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scale"
+          },
+          "presentation": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ScenePresentation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "material": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Material"
+          }
+        },
+        "title": "EditableFields",
+        "type": "object"
+      },
+      "ObjectEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "object_index": {
+            "anyOf": [
+              {
+                "maximum": 7,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Object Index"
+          },
+          "fields": {
+            "$ref": "#/$defs/EditableFields"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "title": "ObjectEdit",
+        "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "edits": {
+        "items": {
+          "$ref": "#/$defs/ObjectEdit"
+        },
+        "maxItems": 16,
+        "minItems": 1,
+        "title": "Edits",
+        "type": "array"
+      },
+      "base_request_id": {
+        "format": "uuid",
+        "title": "Base Request Id",
+        "type": "string"
+      },
+      "base_fingerprint": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Base Fingerprint",
+        "type": "string"
+      }
+    },
+    "required": [
+      "edits",
+      "base_request_id",
+      "base_fingerprint"
+    ],
+    "title": "ChangeSet",
+    "type": "object"
+  },
+  "ChangePrompt": {
+    "additionalProperties": false,
+    "properties": {
+      "base_request_id": {
+        "format": "uuid",
+        "title": "Base Request Id",
+        "type": "string"
+      },
+      "base_fingerprint": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Base Fingerprint",
+        "type": "string"
+      },
+      "prompt": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "title": "Prompt",
+        "type": "string"
+      }
+    },
+    "required": [
+      "base_request_id",
+      "base_fingerprint",
+      "prompt"
+    ],
+    "title": "ChangePrompt",
     "type": "object"
   }
 }

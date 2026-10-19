@@ -68,6 +68,32 @@
   "ImageRequest": {
     "additionalProperties": false,
     "properties": {
+      "base_request_id": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Request Id"
+      },
+      "base_fingerprint": {
+        "anyOf": [
+          {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Fingerprint"
+      },
       "name": {
         "default": "Untitled visual",
         "maxLength": 60,

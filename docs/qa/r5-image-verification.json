@@ -1,0 +1,57 @@
+{
+  "before_workspace": {
+    "working_set_mb": 64.3,
+    "private_mb": 48.18
+  },
+  "ui": {
+    "capability_center_desktop_mobile_unknown_hardware": true,
+    "unconfigured_disabled_no_artwork": true,
+    "history_error_and_explicit_recovery": true,
+    "keyboard_wrap_and_escape": true,
+    "fixture_revisions_and_real_downloads": true,
+    "r5_branch_undo_redo_gallery_and_compare": true,
+    "reopened_without_regeneration": true,
+    "explicit_background_survives_panel_close_and_restores": true,
+    "cancel_preserves_previous_revision": true,
+    "activity_restores_image_revision": true,
+    "default_panel_close_cancels_worker": true,
+    "external_asset_requests": 0,
+    "responsive_widths": [
+      1440,
+      390,
+      768
+    ],
+    "real_model_ran": false,
+    "passed": true
+  },
+  "model_modules_in_resident": false,
+  "workers_started_and_exited": 4,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 66.58,
+      "private_mb": 48.91
+    },
+    {
+      "working_set_mb": 66.58,
+      "private_mb": 48.91
+    },
+    {
+      "working_set_mb": 66.58,
+      "private_mb": 48.91
+    },
+    {
+      "working_set_mb": 66.58,
+      "private_mb": 48.91
+    },
+    {
+      "working_set_mb": 66.58,
+      "private_mb": 48.91
+    },
+    {
+      "working_set_mb": 66.58,
+      "private_mb": 48.91
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

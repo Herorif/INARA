@@ -119,13 +119,24 @@ def verify():
             return process
 
         host.runtime.cad_service.process_factory = worker
+        from services.cad_changes import EditList
+
+        original_planner = host.runtime.runtime.cad_transport.change_planner
+
+        async def fixture_planner(prompt, base):
+            if prompt == "R5 FIXTURE MOVE FIRST OBJECT":
+                return EditList(edits=[{"object_index": 0, "fields": {"position": [20, 0, 0]}}])
+            return await original_planner(prompt, base)
+
+        host.runtime.runtime.cad_transport.change_planner = fixture_planner
+        result["proposal_fixture_only"] = True
         result["before_workspace"] = sample()
         host.tray.post(host.open_workspace)
         until(lambda: (output / "ui-verification.json").exists())
         result["ui"] = json.loads((output / "ui-verification.json").read_text())
         assert result["ui"]["passed"], result["ui"]
         until(lambda: host.workspace is None and not host.runtime.cad_service.active)
-        assert len(worker_pids) == 4
+        assert len(worker_pids) == 5
         for pid in worker_pids:
             handle = api(kernel, "OpenProcess", [W.DWORD, W.BOOL, W.DWORD], W.HANDLE)(
                 0x100000, False, pid

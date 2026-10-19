@@ -11,6 +11,28 @@ export type SceneObject = {
   "scale"?: Array<number>;
   "material"?: "cyan" | "titanium" | "amber" | "ceramic";
 };
+export type ScenePresentation = {
+  "camera"?: "isometric" | "top" | "front";
+  "lighting"?: "soft" | "studio" | "contrast";
+  "quality"?: "preview" | "standard";
+  "background"?: "dark" | "neutral";
+};
+export type EditableFields = {
+  "name"?: string | null;
+  "width"?: number | null;
+  "depth"?: number | null;
+  "height"?: number | null;
+  "thickness"?: number | null;
+  "position"?: Array<number> | null;
+  "rotation"?: Array<number> | null;
+  "scale"?: Array<number> | null;
+  "presentation"?: ScenePresentation | null;
+  "material"?: string | null;
+};
+export type ObjectEdit = {
+  "object_index"?: number | null;
+  "fields": EditableFields;
+};
 export type SolidRecipe = {
   "name"?: string;
   "shape"?: "box" | "bracket" | "enclosure";
@@ -28,8 +50,11 @@ export type Recipe = {
   "thickness"?: number;
   "objects"?: Array<SceneObject> | null;
   "engine"?: "offline" | "blender";
+  "presentation"?: ScenePresentation;
 };
 export type BuildRequest = {
+  "base_request_id"?: string | null;
+  "base_fingerprint"?: string | null;
   "name"?: string;
   "shape"?: "box" | "bracket" | "enclosure" | "scene";
   "width"?: number;
@@ -38,6 +63,7 @@ export type BuildRequest = {
   "thickness"?: number;
   "objects"?: Array<SceneObject> | null;
   "engine"?: "offline" | "blender";
+  "presentation"?: ScenePresentation;
   "request_id"?: string;
 };
 export type ArtifactRequest = {
@@ -60,4 +86,14 @@ export type JobRequest = {
 export type JobLifetime = {
   "request_id": string;
   "background": boolean;
+};
+export type ChangeSet = {
+  "edits": Array<ObjectEdit>;
+  "base_request_id": string;
+  "base_fingerprint": string;
+};
+export type ChangePrompt = {
+  "base_request_id": string;
+  "base_fingerprint": string;
+  "prompt": string;
 };

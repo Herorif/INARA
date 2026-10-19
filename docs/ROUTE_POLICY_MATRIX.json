@@ -1,5 +1,5 @@
 {
-  "checkpoint": "R4 capability diagnostics, bounded creative queue and explicit panel lifetime",
+  "checkpoint": "R5 immutable creative branches and reviewed bounded change sets",
   "socket_routes": {
     "acknowledge_reminder": {
       "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
@@ -605,6 +605,28 @@
       "lifetime": "Panel continuation only; disconnect, workspace/core close and gaming still cancel",
       "replacement": "CreativeTransport / CreativeJobService",
       "status": "migrated"
+    },
+    "cad_review_changes": {
+      "schema": "ChangeSet",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner/project and explicit immutable base ID/fingerprint",
+      "effects": "Compute a data-only proposal; no worker or artifact mutation",
+      "policy": "Owner/scope gate; shared generate_cad approval for provider planning; stale-base checks before and after provider",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel/disconnect/core cancellation; bounded provider timeout; no replay",
+      "replacement": "CadTransport / bounded CAD changes",
+      "status": "migrated"
+    },
+    "cad_plan_changes": {
+      "schema": "ChangePrompt",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner/project and explicit immutable base ID/fingerprint",
+      "effects": "Compute a data-only proposal; no worker or artifact mutation",
+      "policy": "Owner/scope gate; shared generate_cad approval for provider planning; stale-base checks before and after provider",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel/disconnect/core cancellation; bounded provider timeout; no replay",
+      "replacement": "CadTransport / bounded CAD changes",
+      "status": "migrated"
     }
   },
   "http_routes": {
@@ -1044,6 +1066,17 @@
       "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
       "replacement": "ExtendedActions compatibility alias",
       "model_visible": false
+    },
+    "plan_cad_changes": {
+      "schema": "ChangePrompt",
+      "caller": "Owner renderer via typed proposal transport",
+      "context": "Captured owner/project/base revision",
+      "effects": "Optional provider returns bounded field edits for review",
+      "policy": "Shared generate_cad and explicit tool deny/approval; post-provider owner and base recheck",
+      "response": "Structured proposal; no generation worker",
+      "lifetime": "40 second dispatcher timeout; owned provider/task cleanup",
+      "replacement": "CadTransport.execute_change_plan",
+      "status": "migrated"
     }
   },
   "voice_declarations": {

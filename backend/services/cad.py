@@ -16,6 +16,7 @@ from pydantic import (
     model_validator,
 )
 from services.creative_jobs import CreativeJobService, ExportMetadata, JobRequest, read_export  # noqa: F401
+from services.revisions import RevisionParent
 from services.tools import ServiceError, ToolSpec
 
 
@@ -80,10 +81,19 @@ class SceneObject(SolidRecipe):
         return value
 
 
+class ScenePresentation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    camera: Literal["isometric", "top", "front"] = "isometric"
+    lighting: Literal["soft", "studio", "contrast"] = "studio"
+    quality: Literal["preview", "standard"] = "preview"
+    background: Literal["dark", "neutral"] = "dark"
+
+
 class Recipe(SolidRecipe):
     shape: Literal["box", "bracket", "enclosure", "scene"] = "box"
     objects: list[SceneObject] | None = Field(default=None, min_length=1, max_length=8)
     engine: Literal["offline", "blender"] = "offline"
+    presentation: ScenePresentation = Field(default_factory=ScenePresentation)
 
     @model_validator(mode="after")
     def valid_scene(self):
@@ -94,7 +104,7 @@ class Recipe(SolidRecipe):
         return self
 
 
-class BuildRequest(Recipe):
+class BuildRequest(Recipe, RevisionParent):
     request_id: uuid.UUID = Field(default_factory=uuid.uuid4)
 
 

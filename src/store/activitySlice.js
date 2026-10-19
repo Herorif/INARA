@@ -8,6 +8,7 @@ export function recordActivity(entries, kind, job, project) {
     name: job.recipe?.name || old?.name || (kind === 'cad' ? '3D revision' : 'Image revision'),
     created_at: job.created_at || old?.created_at,
     artifacts: job.artifacts ? Object.keys(job.artifacts) : old?.artifacts || [],
+    base_request_id: job.base_request_id,
     error: job.error,
     background: job.background === true,
     resources: job.resources,

@@ -13,12 +13,14 @@ from services.creative_transport import JobLifetime  # noqa: E402
 from services.creative_jobs import JobRequest  # noqa: E402
 
 from services.cad import (  # noqa: E402
-    SolidRecipe, SceneObject, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats,
+    SolidRecipe, SceneObject, ScenePresentation, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats,
 )
+
+from services.cad_changes import EditableFields, ObjectEdit, ChangeSet, ChangePrompt  # noqa: E402
 
 GROUPS = {
     "image": (ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats, JobRequest, JobLifetime),
-    "cad": (SolidRecipe, SceneObject, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest, JobLifetime),
+    "cad": (SolidRecipe, SceneObject, ScenePresentation, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest, JobLifetime, EditableFields, ObjectEdit, ChangeSet, ChangePrompt),
 }
 
 

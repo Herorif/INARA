@@ -176,3 +176,7 @@ R2c retirement is complete. [Retired paths and evidence](RETIRED_PATHS.md) recor
 ## R4 additive desktop controls
 
 `capability_diagnostics` accepts EmptyRequest from an authenticated owner renderer and returns an origin-only snapshot without launching an adapter or device. `cad_lifetime` and `image_lifetime` accept a generated JobLifetime UUID/strict boolean, require owner/project scope, and change only an active job's panel lifetime. Workspace/core closure, last-renderer disconnect and gaming/resident restrictions still cancel. The full JSON inventory and coverage tests now contain 55 socket routes, 53 tools and 37 voice mappings. [R4 details](R4_RESOURCE_LIFETIME.md).
+
+## R5 immutable creative editing
+
+`cad_review_changes` accepts a strict ChangeSet against an owner/project-scoped saved base and returns a proposal without side effects. `cad_plan_changes` accepts ChangePrompt and uses the hidden `plan_cad_changes` dispatcher tool with shared generate_cad approval, owner/base rechecks, bounded provider execution and planner cleanup. CAD/image submit schemas now include paired parent UUID/fingerprint fields; stale or foreign parents reject before worker claim. Inventory: 57 socket routes, 54 tools (40 text-visible), 37 voice mappings. [R5 details](R5_CREATIVE_STUDIO.md).

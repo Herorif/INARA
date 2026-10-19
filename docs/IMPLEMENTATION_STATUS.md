@@ -169,3 +169,9 @@ The command palette, unified project Activity/artifact view, shared JARVIS panel
 Capability/setup diagnostics, shared fixed model/worker profiles, bounded FIFO creative admission with CPU/RAM/VRAM estimates, explicit per-job background continuation, and queue/process release are implemented. OS probes are on demand and do not import heavy models. Panel-close cancellation remains the default; workspace/core closure and gaming still stop background work. [Implementation, verification and deferred hardware acceptance](R4_RESOURCE_LIFETIME.md). The next whole milestone is R5 Creative Studio v2.
 
 R4 validation: 690 Python tests and 46 Node checks pass, with one Blender skip; semantic types, contracts, lint/build and native fixture/CAD/lifecycle acceptance pass. Short native idle is 67.24 MB mean with zero Electron processes; longer/gaming and physical/provider acceptance remain deferred.
+
+## R5 offline creative workflows completed
+
+CAD/image drafts now share bounded undo/redo, explicit immutable branch ancestry, comparison and recipe reuse. Selected scene objects have numeric and draft translation controls, saved view bookmarks and reviewed data-only change proposals with stale-base rejection. The image gallery is explicit and bounded; Blender presentation presets remain fixed data. Kernel-backed geometry and actual Blender/image/provider acceptance remain deferred/unavailable. [Implementation and evidence](R5_CREATIVE_STUDIO.md). The next whole milestone is R6 quick assistant and voice consolidation.
+
+R5 validation: 707 Python tests and 52 Node checks pass, with one Blender skip; semantic types, generated contracts, lint/build and native CAD/image workflows pass. Five CAD and four labelled image workers exited; short resident recovery remains about 67 MB. Actual providers/Blender/image models/kernel/device and gaming acceptance remain deferred.

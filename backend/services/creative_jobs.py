@@ -11,6 +11,7 @@ import time
 import uuid
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from services.capability_profiles import worker_profile
+from services.revisions import recipe_fingerprint
 from services.storage import scope_hash, StorageError
 from services.tools import ServiceError, contained_path
 
@@ -104,22 +105,29 @@ class CreativeJobService:
 
     def public(self, value):
         return {
-            key: value[key]
-            for key in (
-                "request_id",
-                "project",
-                "recipe",
-                "state",
-                "phase",
-                "created_at",
-                "error",
-                "stats",
-                "artifacts",
-                "resources",
-                "background",
-                "duration_seconds",
-            )
-            if key in value
+            "recipe_fingerprint": recipe_fingerprint(
+                self.recipe_model.model_validate(value["recipe"]).model_dump()
+            ),
+            **{
+                key: value[key]
+                for key in (
+                    "request_id",
+                    "project",
+                    "recipe",
+                    "state",
+                    "phase",
+                    "created_at",
+                    "error",
+                    "stats",
+                    "artifacts",
+                    "resources",
+                    "background",
+                    "duration_seconds",
+                    "base_request_id",
+                    "base_fingerprint",
+                )
+                if key in value
+            },
         }
 
     async def publish(self, owner, value):
@@ -137,12 +145,28 @@ class CreativeJobService:
             for value in sorted(values, key=lambda value: value["created_at"], reverse=True)[:12]
         ]
 
+    def require_revision(self, owner, project, request_id, fingerprint):
+        value = self.load(owner, project, request_id)
+        if not value or value["state"] != "succeeded":
+            raise ServiceError(
+                "revision_missing", "Select a successful saved revision in this project."
+            )
+        normalized = self.recipe_model.model_validate(value["recipe"]).model_dump()
+        if recipe_fingerprint(normalized) != fingerprint:
+            raise ServiceError(
+                "revision_stale", "The base revision changed. Reload it and review a new proposal."
+            )
+        return normalized
+
     async def start(self, args, context):
         owner, project = context["principal"], Path(context["project_path"]).resolve()
         key = str(args.request_id)
         recipe = self.recipe_model.model_validate(
-            args.model_dump(exclude={"request_id"})
+            args.model_dump(exclude={"request_id", "base_request_id", "base_fingerprint"})
         ).model_dump()
+        parent_id = getattr(args, "base_request_id", None)
+        parent_hash = getattr(args, "base_fingerprint", None)
+        parent_id = str(parent_id) if parent_id else None
         # The lock is otherwise held by legacy/print workflows. Reject rather
         # than building an unbounded second queue outside the owned reservations.
         if self.lock.locked():
@@ -153,11 +177,17 @@ class CreativeJobService:
         async with self.lock:
             previous = self.load(owner, project, key)
             if previous:
-                if self.recipe_model.model_validate(previous["recipe"]).model_dump() != recipe:
+                if (
+                    self.recipe_model.model_validate(previous["recipe"]).model_dump() != recipe
+                    or previous.get("base_request_id") != parent_id
+                    or previous.get("base_fingerprint") != parent_hash
+                ):
                     raise ServiceError(
                         "request_conflict", "This build ID was already used with other settings."
                     )
                 return self.public(previous)
+            if parent_id:
+                self.require_revision(owner, project, parent_id, parent_hash)
             self.governor.require_heavy()
             backend = self.admit(recipe)
             profile = worker_profile(
@@ -194,6 +224,8 @@ class CreativeJobService:
                     "phase": "queued",
                     "created_at": time.time(),
                     "error": None,
+                    "base_request_id": parent_id,
+                    "base_fingerprint": parent_hash,
                 }
                 self.database.put(db, kind, key, value)
             try:

@@ -3,6 +3,7 @@ import { RpcError, createRpcScope, type RpcSocket } from './rpc.ts';
 import type { ImageRequest, ImageArtifactRequest, ImageRecipe, ImageStats, JobRequest, JobLifetime } from './generated/image.ts';
 export type ImageJob = {
   request_id: string; project: string; state: string; phase: string;
+  recipe_fingerprint?: string; base_request_id?: string | null; base_fingerprint?: string | null;
   recipe?: ImageRecipe; stats?: ImageStats; error?: string;
 };
 export type ImageArtifact = { data: string; bytes: number; sha256: string; filename: string };

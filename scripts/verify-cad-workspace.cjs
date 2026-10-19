@@ -176,6 +176,44 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('3D studio')).click()`);
     await until(() => evaluate(`document.querySelectorAll('.scene-roster button').length === 3 && document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true' && document.querySelector('.cad-stats')?.textContent.includes('331.33')`));
     result.scene.restored_without_rebuild = true;
+    // R5: immutable branch, explicit review, bounded local draft history and comparison.
+    window.setContentSize(1440,1000);
+    await evaluate(`document.querySelector('.scene-roster button').click()`);
+    await until(()=>evaluate(`document.querySelector('[aria-label="position X"]').value==='0'`));
+    await evaluate(`{const input=document.querySelector('[aria-label="position X"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'15');input.dispatchEvent(new Event('input',{bubbles:true}));}`);
+    await evaluate(`document.querySelector('[aria-label="Undo recipe edit"]').click()`);
+    await until(()=>evaluate(`document.querySelector('[aria-label="position X"]').value==='0'`));
+    await evaluate(`document.querySelector('[aria-label="Redo recipe edit"]').click()`);
+    await until(()=>evaluate(`document.querySelector('[aria-label="position X"]').value==='15'`));
+    await evaluate(`document.querySelector('[aria-label="Undo recipe edit"]').click()`);
+    await evaluate(`document.querySelector('.cad-ai').open=true;{const input=document.querySelector('.cad-ai textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'R5 FIXTURE MOVE FIRST OBJECT');input.dispatchEvent(new Event('input',{bubbles:true}));}`);
+    await evaluate(`document.querySelector('.cad-ai button').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.proposal-review')`));
+    assert.equal(await evaluate(`document.querySelector('[aria-label="position X"]').value`),'0');
+    assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),4);
+    await evaluate(`document.querySelector('.proposal-review button').click()`);
+    await until(()=>evaluate(`document.querySelector('[aria-label="position X"]').value==='20'`));
+    await evaluate(`[...document.querySelectorAll('.cad-workbench > .draft-view-tools button')].find(button=>button.textContent==='Draft blockout').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.cad-draft-viewport canvas') && document.querySelector('.cad-draft-viewport').dataset.draftValid==='true'`));
+    await evaluate(`document.querySelector('.cad-workbench').scrollIntoView({block:'start'})`);await sleep(350);
+    fs.writeFileSync(path.join(output,'r5-draft-blockout.png'),(await window.webContents.capturePage()).toPNG());
+    await evaluate(`[...document.querySelectorAll('.cad-workbench > .draft-view-tools button')].find(button=>button.textContent==='Saved revision').click()`);
+    await evaluate(`document.querySelector('.cad-build').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await until(()=>evaluate(`document.querySelector('.cad-status strong')?.textContent==='Ready to explore' && document.querySelectorAll('.cad-history-list button').length===5`));
+    await evaluate(`{const select=document.querySelector('[aria-label="Compare saved revision"]');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,select.options[1].value);select.dispatchEvent(new Event('change',{bubbles:true}));}`);
+    await until(()=>evaluate(`document.querySelectorAll('.revision-visual-compare .cad-viewport[data-model-loaded="true"]').length===2`));
+    await evaluate(`document.querySelector('.cad-workbench').scrollIntoView({block:'start'})`);await sleep(350);
+    fs.writeFileSync(path.join(output,'r5-revision-compare.png'),(await window.webContents.capturePage()).toPNG());
+    assert.equal(await evaluate(`document.querySelector('.cad-history-list button.selected em').textContent.includes('from')`),true);
+    await evaluate(`[...[...document.querySelectorAll('[aria-label="Saved model views"]')].at(-1).querySelectorAll('button')].find(button=>button.textContent==='Save view').click()`);
+    await until(()=>evaluate(`[...[...document.querySelectorAll('[aria-label="Saved model views"]')].at(-1).querySelectorAll('button')].some(button=>button.textContent==='Restore view' && !button.disabled)`));
+    await evaluate(`[...[...document.querySelectorAll('[aria-label="Saved model views"]')].at(-1).querySelectorAll('button')].find(button=>button.textContent==='Front').click();[...[...document.querySelectorAll('[aria-label="Saved model views"]')].at(-1).querySelectorAll('button')].find(button=>button.textContent==='Restore view').click()`);
+    result.r5={saved_view_controls:true,undo_redo_transforms:true,proposal_requires_review_no_worker:true,fixture_proposal_only:true,draft_blockout_canvas:true,child_revision_preserves_parent:true,saved_revision_comparison:true};
+
     await evaluate(`document.querySelector('[aria-label="Close panel"]').click();document.querySelector('nav [aria-label="Activity"]').click()`);
     await until(() => evaluate(`document.querySelectorAll('.activity-card').length >= 4 && !document.querySelector('.panel-state--loading')`));
     assert.equal(await evaluate(`document.querySelector('.activity-center').textContent.includes('GLB')`), true);
@@ -183,6 +221,8 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`document.querySelector('.activity-card footer button').click()`);
     await until(() => evaluate(`document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true'`));
     assert.equal(await evaluate(`document.querySelectorAll('.scene-roster button').length`),3);
+    assert.equal(await evaluate(`[...document.querySelectorAll('[aria-label="Saved model views"] button')].some(button=>button.textContent==='Restore view' && !button.disabled)`),true);
+    result.bookmark_restored_after_panel_close=true;
     result.activity_restores_selected_revision = true; result.long_revision_names = true;
     result.passed = true;
   } catch (error) {

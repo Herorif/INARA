@@ -80,6 +80,22 @@ BrowserWindow.prototype.loadFile=async function(...args){
   const png=fs.readFileSync(downloads.find(file=>file.endsWith('.png'))),recipe=JSON.parse(fs.readFileSync(downloads.find(file=>file.endsWith('.json')),'utf8'));
   assert.equal(png.readUInt32BE(16),512);assert.equal(recipe.provenance.backend,'verification_fixture');
   result.fixture_revisions_and_real_downloads=true;
+  assert.equal(await evaluate(`document.querySelector('.image-history-list button.selected em').textContent.includes('from')`),true);
+  await setField('.image-director input','A temporary draft');
+  await evaluate(`document.querySelector('[aria-label="Undo recipe edit"]').click()`);
+  await until(()=>evaluate(`document.querySelector('.image-director input').value==='Verification fixture'`));
+  await evaluate(`document.querySelector('[aria-label="Redo recipe edit"]').click()`);
+  await until(()=>evaluate(`document.querySelector('.image-director input').value==='A temporary draft'`));
+  await evaluate(`document.querySelector('[aria-label="Undo recipe edit"]').click()`);
+  await evaluate(`{const select=document.querySelector('[aria-label="Compare saved revision"]');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,select.options[1].value);select.dispatchEvent(new Event('change',{bubbles:true}));}`);
+  await until(()=>evaluate(`document.querySelectorAll('.revision-visual-compare img').length===2`));
+  await evaluate(`document.querySelector('.image-workbench').scrollIntoView({block:'start'})`);await screenshot('r5-image-compare.png');
+  await evaluate(`document.querySelector('.image-gallery').open=true`);
+  await until(()=>evaluate(`document.querySelectorAll('.image-gallery-grid img').length===2`));
+  await evaluate(`document.querySelector('.image-gallery').scrollIntoView({block:'start'})`);await screenshot('r5-image-gallery.png');
+  await evaluate(`document.querySelector('.image-gallery').open=false;{const select=document.querySelector('[aria-label="Compare saved revision"]');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'');select.dispatchEvent(new Event('change',{bubbles:true}));}`);
+  result.r5_branch_undo_redo_gallery_and_compare=true;
+
   await evaluate(`document.querySelector('.image-tuning').open=false;document.querySelector('.image-studio').parentElement.scrollTop=0;`);
   await screenshot('image-fixture-desktop.png');
   for(const width of [390,768]){

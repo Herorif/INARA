@@ -1,12 +1,14 @@
 import { isArtifact, isJobUpdate } from './guards.ts';
 import { RpcError, createRpcScope, type RpcSocket } from './rpc.ts';
-import type { BuildRequest, ArtifactRequest, PlanRequest, Recipe, JobRequest, JobLifetime } from './generated/cad.ts';
+import type { BuildRequest, ArtifactRequest, PlanRequest, Recipe, JobRequest, JobLifetime, ChangeSet, ChangePrompt } from './generated/cad.ts';
 export type CadJob = { request_id: string; project: string; state: string; phase: string; recipe?: Recipe; [key: string]: unknown };
 export interface CadCalls {
   cad_list: { request: Record<string, never>; result: { jobs: CadJob[]; capabilities: { blender: boolean } } };
   cad_submit: { request: BuildRequest; result: { job: CadJob } };
   cad_cancel: { request: JobRequest; result: { job: CadJob } };
   cad_artifact: { request: ArtifactRequest; result: { artifact: { data: string; bytes: number; sha256: string; filename: string } } };
+  cad_review_changes: { request: ChangeSet; result: { proposal: ChangeSet & {recipe:Recipe} } };
+  cad_plan_changes: { request: ChangePrompt; result: { proposal: ChangeSet & {recipe:Recipe} } };
   cad_plan: { request: PlanRequest; result: { recipe: Recipe } };
   cad_lifetime: { request: JobLifetime; result: { job: CadJob } };
   cad_close: { request: Record<string, never>; result: Record<string, unknown> };
@@ -29,6 +31,7 @@ export function createCadClient(socket: RpcSocket) {
         if (event === 'cad_artifact' && !isArtifact((result as CadCalls['cad_artifact']['result']).artifact)) {
           throw new RpcError('The saved export could not be read. Refresh history.', 'invalid_response');
         }
+        if ((event === 'cad_review_changes' || event === 'cad_plan_changes') && (!(result as CadCalls['cad_review_changes']['result']).proposal?.recipe || (result as CadCalls['cad_review_changes']['result']).proposal?.base_request_id !== (data as ChangeSet).base_request_id || (result as CadCalls['cad_review_changes']['result']).proposal?.base_fingerprint !== (data as ChangeSet).base_fingerprint)) throw new RpcError('The core returned an invalid change proposal.', 'invalid_response');
         if (event === 'cad_plan' && !(result as CadCalls['cad_plan']['result']).recipe) {
           throw new RpcError('The core returned an invalid blueprint. Your current design was preserved.', 'invalid_response');
         }
