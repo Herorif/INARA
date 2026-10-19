@@ -1,5 +1,6 @@
 """Owner-authorized compatibility operations. Optional adapters stay lazy."""
 
+import asyncio
 from services.printer_monitor import PrinterMonitor
 from services.device_contracts import AddPrinter, KasaControl
 from services.local_actions import NoArguments
@@ -57,6 +58,7 @@ class DevicePrinterService:
                     port=item.get("port", 80),
                     printer_type=item.get("type", "moonraker"),
                     camera_url=item.get("camera_url"),
+                    **({"api_key": item["api_key"]} if item.get("api_key") else {}),
                 )
         return self.printer
 
@@ -81,6 +83,10 @@ class DevicePrinterService:
 
     async def close(self):
         await self.observation.close()
+        # Inspect lazy state directly; cleanup must never activate an optional adapter.
+        if isinstance(self.kasa, LazyService) and self.kasa.instance is not None:
+            async with asyncio.timeout(5):
+                await self.kasa.instance.close()
 
     def execute(self, name):
         async def run(args, context):

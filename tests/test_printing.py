@@ -56,12 +56,14 @@ async def test_stage_order_upload_does_not_start_and_duplicate_never_replays(pri
     result = await run(app, context, request)
     assert result["status"] == "success"
     app.compat_service.printer.upload_gcode.assert_awaited_once()
+    assert app.compat_service.printer.upload_gcode.await_args.args[0] == "10.0.0.9:7125"
     assert app.compat_service.printer.upload_gcode.await_args.kwargs == {"start_print": False}
     name = app.compat_service.printer.start_print.await_args.args[1]
     assert len(name) == 38 and name.endswith(".gcode")
     assert await run(app, context, request) == result
     app.printing.slicer.run.assert_awaited_once()
     app.compat_service.printer.start_print.assert_awaited_once()
+    assert app.compat_service.printer.start_print.await_args.args[0] == "10.0.0.9:7125"
     app.printing.active = None
     with pytest.raises(ServiceError, match="already has different"):
         await run(app, context, request.model_copy(update={"stl_path": "different.stl"}))
@@ -281,7 +283,7 @@ async def test_start_protocol_is_separate_fixed_request(protocol, endpoint, payl
 
     printer = SimpleNamespace(printer_type=protocol, host="printer.test", port=80, api_key=None)
     assert await start_uploaded(printer, "a" * 32 + ".gcode", Session)
-    assert calls == [("http://printer.test:80" + endpoint, {"json": payload, "headers": {}})]
+    assert calls == [("http://printer.test:80" + endpoint, {"json": payload, "headers": {}, "allow_redirects": False})]
     assert not await start_uploaded(printer, "../unsafe.gcode", Session)
     assert len(calls) == 1
 

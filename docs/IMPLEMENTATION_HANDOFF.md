@@ -64,13 +64,21 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 
 R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented. The two latest authorized steps are complete: live voice uses shared schemas/dispatch, and owner-only connection hydration plus owned face-process lifetime replace facade callbacks. Optional provider/hardware behavior and legacy generated-code/browser hard isolation remain separate acceptance work.
 
-## Reviewed desktop tasks completed; next source implementation
+## Connection adapters and readiness completed; next source implementation
+
+Kasa SDK discovery/control, printer data, explicit mDNS observation and OctoPrint/Moonraker HTTP clients are separated from the retained compatibility/profile/slicer facades. Exact host:port routing, saved credentials, per-stage approvals and non-replayable print receipts are preserved. Silent upload fallback/start and discovery camera/protocol probing are removed. The responsive Connections readiness view inspects local metadata/cache without activating adapters or revealing endpoints/keys. [Implementation and limits](CONNECTION_ADAPTERS.md).
+
+Acceptance: **1,053 full-regression Python passes / one Blender skip; 94 Node passes**, final focused protocol/device/print checks, type/contracts/lint/build and hidden native UI acceptance at desktop/390px. Native readiness activated zero adapters, used synthetic metadata only and recovered to about 66.5 MB resident memory. Actual vendor SDK/device/printer behavior and network acceptance remain unverified; no dependencies, providers or real hardware were configured.
+
+Next source milestone: extend optional AI blueprint proposals to typed multi-object scenes, with bounded scene contracts, previews/review, stale-context rejection, protected revisions and shared per-call usage admission. Use injected proposals and existing offline geometry workers; no raw generated Python/shell, model downloads, provider configuration, actual Blender/image/camera or physical actions. Android, interactive browser actions, real provider/hardware acceptance and signed distribution/update recovery stay gated.
+
+## Reviewed desktop tasks completed
 
 Reviewed tasks adds immutable one-to-eight-step project plans, a polished responsive editor/review workspace, fresh approval for every typed file/app step, protected durable receipts and cancellation/recovery that never replays effects. Safety stops work across project changes and while locked without returning private task data. Shared dispatcher hooks preserve other callers' existing behavior. [Behavior, evidence and limits](REVIEWED_TASKS.md).
 
 Acceptance: **1,004 full-regression Python passes / one Blender skip**, **51 final queue checks**, **89 Node passes**, types/contracts/lint/build and real hidden renderer fixture acceptance at desktop/390px. Short resident recovery was about 68 MB. QA used isolated project files and a fake cancellable app adapter; no real application, network, provider or hardware actions were activated.
 
-Next source milestone: finish device/printer protocol-adapter separation and Connections readiness using fixtures. Extract Kasa discovery/control and printer network clients while preserving exact endpoints, shared approvals, lazy loading, owned observation and durable non-replayable print attempts. Do not perform real network discovery/control or tool/provider installation/configuration. Interactive browser actions, physical/provider acceptance, Android build/device acceptance and signed distribution/update recovery remain open gates.
+Device/printer protocol-adapter separation and Connections readiness are now implemented above using fixtures. Extract Kasa discovery/control and printer network clients while preserving exact endpoints, shared approvals, lazy loading, owned observation and durable non-replayable print attempts. Do not perform real network discovery/control or tool/provider installation/configuration. Interactive browser actions, physical/provider acceptance, Android build/device acceptance and signed distribution/update recovery remain open gates.
 
 ## Web inspector completed
 
@@ -221,6 +229,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Continue from docs/REVIEWED_TASKS.md and docs/RELEASE_GATES.json. Implement the device/printer protocol-adapter separation and Connections readiness milestone using injected fixtures. Extract Kasa discovery/control and printer network protocol clients from retained agents; preserve explicit endpoint validation, lazy loading, shared approval/denial, owned observation and the non-replayable print pipeline. Cover protocol errors, deadlines/cancellation and offline readiness. Keep the reviewed queue finite/manual and browser inspector read-only. No real network discovery/control, dependency/provider configuration, hardware/notifications, WhatsApp or call actions. Android build/device acceptance and signed self-contained distribution remain separate open gates.
+> Continue from docs/CONNECTION_ADAPTERS.md and docs/RELEASE_GATES.json. Extend optional AI blueprint proposals to bounded typed multi-object scenes using the existing offline scene worker and protected creative revisions. Preserve preview/review, captured project/request scope, stale-proposal rejection, shared approvals, cancellation and per-provider-call usage admission. Validate with injected proposals/fixtures; no real providers, model/dependency downloads, arbitrary generated Python/shell, Blender/image/camera/hardware activation or WhatsApp/call actions. Android build/device acceptance and signed self-contained distribution/update recovery remain open release gates.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

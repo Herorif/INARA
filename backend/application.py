@@ -29,6 +29,8 @@ from services.browser import BrowserService
 from transport.browser import BrowserTransport
 from services.task_queue import TaskQueue
 from transport.task_queue import TaskQueueTransport
+from services.connections import ConnectionsReadiness
+from transport.connections import ConnectionsTransport
 from transport.memory import MemoryTransport
 from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
@@ -158,6 +160,8 @@ class Application:
             self.printer,
             self.delivery.publish_job,
         )
+        self.connections = ConnectionsReadiness(self)
+        self.connections_transport = ConnectionsTransport(self)
         self.printing = PrintService(
             database, resources, self.dispatcher, self.compat_service, self.delivery.publish_job
         )

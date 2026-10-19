@@ -25,8 +25,9 @@ const PrinterWindow = ({
       }
     };
 
-    socket.on('print_result', onPrintResult);
-    return () => socket.off('print_result', onPrintResult);
+    const done = () => setIsDiscovering(false);
+    socket.on('print_result', onPrintResult);socket.on('printer_list', done);socket.on('error', done);socket.on('disconnect', done);
+    return () => { socket.off('print_result', onPrintResult);socket.off('printer_list', done);socket.off('error', done);socket.off('disconnect', done); };
   }, []);
 
   useEffect(() => {
@@ -36,7 +37,6 @@ const PrinterWindow = ({
   const handleDiscover = () => {
     setIsDiscovering(true);
     emitSocket('discover_printers');
-    setTimeout(() => setIsDiscovering(false), 5000);
   };
 
   const getStatusColor = (state) => {

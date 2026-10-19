@@ -2,9 +2,13 @@
 
 Updated 19 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
-## Current post-revamp milestone: reviewed desktop tasks
+## Current post-revamp milestone: connection adapters and readiness
 
-Manual one-to-eight-step immutable plans now use existing project file/app tools with fresh approval for every step, protected durable receipts, origin-bound cancellation and conservative interruption recovery without replay. The responsive JARVIS workspace provides editing, review, progress, previews and uncertain-result guidance. **1,004 full-regression Python passes / one Blender skip; 51 final queue checks; 89 Node passes**, type/drift/lint/build and actual native fixture acceptance at desktop/390px. Short resident recovery was about 68 MB. [Behavior and acceptance](REVIEWED_TASKS.md). Real apps/providers/hardware were not used. Device/printer protocol separation and Connections readiness are the next source milestone; Android and distribution acceptance stay gated.
+Lazy Kasa discovery/control, printer data/mDNS and bounded OctoPrint/Moonraker clients are separated; exact endpoints, saved credentials, shared approvals, observation ownership and durable print receipts are preserved. The polished Connections readiness view reads local metadata/cache without initializing adapters or contacting devices. **1,053 full-regression Python passes / one Blender skip; 94 Node passes**, final focused adapter/device/print checks, type/drift/lint/build and real hidden renderer acceptance at desktop/390px. Native readiness activated zero adapters and short resident recovery was about 66.5 MB. [Evidence and limits](CONNECTION_ADAPTERS.md). Actual SDK/hardware/provider acceptance remains pending. Typed multi-object AI scene proposals are the next source milestone, using fixtures while configuration stays deferred.
+
+## Completed post-revamp milestone: reviewed desktop tasks
+
+Manual one-to-eight-step immutable plans now use existing project file/app tools with fresh approval for every step, protected durable receipts, origin-bound cancellation and conservative interruption recovery without replay. The responsive JARVIS workspace provides editing, review, progress, previews and uncertain-result guidance. **1,004 full-regression Python passes / one Blender skip; 51 final queue checks; 89 Node passes**, type/drift/lint/build and actual native fixture acceptance at desktop/390px. Short resident recovery was about 68 MB. [Behavior and acceptance](REVIEWED_TASKS.md). Real apps/providers/hardware were not used. Device/printer protocol separation and Connections readiness are now implemented above; Android and distribution acceptance stay gated.
 
 ## Completed post-revamp milestone: Web inspector and adapter cleanup
 

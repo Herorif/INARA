@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "milestone": "Reviewed desktop tasks with protected non-replayable receipts",
+  "milestone": "Connection protocol adapters and metadata-only readiness",
   "gates": [
     {
       "id": "desktop-source",
@@ -98,7 +98,7 @@
       "track": "backlog",
       "status": "pending",
       "required": false,
-      "evidence": "Read-only browser, owned printer observation and reviewed desktop task queue source milestones are accepted. Remaining device/printer protocol decomposition, interactive browser action policies and physical adapter acceptance are pending; see REVIEWED_TASKS.md."
+      "evidence": "Read-only browser, reviewed desktop tasks, Kasa/printer protocol separation and local Connections readiness source milestones are accepted. Interactive browser action policy and actual vendor SDK/network/physical acceptance remain pending; no automatic hardware tests."
     },
     {
       "id": "budgets-evaluations",
@@ -141,6 +141,13 @@
       "status": "accepted",
       "required": true,
       "evidence": "REVIEWED_TASKS.md; finite immutable typed file/app plans, forced per-step approvals, receipt-before-effect ordering, cancellation/recovery without replay and real native UI acceptance using isolated files/fake app adapter."
+    },
+    {
+      "id": "connection-adapters-readiness",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "CONNECTION_ADAPTERS.md; injected protocol/lifetime fixtures, exact endpoint routing and local readiness with zero native adapter activations. Actual SDK/network/device acceptance remains deferred."
     }
   ]
 }

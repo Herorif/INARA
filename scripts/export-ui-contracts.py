@@ -32,7 +32,10 @@ from services.browser_contracts import BrowserInspect, BrowserReport  # noqa: E4
 
 from services.task_queue_contracts import TaskCreate, TaskReference  # noqa: E402
 
+from services.connections_contracts import ConnectionCard, ConnectionsState  # noqa: E402
+
 GROUPS = {
+    "connections": (ConnectionCard, ConnectionsState),
     "tasks": (TaskCreate, TaskReference),
     "browser": (BrowserInspect, BrowserReport),
     "usage": (UsagePolicy,),

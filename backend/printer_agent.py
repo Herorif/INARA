@@ -4,99 +4,18 @@ PrinterAgent - Handles 3D printer discovery, slicing, and print job submission.
 Supported Printer Types:
 - OctoPrint (REST API)
 - Moonraker/Klipper (REST API)
-- PrusaLink (REST API)
+- Other protocols remain unavailable; no compatibility fallback is attempted.
 """
 
 import asyncio
 import os
 import subprocess
-import json
 import platform
 import time
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
-from enum import Enum
 
-import aiohttp
-from zeroconf import Zeroconf, ServiceBrowser, ServiceListener
-
-
-class PrinterType(Enum):
-    OCTOPRINT = "octoprint"
-    MOONRAKER = "moonraker"
-    PRUSALINK = "prusalink"
-    UNKNOWN = "unknown"
-
-
-@dataclass
-class Printer:
-    """Represents a discovered 3D printer."""
-    name: str
-    host: str
-    port: int
-    printer_type: PrinterType
-    api_key: Optional[str] = None
-    camera_url: Optional[str] = None
-    
-    def to_dict(self) -> dict:
-        d = asdict(self)
-        d["printer_type"] = self.printer_type.value
-        return d
-
-
-@dataclass
-class PrintStatus:
-    """Current status of a print job."""
-    printer: str
-    state: str  # "printing", "idle", "paused", "error"
-    progress_percent: float
-    time_remaining: Optional[str]
-    time_elapsed: Optional[str]
-    filename: Optional[str]
-    temperatures: Optional[Dict[str, Dict[str, float]]] = None
-    details: Optional[str] = None
-    
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-
-class PrinterDiscoveryListener(ServiceListener):
-    """mDNS listener for printer discovery."""
-    
-    def __init__(self):
-        self.printers: List[Printer] = []
-    
-    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        info = zc.get_service_info(type_, name)
-        if info:
-            host = info.parsed_addresses()[0] if info.parsed_addresses() else None
-            # Fallback to server name if address parsing fails
-            if not host and info.server:
-                host = info.server.rstrip('.')
-
-            if host:
-                # Determine printer type from service type
-                if "_octoprint._tcp" in type_:
-                    printer_type = PrinterType.OCTOPRINT
-                elif "_moonraker._tcp" in type_ or "_klipper._tcp" in type_:
-                    printer_type = PrinterType.MOONRAKER
-                else:
-                    printer_type = PrinterType.UNKNOWN
-                
-                printer = Printer(
-                    name=name.replace(f".{type_}", ""),
-                    host=host,
-                    port=info.port or 80,
-                    printer_type=printer_type
-                )
-                self.printers.append(printer)
-                print(f"[PRINTER] Discovered: {printer.name} at {printer.host}:{printer.port} ({printer.printer_type.value})")
-
-    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
-    
-    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        pass
+from devices.printer_models import PrinterType, Printer, PrintStatus
+from devices.printer_protocols import PrinterProtocolClient
 
 
 class PrinterAgent:
@@ -107,7 +26,7 @@ class PrinterAgent:
     def __init__(self, profiles_dir: str = "printer_profiles"):
         self.printers: Dict[str, Printer] = {}  # host -> Printer
         self.profiles_dir = profiles_dir
-        self._zeroconf: Optional[Zeroconf] = None
+        self.protocol = PrinterProtocolClient()
         self._error_tracker = set() # Track hosts with active errors to prevent log spam
         self._status_failures: Dict[str, int] = {}
         self._next_status_poll_at: Dict[str, float] = {}
@@ -137,41 +56,47 @@ class PrinterAgent:
         }
 
     def should_poll_printer(self, host: str) -> bool:
-        return time.monotonic() >= self._next_status_poll_at.get(host, 0.0)
+        printer = self._resolve_printer(host)
+        if printer and printer.printer_type not in (PrinterType.OCTOPRINT, PrinterType.MOONRAKER):
+            return False
+        key = self._status_key(printer) if printer else host
+        return time.monotonic() >= self._next_status_poll_at.get(key, 0.0)
 
     def get_printer_list(self) -> List[Dict]:
         printer_list = []
         for host, printer in self.printers.items():
             item = printer.to_dict()
-            status = self._last_status.get(host)
+            status = self._last_status.get(self._status_key(printer))
             if status:
                 item["status"] = status.to_dict()
             printer_list.append(item)
         return printer_list
 
     def _set_next_poll(self, host: str, delay: float) -> None:
-        self._next_status_poll_at[host] = time.monotonic() + max(delay, 0.0)
+        printer = self._resolve_printer(host)
+        key = self._status_key(printer) if printer else host
+        self._next_status_poll_at[key] = time.monotonic() + max(delay, 0.0)
 
     def _record_status_success(self, printer: Printer, status: PrintStatus) -> PrintStatus:
-        self._error_tracker.discard(printer.host)
-        self._status_failures[printer.host] = 0
-        self._last_status[printer.host] = status
+        self._error_tracker.discard(self._status_key(printer))
+        self._status_failures[self._status_key(printer)] = 0
+        self._last_status[self._status_key(printer)] = status
 
         state = (status.state or "").lower()
         poll_delay = self._printing_poll_interval if state in {"printing", "paused"} else self._online_poll_interval
-        self._set_next_poll(printer.host, poll_delay)
+        self._set_next_poll(self._status_key(printer), poll_delay)
         return status
 
     def _record_status_failure(self, printer: Printer, message: str) -> PrintStatus:
-        failures = self._status_failures.get(printer.host, 0) + 1
-        self._status_failures[printer.host] = failures
+        failures = self._status_failures.get(self._status_key(printer), 0) + 1
+        self._status_failures[self._status_key(printer)] = failures
 
         backoff_index = min(failures - 1, len(self._offline_backoff_steps) - 1)
-        self._set_next_poll(printer.host, self._offline_backoff_steps[backoff_index])
+        self._set_next_poll(self._status_key(printer), self._offline_backoff_steps[backoff_index])
 
-        if printer.host not in self._error_tracker:
+        if self._status_key(printer) not in self._error_tracker:
             print(f"[PRINTER] {printer.name} is offline: {message}")
-            self._error_tracker.add(printer.host)
+            self._error_tracker.add(self._status_key(printer))
 
         status = PrintStatus(
             printer=printer.name,
@@ -183,7 +108,7 @@ class PrinterAgent:
             temperatures={},
             details=message,
         )
-        self._last_status[printer.host] = status
+        self._last_status[self._status_key(printer)] = status
         return status
     
     def _detect_orca_profiles_dir(self) -> Optional[str]:
@@ -421,176 +346,52 @@ class PrinterAgent:
         return None
 
     async def discover_printers(self, timeout: float = 5.0) -> List[Dict]:
-        """
-        Discovers 3D printers on the local network via mDNS.
-        Returns list of discovered printers.
-        """
-        print(f"[PRINTER] Starting printer discovery (timeout: {timeout}s)...")
-        
-        self._zeroconf = Zeroconf()
-        listener = PrinterDiscoveryListener()
-        
-        # Browse for common 3D printer services
-        services = [
-            "_octoprint._tcp.local.",
-            "_moonraker._tcp.local.",
-            "_klipper._tcp.local.", # Some Klipper installs use this
-            "_http._tcp.local."  # Generic HTTP - critical for some Creality/Prusa setups
-        ]
-        
-        browsers = []
-        for service in services:
-            browser = ServiceBrowser(self._zeroconf, service, listener)
-            browsers.append(browser)
-        
-        # Wait for discovery
-        await asyncio.sleep(timeout)
-        
-        # Cleanup
-        self._zeroconf.close()
-        
-        # PROBE UNKNOWN PRINTERS
-        # Many printers show up as _http._tcp with generic names
-        # We try to identify them by hitting known endpoints
-        for printer in listener.printers:
-            if printer.printer_type == PrinterType.UNKNOWN:
-                print(f"[PRINTER] Probing unknown printer: {printer.host}...")
-                ptype = await self._probe_printer_type(printer.host, printer.port)
-                if ptype != PrinterType.UNKNOWN:
-                    printer.printer_type = ptype
-                    print(f"[PRINTER] Identified {printer.name} as {ptype.value}")
-        
-        # PROBE CAMERAS
-        for printer in listener.printers:
-            if not printer.camera_url:
-                # Try discovery
-                cam_url = await self._probe_camera(printer.host, printer.port)
-                if cam_url:
-                    printer.camera_url = cam_url
-        
-        # Store discovered printers
-        for printer in listener.printers:
-            # Avoid duplicates if we found same host on multiple services
-            self.printers[printer.host] = printer
-            self._set_next_poll(printer.host, 0.0)
-        
-        print(f"[PRINTER] Discovery complete. Found {len(self.printers)} printers.")
+        from devices.printer_discovery import discover_printers
+        found = await discover_printers(timeout)
+        for printer in found:
+            # Discovery must not replace a saved exact endpoint, credentials or protocol.
+            if not any(item.host == printer.host for item in self.printers.values()):
+                self.printers[printer.host] = printer
+                self._set_next_poll(printer.host, 0.0)
         return self.get_printer_list()
 
-    async def _probe_printer_type(self, host: str, port: int) -> PrinterType:
-        """Probe a host to check if it's running Moonraker or OctoPrint."""
-        print(f"[PRINTER DEBUG] Probing http://{host}:{port}...")
-        try:
-            # Short timeout to avoid hangs on unreachable ports
-            timeout = aiohttp.ClientTimeout(total=2.0, connect=1.0)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                # Check Moonraker (Creality K1, Klipper)
-                # /printer/info is a standard Moonraker public endpoint
-                try:
-                    url = f"http://{host}:{port}/printer/info"
-                    async with session.get(url) as resp:
-                        print(f"[PRINTER DEBUG] {url} -> {resp.status}")
-                        if resp.status == 200:
-                            data = await resp.json()
-                            if "result" in data or "hostname" in data:
-                                print(f"[PRINTER DEBUG] Found MOONRAKER at {host}:{port}")
-                                return PrinterType.MOONRAKER
-                except asyncio.TimeoutError:
-                    print(f"[PRINTER DEBUG] Timeout probing {host}:{port}")
-                except Exception as e:
-                    print(f"[PRINTER DEBUG] Error probing {host}:{port}: {e}")
+    async def _probe_printer_type(self, host, port):
+        return PrinterType.UNKNOWN  # No implicit protocol probing.
 
-                # Check OctoPrint
-                # /api/version usually requires key, but returns 401 or 200
-                try:
-                     url = f"http://{host}:{port}/api/version"
-                     async with session.get(url) as resp:
-                         print(f"[PRINTER DEBUG] {url} -> {resp.status}")
-                         # 200 (if public), 403 (needs key) - both mean it IS OctoPrint
-                         if resp.status in (200, 403, 401):
-                             print(f"[PRINTER DEBUG] Found OCTOPRINT at {host}:{port}")
-                             return PrinterType.OCTOPRINT
-                except asyncio.TimeoutError:
-                     pass
-                except Exception:
-                     pass
-                     
-                # Fallback: Check root for identification
-                try:
-                    url = f"http://{host}:{port}/"
-                    async with session.get(url) as resp:
-                        content = await resp.text()
-                        print(f"[PRINTER DEBUG] Root {url} -> {resp.status}")
-                        if "<title>" in content:
-                            title = content.split("<title>")[1].split("</title>")[0]
-                            print(f"[PRINTER DEBUG] Page Title: {title}")
-                        if "Server" in resp.headers:
-                            print(f"[PRINTER DEBUG] Server Header: {resp.headers['Server']}")
-                except:
-                    pass
-                    
-        except Exception as e:
-            print(f"[PRINTER] Probe error for {host}:{port}: {e}")
-        
-        return PrinterType.UNKNOWN
-
-    async def _probe_camera(self, host: str, port: int) -> Optional[str]:
-        """Probe for common camera stream URLs."""
-        # Common stream paths
-        paths = [
-            "/webcam/?action=stream",      # OctoPrint / mjpg-streamer default
-            "/webcam/stream",              # Some Klipper setups
-            "/camera/stream",
-            "/stream",
-            ":8080/?action=stream",        # mjpg-streamer standalone port
-        ]
-        
-        timeout = aiohttp.ClientTimeout(total=2.0, connect=1.0)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            for path in paths:
-                try:
-                    target = path if path.startswith(":") else f":{port}{path}"
-                    # Handle raw port case
-                    if target.startswith(":"):
-                        url = f"http://{host}{target}"
-                    else:
-                        url = f"http://{host}{target}"
-                        
-                    async with session.get(url) as resp:
-                        if resp.status == 200:
-                            # Verify content type is a stream
-                            ctype = resp.headers.get("Content-Type", "")
-                            if "multipart/x-mixed-replace" in ctype or "image" in ctype:
-                                print(f"[PRINTER] Found Camera: {url}")
-                                return url
-                except:
-                    continue
-        return None
+    async def _probe_camera(self, host, port):
+        return None  # Camera access requires a separate explicit workflow.
     
     def add_printer_manually(self, name: str, host: str, port: int = 80, 
                              printer_type: str = "octoprint", api_key: Optional[str] = None,
                              camera_url: Optional[str] = None) -> Printer:
         """Manually add a printer (useful when mDNS discovery fails)."""
         ptype = PrinterType(printer_type) if printer_type in [e.value for e in PrinterType] else PrinterType.UNKNOWN
+        existing = self._resolve_printer(f"{host}:{port}")
+        if existing and api_key is None:
+            api_key = existing.api_key
         printer = Printer(name=name, host=host, port=port, printer_type=ptype, api_key=api_key, camera_url=camera_url)
-        self.printers[host] = printer
-        self._set_next_poll(host, 0.0)
+        previous = self.printers.get(host)
+        if previous and previous.port != port:
+            self.printers.pop(host)
+            self.printers[f"{host}:{previous.port}"] = previous
+        key = f"{host}:{port}" if any(item.host == host and item.port != port for item in self.printers.values()) else host
+        self.printers[key] = printer
+        self._set_next_poll(f"{host}:{port}", 0.0)
         print(f"[PRINTER] Manually added: {name} at {host}:{port}")
         return printer
     
-    def _resolve_printer(self, target: str) -> Optional[Printer]:
-        """Resolve printer by name or host."""
-        # Check by host/IP
+    def _resolve_printer(self, target):
         if target in self.printers:
             return self.printers[target]
-        
-        # Check by name
-        for printer in self.printers.values():
-            if printer.name.lower() == target.lower():
-                return printer
-        
-        return None
-    
+        if ":" in target:
+            matches = [item for item in self.printers.values() if f"{item.host}:{item.port}" == target]
+        else:
+            matches = [item for item in self.printers.values() if item.host == target or item.name.lower() == target.lower()]
+        return matches[0] if len(matches) == 1 else None
+
+    def _status_key(self, printer):
+        return f"{printer.host}:{printer.port}"
+
     def _resolve_file_path(self, path: str, root_path: Optional[str] = None) -> Optional[str]:
         """Resolve file path by checking common locations."""
         # 1. Check if absolute path exists
@@ -816,220 +617,41 @@ class PrinterAgent:
             print(f"[PRINTER] Slicing error: {e}")
             return None
     
-    async def upload_gcode(self, target: str, gcode_path: str, 
-                           start_print: bool = False) -> bool:
-        """
-        Upload G-code to printer and optionally start print.
-        
-        Args:
-            target: Printer name or host
-            gcode_path: Path to G-code file
-            start_print: Whether to start printing immediately
-        
-        Returns:
-            True on success, False on failure
-        """
+    async def upload_gcode(self, target, gcode_path, start_print=False):
         printer = self._resolve_printer(target)
-        if not printer:
-            print(f"[PRINTER] Error: Printer not found: {target}")
-            return False
-        
-        if not os.path.exists(gcode_path):
-            print(f"[PRINTER] Error: G-code file not found: {gcode_path}")
-            return False
-        
-        if printer.printer_type == PrinterType.OCTOPRINT:
-            return await self._upload_octoprint(printer, gcode_path, start_print)
-        elif printer.printer_type == PrinterType.MOONRAKER:
-            return await self._upload_moonraker(printer, gcode_path, start_print)
-        else:
-            print(f"[PRINTER] Error: Unsupported printer type: {printer.printer_type}")
-            return False
+        if not printer or start_print:
+            return False  # Upload and physical start remain independently approved.
+        return await self.protocol.upload(printer, gcode_path)
     
-    async def _upload_octoprint(self, printer: Printer, gcode_path: str, 
-                                 start_print: bool) -> bool:
-        """Upload to OctoPrint."""
-        url = f"http://{printer.host}:{printer.port}/api/files/local"
-        headers = {}
-        if printer.api_key:
-            headers["X-Api-Key"] = printer.api_key
-        
-        filename = os.path.basename(gcode_path)
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                with open(gcode_path, 'rb') as f:
-                    data = aiohttp.FormData()
-                    data.add_field('file', f, filename=filename)
-                    if start_print:
-                        data.add_field('print', 'true')
-                    
-                    async with session.post(url, data=data, headers=headers) as resp:
-                        if resp.status in (200, 201, 202, 204):
-                            print(f"[PRINTER] Uploaded {filename} to OctoPrint at {printer.host}")
-                            return True
-                        else:
-                            print(f"[PRINTER] OctoPrint upload failed ({resp.status})")
-                            return False
-        except Exception as e:
-            print(f"[PRINTER] OctoPrint upload error: {e}")
+    async def _upload_octoprint(self, printer, gcode_path, start_print=False):
+        if start_print or printer.printer_type != PrinterType.OCTOPRINT:
             return False
+        return await self.protocol.upload(printer, gcode_path)
 
-    async def _upload_moonraker(self, printer: Printer, gcode_path: str, 
-                                start_print: bool) -> bool:
-        """Upload to Moonraker."""
-        url = f"http://{printer.host}:{printer.port}/server/files/upload"
-        
-        filename = os.path.basename(gcode_path)
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                with open(gcode_path, 'rb') as f:
-                    data = aiohttp.FormData()
-                    data.add_field('file', f, filename=filename)
-                    # Explicitly set root if needed, but default is usually fine?
-                    
-                    async with session.post(url, data=data) as resp:
-                        if resp.status in (200, 201):
-                            print(f"[PRINTER] Uploaded {filename} to Moonraker at {printer.host}")
-                            
-                            if start_print:
-                                # Trigger print
-                                print_url = f"http://{printer.host}:{printer.port}/printer/print/start"
-                                data_print = {"filename": filename}
-                                async with session.post(print_url, json=data_print) as resp_print:
-                                    if resp_print.status == 200:
-                                        print(f"[PRINTER] Started print on Moonraker")
-                                        return True
-                                    else:
-                                        print(f"[PRINTER] Moonraker start print failed ({resp_print.status})")
-                                        return False
-                            return True
-                        else:
-                            print(f"[PRINTER] Moonraker upload failed ({resp.status}). Trying OctoPrint compatibility layer...")
-
-            # Fallback to OctoPrint API (as Moonraker usually supports it and Creality K1 definitely does)
-            return await self._upload_octoprint(printer, gcode_path, start_print)
-            
-        except Exception as e:
-            print(f"[PRINTER] Moonraker upload error: {e}")
+    async def _upload_moonraker(self, printer, gcode_path, start_print=False):
+        if start_print or printer.printer_type != PrinterType.MOONRAKER:
             return False
-        except Exception as e:
-            print(f"[PRINTER] Moonraker upload error: {e}")
-            return False
+        return await self.protocol.upload(printer, gcode_path)
 
-    async def start_print(self, target: str, filename: str) -> bool:
-        """Start an already-uploaded generated filename through a separate API request."""
-        from services.printer_protocol import start_uploaded
+    async def start_print(self, target, filename):
         printer = self._resolve_printer(target)
-        return await start_uploaded(printer, filename) if printer else False
+        return await self.protocol.start(printer, filename) if printer else False
 
-    async def get_print_status(self, target: str) -> Optional[PrintStatus]:
-        """
-        Get current status of a printer.
-        """
+    async def get_print_status(self, target):
         printer = self._resolve_printer(target)
-        if not printer:
+        if not printer or printer.printer_type not in (PrinterType.MOONRAKER, PrinterType.OCTOPRINT):
             return None
-            
-        if printer.printer_type == PrinterType.OCTOPRINT:
-            return await self._status_octoprint(printer)
-        elif printer.printer_type == PrinterType.MOONRAKER:
-            return await self._status_moonraker(printer)
-        else:
-            return None
-            
-    async def _status_octoprint(self, printer: Printer) -> Optional[PrintStatus]:
-        """Get status from OctoPrint."""
-        job_url = f"http://{printer.host}:{printer.port}/api/job"
-        printer_url = f"http://{printer.host}:{printer.port}/api/printer"
-        headers = {}
-        if printer.api_key:
-            headers["X-Api-Key"] = printer.api_key
-        
         try:
-            timeout = aiohttp.ClientTimeout(total=3.0, connect=1.0)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                # Fetch Job Status
-                job_data = {}
-                async with session.get(job_url, headers=headers) as resp:
-                    if resp.status == 200:
-                        job_data = await resp.json()
-                
-                # Fetch Printer Status (Temps)
-                temps = {}
-                async with session.get(printer_url, headers=headers) as resp:
-                    if resp.status == 200:
-                        printer_data = await resp.json()
-                        # OctoPrint structure: temperature -> tool0, bed
-                        temp_data = printer_data.get("temperature", {})
-                        if "tool0" in temp_data:
-                            temps["hotend"] = {
-                                "current": temp_data["tool0"].get("actual", 0),
-                                "target": temp_data["tool0"].get("target", 0)
-                            }
-                        if "bed" in temp_data:
-                            temps["bed"] = {
-                                "current": temp_data["bed"].get("actual", 0),
-                                "target": temp_data["bed"].get("target", 0)
-                            }
+            status = await self.protocol.status(printer)
+            return self._record_status_success(printer, status)
+        except Exception:
+            return self._record_status_failure(printer, "Status unavailable. Check endpoint, protocol and authorization.")
 
-                if job_data:
-                    progress = job_data.get("progress", {})
-                    job = job_data.get("job", {})
-
-                    status = PrintStatus(
-                        printer=printer.name,
-                        state=job_data.get("state", "unknown").lower(),
-                        progress_percent=progress.get("completion") or 0,
-                        time_remaining=self._format_time(progress.get("printTimeLeft")),
-                        time_elapsed=self._format_time(progress.get("printTime")),
-                        filename=job.get("file", {}).get("name"),
-                        temperatures=temps
-                    )
-                    return self._record_status_success(printer, status)
-                return self._record_status_failure(printer, "No status response from OctoPrint.")
-
-        except Exception as e:
-            return self._record_status_failure(printer, str(e))
+    async def _status_octoprint(self, printer):
+        return await self.get_print_status(printer.host)
     
-    async def _status_moonraker(self, printer: Printer) -> Optional[PrintStatus]:
-        """Get status from Moonraker."""
-        url = f"http://{printer.host}:{printer.port}/printer/objects/query?print_stats&display_status&heater_bed&extruder"
-        
-        try:
-            timeout = aiohttp.ClientTimeout(total=3.0, connect=1.0)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(url) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        status = data.get("result", {}).get("status", {})
-                        stats = status.get("print_stats", {})
-                        display = status.get("display_status", {})
-                        extruder = status.get("extruder", {})
-                        bed = status.get("heater_bed", {})
-                        
-                        return self._record_status_success(printer, PrintStatus(
-                            printer=printer.name,
-                            state=stats.get("state", "unknown"),
-                            progress_percent=(display.get("progress") or 0) * 100,
-                            time_remaining=None,  # Moonraker doesn't provide this directly
-                            time_elapsed=self._format_time(stats.get("print_duration")),
-                            filename=stats.get("filename"),
-                            temperatures={
-                                "hotend": {
-                                    "current": extruder.get("temperature", 0),
-                                    "target": extruder.get("target", 0)
-                                },
-                                "bed": {
-                                    "current": bed.get("temperature", 0),
-                                    "target": bed.get("target", 0)
-                                }
-                            }
-                        ))
-                    return self._record_status_failure(printer, f"Moonraker returned HTTP {resp.status}.")
-        except Exception as e:
-            return self._record_status_failure(printer, str(e))
+    async def _status_moonraker(self, printer):
+        return await self.get_print_status(printer.host)
 
     def _format_time(self, seconds: Optional[float]) -> Optional[str]:
         if seconds is None:

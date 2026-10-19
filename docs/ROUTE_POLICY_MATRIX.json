@@ -990,6 +990,17 @@
       "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
       "replacement": "TaskQueue / TaskQueueTransport",
       "status": "migrated"
+    },
+    "connections_state": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Local dependency presence, saved counts and cached observations; no private endpoints/keys",
+      "effects": "Metadata inspection only; no discovery, optional adapter initialization or network I/O",
+      "policy": "Independent owner/role/unlock gate",
+      "response": "Origin ACK; strict whitelisted ConnectionsState",
+      "lifetime": "Request-only; no new timer or worker",
+      "replacement": "ConnectionsReadiness / ConnectionsTransport",
+      "status": "migrated"
     }
   },
   "http_routes": {

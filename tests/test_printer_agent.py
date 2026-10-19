@@ -2,6 +2,7 @@
 Tests for 3D Printer Agent.
 Discovery only - no actual print jobs.
 """
+import os
 import pytest
 import asyncio
 
@@ -17,7 +18,7 @@ except ImportError as e:
     PrinterType = None
     Printer = None
 
-pytestmark = pytest.mark.skipif(not HAS_PRINTER, reason=f"Printer dependencies not installed: {IMPORT_ERROR if not HAS_PRINTER else ''}")
+pytestmark = [pytest.mark.skipif(os.getenv("INARA_LIVE_HARDWARE_TESTS") != "1", reason="Real hardware tests require explicit opt-in"), pytest.mark.skipif(not HAS_PRINTER, reason=f"Printer dependencies not installed: {IMPORT_ERROR if not HAS_PRINTER else ''}")]
 
 
 

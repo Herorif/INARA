@@ -24,14 +24,15 @@ const KasaWindow = ({
         });
       }
     };
-    socket.on('kasa_update', onUpdate);
-    return () => socket.off('kasa_update', onUpdate);
+    const done = () => setIsThinking(false);
+    const failed = () => { setIsThinking(false); setLoadingDevices({}); };
+    socket.on('kasa_update', onUpdate);socket.on('kasa_devices', done);socket.on('error', failed);socket.on('disconnect', failed);
+    return () => { socket.off('kasa_update', onUpdate);socket.off('kasa_devices', done);socket.off('error', failed);socket.off('disconnect', failed); };
   }, []);
 
   const handleDiscover = () => {
     setIsThinking(true);
     emitSocket('discover_kasa');
-    setTimeout(() => setIsThinking(false), 5000);
   };
 
   useEffect(() => {
@@ -80,7 +81,7 @@ const KasaWindow = ({
             <div className="flex-1 overflow-y-auto max-h-[400px] scrollbar-hide">
                 {devices.length === 0 && !isThinking &&
         <div className="flex flex-col items-center justify-center p-8 text-center opacity-50">
-                        <p className="text-xs mb-4">No devices found. Ensure they are on the same network.</p>
+                        <p className="text-xs mb-4">No observed devices. Discovery starts only when you request it.</p>
                         <button onClick={handleDiscover} className="flex items-center gap-2 px-4 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/20 hover:border-cyan-500 transition-all text-xs font-mono text-cyan-300">
                             <RefreshCw size={14} /> DISCOVER LIGHTS
                         </button>
@@ -99,11 +100,11 @@ const KasaWindow = ({
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex flex-col">
                                 <span className="font-bold text-sm text-white">{dev.alias}</span>
-                                <span className="text-[10px] text-white/40 font-mono">{dev.ip}</span>
+                                <span className="text-[10px] text-white/40 font-mono">{dev.ip}{dev.online === false ? ' / OFFLINE OR UNVERIFIED' : ' / CACHED OBSERVATION'}</span>
                             </div>
                             <button
               onClick={() => handleToggle(dev.ip, dev.is_on)}
-              disabled={loadingDevices[dev.ip]}
+              disabled={loadingDevices[dev.ip] || dev.online === false}
               className={`p-2 rounded-full transition-all ${dev.is_on ?
               'bg-green-500/20 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' :
               'bg-white/5 text-gray-500 hover:text-white'}

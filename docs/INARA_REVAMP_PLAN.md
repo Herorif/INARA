@@ -440,3 +440,7 @@ The owned Web inspector and printer-observation cleanup source milestone is impl
 ## Post-revamp reviewed task update
 
 The finite reviewed desktop task queue is implemented: immutable project file/app plans, forced per-step owner review, protected receipts before effects, cancellation and recovery without replay. [Evidence and boundaries](REVIEWED_TASKS.md). Provider planning, script execution and browser actions are not enabled by this milestone. Device/printer protocol decomposition and Connections readiness are next; live hardware/provider, Android and distribution acceptance stay separately gated.
+
+## Post-revamp connection adapter update
+
+Kasa/printer network adapters and metadata-only Connections readiness are implemented with injected and native UI acceptance. Exact host:port targets, saved credentials and print-stage receipts are preserved; discovery no longer probes cameras/protocols and uploads do not fall back or start prints. [Implementation and physical-acceptance limits](CONNECTION_ADAPTERS.md). Typed multi-object AI scene proposals are the next source milestone; actual SDK/providers/hardware, Android and signed distribution stay gated.

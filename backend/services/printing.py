@@ -374,14 +374,14 @@ class PrintService:
                 plan.gcode_hash = digest(plan.gcode)
             elif name == "upload_gcode":
                 if not await self.devices.printer.upload_gcode(
-                    plan.target[1], str(plan.gcode), start_print=False
+                    f"{plan.target[1]}:{plan.target[2]}", str(plan.gcode), start_print=False
                 ):
                     raise ServiceError(
                         "upload_uncertain",
                         "Upload did not confirm success. Inspect printer state before a new request.",
                     )
             else:
-                if not await self.devices.printer.start_print(plan.target[1], plan.gcode.name):
+                if not await self.devices.printer.start_print(f"{plan.target[1]}:{plan.target[2]}", plan.gcode.name):
                     raise ServiceError(
                         "start_uncertain",
                         "Print start did not confirm success. Inspect the printer; this request will not replay.",

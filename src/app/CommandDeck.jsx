@@ -9,6 +9,7 @@ import ConfirmationPopup from '../components/ConfirmationPopup';
 import './workspace.css';
 import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
 import { flags, heavyFeatures } from './features';
+const ConnectionReadiness = lazy(() => import('./ConnectionReadiness'));
 const CommandPalette = lazy(() => import('./CommandPalette'));
 const QuickAssistant = lazy(() => import('./QuickAssistant'));
 const ActivityCenter = lazy(() => import('./ActivityCenter'));
@@ -235,7 +236,7 @@ export default function CommandDeck() {
             </> : <>
                 <section className="page-intro"><span className="eyebrow">{page === 'studio' ? 'IDEAS, GIVEN FORM' : 'YOUR WORLD, CONNECTED'}</span><h1>{page === 'studio' ? <>Make something<br /><span>extraordinary.</span></> : <>A command center<br /><span>for your world.</span></>}</h1>
                     <p>{page === 'studio' ? 'Bring a little imagination. We’ll bring the workspace. Heavy tools load only when you open them.' : 'Your devices and daily tools, one deliberate action at a time.'}</p></section>
-                <div className="feature-grid">{page === 'studio' ? <>
+                {page === 'devices' && <Suspense fallback={<PanelState compact kind="loading" title="Inspecting connection readiness" />}><ConnectionReadiness compact onOpen={openFeature}/></Suspense>}<div className="feature-grid">{page === 'studio' ? <>
                     <FeatureCard icon={Box} title="3D studio" description="Build a parametric solid, explore it in 3D and export STL or GLB. Works offline." tag="LOCAL + ON DEMAND" disabled={gaming} onClick={() => openFeature('cad')} />
                     <FeatureCard icon={Camera} title="Vision studio" description="A live perspective, when you choose. Camera access starts only with your permission." tag="CAMERA OFF" disabled={gaming} onClick={() => openFeature('camera')} />
                     <FeatureCard icon={Globe2} title="Web inspector" description="Read public page text and discover links in a quiet, read-only workspace." tag="NO CLOUD INFERENCE" onClick={() => openFeature('browser')} />
@@ -244,8 +245,8 @@ export default function CommandDeck() {
                     <FeatureCard icon={Smartphone} title="Android companion" description="Pair a device with your permission. Read laptop status and previews; tool-free chat has its own grant." tag="OPT-IN / SECURE LINK" onClick={() => openFeature('phone')} />
                     <FeatureCard icon={Bell} title="Reminders" description="A reliable nudge. Schedules and unfinished alerts survive restart." tag="LOCAL" onClick={() => openFeature('reminder')} />
                     <FeatureCard icon={Cpu} title="Desktop controls" description="Apps and selected system tools, with permission at every step." tag="ON DEMAND" onClick={() => openFeature('desktop')} />
-                    <FeatureCard icon={Zap} title="Smart home" description="Connect your supported lights and devices when you’re ready." tag="SETUP REQUIRED" onClick={() => openFeature('kasa')} />
-                    <FeatureCard icon={Box} title="Print workshop" description="Inspect your printers and prepare the next physical creation." tag="SETUP REQUIRED" onClick={() => openFeature('printer')} />
+                    <FeatureCard icon={Zap} title="Smart home" description="Connect your supported lights and devices when you’re ready." tag="EXPLICIT ACTIONS" onClick={() => openFeature('kasa')} />
+                    <FeatureCard icon={Box} title="Print workshop" description="Inspect your printers and prepare the next physical creation." tag="APPROVED STAGES" onClick={() => openFeature('printer')} />
                 </>}</div><div className="future-note"><Layers3 size={18} /><span>Offline scenes are ready. Image models and Android pairing can be configured separately. Your existing SIM and WhatsApp number stay yours.</span></div>
             </>}
             <footer className="workspace-footer"><span>INARA <span className="footer-separator">/</span> YOUR PERSONAL INTELLIGENCE</span><span><span className="status-dot" /> {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span></footer>
