@@ -30,7 +30,10 @@ from services.usage_contracts import UsagePolicy  # noqa: E402
 
 from services.browser_contracts import BrowserInspect, BrowserReport  # noqa: E402
 
+from services.task_queue_contracts import TaskCreate, TaskReference  # noqa: E402
+
 GROUPS = {
+    "tasks": (TaskCreate, TaskReference),
     "browser": (BrowserInspect, BrowserReport),
     "usage": (UsagePolicy,),
     "memory": (MemoryQuery, MemoryWrite, MemoryRevision, MemoryForget, MemoryRetention, MemoryRestore, MemoryRestoreApply, MemorySource),
@@ -51,6 +54,8 @@ def ts_type(schema):
         return ' | '.join(json.dumps(value) for value in schema['enum'])
     if 'anyOf' in schema:
         return ' | '.join(ts_type(value) for value in schema['anyOf'])
+    if 'oneOf' in schema:
+        return ' | '.join(ts_type(value) for value in schema['oneOf'])
     kind = schema.get('type')
     if kind in ('integer', 'number'):
         return 'number'

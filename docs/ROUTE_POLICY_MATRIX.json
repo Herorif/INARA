@@ -946,6 +946,50 @@
       "lifetime": "25 second owned worker deadline; cancel/disconnect/resource/quit kills process tree",
       "replacement": "BrowserService / BrowserTransport",
       "status": "migrated"
+    },
+    "task_queue_state": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "Read project receipts; recover interrupted attempts without execution",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin ACK only; approval requests/closure scoped to origin",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
+    },
+    "task_queue_create": {
+      "schema": "TaskCreate",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "Persist immutable bounded typed draft; execute nothing",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin ACK only; approval requests/closure scoped to origin",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
+    },
+    "task_queue_run": {
+      "schema": "TaskReference",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "One non-replayable attempt; receipt commits before each approved effect",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin ACK only; approval requests/closure scoped to origin",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
+    },
+    "task_queue_cancel": {
+      "schema": "TaskReference",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "Cancel origin active attempt or discard draft; safety stop allowed while locked",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin acknowledgement only; no private receipt hydration while locked",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
     }
   },
   "http_routes": {

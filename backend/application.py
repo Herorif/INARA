@@ -27,6 +27,8 @@ from services.usage import UsageService
 from transport.usage import UsageTransport
 from services.browser import BrowserService
 from transport.browser import BrowserTransport
+from services.task_queue import TaskQueue
+from transport.task_queue import TaskQueueTransport
 from transport.memory import MemoryTransport
 from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
@@ -100,6 +102,8 @@ class Application:
         self.usage_transport = UsageTransport(self)
         self.browser = BrowserService(self)
         self.browser_transport = BrowserTransport(self)
+        self.task_queue = TaskQueue(self)
+        self.task_queue_transport = TaskQueueTransport(self)
         self.capabilities = CapabilityCenter(self)
         register_cad_tools(self.dispatcher, self.cad)
         register_image_tool(self.dispatcher, self.images)
@@ -221,6 +225,7 @@ class Application:
 
     async def restrict_resources(self):
         operations = [
+            self.task_queue.stop_sid(),
             self.browser_transport.stop_sid(),
             self.speech_transport.stop_sid(),
             self.cad_transport.close(),
@@ -242,6 +247,7 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
+        await self.task_queue.stop_sid(sid)
         await self.browser_transport.stop_sid(sid)
         await self.quality.stop_sid(sid)
         await self.mobile_transport.stop_sid(sid)
@@ -288,6 +294,7 @@ class Application:
         self.memory.previews.clear()
         try:
             results = await asyncio.gather(
+                self.task_queue.stop_sid(),
                 self.browser_transport.stop_sid(),
                 self.quality.stop_sid(),
                 self.mobile_transport.stop_sid(),

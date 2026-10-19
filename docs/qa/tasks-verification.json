@@ -1,0 +1,28 @@
+{
+  "before_workspace": {
+    "working_set_mb": 65.09,
+    "private_mb": 47.9
+  },
+  "ui": {
+    "passed": true,
+    "each_step_explicitly_approved": true,
+    "completed_plan_not_replayed_on_reopen": true,
+    "cancelled_effect_marked_uncertain": true,
+    "responsive_widths": [
+      1440,
+      390
+    ],
+    "real_app_used": false
+  },
+  "fake_launch_cancelled_once": true,
+  "project_file_and_durable_receipts_verified": true,
+  "provider_used": false,
+  "real_app_launched": false,
+  "tasks_released": true,
+  "resident_after_workspace_exit": {
+    "working_set_mb": 67.96,
+    "private_mb": 50.64
+  },
+  "passed": true,
+  "graceful_core_stop": true
+}

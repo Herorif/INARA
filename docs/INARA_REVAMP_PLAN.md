@@ -436,3 +436,7 @@ The second post-revamp source milestone is implemented: [Usage and quality](USAG
 ## Post-revamp read-only research update
 
 The owned Web inspector and printer-observation cleanup source milestone is implemented. The autonomous browser loop is retired; public HTTPS text inspection is typed, approved, bounded, cancellable and inert. [Evidence and limits](BROWSER_INSPECTOR.md). Reviewed desktop task queues and interactive action policies remain future source work, with actual provider/hardware/Android/distribution acceptance separately gated.
+
+## Post-revamp reviewed task update
+
+The finite reviewed desktop task queue is implemented: immutable project file/app plans, forced per-step owner review, protected receipts before effects, cancellation and recovery without replay. [Evidence and boundaries](REVIEWED_TASKS.md). Provider planning, script execution and browser actions are not enabled by this milestone. Device/printer protocol decomposition and Connections readiness are next; live hardware/provider, Android and distribution acceptance stay separately gated.

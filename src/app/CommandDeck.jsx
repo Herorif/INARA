@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, ArrowUpRight, Gauge, BookOpen, Smartphone, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
+import { ListChecks, ArrowUp, ArrowUpRight, Gauge, BookOpen, Smartphone, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import CoreOrb from './CoreOrb';
@@ -231,7 +231,7 @@ export default function CommandDeck() {
                         <button className="text-button" onClick={() => openFeature('reminder')}>Open reminders <ArrowUpRight size={15} /></button></section>
                 </aside></div>
                 <div className="quick-launch"><span className="eyebrow">A LITTLE MORE POSSIBLE</span><button onClick={() => openFeature('cad')} disabled={gaming}><Box size={17} />3D studio<ArrowUpRight size={14} /></button>
-                    <button onClick={() => openFeature('camera')} disabled={gaming}><Camera size={17} />Vision studio<ArrowUpRight size={14} /></button><button onClick={() => openFeature('usage')}><Gauge size={17} />Usage &amp; quality<ArrowUpRight size={14} /></button><button onClick={() => openFeature('memory')}><BookOpen size={17} />Project memory<ArrowUpRight size={14} /></button><button onClick={() => openFeature('desktop')}><Cpu size={17} />Desktop tools<ArrowUpRight size={14} /></button></div>
+                    <button onClick={() => openFeature('camera')} disabled={gaming}><Camera size={17} />Vision studio<ArrowUpRight size={14} /></button><button onClick={() => openFeature('usage')}><Gauge size={17} />Usage &amp; quality<ArrowUpRight size={14} /></button><button onClick={() => openFeature('memory')}><BookOpen size={17} />Project memory<ArrowUpRight size={14} /></button><button onClick={() => openFeature('tasks')}><ListChecks size={17} />Reviewed tasks<ArrowUpRight size={14} /></button><button onClick={() => openFeature('desktop')}><Cpu size={17} />Desktop tools<ArrowUpRight size={14} /></button></div>
             </> : <>
                 <section className="page-intro"><span className="eyebrow">{page === 'studio' ? 'IDEAS, GIVEN FORM' : 'YOUR WORLD, CONNECTED'}</span><h1>{page === 'studio' ? <>Make something<br /><span>extraordinary.</span></> : <>A command center<br /><span>for your world.</span></>}</h1>
                     <p>{page === 'studio' ? 'Bring a little imagination. We’ll bring the workspace. Heavy tools load only when you open them.' : 'Your devices and daily tools, one deliberate action at a time.'}</p></section>

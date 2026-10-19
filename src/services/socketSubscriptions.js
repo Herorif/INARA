@@ -156,6 +156,10 @@ export function initSocketListeners() {
         useStore.setState({ confirmationRequest: data });
     }));
 
+    unsubs.push(onSocket('task_queue_approval_closed', data => {
+        if (s().confirmationRequest?.task_queue?.id === data.id) useStore.setState({ confirmationRequest: null });
+    }));
+
     const dependencies = { onSocket, socket, store: useStore, unsubs, deliveredReminderIds, resumeConversation, conversationForProject };
     registerConversationEvents(dependencies);
     registerCreativeEvents(dependencies);

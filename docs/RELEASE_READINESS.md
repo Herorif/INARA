@@ -4,6 +4,8 @@ R1-R8 source milestones are implemented within their documented offline/fixture 
 
 Read-only Web inspector and printer-observation cleanup are implemented with synthetic acceptance; interactive desktop/browser automation and physical device acceptance remain pending. See [behavior and next implementation](BROWSER_INSPECTOR.md).
 
+Reviewed desktop tasks are implemented with per-step approval, protected non-replayable receipts and fixture/native UI acceptance. Device/printer protocol separation is the next source milestone. [Behavior and limits](REVIEWED_TASKS.md).
+
 ## Offline release/support tools implemented
 
 Run with the existing environment; no command below installs packages, contacts a network, opens the private database, reads real notifications or changes startup settings:

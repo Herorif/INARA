@@ -2,9 +2,13 @@
 
 Updated 19 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
-## Current post-revamp milestone: Web inspector and adapter cleanup
+## Current post-revamp milestone: reviewed desktop tasks
 
-Read-only public HTTPS research now replaces the retained autonomous browser: typed requests, shared owner approvals, bounded owned worker, inert page content, ephemeral results and cancellation. Printer observation is separate and stops with the last owner workspace. **954 Python passed / one Blender skip, 83 Node passed**, types/contracts/lint/build and hidden native fixture acceptance at desktop/390px. Short resident recovery was about 67 MB. [Evidence and remaining limits](BROWSER_INSPECTOR.md). No live public network/provider/hardware acceptance is claimed. Interactive browser/desktop automation remains open; the reviewed typed desktop task queue is the next source milestone.
+Manual one-to-eight-step immutable plans now use existing project file/app tools with fresh approval for every step, protected durable receipts, origin-bound cancellation and conservative interruption recovery without replay. The responsive JARVIS workspace provides editing, review, progress, previews and uncertain-result guidance. **1,004 full-regression Python passes / one Blender skip; 51 final queue checks; 89 Node passes**, type/drift/lint/build and actual native fixture acceptance at desktop/390px. Short resident recovery was about 68 MB. [Behavior and acceptance](REVIEWED_TASKS.md). Real apps/providers/hardware were not used. Device/printer protocol separation and Connections readiness are the next source milestone; Android and distribution acceptance stay gated.
+
+## Completed post-revamp milestone: Web inspector and adapter cleanup
+
+Read-only public HTTPS research now replaces the retained autonomous browser: typed requests, shared owner approvals, bounded owned worker, inert page content, ephemeral results and cancellation. Printer observation is separate and stops with the last owner workspace. **954 Python passed / one Blender skip, 83 Node passed**, types/contracts/lint/build and hidden native fixture acceptance at desktop/390px. Short resident recovery was about 67 MB. [Evidence and remaining limits](BROWSER_INSPECTOR.md). No live public network/provider/hardware acceptance is claimed. Interactive browser/desktop automation remains open; the reviewed typed desktop task queue is now implemented above.
 
 ## Completed post-revamp milestone: usage and quality
 

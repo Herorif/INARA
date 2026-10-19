@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "milestone": "Owned read-only Web inspector and printer observation cleanup",
+  "milestone": "Reviewed desktop tasks with protected non-replayable receipts",
   "gates": [
     {
       "id": "desktop-source",
@@ -98,7 +98,7 @@
       "track": "backlog",
       "status": "pending",
       "required": false,
-      "evidence": "Read-only browser and owned printer observation source milestone accepted in BROWSER_INSPECTOR.md. Reviewed desktop task queues, interactive DOM/action policy, remaining protocol decomposition and physical adapter acceptance are pending."
+      "evidence": "Read-only browser, owned printer observation and reviewed desktop task queue source milestones are accepted. Remaining device/printer protocol decomposition, interactive browser action policies and physical adapter acceptance are pending; see REVIEWED_TASKS.md."
     },
     {
       "id": "budgets-evaluations",
@@ -134,6 +134,13 @@
       "status": "accepted",
       "required": true,
       "evidence": "BROWSER_INSPECTOR.md; strict public HTTPS GET, owned worker cancellation, inert page text, native synthetic renderer/worker acceptance. No live-site/interactive browser acceptance."
+    },
+    {
+      "id": "reviewed-desktop-tasks",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "REVIEWED_TASKS.md; finite immutable typed file/app plans, forced per-step approvals, receipt-before-effect ordering, cancellation/recovery without replay and real native UI acceptance using isolated files/fake app adapter."
     }
   ]
 }

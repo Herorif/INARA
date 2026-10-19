@@ -64,13 +64,21 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 
 R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented. The two latest authorized steps are complete: live voice uses shared schemas/dispatch, and owner-only connection hydration plus owned face-process lifetime replace facade callbacks. Optional provider/hardware behavior and legacy generated-code/browser hard isolation remain separate acceptance work.
 
-## Web inspector completed; next source implementation
+## Reviewed desktop tasks completed; next source implementation
+
+Reviewed tasks adds immutable one-to-eight-step project plans, a polished responsive editor/review workspace, fresh approval for every typed file/app step, protected durable receipts and cancellation/recovery that never replays effects. Safety stops work across project changes and while locked without returning private task data. Shared dispatcher hooks preserve other callers' existing behavior. [Behavior, evidence and limits](REVIEWED_TASKS.md).
+
+Acceptance: **1,004 full-regression Python passes / one Blender skip**, **51 final queue checks**, **89 Node passes**, types/contracts/lint/build and real hidden renderer fixture acceptance at desktop/390px. Short resident recovery was about 68 MB. QA used isolated project files and a fake cancellable app adapter; no real application, network, provider or hardware actions were activated.
+
+Next source milestone: finish device/printer protocol-adapter separation and Connections readiness using fixtures. Extract Kasa discovery/control and printer network clients while preserving exact endpoints, shared approvals, lazy loading, owned observation and durable non-replayable print attempts. Do not perform real network discovery/control or tool/provider installation/configuration. Interactive browser actions, physical/provider acceptance, Android build/device acceptance and signed distribution/update recovery remain open gates.
+
+## Web inspector completed
 
 The retained autonomous browser loop and automatic safety acknowledgement are retired. The Web inspector now uses explicit typed public HTTPS requests, shared approvals, owned bounded worker lifetime, inert hostile page text and cancellation. Printer observation is extracted and releases on last-owner-renderer disconnect. This is a read-only research milestone, not interactive browser/desktop automation or physical device acceptance. [Behavior, evidence and limits](BROWSER_INSPECTOR.md).
 
 Validation: **954 Python passed / one Blender skip; 83 Node passed**, type/drift/lint/build and real hidden native fixture acceptance at desktop/390px. Short native resident recovered to about 67 MB. No public website, provider or real device actions were used.
 
-Next source milestone: reviewed desktop task queue using bounded typed dispatcher steps, owner/project capture, per-step approvals, durable non-replayable receipts and progress/cancellation/recovery UI. Preserve the browser read-only boundary, shared usage admission and legacy cloud guard; no automatic restart of effectful steps. Continue device-adapter decomposition with fixtures. Android, provider/hardware acceptance and signed distribution gates remain open.
+The reviewed desktop task queue is now implemented above with bounded typed steps, owner/project capture, per-step approvals, durable non-replayable receipts and progress/cancellation/recovery UI. Preserve the browser read-only boundary, shared usage admission and legacy cloud guard; no automatic restart of effectful steps. Continue device-adapter decomposition with fixtures. Android, provider/hardware acceptance and signed distribution gates remain open.
 
 ## Usage and quality completed; next source implementation
 
@@ -213,6 +221,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Continue from docs/BROWSER_INSPECTOR.md and docs/RELEASE_GATES.json. Implement the reviewed desktop task queue milestone: bounded typed steps through existing shared dispatcher tools, captured owner/project scope, per-step approval, durable non-replayable receipts and polished progress/cancel/recovery UI. Do not automatically resume uncertain effectful steps after restart. Keep browser inspection read-only; no page-derived actions or arbitrary scripts. Preserve shared usage admission and block remaining unmetered cloud paths under caps. Keep configuration/tool downloads, live hardware/notifications, WhatsApp and call actions deferred. Android build/device and signed self-contained distribution remain open release gates.
+> Continue from docs/REVIEWED_TASKS.md and docs/RELEASE_GATES.json. Implement the device/printer protocol-adapter separation and Connections readiness milestone using injected fixtures. Extract Kasa discovery/control and printer network protocol clients from retained agents; preserve explicit endpoint validation, lazy loading, shared approval/denial, owned observation and the non-replayable print pipeline. Cover protocol errors, deadlines/cancellation and offline readiness. Keep the reviewed queue finite/manual and browser inspector read-only. No real network discovery/control, dependency/provider configuration, hardware/notifications, WhatsApp or call actions. Android build/device acceptance and signed self-contained distribution remain separate open gates.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

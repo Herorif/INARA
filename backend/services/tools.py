@@ -117,7 +117,8 @@ class ToolDispatcher:
                 future.set_result(False)
 
     async def dispatch(
-        self, principal, name, arguments, context, request_approval=None, *, authorize=None
+        self, principal, name, arguments, context, request_approval=None, *, authorize=None,
+        force_approval=False, before_execute=None
     ):
         if authorize:
             authorize()
@@ -135,7 +136,7 @@ class ToolDispatcher:
             or self.permissions().get(spec.alias_for) == "deny"
         ):
             raise ServiceError("permission_denied", "This action is disabled.")
-        if policy not in (False, "allow_within_scope"):
+        if force_approval or policy not in (False, "allow_within_scope"):
             if request_approval is None:
                 raise ServiceError("approval_required", "This action requires owner approval.")
             request_id = str(uuid.uuid4())
@@ -170,6 +171,8 @@ class ToolDispatcher:
         async def execute():
             scope = getattr(self, "tool_scope", None)
             with scope(name, {**context, "principal": principal}) if scope else nullcontext():
+                if before_execute:
+                    before_execute()
                 result = spec.execute(
                     validated,
                     {**context, "principal": principal, "request_approval": request_approval},
