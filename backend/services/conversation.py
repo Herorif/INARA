@@ -49,12 +49,24 @@ def create_text_provider():
 
 
 class ConversationService:
-    def __init__(self, dispatcher, provider_factory=create_text_provider, timeout=45, store=None):
+    def __init__(
+        self,
+        dispatcher,
+        provider_factory=create_text_provider,
+        timeout=45,
+        store=None,
+        instructions=None,
+    ):
         self.dispatcher = dispatcher
         self.provider_factory = provider_factory
         self.timeout = timeout
         self.conversations = {}
         self.store = store
+        self.instructions = instructions or (
+            "You are INARA, a capable desktop assistant. Use project tools only when needed. "
+            "Tool access is enforced by the application. Report actual results honestly. "
+            "WhatsApp drafting and sending are unavailable. No microphone or camera context is attached to this text conversation."
+        )
 
     def restore(self, owner, conversation_id, project):
         key, path = str(conversation_id), str(project.resolve())
@@ -119,13 +131,10 @@ class ConversationService:
                     response = await asyncio.wait_for(
                         provider.generate(
                             messages,
-                            tools=[{"function_declarations": self.dispatcher.schemas()}],
-                            system_instruction=(
-                                "You are INARA, a capable desktop assistant. Use project tools only "
-                                "when needed. Tool access is enforced by the application. Report actual "
-                                "results honestly. WhatsApp drafting and sending are unavailable. "
-                                "No microphone or camera context is attached to this text conversation."
-                            ),
+                            tools=[{"function_declarations": self.dispatcher.schemas()}]
+                            if self.dispatcher.schemas()
+                            else None,
+                            system_instruction=self.instructions,
                         ),
                         self.timeout,
                     )

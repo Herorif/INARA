@@ -335,6 +335,8 @@ Acceptance: no microphone or cloud audio connection at ordinary text startup, du
 
 ### R7. Android foundation and secure pairing
 
+Status: desktop/server pairing and native companion source are implemented. Actual loopback TLS fixtures pass; Android build/Keystore/foldable/battery acceptance is blocked by unavailable tooling and remains unverified. See [R7 source and acceptance gates](R7_ANDROID_FOUNDATION.md). R8 read-only notification source follows without enabling real phone access automatically.
+
 Product outcome: native Kotlin/Compose companion with chat, laptop status, job previews and notifications/approvals, adapting to cover-screen, unfolded and multi-window layouts. Start with pairing and read-only job/status access; enable mutating actions only after the same grants apply on desktop and phone.
 
 Refactor: introduce device identity and per-device/project sessions rather than exposing the desktop launch token or a global current project. Add expiring QR pairing, owner verification, established TLS/authentication, Keystore/DPAPI key protection, revocation and replay-resistant request IDs. Keep LAN operation first; private-network/relay support is a separately validated transport and never a public unauthenticated automation port. Add idempotent offline outbox/sync, not automatic replay of externally effective actions.

@@ -20,7 +20,10 @@ from services.cad_changes import EditableFields, ObjectEdit, ChangeSet, ChangePr
 
 from services.speech import SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend  # noqa: E402
 
+from services.mobile_contracts import ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt  # noqa: E402
+
 GROUPS = {
+    "mobile": (ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt),
     "speech": (SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend),
     "image": (ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats, JobRequest, JobLifetime),
     "cad": (SolidRecipe, SceneObject, ScenePresentation, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest, JobLifetime, EditableFields, ObjectEdit, ChangeSet, ChangePrompt),

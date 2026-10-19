@@ -14,7 +14,7 @@ export const features = [
   { id: 'device', title: 'Connected devices', group: 'Connect', keywords: 'devices control', flag: 'showDeviceWindow' },
   { id: 'printer', title: 'Print workshop', group: 'Create', keywords: 'printer slice fabrication', flag: 'showPrinterWindow' },
   { id: 'vision', title: 'Scene watches', group: 'Observe', keywords: 'watch presence vision', heavy: true, flag: 'showVisionWindow' },
-  { id: 'phone', title: 'Phone controls', group: 'Connect', keywords: 'phone calls', flag: 'showPhoneWindow' },
+  { id: 'phone', title: 'Android companion', group: 'Connect', keywords: 'phone android mobile pairing devices secure', flag: 'showPhoneWindow' },
   { id: 'settings', title: 'Preferences', group: 'System', keywords: 'settings permissions audio', flag: 'showSettings' },
 ];
 export const flags = Object.fromEntries(features.filter(feature => feature.flag).map(feature => [feature.id, feature.flag]));

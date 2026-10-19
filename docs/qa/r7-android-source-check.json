@@ -1,0 +1,15 @@
+{
+  "source_manifest_guards": "passed",
+  "permissions": [
+    "android.permission.INTERNET"
+  ],
+  "tools": {
+    "java": null,
+    "javac": null,
+    "gradle": null,
+    "adb": null
+  },
+  "android_sdk": null,
+  "apk_compiled": false,
+  "note": "Source guards do not validate Kotlin compilation, Compose rendering, Keystore or phone behavior."
+}

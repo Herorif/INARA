@@ -1,0 +1,13 @@
+{
+  "listener_default_off_and_explicit_loopback_tls": true,
+  "real_fixture_claim_owner_approval_and_revocation": true,
+  "signed_replay_rejected_and_chat_default_denied": true,
+  "responsive_widths": [
+    1440,
+    390,
+    768
+  ],
+  "android_apk_or_device_used": false,
+  "provider_used": false,
+  "passed": true
+}

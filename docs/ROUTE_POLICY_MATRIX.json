@@ -1,5 +1,5 @@
 {
-  "checkpoint": "R6 bounded reviewed push-to-talk and quick assistant",
+  "checkpoint": "R7 opt-in TLS pairing, narrow mobile grants and Android source",
   "socket_routes": {
     "acknowledge_reminder": {
       "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
@@ -693,6 +693,72 @@
       "lifetime": "Immediate task cancellation and cleanup",
       "replacement": "ConversationTransport",
       "status": "migrated"
+    },
+    "mobile_state": {
+      "schema": "MobileEmpty",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_listener": {
+      "schema": "ListenerRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_pair": {
+      "schema": "PairRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_pair_cancel": {
+      "schema": "MobileEmpty",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_decide": {
+      "schema": "PairDecision",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_revoke": {
+      "schema": "DeviceRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
     }
   },
   "http_routes": {
@@ -1375,6 +1441,56 @@
       "schema": "WriteArguments",
       "policy": "Shared dispatcher; session authorization before/after approval",
       "status": "migrated"
+    }
+  },
+  "mobile_http_routes": {
+    "/v1/claim": {
+      "schema": "PairClaim",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "Single-use invitation plus possession proof",
+      "effects": "Pending owner approval only"
+    },
+    "/v1/finish": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "Pending or approved device signing key",
+      "effects": "Read pairing decision"
+    },
+    "/v1/status": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "status:read",
+      "effects": "Read resource state and paired project"
+    },
+    "/v1/jobs": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "jobs:read",
+      "effects": "Read 12 scoped job summaries"
+    },
+    "/v1/preview": {
+      "schema": "MobilePreview",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "jobs:read",
+      "effects": "Read bounded image or typed CAD recipe preview"
+    },
+    "/v1/chat": {
+      "schema": "MobileChat",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "chat:ask",
+      "effects": "Common conversation with empty tool dispatcher, idempotent claims; no actions"
+    },
+    "/v1/history": {
+      "schema": "MobileHistory",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "chat:ask",
+      "effects": "Read device/project conversation history"
+    },
+    "/v1/receipt": {
+      "schema": "MobileReceipt",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "chat:ask",
+      "effects": "Read durable request outcome without replay"
     }
   }
 }

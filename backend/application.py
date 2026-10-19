@@ -19,6 +19,8 @@ from project_manager import ProjectManager
 from services.capabilities import CapabilityCenter
 from services.cad import CadService, register_cad_tools
 from services.cad_transport import CadTransport
+from services.mobile import MobileService
+from transport.mobile import MobileTransport
 from services.conversation import ConversationService
 from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
@@ -99,6 +101,8 @@ class Application:
         self.conversation_transport = ConversationTransport(
             sio, self.conversation, self.dispatcher, self.sessions
         )
+        self.mobile = MobileService(self)
+        self.mobile_transport = MobileTransport(self)
         self.speech = SpeechService(self)
         self.speech_transport = SpeechTransport(self)
         self.reminder_transport = ReminderTransport(sio, self.dispatcher, reminders, self.sessions)
@@ -221,6 +225,7 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
+        await self.mobile_transport.stop_sid(sid)
         await self.speech_transport.stop_sid(sid)
         await self.conversation_transport.stop_sid(sid)
         await self.local_transport.stop_sid(sid)
@@ -255,6 +260,8 @@ class Application:
     async def close(self):
         try:
             results = await asyncio.gather(
+                self.mobile_transport.stop_sid(),
+                self.mobile.close(),
                 self.conversation_transport.stop_sid(),
                 self.speech_transport.stop_sid(),
                 self.cad_transport.close(),

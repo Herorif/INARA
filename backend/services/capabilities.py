@@ -78,7 +78,7 @@ class CapabilityCenter:
                 "Android companion",
                 False,
                 False,
-                "Pairing is planned for R7. Existing SIM and WhatsApp stay unchanged.",
+                "R7 pairing/server and Android source are ready. APK/toolchain/device acceptance is pending; mobile TLS is opt-in.",
                 None,
             ),
         ]

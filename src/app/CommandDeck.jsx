@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, ArrowUpRight, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, Smartphone, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import CoreOrb from './CoreOrb';
@@ -241,6 +241,7 @@ export default function CommandDeck() {
                     <FeatureCard icon={Globe2} title="Research browser" description="Open a focused research workspace. Automation requires its optional setup." tag="ON DEMAND" disabled={gaming} onClick={() => openFeature('browser')} />
                     <FeatureCard icon={Sparkles} title="Image atelier" description="Shape your next visual with prompts, seeds and protected revisions. Local models load only on demand." tag="MODEL SETUP LATER" disabled={gaming} onClick={() => openFeature('image')} />
                 </> : <>
+                    <FeatureCard icon={Smartphone} title="Android companion" description="Pair a device with your permission. Read laptop status and previews; tool-free chat has its own grant." tag="OPT-IN / SECURE LINK" onClick={() => openFeature('phone')} />
                     <FeatureCard icon={Bell} title="Reminders" description="A reliable nudge. Schedules and unfinished alerts survive restart." tag="LOCAL" onClick={() => openFeature('reminder')} />
                     <FeatureCard icon={Cpu} title="Desktop controls" description="Apps and selected system tools, with permission at every step." tag="ON DEMAND" onClick={() => openFeature('desktop')} />
                     <FeatureCard icon={Zap} title="Smart home" description="Connect your supported lights and devices when you’re ready." tag="SETUP REQUIRED" onClick={() => openFeature('kasa')} />
