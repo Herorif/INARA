@@ -48,10 +48,10 @@ export default function QuickAssistant({
           ...patch
         }));
       },
-      onAnswer: (question, answer) => {
+      onAnswer: (question, answer, sources) => {
         if (live) {
           useStore.getState().addMessage('You', question);
-          useStore.getState().addMessage('INARA', answer);
+          useStore.getState().addMessage('INARA', answer, sources);
         }
       }
     });
@@ -100,7 +100,7 @@ export default function QuickAssistant({
     <div className={`quick-signal ${voice.state}`}><span /><span /><AudioLines size={30} /></div>
     <span className="eyebrow">{project} / {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span><h1 id="quick-title">{processing ? 'Thinking' : labels[voice.state]}</h1>
     <p className="quick-subtitle">Type anytime. Hold to speak. Your transcript waits for review.</p>
-    <div className="quick-log" aria-label="Recent conversation" aria-live="polite">{messages.filter(message => ['You', 'INARA'].includes(message.sender)).slice(-6).map((message, index) => <article key={index} className={message.sender === 'INARA' ? 'assistant' : 'user'}><small>{message.sender}</small><p>{message.text}</p></article>)}</div>
+    <div className="quick-log" aria-label="Recent conversation" aria-live="polite">{messages.filter(message => ['You', 'INARA'].includes(message.sender)).slice(-6).map((message, index) => <article key={index} className={message.sender === 'INARA' ? 'assistant' : 'user'}><small>{message.sender}</small><p>{message.text}</p>{!!message.memory_sources?.length && <small>Project memory: {message.memory_sources.map(source => source.title).join(" / ")}</small>}</article>)}</div>
     {voice.error && <p className="quick-error" role="alert">{voice.error}</p>}
     {gaming && <p className="quick-note">Gaming mode: microphone capture is paused.</p>}
     <form onSubmit={send}><label htmlFor="quick-input"><Keyboard size={14} />{voice.state === 'review' ? 'Review and edit the transcript' : 'Your message'}</label><div className="quick-composer"><textarea ref={input} id="quick-input" maxLength={12000} value={voice.state === 'review' ? voice.transcript : text} disabled={processing || ['opening', 'listening', 'transcribing', 'thinking'].includes(voice.state) || locked} placeholder="What can I help with?" onChange={event => voice.state === 'review' ? setVoice(previous => ({

@@ -1,0 +1,51 @@
+{
+  "before_workspace": {
+    "working_set_mb": 65.23,
+    "private_mb": 48.42
+  },
+  "ui": {
+    "owner_reviewed_save_edit_local_search": true,
+    "protected_backup_forget_preview_restore": true,
+    "recovery_disables_assistant_sharing": true,
+    "reviewed_context_and_source_citation": true,
+    "retention_control": true,
+    "responsive_widths": [
+      1440,
+      390
+    ],
+    "real_provider_used": false,
+    "real_user_data_used": false,
+    "passed": true
+  },
+  "fixture_provider_closed": true,
+  "model_modules_in_resident": false,
+  "workspace_released_and_mobile_listener_off": true,
+  "resident_after_workspace_exit": [
+    {
+      "working_set_mb": 67.79,
+      "private_mb": 50.72
+    },
+    {
+      "working_set_mb": 67.79,
+      "private_mb": 50.72
+    },
+    {
+      "working_set_mb": 67.79,
+      "private_mb": 50.72
+    },
+    {
+      "working_set_mb": 67.79,
+      "private_mb": 50.72
+    },
+    {
+      "working_set_mb": 67.8,
+      "private_mb": 50.72
+    },
+    {
+      "working_set_mb": 67.8,
+      "private_mb": 50.72
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

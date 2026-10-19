@@ -211,3 +211,8 @@ The six `mobile_*` socket controls require the unlocked pinned desktop owner/ren
 Current exact inventory: 72 desktop socket routes, one desktop status route, 55 dispatcher tools (40 text-visible), 37 dormant voice aliases and 10 isolated mobile HTTPS routes. The JSON inventory is checked against the registered transports.
 
 `notification_inbox`, `notification_policy` and `notification_clear` require an unlocked pinned owner renderer and a device paired to the current project. They read or change only the protected read-only inbox/policy. Signed mobile `notification_policy` reads only the device's policy through status:read; `notification_sync` additionally requires the separate enabled device/project notification policy (`notifications:sync`) and exact revision. R7 pairing/chat/job grants do not implicitly authorize ingestion. Every scope change/clear/revoke invalidates older queues. No dispatcher tools, notification actions or reply operations were added. [Protocol and acceptance limits](R8_NOTIFICATIONS.md).
+
+
+## Project memory after R8
+
+Current exact inventory: 79 desktop socket routes, one desktop status route, 55 shared tools (40 text-visible), 37 dormant voice aliases and 10 isolated mobile HTTPS routes. Seven new strict owner/renderer routes are memory_list, memory_write, memory_forget, memory_retention, memory_export, memory_restore_preview and memory_restore_apply. Mutations and restore require current collection revisions; recovery also requires an unexpired scoped preview. No model mutation tools or mobile memory routes were added. Desktop typed/reviewed-speech retrieval reads only explicitly enabled unarchived notes, revalidates after provider responses and returns bounded source metadata. [Details](PROJECT_MEMORY.md).

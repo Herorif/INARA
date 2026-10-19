@@ -249,7 +249,20 @@ class SpeechService:
             )
             self.authorize(turn)
             await self.status(turn, "answered")
-            return {"turn_id": turn.turn_id, "state": "answered", "text": result.text}
+            return {
+                "turn_id": turn.turn_id,
+                "state": "answered",
+                "text": result.text,
+                **(
+                    {
+                        "memory_sources": [
+                            item.model_dump(mode="json") for item in result.memory_sources
+                        ]
+                    }
+                    if getattr(result, "memory_sources", [])
+                    else {}
+                ),
+            }
         finally:
             await self.stop(sid)
 

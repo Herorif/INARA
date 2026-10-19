@@ -422,3 +422,8 @@ R2b2 update (16 October 2026): [owner settings and lifecycle policy](SETTINGS_LI
 ## Current R8 / post-revamp checkpoint
 
 R1-R8 source milestones are implemented within their documented offline/fixture boundaries. [R8](R8_NOTIFICATIONS.md) adds selected read-only notifications without WhatsApp reply/action execution. [Release readiness](RELEASE_READINESS.md) and [machine-readable gates](RELEASE_GATES.json) supersede historical next-step notes above: Android compilation/device acceptance, self-contained signed distribution/update recovery, long-run hardware acceptance and the advanced memory/automation/device/budget backlog remain open. Offline support inventory and source-pilot integrity staging are implemented; no installer/APK/real notification acceptance is claimed.
+
+
+## Project memory checkpoint after R8
+
+The first post-revamp project-memory implementation is complete within the limits in [Project memory](PROJECT_MEMORY.md): protected owner/project collections, editable provenance, local lexical retrieval, explicit assistant sharing, retention/archive/forget and reviewed same-profile backup/recovery. Embedding semantics and portable cross-account key recovery remain future enhancements. The next source milestone is per-request/job usage budgets and task-quality evaluations; the existing release/device/configuration gates remain open.

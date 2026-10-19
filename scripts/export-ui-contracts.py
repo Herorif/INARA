@@ -24,7 +24,10 @@ from services.mobile_contracts import ListenerRequest, PairRequest, PairDecision
 
 from services.notifications import NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch  # noqa: E402
 
+from services.memory_contracts import MemoryQuery, MemoryWrite, MemoryRevision, MemoryForget, MemoryRetention, MemoryRestore, MemoryRestoreApply, MemorySource  # noqa: E402
+
 GROUPS = {
+    "memory": (MemoryQuery, MemoryWrite, MemoryRevision, MemoryForget, MemoryRetention, MemoryRestore, MemoryRestoreApply, MemorySource),
     "notifications": (NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch),
     "mobile": (ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt),
     "speech": (SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend),

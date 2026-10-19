@@ -22,6 +22,8 @@ from services.cad_transport import CadTransport
 from services.mobile import MobileService
 from transport.mobile import MobileTransport
 from services.conversation import ConversationService
+from services.project_memory import ProjectMemory
+from transport.memory import MemoryTransport
 from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
 from services.lazy import LazyService
@@ -97,7 +99,11 @@ class Application:
         self.image_transport = ImageTransport(
             sio, self.images, self.dispatcher, self.studio_context
         )
-        self.conversation = ConversationService(self.dispatcher, store=SessionStore(database))
+        self.memory = ProjectMemory(self)
+        self.memory_transport = MemoryTransport(self)
+        self.conversation = ConversationService(
+            self.dispatcher, store=SessionStore(database), memory=self.memory
+        )
         self.conversation_transport = ConversationTransport(
             sio, self.conversation, self.dispatcher, self.sessions
         )
@@ -253,6 +259,9 @@ class Application:
         self.tasks.append(
             asyncio.create_task(self.mobile.notifications.maintain(), name="notification-retention")
         )
+        self.tasks.append(
+            asyncio.create_task(self.memory.maintain(), name="project-memory-retention")
+        )
         try:
             if self.startup_summary:
                 self.startup_summary()
@@ -261,6 +270,7 @@ class Application:
             raise
 
     async def close(self):
+        self.memory.previews.clear()
         try:
             results = await asyncio.gather(
                 self.mobile_transport.stop_sid(),

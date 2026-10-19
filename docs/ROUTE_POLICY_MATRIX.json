@@ -792,6 +792,83 @@
       "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
       "replacement": "MobileTransport / MobileService",
       "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "memory_list": {
+      "schema": "MemoryQuery",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_write": {
+      "schema": "MemoryWrite",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_forget": {
+      "schema": "MemoryForget",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_retention": {
+      "schema": "MemoryRetention",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_export": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_restore_preview": {
+      "schema": "MemoryRestore",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_restore_apply": {
+      "schema": "MemoryRestoreApply",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
     }
   },
   "http_routes": {

@@ -27,13 +27,13 @@ export const createChatSlice = (set, get) => ({
         emitSocket('resume_conversation', { conversation_id: id });
     },
 
-    addMessage: (sender, text) => {
+    addMessage: (sender, text, memory_sources = []) => {
         set(state => ({
-            messages: [...state.messages, { sender, text, time: new Date().toLocaleTimeString() }]
+            messages: [...state.messages, { sender, text, time: new Date().toLocaleTimeString(), memory_sources }]
         }));
     },
 
-    appendTranscription: (sender, text) => {
+    appendTranscription: (sender, text, memory_sources = []) => {
         set(state => {
             const prev = state.messages;
             const lastMsg = prev[prev.length - 1];
@@ -41,12 +41,12 @@ export const createChatSlice = (set, get) => ({
                 return {
                     messages: [
                         ...prev.slice(0, -1),
-                        { ...lastMsg, text: lastMsg.text + text }
+                        { ...lastMsg, text: lastMsg.text + text, memory_sources }
                     ]
                 };
             }
             return {
-                messages: [...prev, { sender, text, time: new Date().toLocaleTimeString() }]
+                messages: [...prev, { sender, text, time: new Date().toLocaleTimeString(), memory_sources }]
             };
         });
     },

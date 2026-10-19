@@ -1,3 +1,4 @@
+import {safeMemorySources} from '../../transport/memorySources.ts';
 /** Conversation/project event scope, including bounded transcription deduplication. */
 export function registerConversationEvents({ onSocket, store: useStore, unsubs, resumeConversation, conversationForProject }) {
     const s = useStore.getState;
@@ -11,7 +12,7 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
     unsubs.push(onSocket('conversation_restored', data => {
         if (data.conversation_id !== s().conversationId || data.project !== s().currentProject) return;
         useStore.setState({ conversationRestoring: false, messages: data.messages.map(m => ({
-            sender: m.role === 'user' ? 'You' : 'INARA', text: m.content, time: '',
+            sender: m.role === 'user' ? 'You' : 'INARA', text: m.content, time: '', memory_sources: safeMemorySources(m.memory_sources),
         })) });
     }));
     unsubs.push(onSocket('conversation_restore_failed', data => {
@@ -30,7 +31,7 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
                 completedTextRequests.delete(completedTextRequests.values().next().value);
             }
         }
-        s().appendTranscription(data.sender, data.text);
+        s().appendTranscription(data.sender, data.text, safeMemorySources(data.memory_sources));
     }));
 
     // --- Project ---

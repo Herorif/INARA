@@ -37,7 +37,7 @@ These gates need external tooling, physical devices, signing ownership or the pr
 
 | Track | Still pending |
 | --- | --- |
-| Semantic memory | Project-scoped retrieval, bounded retention/forget, explicit export and recovery; preserve current protected conversations/reminders |
+| Memory enhancements | Project memory is implemented with local lexical search, consent, retention/forget and same-profile protected recovery. Optional embedding retrieval and portable cross-account recovery keys remain future work. See [Project memory](PROJECT_MEMORY.md). |
 | Browser/desktop automation | Owned browser tasks, bounded DOM/accessibility contracts, hostile-content handling and app-specific acceptance |
 | Devices/printing | Further adapter decomposition, actual capability discovery, slicer/printer completion and physical acceptance |
 | Usage and quality | Per-job usage accounting, enforceable daily/monthly cloud caps and representative CAD/image/assistant quality evaluations |
@@ -46,3 +46,8 @@ These gates need external tooling, physical devices, signing ownership or the pr
 | WhatsApp actions | Excluded until specifically requested: no reply drafting, sending, acknowledgements or notification action execution |
 
 Continue with source-only backlog work while setup remains deferred. Do not call the entire advanced roadmap complete, and do not create arbitrary lettered milestones for acceptance prerequisites.
+
+
+## First post-revamp step completed
+
+[Project memory](PROJECT_MEMORY.md) is implemented and fixture/native-desktop verified. This does not close Android/installer/signing gates. The next source implementation is usage budgets and repeatable quality evaluations, followed by browser/device/printing modernization. No provider configuration or physical-device permissions were enabled.

@@ -2,6 +2,12 @@
 
 Updated 19 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
+## Current post-revamp milestone: project memory
+
+Verification: 865 Python regression passes / one Blender skip, 72 Node passes, focused integration checks, type/drift/lint/build and actual hidden desktop memory/recovery/source-citation acceptance. No paid API or real user data was used.
+
+Owner-reviewed facts/preferences/decisions, source/tag editing, local lexical search, expiry/archive/forget, protected same-profile backup, non-overwriting recovery preview/apply and explicitly opted-in assistant context/source citations are implemented. No automatic extraction, embedding model, plaintext index, mobile memory grant or model write tools were added. [Project memory behavior and evidence](PROJECT_MEMORY.md). Usage budgets and quality evaluations are next for source work; release/tooling/device gates remain open.
+
 ## Current milestone: R8 source complete, release acceptance pending
 
 R8 adds the selected read-only notification inbox, separate per-device/project grants, explicit app/conversation rules, metadata-only defaults/redaction, encrypted bounded retention, ordered removal tombstones, duplicate-safe manual sync, local count summaries and visible revoke/clear controls. The native Android collection/access/sync gate remains off until compilation and controlled device acceptance. No WhatsApp drafts/replies/actions or calls were added. [Behavior and verification](R8_NOTIFICATIONS.md).

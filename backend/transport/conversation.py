@@ -104,7 +104,20 @@ class ConversationTransport:
             # Preserve the existing desktop transcript event contract.
             await self.sio.emit(
                 "transcription",
-                {"sender": "INARA", "text": result.text, **scope},
+                {
+                    "sender": "INARA",
+                    "text": result.text,
+                    **(
+                        {
+                            "memory_sources": [
+                                item.model_dump(mode="json") for item in result.memory_sources
+                            ]
+                        }
+                        if result.memory_sources
+                        else {}
+                    ),
+                    **scope,
+                },
                 room=sid,
             )
         except (ServiceError, ValidationError) as exc:

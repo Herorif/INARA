@@ -192,7 +192,8 @@ export class SpeechController {
       }, 180000);
       if (generation !== this.generation) return;
       this.turnId = null;
-      this.onAnswer(text, result.text);
+      if (result.memory_sources?.length) this.onAnswer(text, result.text, result.memory_sources);
+      else this.onAnswer(text, result.text);
       this.update('answered', {
         answer: result.text,
         transcript: ''

@@ -1,10 +1,12 @@
+import type {MemorySource} from './generated/memory.ts';
+import {safeMemorySources} from './memorySources.ts';
 import { createRpcScope, RpcError, type RpcSocket } from './rpc.ts';
 import type { SpeechBegin, SpeechFrame, SpeechSend, SpeechTurn } from './generated/speech.ts';
 interface SpeechCalls {
   speech_begin:{ request:SpeechBegin; result:{turn_id:string;state:string;max_seconds:number} };
   speech_frame:{ request:SpeechFrame; result:{sequence:number} };
   speech_finish:{ request:SpeechTurn; result:{turn_id:string;state:string;text:string} };
-  speech_send:{ request:SpeechSend; result:{turn_id:string;state:string;text:string} };
+  speech_send:{ request:SpeechSend; result:{turn_id:string;state:string;text:string;memory_sources?:MemorySource[]} };
   speech_cancel:{ request:SpeechTurn; result:Record<string,unknown> };
 }
 export function createSpeechClient(socket:RpcSocket){
@@ -19,6 +21,7 @@ export function createSpeechClient(socket:RpcSocket){
       const value=result as SpeechCalls['speech_finish']['result'];
       if(value.turn_id!==(data as SpeechTurn).turn_id||typeof value.text!=='string'||!value.text.trim()||value.text.length>12000)throw new RpcError('Speech returned an invalid transcript or answer. Start a new turn.','invalid_response',true);
     }
+    if(event==='speech_send'){const answer=result as SpeechCalls['speech_send']['result'];answer.memory_sources=safeMemorySources(answer.memory_sources);}
     return result;
   }};
 }

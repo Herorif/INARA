@@ -1,22 +1,125 @@
 {
   "format": 1,
-  "milestone": "R8 source and fixture acceptance",
+  "milestone": "Project memory after R8",
   "gates": [
-    {"id":"desktop-source","track":"desktop","status":"accepted","required":true,"evidence":"R8_NOTIFICATIONS.md; Python/Node/type/lint/build and native loopback fixture checks"},
-    {"id":"offline-support","track":"desktop","status":"accepted","required":true,"evidence":"RELEASE_READINESS.md; offline diagnostics, dependency metadata inventory and source-pilot integrity checks"},
-    {"id":"clean-machine-install","track":"desktop","status":"pending","required":true,"evidence":"Needs self-contained core package, optional worker bundles, installer/uninstaller, clean Windows account testing"},
-    {"id":"distribution-signing-licenses","track":"desktop","status":"pending","required":true,"evidence":"Needs signing identity, dependency/model redistribution review, signed artifacts; hashes alone do not establish authenticity"},
-    {"id":"update-rollback","track":"desktop","status":"pending","required":true,"evidence":"Needs signed opt-in updater, interrupted-update recovery and original-account DPAPI backup/restore acceptance; never overwrite a live profile"},
-    {"id":"legion-soak","track":"desktop","status":"deferred","required":true,"evidence":"Exact hardware inventory, ten-minute idle and multi-hour mixed-use acceptance pending; real-game benchmark explicitly deferred"},
-    {"id":"android-source","track":"android","status":"accepted","required":true,"evidence":"Native R7/R8 source, protected listener manifest and build-closed source guards; no compilation implied"},
-    {"id":"android-build","track":"android","status":"blocked","required":true,"evidence":"No JDK/Gradle/SDK/ADB configured; dependency resolution/download remains deferred; must compile/test and record dependency verification/locks"},
-    {"id":"fold8-device","track":"android","status":"pending","required":true,"evidence":"Needs explicit test-build acceptance, device Keystore/process-death/fold/unfold/Doze/TLS/permission/revocation/privacy acceptance before enabling collection"},
-    {"id":"android-distribution","track":"android","status":"pending","required":true,"evidence":"Needs signing/recovery ownership, distribution policy and signed APK install/uninstall/update acceptance"},
-    {"id":"real-capabilities","track":"optional","status":"deferred","required":false,"evidence":"Provider setup, local speech/image weights, actual Blender/kernel exports, microphone/camera/Bluetooth/printers remain explicitly unconfigured/unverified"},
-    {"id":"semantic-memory","track":"backlog","status":"pending","required":false,"evidence":"Scoped retrieval, retention/forget controls, project export and rollback design from INARA_REVAMP_PLAN.md; not implemented by R8"},
-    {"id":"automation-device-modernization","track":"backlog","status":"pending","required":false,"evidence":"Owned browser task/DOM policy and further device/printer adapter decomposition and real-adapter acceptance remain follow-on work"},
-    {"id":"budgets-evaluations","track":"backlog","status":"pending","required":false,"evidence":"Per-job usage accounting, enforceable daily/monthly cloud caps and representative task-quality evaluation suite remain follow-on work"},
-    {"id":"phone-call-feasibility","track":"research","status":"deferred","required":false,"evidence":"Actual handset/OEM/carrier audio/control feasibility; no call answering, forwarding or SIM/account migration implemented or authorized"},
-    {"id":"whatsapp-actions","track":"excluded","status":"excluded","required":false,"evidence":"Reply drafting/sending, acknowledgements and notification action execution remain excluded until specifically requested"}
+    {
+      "id": "desktop-source",
+      "track": "desktop",
+      "status": "accepted",
+      "required": true,
+      "evidence": "R8_NOTIFICATIONS.md; Python/Node/type/lint/build and native loopback fixture checks"
+    },
+    {
+      "id": "offline-support",
+      "track": "desktop",
+      "status": "accepted",
+      "required": true,
+      "evidence": "RELEASE_READINESS.md; offline diagnostics, dependency metadata inventory and source-pilot integrity checks"
+    },
+    {
+      "id": "clean-machine-install",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "Needs self-contained core package, optional worker bundles, installer/uninstaller, clean Windows account testing"
+    },
+    {
+      "id": "distribution-signing-licenses",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "Needs signing identity, dependency/model redistribution review, signed artifacts; hashes alone do not establish authenticity"
+    },
+    {
+      "id": "update-rollback",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "Needs signed opt-in updater, interrupted-update recovery and original-account DPAPI backup/restore acceptance; never overwrite a live profile"
+    },
+    {
+      "id": "legion-soak",
+      "track": "desktop",
+      "status": "deferred",
+      "required": true,
+      "evidence": "Exact hardware inventory, ten-minute idle and multi-hour mixed-use acceptance pending; real-game benchmark explicitly deferred"
+    },
+    {
+      "id": "android-source",
+      "track": "android",
+      "status": "accepted",
+      "required": true,
+      "evidence": "Native R7/R8 source, protected listener manifest and build-closed source guards; no compilation implied"
+    },
+    {
+      "id": "android-build",
+      "track": "android",
+      "status": "blocked",
+      "required": true,
+      "evidence": "No JDK/Gradle/SDK/ADB configured; dependency resolution/download remains deferred; must compile/test and record dependency verification/locks"
+    },
+    {
+      "id": "fold8-device",
+      "track": "android",
+      "status": "pending",
+      "required": true,
+      "evidence": "Needs explicit test-build acceptance, device Keystore/process-death/fold/unfold/Doze/TLS/permission/revocation/privacy acceptance before enabling collection"
+    },
+    {
+      "id": "android-distribution",
+      "track": "android",
+      "status": "pending",
+      "required": true,
+      "evidence": "Needs signing/recovery ownership, distribution policy and signed APK install/uninstall/update acceptance"
+    },
+    {
+      "id": "real-capabilities",
+      "track": "optional",
+      "status": "deferred",
+      "required": false,
+      "evidence": "Provider setup, local speech/image weights, actual Blender/kernel exports, microphone/camera/Bluetooth/printers remain explicitly unconfigured/unverified"
+    },
+    {
+      "id": "project-memory",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "PROJECT_MEMORY.md; local lexical search, owner/project isolation, consent, expiry/forget and original-profile protected recovery; native fixture acceptance"
+    },
+    {
+      "id": "memory-enhancements",
+      "track": "backlog",
+      "status": "pending",
+      "required": false,
+      "evidence": "Optional embedding-based semantic retrieval and portable cross-account recovery keys remain future work; current search/recovery limits are explicit"
+    },
+    {
+      "id": "automation-device-modernization",
+      "track": "backlog",
+      "status": "pending",
+      "required": false,
+      "evidence": "Owned browser task/DOM policy and further device/printer adapter decomposition and real-adapter acceptance remain follow-on work"
+    },
+    {
+      "id": "budgets-evaluations",
+      "track": "backlog",
+      "status": "pending",
+      "required": false,
+      "evidence": "Per-job usage accounting, enforceable daily/monthly cloud caps and representative task-quality evaluation suite remain follow-on work"
+    },
+    {
+      "id": "phone-call-feasibility",
+      "track": "research",
+      "status": "deferred",
+      "required": false,
+      "evidence": "Actual handset/OEM/carrier audio/control feasibility; no call answering, forwarding or SIM/account migration implemented or authorized"
+    },
+    {
+      "id": "whatsapp-actions",
+      "track": "excluded",
+      "status": "excluded",
+      "required": false,
+      "evidence": "Reply drafting/sending, acknowledgements and notification action execution remain excluded until specifically requested"
+    }
   ]
 }

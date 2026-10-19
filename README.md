@@ -17,6 +17,8 @@
 
 ## Current source milestone
 
+[Project memory](docs/PROJECT_MEMORY.md) now adds explicit local facts/preferences/decisions, search, consent-controlled assistant context, expiry/forget and protected same-profile backup/recovery. Open it from Command quick launch or the command palette.
+
 R1-R8 source/fixture milestones are implemented, including the read-only selected-notification desktop inbox and gated Android source. Android compilation/device acceptance, configured heavy capabilities and signed standalone distribution remain pending. [Current handoff](docs/IMPLEMENTATION_HANDOFF.md), [R8 evidence](docs/R8_NOTIFICATIONS.md), [release gates and backlog](docs/RELEASE_READINESS.md). No WhatsApp replies or calls were enabled.
 
 ## Revival: durable assistant and command deck

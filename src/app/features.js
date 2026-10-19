@@ -1,5 +1,6 @@
 /** One catalog for navigation, commands and panel labels. */
 export const features = [
+  { id: 'memory', title: 'Project memory', group: 'Organize', keywords: 'remember preferences facts decisions search forget export', flag: 'showProjectMemory' },
   { id: 'quick', title: 'Quick assistant', group: 'Assist', keywords: 'voice push talk microphone hotkey compact chat' },
   { id: 'capabilities', title: 'Capability center', group: 'System', keywords: 'setup diagnostics hardware resources queue readiness', flag: 'showCapabilities' },
   { id: 'activity', title: 'Activity & artifacts', group: 'Organize', keywords: 'history exports revisions jobs' },

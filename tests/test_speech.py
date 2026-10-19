@@ -75,6 +75,18 @@ async def test_review_precedes_shared_conversation_and_release_discards_pcm(spee
 
 
 @pytest.mark.asyncio
+async def test_reviewed_speech_returns_project_memory_sources(speech):
+    from services.memory_contracts import MemorySource
+
+    source = MemorySource(id=uuid.uuid4(), title="Fixture note", source="Owner review", version=2)
+    speech.conversation.reply.return_value.memory_sources = [source]
+    turn = await recorded(speech)
+    await call(speech, "finish", turn)
+    result = await call(speech, "send", {**turn, "text": "Reviewed question"})
+    assert result["memory_sources"] == [source.model_dump(mode="json")]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("sid", ["other", "tray", "unknown"])
 async def test_frame_owner_and_turn_isolation(speech, sid):
     turn = await recorded(speech)

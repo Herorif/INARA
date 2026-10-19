@@ -64,6 +64,16 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 
 R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented. The two latest authorized steps are complete: live voice uses shared schemas/dispatch, and owner-only connection hydration plus owned face-process lifetime replace facade callbacks. Optional provider/hardware behavior and legacy generated-code/browser hard isolation remain separate acceptance work.
 
+## Project memory completed; next source implementation
+
+The first post-revamp step is implemented: owner-reviewed project facts/preferences/decisions, editable sources/tags, version metadata, local lexical search, bounded protected retention, archive/forget, encrypted same-profile export, reviewed non-overwriting recovery and explicitly opted-in assistant context with source labels. Raw memory context is not saved as an extra conversation message; historical answers/backups remain separate from Forget. [Implementation and limits](PROJECT_MEMORY.md).
+
+The responsive lazy panel is available from Command quick launch and the command palette. Local storage/search need no provider/model setup. Backups require the original Windows profile and project; portable cross-account recovery and embedding semantics are not claimed. No model write tools or phone memory grants were added.
+
+Verification: **865 Python regression checks passed with one Blender skip; 72 Node checks passed**. Final focused memory/conversation/speech checks, types, generated-contract drift, Ruff, production build and actual hidden desktop memory/recovery/provider-fixture acceptance passed. No hosted CI or real-provider quality claim is made.
+
+Next source implementation: usage budgets and repeatable quality evaluations. Track per-request/job usage, enforce configurable daily/monthly caps, and add representative assistant/CAD/image fixture evaluations before paid-provider acceptance. Preserve explicit provider setup, resource budgets, approvals and owned cancellation. Browser/device/printing modernization follows. Android build/device acceptance and signed distribution remain separate open release gates.
+
 ## R8 completed; next work after the source revamp
 
 R8 selected read-only notifications are implemented across the server/desktop and native Android source. Separate device/project notification policies, metadata-only defaults, app/conversation rules, redaction, bounded encrypted ledgers, manual duplicate-safe sync, expiry/revocation and a responsive JARVIS inbox are complete within fixture acceptance. Android collection remains build-gated off. See [R8 behavior and limits](R8_NOTIFICATIONS.md).
@@ -74,7 +84,7 @@ Offline release/support tooling now provides whitelist diagnostics, dependency/l
 
 1. R1-R8 source implementation milestones are complete within their documented boundaries. Do not schedule an R8a or another cosmetic refactor checkpoint. Source work can continue on the explicit post-revamp backlog while setup stays deferred.
 2. Next release prerequisite: Android build/dependency verification, then controlled Fold8 acceptance. JDK/Gradle/SDK/ADB are absent. No APK/native tests or physical notification behavior are claimed. Do not download dependencies automatically or flip `NOTIFICATION_ACCEPTANCE_ENABLED` as routine setup.
-3. Next source-only feature work: scoped semantic memory with explicit retention/forget/export/recovery, or the documented browser/device adapter and budget/evaluation backlog. Read existing service/permission boundaries before implementation. These features are still pending, not silently completed by R8.
+3. Project memory is now implemented in the post-revamp milestone above. Next source work is usage budgets/quality evaluations, followed by browser/device adapter modernization. Optional embedding retrieval and portable recovery-key design remain future memory enhancements.
 4. Desktop release still needs clean-machine self-contained core/optional-worker packaging, installer/uninstaller, signing/license clearance, explicit startup/update choices, interrupted-update recovery/rollback and long-run Legion acceptance. Source staging/checksums do not satisfy those gates.
 5. Real provider/model/Blender/image/kernel/microphone/camera/printer setup and exact hardware acceptance remain deferred. The user explicitly deferred the real-game benchmark.
 6. No real notification access, phone calls, forwarding, SIM/account migration or live messages were used. WhatsApp reply drafting/sending, acknowledgements and notification action execution remain excluded until specifically requested. Retain the existing SIM/personal WhatsApp number.
@@ -185,6 +195,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Continue the post-revamp work from docs/RELEASE_READINESS.md and docs/RELEASE_GATES.json. R1-R8 source/fixture milestones are implemented. Android build/device acceptance and self-contained signed distribution remain open; do not download tooling or configure real providers/devices automatically. If setup remains deferred, implement a bounded source-only semantic-memory milestone with project/owner scope, retention/forget/export and recovery, preserving the lean resident and existing dispatcher/identity/storage boundaries. Keep real notifications and WhatsApp/call actions disabled.
+> Continue the post-revamp work from docs/RELEASE_READINESS.md and docs/RELEASE_GATES.json. R1-R8 source/fixture milestones are implemented. Android build/device acceptance and self-contained signed distribution remain open; do not download tooling or configure real providers/devices automatically. Project memory is implemented; read docs/PROJECT_MEMORY.md. If setup remains deferred, implement the next usage-budget and quality-evaluation milestone: per-request/job accounting, daily/monthly caps and fixture task evaluations while preserving resource, identity, storage and dispatcher boundaries. Keep real notifications and WhatsApp/call actions disabled.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

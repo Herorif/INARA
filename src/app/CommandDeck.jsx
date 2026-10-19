@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, ArrowUpRight, Smartphone, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, BookOpen, Smartphone, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import CoreOrb from './CoreOrb';
@@ -59,7 +59,7 @@ function Conversation() {
                 <div className="suggestions">{['Help me plan my day', 'What can we build together?', 'List my reminders'].map(text => <button key={text} onClick={() => suggest(text)}>{text}<ArrowUpRight size={14} /></button>)}</div>
             </div> : messages.slice(-30).map((message, index) => <article key={index} className={`chat-message ${message.sender === 'You' ? 'from-you' : ''}`}>
                 <span className="message-avatar">{message.sender === 'You' ? 'H' : message.sender === 'System' ? '·' : 'I'}</span>
-                <div><header><strong>{message.sender}</strong>{message.time && <time>{message.time}</time>}</header><p>{message.text}</p></div></article>)}
+                <div><header><strong>{message.sender}</strong>{message.time && <time>{message.time}</time>}</header><p>{message.text}</p>{!!message.memory_sources?.length && <small className="memory-citations">Project memory: {message.memory_sources.map(source => `${source.title} (v${source.version})`).join(" / ")}</small>}</div></article>)}
             {processing && <div className="processing-line"><span /><span /><span /> INARA is thinking</div>}<div ref={end} />
         </div>
         <form className="composer" onSubmit={event => {
@@ -231,7 +231,7 @@ export default function CommandDeck() {
                         <button className="text-button" onClick={() => openFeature('reminder')}>Open reminders <ArrowUpRight size={15} /></button></section>
                 </aside></div>
                 <div className="quick-launch"><span className="eyebrow">A LITTLE MORE POSSIBLE</span><button onClick={() => openFeature('cad')} disabled={gaming}><Box size={17} />3D studio<ArrowUpRight size={14} /></button>
-                    <button onClick={() => openFeature('camera')} disabled={gaming}><Camera size={17} />Vision studio<ArrowUpRight size={14} /></button><button onClick={() => openFeature('desktop')}><Cpu size={17} />Desktop tools<ArrowUpRight size={14} /></button></div>
+                    <button onClick={() => openFeature('camera')} disabled={gaming}><Camera size={17} />Vision studio<ArrowUpRight size={14} /></button><button onClick={() => openFeature('memory')}><BookOpen size={17} />Project memory<ArrowUpRight size={14} /></button><button onClick={() => openFeature('desktop')}><Cpu size={17} />Desktop tools<ArrowUpRight size={14} /></button></div>
             </> : <>
                 <section className="page-intro"><span className="eyebrow">{page === 'studio' ? 'IDEAS, GIVEN FORM' : 'YOUR WORLD, CONNECTED'}</span><h1>{page === 'studio' ? <>Make something<br /><span>extraordinary.</span></> : <>A command center<br /><span>for your world.</span></>}</h1>
                     <p>{page === 'studio' ? 'Bring a little imagination. We’ll bring the workspace. Heavy tools load only when you open them.' : 'Your devices and daily tools, one deliberate action at a time.'}</p></section>
