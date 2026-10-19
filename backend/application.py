@@ -25,6 +25,8 @@ from services.conversation import ConversationService
 from services.project_memory import ProjectMemory
 from services.usage import UsageService
 from transport.usage import UsageTransport
+from services.browser import BrowserService
+from transport.browser import BrowserTransport
 from transport.memory import MemoryTransport
 from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
@@ -96,6 +98,8 @@ class Application:
         )
         self.cad.usage = self.images.usage = self.usage
         self.usage_transport = UsageTransport(self)
+        self.browser = BrowserService(self)
+        self.browser_transport = BrowserTransport(self)
         self.capabilities = CapabilityCenter(self)
         register_cad_tools(self.dispatcher, self.cad)
         register_image_tool(self.dispatcher, self.images)
@@ -217,6 +221,7 @@ class Application:
 
     async def restrict_resources(self):
         operations = [
+            self.browser_transport.stop_sid(),
             self.speech_transport.stop_sid(),
             self.cad_transport.close(),
             self.image_transport.close(),
@@ -237,6 +242,7 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
+        await self.browser_transport.stop_sid(sid)
         await self.quality.stop_sid(sid)
         await self.mobile_transport.stop_sid(sid)
         await self.speech_transport.stop_sid(sid)
@@ -249,6 +255,8 @@ class Application:
         principal, role = self.sessions.remove(sid)
         await self.connection.detached()
         if role == "renderer" and not self.sessions.rooms(principal, "renderer"):
+            if self.sessions.is_owner(principal):
+                await self.compat_service.close()
             await self.cad_transport.stop_owner(principal)
             await self.image_transport.stop_owner(principal)
         # Preserve another connected channel's approval; history stays durable.
@@ -280,6 +288,7 @@ class Application:
         self.memory.previews.clear()
         try:
             results = await asyncio.gather(
+                self.browser_transport.stop_sid(),
                 self.quality.stop_sid(),
                 self.mobile_transport.stop_sid(),
                 self.mobile.close(),

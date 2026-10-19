@@ -233,30 +233,10 @@ async def test_resource_restriction_cancels_voice_and_discards_callbacks(workspa
 
 
 @pytest.mark.asyncio
-async def test_browser_forwards_only_scoped_updates_and_closes_on_cancel(workspace):
-    started = asyncio.Event()
-    browser = SimpleNamespace(close=AsyncMock())
-    client = SimpleNamespace(close=lambda: None)
-
-    async def run(prompt, update_callback):
-        assert prompt == "look at an example"
-        await update_callback("fixture image", "navigated")
-        started.set()
-        await asyncio.Event().wait()
-
-    workspace.workspace.web_factory = lambda: SimpleNamespace(
-        run_task=run, browser=browser, client=client
-    )
-    task = asyncio.create_task(
-        workspace.workspace_transport.prompt_web_agent("client", PAYLOADS["prompt_web_agent"])
-    )
-    await started.wait()
-    events = [c for c in workspace.sio.emit.await_args_list if c.args[0] == "browser_frame"]
-    assert {c.kwargs["room"] for c in events} == {"client", "sibling"}
-    await workspace.disconnect("client")
-    await asyncio.gather(task, return_exceptions=True)
-    browser.close.assert_awaited_once()
-    assert not workspace.workspace.browsing
+async def test_retired_browser_never_constructs_adapter(workspace):
+    await workspace.workspace_transport.prompt_web_agent("client", PAYLOADS["prompt_web_agent"])
+    assert workspace.sio.emit.await_args.args[1]["code"] == "browser_migrated"
+    assert not workspace.workspace.requests
 
 
 @pytest.mark.asyncio
@@ -325,44 +305,11 @@ async def test_stop_voice_cancels_sibling_media_approval_without_cancelling_othe
 
 
 @pytest.mark.asyncio
-async def test_typed_browser_origin_disconnect_cancels_execution_and_closes_adapter(workspace):
-    from services.conversation import ConversationRequest, ConversationService
-    from llm.base import LLMResponse, ToolCall
-
-    started = asyncio.Event()
-    browser = SimpleNamespace(close=AsyncMock())
-
-    async def browse(prompt, update_callback):
-        started.set()
-        await asyncio.Event().wait()
-
-    workspace.workspace.web_factory = lambda: SimpleNamespace(run_task=browse, browser=browser)
-    provider = SimpleNamespace(
-        generate=AsyncMock(
-            return_value=LLMResponse(
-                text="",
-                tool_calls=[
-                    ToolCall(id="browser-call", name="prompt_web_agent", args={"prompt": "fixture"})
-                ],
-            )
-        ),
-        close=AsyncMock(),
-    )
-    workspace.conversation_transport.service = ConversationService(
-        workspace.dispatcher, lambda: provider
-    )
-    task = asyncio.create_task(
-        workspace.conversation_transport.user_input(
-            "client", ConversationRequest(text="Browse fixture").model_dump(mode="json")
-        )
-    )
-    await asyncio.wait_for(started.wait(), 2)
-    assert "client" in workspace.workspace.requests.values()
-    await workspace.disconnect("client")
-    await asyncio.gather(task, return_exceptions=True)
-    assert not workspace.conversation_transport.running and not workspace.workspace.requests
-    browser.close.assert_awaited_once()
-    provider.close.assert_awaited_once()
+async def test_retired_browser_model_alias_cannot_revive_execution(workspace):
+    with pytest.raises(ServiceError) as error:
+        await workspace.dispatcher.dispatch("owner", "run_web_agent", {"prompt": "fixture"}, workspace.sessions.context("client").tools())
+    assert error.value.code == "browser_migrated"
+    assert not workspace.workspace.requests
 
 
 @pytest.mark.asyncio

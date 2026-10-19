@@ -1,16 +1,20 @@
 # Supported route/policy matrix (R7)
 
-The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) covers **69 desktop socket routes, `/status`, 55 dispatcher tools (40 model-visible) and eight isolated HTTPS mobile routes** and 37 dormant compatibility voice mappings. Production speech uses the common conversation tool catalog. Both old always-on entry points are retired.
+The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) covers **86 desktop socket routes, `/status`, 56 dispatcher tools (39 model-visible) and ten isolated HTTPS mobile routes** and 37 dormant compatibility voice mappings. Production speech uses the common conversation tool catalog. Both old always-on entry points are retired.
 
 ## Policy conventions
 
 Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and `True` or missing policy requests owner approval. Aliases preserve canonical, source and target denials. Dormant compatibility voice mappings retain shared schemas and the dispatcher, with a trusted session guard before and after approval. Voice-generated events retain that guard for delayed delivery. Owner safety controls remain independent of editable permissions.
+
+The autonomous browser compatibility names are retired. `browser_inspect` is desktop-only and not advertised to the model; `browser_cancel` also cancels pending approvals. [Read-only browser policy and acceptance](BROWSER_INSPECTOR.md).
 
 ## Socket routes
 
 | Event | Schema | Caller and context | Policy | Effects | Response scope | Lifetime | Replacement and status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `acknowledge_reminder` | DeliveryReceipt (UUID; extra fields forbidden) | Authenticated owner renderer; resident receipt ACK permitted while face-locked; Registry owner; desktop-global reminder list; delivery IDs owner-bound | Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store | acknowledge reminder | SID errors/results and owner renderer/resident refresh; control channels excluded | Dispatcher approval deadline; store transaction/lease | ReminderTransport / owner-gated scheduler tools; **migrated** |
+| `browser_inspect` | BrowserInspect | Owner renderer; captured owner/project/SID | Shared run_web_agent review/deny; not model-visible | Public HTTPS text inspection only; untrusted content | Origin ACK | Owned 25s worker; cancel/disconnect/resource/quit | BrowserService / BrowserTransport; **migrated** |
+| `browser_cancel` | EmptyRequest | Owner renderer; safety stop while locked | Independent owner gate | Cancel origin pending approval and active worker | Origin ACK | Immediate cooperative cancel with process-tree release | BrowserTransport; **migrated** |
 | `add_printer` | AddPrinter | Authenticated owner renderer; Pinned desktop owner and captured project | Shared per-tool denial/approval; owner authorization rechecked before execution | Persist exact configured printer endpoint and protocol; no implicit probe | Scoped result/error events to origin SID | 30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation | DevicePrinterService / CompatibilityTransport; **migrated** |
 | `cad_artifact` | ArtifactRequest | Authenticated renderer; Registry owner and resolved selected project | Shared generation permission on submit; owner/project checks; planner permission review pending | Creative artifact | Scoped ACK/error; job events to owner renderers | Owned service/worker/planner cancellation and deadlines | Existing creative transport; planner policy review in R2b; **existing** |
 | `cad_cancel` | JobRequest | Authenticated renderer; Registry owner and resolved selected project | Shared generation permission on submit; owner/project checks; planner permission review pending | Creative cancel | Scoped ACK/error; job events to owner renderers | Owned service/worker/planner cancellation and deadlines | Existing creative transport; planner policy review in R2b; **existing** |

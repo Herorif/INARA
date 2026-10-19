@@ -28,7 +28,10 @@ from services.memory_contracts import MemoryQuery, MemoryWrite, MemoryRevision, 
 
 from services.usage_contracts import UsagePolicy  # noqa: E402
 
+from services.browser_contracts import BrowserInspect, BrowserReport  # noqa: E402
+
 GROUPS = {
+    "browser": (BrowserInspect, BrowserReport),
     "usage": (UsagePolicy,),
     "memory": (MemoryQuery, MemoryWrite, MemoryRevision, MemoryForget, MemoryRetention, MemoryRestore, MemoryRestoreApply, MemorySource),
     "notifications": (NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch),

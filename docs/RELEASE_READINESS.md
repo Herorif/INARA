@@ -2,6 +2,8 @@
 
 R1-R8 source milestones are implemented within their documented offline/fixture limits. The project is still a development/source pilot, not a signed, self-contained desktop or Android release. [Machine-readable gates](RELEASE_GATES.json) keep actual acceptance separate from source implementation. No additional R8 lettered step is planned.
 
+Read-only Web inspector and printer-observation cleanup are implemented with synthetic acceptance; interactive desktop/browser automation and physical device acceptance remain pending. See [behavior and next implementation](BROWSER_INSPECTOR.md).
+
 ## Offline release/support tools implemented
 
 Run with the existing environment; no command below installs packages, contacts a network, opens the private database, reads real notifications or changes startup settings:

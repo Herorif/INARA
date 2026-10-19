@@ -64,7 +64,6 @@ class WorkspaceService:
         self.preflight = provider_ready
         self.audio_factory = lambda **kwargs: app.inara.get().AudioLoop(**kwargs)
         self.cad_factory = self.make_cad
-        self.web_factory = self.make_web
         self.last_frame = 0
         for name, (schema, permission, timeout) in WORKSPACE_TOOLS.items():
             self.dispatcher.register(
@@ -75,7 +74,7 @@ class WorkspaceService:
                     self.execute(name),
                     permission=permission,
                     execution_timeout=timeout,
-                    model_visible=name in ("save_memory", "upload_memory", "prompt_web_agent"),
+                    model_visible=name in ("save_memory", "upload_memory"),
                 )
             )
 
@@ -84,12 +83,6 @@ class WorkspaceService:
         from cad_agent import CadAgent
 
         return CadAgent(**kwargs)
-
-    @staticmethod
-    def make_web():
-        from web_agent import WebAgent
-
-        return WebAgent()
 
     def authorize(self, context):
         self.app.authorize_owner(context)
@@ -270,9 +263,9 @@ class WorkspaceService:
                     ):
                         self.vision_task = asyncio.create_task(self.app.vision_loop.run())
                     return {"message": "Frame accepted"}
-                self.preflight()
                 if name == "prompt_web_agent":
                     return await self.browse(args, context)
+                self.preflight()
                 return await self.cad(name, args, context)
             finally:
                 event_owner.reset(token)
@@ -281,24 +274,10 @@ class WorkspaceService:
         return run
 
     async def browse(self, args, context):
-        if getattr(self, "browsing", False):
-            raise ServiceError("browser_busy", "A browser task is already running.")
-        self.browsing = True
-        agent = None
-        try:
-            agent = self.web_factory()
-
-            async def update(image, log):
-                self.authorize(context)
-                await self.emit("browser_frame", context["principal"], {"image": image, "log": log})
-
-            await agent.run_task(args.prompt, update_callback=update)
-            return {"message": "Web Agent finished"}
-        finally:
-            try:
-                await close_agent(agent)
-            finally:
-                self.browsing = False
+        raise ServiceError(
+            "browser_migrated",
+            "Autonomous browser commands are retired. Use the read-only Web inspector with an explicit HTTPS URL.",
+        )
 
     async def cad(self, name, args, context):
         if self.app.resources.creative_active or self.app.resources.creative_lock.locked():

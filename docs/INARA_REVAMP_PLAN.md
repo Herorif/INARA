@@ -432,3 +432,7 @@ The first post-revamp project-memory implementation is complete within the limit
 ## Usage and quality checkpoint
 
 The second post-revamp source milestone is implemented: [Usage and quality](USAGE_AND_QUALITY.md). Conservative owner-wide admission allowances, metered provider/local-job receipts and 12 offline contract evaluations work without provider configuration or model downloads. Actual invoices/model quality remain unverified. Browser/desktop task ownership and device/printing adapter modernization are next; existing Android, signing, packaging, hardware and WhatsApp/call boundaries remain unchanged.
+
+## Post-revamp read-only research update
+
+The owned Web inspector and printer-observation cleanup source milestone is implemented. The autonomous browser loop is retired; public HTTPS text inspection is typed, approved, bounded, cancellable and inert. [Evidence and limits](BROWSER_INSPECTOR.md). Reviewed desktop task queues and interactive action policies remain future source work, with actual provider/hardware/Android/distribution acceptance separately gated.

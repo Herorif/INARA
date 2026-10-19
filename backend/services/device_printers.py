@@ -1,6 +1,6 @@
 """Owner-authorized compatibility operations. Optional adapters stay lazy."""
 
-import asyncio
+from services.printer_monitor import PrinterMonitor
 from services.device_contracts import AddPrinter, KasaControl
 from services.local_actions import NoArguments
 from services.lazy import LazyService
@@ -11,7 +11,10 @@ class DevicePrinterService:
     def __init__(self, dispatcher, sessions, settings_service, kasa, printer, publish):
         self.dispatcher, self.sessions, self.settings = dispatcher, sessions, settings_service
         self.kasa, self.printer, self.publish = kasa, printer, publish
-        self.monitor = None
+        self.observation = PrinterMonitor(
+            lambda owner: self.dispatcher.authenticated(owner) and bool(self.sessions.rooms(owner, "renderer")),
+            publish,
+        )
         for name, model, permission in (
             ("discover_kasa", NoArguments, None),
             ("control_kasa", KasaControl, "control_device"),
@@ -74,28 +77,10 @@ class DevicePrinterService:
         self.settings.settings[key] = snapshot[key]
 
     def start_monitor(self, owner):
-        if self.monitor is None or self.monitor.done():
-            self.monitor = asyncio.create_task(self.poll(owner), name="printer-monitor")
-
-    async def poll(self, owner):
-        while True:
-            if self.dispatcher.authenticated(owner):
-                for host in tuple(self.printer.printers):
-                    if self.printer.should_poll_printer(host):
-                        try:
-                            async with asyncio.timeout(10):
-                                status = await self.printer.get_print_status(host)
-                            if status:
-                                await self.publish("print_status_update", owner, status.to_dict())
-                        except Exception:
-                            pass  # Adapter maintains bounded failure/backoff; no raw details broadcast.
-            await asyncio.sleep(2)
+        self.observation.start(owner, self.printer)
 
     async def close(self):
-        if self.monitor:
-            self.monitor.cancel()
-            await asyncio.gather(self.monitor, return_exceptions=True)
-            self.monitor = None
+        await self.observation.close()
 
     def execute(self, name):
         async def run(args, context):

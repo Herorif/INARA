@@ -390,12 +390,12 @@
       "schema": "PromptRequest",
       "caller": "Authenticated desktop owner renderer",
       "context": "Captured owner/project; voice session bound to origin SID and project",
-      "effects": "Explicitly approved browser task; browser/client cleanup",
+      "effects": "Fail closed with migration guidance",
       "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
       "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
       "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
       "replacement": "WorkspaceService / WorkspaceTransport",
-      "status": "migrated-envelope"
+      "status": "retired"
     },
     "read_clipboard": {
       "schema": "NoArguments",
@@ -924,6 +924,28 @@
       "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
       "replacement": "UsageTransport / UsageService / QualityService",
       "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "browser_inspect": {
+      "schema": "BrowserInspect (strict HTTPS URL)",
+      "caller": "Authenticated owner renderer only",
+      "context": "Captured owner, project and origin SID; no persisted results",
+      "effects": "One bounded public HTTPS GET inspection; page text is untrusted",
+      "policy": "Shared run_web_agent approval/denial; no provider, scripts, credentials or actions",
+      "response": "Origin ACK only; no broadcast",
+      "lifetime": "25 second owned worker deadline; cancel/disconnect/resource/quit kills process tree",
+      "replacement": "BrowserService / BrowserTransport",
+      "status": "migrated"
+    },
+    "browser_cancel": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer only",
+      "context": "Captured owner, project and origin SID; no persisted results",
+      "effects": "Cancel origin task and pending approval",
+      "policy": "Owner renderer safety stop permitted while locked",
+      "response": "Origin ACK only; no broadcast",
+      "lifetime": "25 second owned worker deadline; cancel/disconnect/resource/quit kills process tree",
+      "replacement": "BrowserService / BrowserTransport",
+      "status": "migrated"
     }
   },
   "http_routes": {
@@ -1202,7 +1224,9 @@
       "context": "Authenticated desktop owner and immutable project snapshot",
       "lifetime": "180s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
       "replacement": "WorkspaceService / WorkspaceTransport",
-      "model_visible": true
+      "model_visible": false,
+      "status": "retired",
+      "effects": "Fail closed with migration guidance; no browser/provider construction"
     },
     "read_directory": {
       "schema": "DirectoryRequest",
@@ -1346,7 +1370,9 @@
       "context": "Captured owner/project; trusted voice binding",
       "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
       "replacement": "ExtendedActions compatibility alias",
-      "model_visible": false
+      "model_visible": false,
+      "status": "retired",
+      "effects": "Fail closed with migration guidance; no browser/provider construction"
     },
     "list_smart_devices": {
       "schema": "NoArguments",
@@ -1381,6 +1407,18 @@
       "context": "Origin renderer SID, pinned owner, captured project and conversation UUID",
       "lifetime": "One bounded turn; pending approval and turn cancel on origin disconnect/core close/restriction",
       "replacement": "SpeechService / SpeechTransport",
+      "model_visible": false
+    },
+    "browser_inspect": {
+      "schema": "BrowserInspect",
+      "caller": "Authenticated owner renderer only",
+      "context": "Captured owner, project and origin SID; no persisted results",
+      "effects": "One bounded public HTTPS GET inspection; page text is untrusted",
+      "policy": "Shared run_web_agent approval/denial; no provider, scripts, credentials or actions",
+      "response": "Origin ACK only; no broadcast",
+      "lifetime": "25 second owned worker deadline; cancel/disconnect/resource/quit kills process tree",
+      "replacement": "BrowserService / BrowserTransport",
+      "status": "migrated",
       "model_visible": false
     }
   },

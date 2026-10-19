@@ -64,6 +64,14 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 
 R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented. The two latest authorized steps are complete: live voice uses shared schemas/dispatch, and owner-only connection hydration plus owned face-process lifetime replace facade callbacks. Optional provider/hardware behavior and legacy generated-code/browser hard isolation remain separate acceptance work.
 
+## Web inspector completed; next source implementation
+
+The retained autonomous browser loop and automatic safety acknowledgement are retired. The Web inspector now uses explicit typed public HTTPS requests, shared approvals, owned bounded worker lifetime, inert hostile page text and cancellation. Printer observation is extracted and releases on last-owner-renderer disconnect. This is a read-only research milestone, not interactive browser/desktop automation or physical device acceptance. [Behavior, evidence and limits](BROWSER_INSPECTOR.md).
+
+Validation: **954 Python passed / one Blender skip; 83 Node passed**, type/drift/lint/build and real hidden native fixture acceptance at desktop/390px. Short native resident recovered to about 67 MB. No public website, provider or real device actions were used.
+
+Next source milestone: reviewed desktop task queue using bounded typed dispatcher steps, owner/project capture, per-step approvals, durable non-replayable receipts and progress/cancellation/recovery UI. Preserve the browser read-only boundary, shared usage admission and legacy cloud guard; no automatic restart of effectful steps. Continue device-adapter decomposition with fixtures. Android, provider/hardware acceptance and signed distribution gates remain open.
+
 ## Usage and quality completed; next source implementation
 
 The second post-revamp source milestone adds Usage & quality, owner-wide integer daily/monthly authorization allowances, atomic per-invocation reservation, provider-reported token counters, request/job references, local creative-job duration receipts and 12 owned offline product-contract evaluations. Caps default off (monitor only); no provider/key/model configuration or paid requests were performed. [Behavior, coverage and limits](USAGE_AND_QUALITY.md).
@@ -72,7 +80,7 @@ Validation: **911 Python tests passed with one Blender skip; 78 Node tests passe
 
 These limits govern owner-assigned INARA allowances; actual provider invoice cost is unknown. Timeouts/cancellations/missing metadata retain their allowance. No automatic refunds or retries. Metered paths include desktop/phone conversation, CAD proposals and transcription. Legacy unmetered cloud tools/aliases are blocked when caps are enabled; local jobs, memory and reminders remain usable. Fixture evaluations are explicitly not real-model quality acceptance.
 
-Next source implementation: owned browser/desktop automation and device-adapter cleanup. Replace the retained autonomous browser seam with bounded typed operations, explicit owner/project/task lifetime, hostile-content handling and cancellation. Integrate every provider step with usage admission before enabling it under caps; preserve the legacy guard until parity is tested. Continue device/printer adapter separation without real hardware actions or automatic dependency downloads. Android build/device, signing/distribution/update recovery and provider/hardware acceptance remain separate open release gates. No additional lettered budget substep is scheduled for this source/fixture milestone.
+Historical next scope (read-only browser and printer observation are now implemented above): owned browser/desktop automation and device-adapter cleanup. Replace the retained autonomous browser seam with bounded typed operations, explicit owner/project/task lifetime, hostile-content handling and cancellation. Integrate every provider step with usage admission before enabling it under caps; preserve the legacy guard until parity is tested. Continue device/printer adapter separation without real hardware actions or automatic dependency downloads. Android build/device, signing/distribution/update recovery and provider/hardware acceptance remain separate open release gates. No additional lettered budget substep is scheduled for this source/fixture milestone.
 
 ## Project memory completed; next source implementation
 
@@ -82,7 +90,7 @@ The responsive lazy panel is available from Command quick launch and the command
 
 Verification: **865 Python regression checks passed with one Blender skip; 72 Node checks passed**. Final focused memory/conversation/speech checks, types, generated-contract drift, Ruff, production build and actual hidden desktop memory/recovery/provider-fixture acceptance passed. No hosted CI or real-provider quality claim is made.
 
-Usage budgets and offline quality fixtures are now implemented in the checkpoint above. Browser/device/printing modernization is next; real provider price/invoice and model-quality acceptance stay deferred. Android build/device acceptance and signed distribution remain separate open release gates.
+Usage budgets and offline quality fixtures are now implemented in the checkpoint above. Read-only browser and printer observation modernization are now implemented above; real provider price/invoice and model-quality acceptance stay deferred. Android build/device acceptance and signed distribution remain separate open release gates.
 
 ## R8 completed; next work after the source revamp
 
@@ -205,6 +213,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Continue the post-revamp work from docs/RELEASE_READINESS.md and docs/RELEASE_GATES.json. R1-R8 source/fixture milestones are implemented. Android build/device acceptance and self-contained signed distribution remain open; do not download tooling or configure real providers/devices automatically. Project memory and usage/quality source milestones are implemented; read docs/PROJECT_MEMORY.md and docs/USAGE_AND_QUALITY.md. If setup remains deferred, implement owned typed browser/desktop tasks and device-adapter cleanup with fixture-only acceptance. Preserve shared usage admission, approvals, captured owner/project scope and owned process cancellation. Keep unmetered legacy cloud paths blocked under caps until the replacement is verified. Keep real notifications and WhatsApp/call actions disabled.
+> Continue from docs/BROWSER_INSPECTOR.md and docs/RELEASE_GATES.json. Implement the reviewed desktop task queue milestone: bounded typed steps through existing shared dispatcher tools, captured owner/project scope, per-step approval, durable non-replayable receipts and polished progress/cancel/recovery UI. Do not automatically resume uncertain effectful steps after restart. Keep browser inspection read-only; no page-derived actions or arbitrary scripts. Preserve shared usage admission and block remaining unmetered cloud paths under caps. Keep configuration/tool downloads, live hardware/notifications, WhatsApp and call actions deferred. Android build/device and signed self-contained distribution remain open release gates.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

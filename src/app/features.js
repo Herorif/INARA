@@ -8,7 +8,7 @@ export const features = [
   { id: 'cad', title: '3D studio', group: 'Create', keywords: 'model mesh stl glb blender scene', heavy: true, flag: 'showCadWindow' },
   { id: 'image', title: 'Image atelier', group: 'Create', keywords: 'picture art generation png', heavy: true, flag: 'showImageStudio' },
   { id: 'camera', title: 'Vision studio', group: 'Observe', keywords: 'camera hand tracking preview', heavy: true },
-  { id: 'browser', title: 'Research browser', group: 'Explore', keywords: 'web research', heavy: true, flag: 'showBrowserWindow' },
+  { id: 'browser', title: 'Web inspector', group: 'Explore', keywords: 'web research https read only', heavy: false, flag: 'showBrowserWindow' },
   { id: 'reminder', title: 'Reminders', group: 'Organize', keywords: 'schedule tasks alarm', flag: 'showReminderWindow' },
   { id: 'routines', title: 'Routine manager', group: 'Organize', keywords: 'automation routines', flag: 'showRoutineWindow' },
   { id: 'desktop', title: 'Desktop controls', group: 'Connect', keywords: 'apps clipboard system', flag: 'showDesktopWindow' },

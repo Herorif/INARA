@@ -2,13 +2,17 @@
 
 Updated 19 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
-## Current post-revamp milestone: usage and quality
+## Current post-revamp milestone: Web inspector and adapter cleanup
+
+Read-only public HTTPS research now replaces the retained autonomous browser: typed requests, shared owner approvals, bounded owned worker, inert page content, ephemeral results and cancellation. Printer observation is separate and stops with the last owner workspace. **954 Python passed / one Blender skip, 83 Node passed**, types/contracts/lint/build and hidden native fixture acceptance at desktop/390px. Short resident recovery was about 67 MB. [Evidence and remaining limits](BROWSER_INSPECTOR.md). No live public network/provider/hardware acceptance is claimed. Interactive browser/desktop automation remains open; the reviewed typed desktop task queue is the next source milestone.
+
+## Completed post-revamp milestone: usage and quality
 
 Acceptance: 911 Python passes / one Blender skip, 78 Node passes, type/drift/lint/build and all 12 offline contract evaluations. Native acceptance uses only synthetic provider/data; actual provider invoice and model-quality acceptance remain deferred.
 
-Usage & quality adds explicit owner-wide daily/monthly authorization allowances, per-invocation admission across desktop/phone chat/CAD/transcription, sanitized provider token receipts and local job duration receipts. It defaults to monitor only and does not claim to measure invoices. The fixed 12-case offline assistant/memory/budget/CAD/image suite runs in an owned disposable process/profile, with no real provider or user data. [Coverage and acceptance limits](USAGE_AND_QUALITY.md). Browser/device adapter modernization is next for source work; configuration and release/device gates remain open.
+Usage & quality adds explicit owner-wide daily/monthly authorization allowances, per-invocation admission across desktop/phone chat/CAD/transcription, sanitized provider token receipts and local job duration receipts. It defaults to monitor only and does not claim to measure invoices. The fixed 12-case offline assistant/memory/budget/CAD/image suite runs in an owned disposable process/profile, with no real provider or user data. [Coverage and acceptance limits](USAGE_AND_QUALITY.md). Read-only browser and printer observation modernization are now implemented above; configuration and release/device gates remain open.
 
-## Current post-revamp milestone: project memory
+## Completed post-revamp milestone: project memory
 
 Verification: 865 Python regression passes / one Blender skip, 72 Node passes, focused integration checks, type/drift/lint/build and actual hidden desktop memory/recovery/source-citation acceptance. No paid API or real user data was used.
 

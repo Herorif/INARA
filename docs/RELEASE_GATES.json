@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "milestone": "Usage allowances and offline quality after project memory",
+  "milestone": "Owned read-only Web inspector and printer observation cleanup",
   "gates": [
     {
       "id": "desktop-source",
@@ -98,7 +98,7 @@
       "track": "backlog",
       "status": "pending",
       "required": false,
-      "evidence": "Owned browser task/DOM policy and further device/printer adapter decomposition and real-adapter acceptance remain follow-on work"
+      "evidence": "Read-only browser and owned printer observation source milestone accepted in BROWSER_INSPECTOR.md. Reviewed desktop task queues, interactive DOM/action policy, remaining protocol decomposition and physical adapter acceptance are pending."
     },
     {
       "id": "budgets-evaluations",
@@ -127,6 +127,13 @@
       "status": "deferred",
       "required": false,
       "evidence": "Actual model pricing/invoice reconciliation and real-model task quality/latency acceptance require explicitly chosen provider setup; current allowances are not guaranteed invoice ceilings"
+    },
+    {
+      "id": "read-only-web-inspector",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "BROWSER_INSPECTOR.md; strict public HTTPS GET, owned worker cancellation, inert page text, native synthetic renderer/worker acceptance. No live-site/interactive browser acceptance."
     }
   ]
 }

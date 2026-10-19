@@ -238,7 +238,7 @@ export default function CommandDeck() {
                 <div className="feature-grid">{page === 'studio' ? <>
                     <FeatureCard icon={Box} title="3D studio" description="Build a parametric solid, explore it in 3D and export STL or GLB. Works offline." tag="LOCAL + ON DEMAND" disabled={gaming} onClick={() => openFeature('cad')} />
                     <FeatureCard icon={Camera} title="Vision studio" description="A live perspective, when you choose. Camera access starts only with your permission." tag="CAMERA OFF" disabled={gaming} onClick={() => openFeature('camera')} />
-                    <FeatureCard icon={Globe2} title="Research browser" description="Open a focused research workspace. Automation requires its optional setup." tag="ON DEMAND" disabled={gaming} onClick={() => openFeature('browser')} />
+                    <FeatureCard icon={Globe2} title="Web inspector" description="Read public page text and discover links in a quiet, read-only workspace." tag="NO CLOUD INFERENCE" onClick={() => openFeature('browser')} />
                     <FeatureCard icon={Sparkles} title="Image atelier" description="Shape your next visual with prompts, seeds and protected revisions. Local models load only on demand." tag="MODEL SETUP LATER" disabled={gaming} onClick={() => openFeature('image')} />
                 </> : <>
                     <FeatureCard icon={Smartphone} title="Android companion" description="Pair a device with your permission. Read laptop status and previews; tool-free chat has its own grant." tag="OPT-IN / SECURE LINK" onClick={() => openFeature('phone')} />
