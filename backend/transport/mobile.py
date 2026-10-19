@@ -10,11 +10,15 @@ from services.mobile_contracts import (
     MobileEmpty,
 )
 from services.tools import ServiceError
+from services.notifications import NotificationPolicy
 
 
 class MobileTransport:
     models = {
         "mobile_state": MobileEmpty,
+        "notification_inbox": DeviceRequest,
+        "notification_policy": NotificationPolicy,
+        "notification_clear": DeviceRequest,
         "mobile_listener": ListenerRequest,
         "mobile_pair": PairRequest,
         "mobile_pair_cancel": MobileEmpty,
@@ -35,6 +39,16 @@ class MobileTransport:
                 owner = self.app.sessions.require_owner(sid, {"renderer"})
                 args = model.model_validate(data)
                 self.pending[task] = sid
+                if name.startswith("notification_"):
+                    service = self.app.mobile.notifications
+                    project = self.app.projects.get_current_project_path()
+                    if name == "notification_policy":
+                        result = service.configure(owner, project, args)
+                    elif name == "notification_clear":
+                        result = service.clear(owner, project, args.device_id)
+                    else:
+                        result = service.view(owner, project, args.device_id)
+                    return {"ok": True, **result}
                 if name == "mobile_listener":
                     if args.enabled:
                         try:

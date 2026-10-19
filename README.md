@@ -15,6 +15,10 @@
 
 > Supported Windows runtime: `backend/resident_main.py` hosts the tray and `backend/server.py` core. `electron/native-main.cjs` runs the workspace on demand. The `backend/core/` server refactor is archived reference code.
 
+## Current source milestone
+
+R1-R8 source/fixture milestones are implemented, including the read-only selected-notification desktop inbox and gated Android source. Android compilation/device acceptance, configured heavy capabilities and signed standalone distribution remain pending. [Current handoff](docs/IMPLEMENTATION_HANDOFF.md), [R8 evidence](docs/R8_NOTIFICATIONS.md), [release gates and backlog](docs/RELEASE_READINESS.md). No WhatsApp replies or calls were enabled.
+
 ## Revival: durable assistant and command deck
 
 Typed chat now runs independently of the microphone and Gemini Live audio session.

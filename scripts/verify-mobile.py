@@ -199,6 +199,21 @@ def verify():
                 == "mobile_grant"
             )
             (output / "phone-checked.json").write_text("{}")
+            assert call("notification_policy")["policy"]["enabled"] is False
+            until(lambda: (output / "notification-permission.json").exists())
+            policy = call("notification_policy")["policy"]
+            assert policy["enabled"] and policy["include_text"]
+            batch = {"revision": policy["revision"], "events": [{
+                "event_id": str(uuid.uuid4()), "source_id": "b" * 64, "conversation": "a" * 64,
+                "package": "com.example.chat", "timestamp": int(time.time()), "kind": "posted",
+                "title": "Synthetic selected notification", "text": "Fixture sample@example.com code 123456",
+            }]}
+            assert call("notification_sync", batch)["accepted"] == [batch["events"][0]["event_id"]]
+            assert call("notification_sync", batch)["accepted"] == [batch["events"][0]["event_id"]]
+            (output / "notification-uploaded.json").write_text("{}")
+            until(lambda: (output / "notification-cleared.json").exists())
+            assert call("notification_sync", batch)["code"] == "notification_grant"
+            (output / "notification-stale-rejected.json").write_text("{}")
             until(lambda: (output / "revoke-checked.json").exists())
             assert call("status")["code"] == "mobile_auth"
             (output / "revocation-confirmed.json").write_text("{}")

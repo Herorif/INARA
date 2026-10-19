@@ -29,11 +29,26 @@ BrowserWindow.prototype.loadFile=async function(...args){
   window.setSize(390,900);await sleep(100);assert.equal(await evaluate(`document.querySelector('.mobile-companion').scrollWidth>document.querySelector('.mobile-companion').clientWidth`),false);await evaluate(`document.querySelector('.mobile-device').scrollIntoView({block:'center'})`);await screenshot('mobile-pending-390.png');
   await button('Fingerprints match / Approve');await until(()=>evaluate(`document.querySelector('.mobile-device strong')?.textContent.includes('Paired')`));
   fs.writeFileSync(path.join(output,'approval-checked.json'),'{}');await until(()=>fs.existsSync(path.join(output,'phone-checked.json')));
+  await until(()=>evaluate(`!!document.querySelector('.notification-summary')`));
+  await button('Review permission');
+  await evaluate(`(()=>{const el=document.querySelector('.notification-policy textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'com.example.chat *');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await evaluate(`document.querySelector('.notification-policy input[type="checkbox"]').click()`);
+  await button('Apply selected permission');await until(()=>evaluate(`document.querySelector('.notification-status')?.textContent.includes('enabled')`));
+  await button('Close policy');
+  fs.writeFileSync(path.join(output,'notification-permission.json'),'{}');await until(()=>fs.existsSync(path.join(output,'notification-uploaded.json')));
+  await button('Refresh inbox');await until(()=>evaluate(`document.querySelector('.notification-summary>span')?.textContent==='01'`));
+  assert.equal(await evaluate(`document.querySelector('.notification-stream').textContent.includes('sample@example.com')`),false);
+  assert.equal(await evaluate(`document.querySelector('.notification-stream').textContent.includes('123456')`),false);
+  assert.equal(await evaluate(`document.querySelector('.mobile-companion').scrollWidth>document.querySelector('.mobile-companion').clientWidth`),false);
+  await evaluate(`document.querySelector('.notification-inbox').scrollIntoView({block:'start'})`);await screenshot('notification-inbox-390.png');
+  window.setSize(1440,1000);await evaluate(`document.querySelector('.notification-inbox').scrollIntoView({block:'center'})`);await screenshot('notification-inbox-desktop.png');
+  await button('Clear laptop inbox');await until(()=>evaluate(`document.querySelector('.notification-summary>span')?.textContent==='00'`));
+  fs.writeFileSync(path.join(output,'notification-cleared.json'),'{}');await until(()=>fs.existsSync(path.join(output,'notification-stale-rejected.json')));
   await button('Revoke access');await until(()=>evaluate(`document.querySelector('.mobile-device strong')?.textContent.includes('Revoked')`));
   fs.writeFileSync(path.join(output,'revoke-checked.json'),'{}');await until(()=>fs.existsSync(path.join(output,'revocation-confirmed.json')));
   window.setSize(768,900);await evaluate(`document.querySelector('.mobile-device').scrollIntoView({block:'center'})`);await screenshot('mobile-revoked-768.png');
   await button('Stop mobile access');await until(()=>evaluate(`document.querySelector('.mobile-card-heading strong').textContent==='Network access is off'`));
-  result.listener_default_off_and_explicit_loopback_tls=true;result.real_fixture_claim_owner_approval_and_revocation=true;result.signed_replay_rejected_and_chat_default_denied=true;result.responsive_widths=[1440,390,768];result.android_apk_or_device_used=false;result.provider_used=false;result.passed=true;
+  result.read_only_notification_fixture_redacted_deduplicated_cleared=true;result.listener_default_off_and_explicit_loopback_tls=true;result.real_fixture_claim_owner_approval_and_revocation=true;result.signed_replay_rejected_and_chat_default_denied=true;result.responsive_widths=[1440,390,768];result.android_apk_or_device_used=false;result.provider_used=false;result.passed=true;
  }catch(error){result.passed=false;result.error=error.stack;await screenshot('mobile-failure.png');}
  fs.writeFileSync(path.join(output,'ui-verification.json'),JSON.stringify(result,null,2));await evaluate('window.electronAPI.close()');
 };

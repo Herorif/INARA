@@ -25,3 +25,10 @@ Refresh, Send once and Check saved receipt are explicit user actions. There are 
 The phone client disconnects/cancels work on Activity stop and closes connections in finally. Actual Android cancellation timing, process death, key invalidation, fold/unfold/IME/multi-window, TalkBack, physical sleep, certificate renewal and battery/Doze behavior remain acceptance gates. The Compose layout uses one column below 720 dp and two scrollable panes above it. Those source layouts have **not** been rendered on a phone/emulator here.
 
 See [protocol, evidence and limits](../docs/R7_ANDROID_FOUNDATION.md). API/provider configuration and all physical phone acceptance remain deferred.
+
+
+## R8 selected notifications (source only)
+
+The protected notification listener, encrypted bounded queue, explicit consent/rule review and manual duplicate-safe sync are now present in source. `BuildConfig.NOTIFICATION_ACCEPTANCE_ENABLED` remains false. No build, native JVM/Keystore tests, APK, phone permission or real notification acceptance was performed. Do not flip the flag or enable system access until a separately authorized native/device acceptance process is available. INTERNET is still the only uses-permission; the non-exported listener requires the system's BIND_NOTIFICATION_LISTENER_SERVICE binding permission.
+
+See [R8 source behavior and limits](../docs/R8_NOTIFICATIONS.md) and [remaining release gates](../docs/RELEASE_READINESS.md). No WhatsApp replies/drafts/actions or call handling is implemented. No background networking, history scan or automatic sync was added.

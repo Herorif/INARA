@@ -417,3 +417,8 @@ Phase 0 should finish with recorded laptop specifications, Fold8 firmware and re
 R2b1 update: the [complete route inventory](ROUTE_POLICY_MATRIX.md) and [first desktop/device policy group](ROUTE_POLICY_MIGRATION.md) are implemented. R2b2 settings/permission/native-resource policy is next; remaining legacy groups and R2c are still pending.
 
 R2b2 update (16 October 2026): [owner settings and lifecycle policy](SETTINGS_LIFECYCLE_POLICY.md) now separate authorization, validation, atomic settings and native/resource controls. Kasa/printer compatibility is the next bounded R2b3 group; other pending matrix rows and R2c remain open.
+
+
+## Current R8 / post-revamp checkpoint
+
+R1-R8 source milestones are implemented within their documented offline/fixture boundaries. [R8](R8_NOTIFICATIONS.md) adds selected read-only notifications without WhatsApp reply/action execution. [Release readiness](RELEASE_READINESS.md) and [machine-readable gates](RELEASE_GATES.json) supersede historical next-step notes above: Android compilation/device acceptance, self-contained signed distribution/update recovery, long-run hardware acceptance and the advanced memory/automation/device/budget backlog remain open. Offline support inventory and source-pilot integrity staging are implemented; no installer/APK/real notification acceptance is claimed.

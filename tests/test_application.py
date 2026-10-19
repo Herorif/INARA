@@ -221,7 +221,7 @@ async def test_lifetime_restarts_without_duplicate_pollers_or_bus_delivery(appli
         await runtime.start()
         tasks = tuple(runtime.tasks)
         await runtime.start()
-        assert tuple(runtime.tasks) == tasks and len(tasks) == 1
+        assert tuple(runtime.tasks) == tasks and len(tasks) == 2
         await runtime.bus.emit(Event(Events.VISION_ALERT, {"message": "local legacy event"}))
         await runtime.close()
         assert all(task.done() for task in tasks) and not runtime.tasks

@@ -204,3 +204,10 @@ Five `speech_*` routes use generated SpeechBegin/Frame/Turn/Send contracts. They
 ## R7 isolated phone access
 
 The six `mobile_*` socket controls require the unlocked pinned desktop owner/renderer. They inspect or explicitly enable/stop the dedicated TLS listener, create/cancel expiring invitations, approve a fingerprint and revoke a device. No mobile action is added to the model tool catalog. The separate HTTPS API has strict claim/finish/status/jobs/preview/chat/history/receipt contracts, bound public-key authentication, durable replay rejection and narrow owner/device/project grants. It is not mounted on the desktop API. Phone chat uses an empty dispatcher and cannot import desktop transcript history. [Full protocol and pending Android acceptance](R7_ANDROID_FOUNDATION.md).
+
+
+## R8 selected notifications
+
+Current exact inventory: 72 desktop socket routes, one desktop status route, 55 dispatcher tools (40 text-visible), 37 dormant voice aliases and 10 isolated mobile HTTPS routes. The JSON inventory is checked against the registered transports.
+
+`notification_inbox`, `notification_policy` and `notification_clear` require an unlocked pinned owner renderer and a device paired to the current project. They read or change only the protected read-only inbox/policy. Signed mobile `notification_policy` reads only the device's policy through status:read; `notification_sync` additionally requires the separate enabled device/project notification policy (`notifications:sync`) and exact revision. R7 pairing/chat/job grants do not implicitly authorize ingestion. Every scope change/clear/revoke invalidates older queues. No dispatcher tools, notification actions or reply operations were added. [Protocol and acceptance limits](R8_NOTIFICATIONS.md).

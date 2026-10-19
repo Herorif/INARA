@@ -15,10 +15,16 @@ assert permissions == ["android.permission.INTERNET"]
 application = manifest.find("application")
 assert application.attrib[namespace + "allowBackup"] == "false"
 assert application.attrib[namespace + "usesCleartextTraffic"] == "false"
-assert not application.findall("service") and not application.findall("receiver")
+services = application.findall("service")
+assert len(services) == 1 and not application.findall("receiver")
+assert services[0].attrib[namespace + "name"] == ".SelectedNotificationListener"
+assert services[0].attrib[namespace + "exported"] == "false"
+assert services[0].attrib[namespace + "permission"] == "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+assert services[0].find("intent-filter/action").attrib[namespace + "name"] == "android.service.notification.NotificationListenerService"
+assert '"NOTIFICATION_ACCEPTANCE_ENABLED", "false"' in (android / "app/build.gradle.kts").read_text()
 assert application.find("activity").attrib[namespace + "resizeableActivity"] == "true"
 ET.parse(android / "app/src/main/res/xml/data_extraction_rules.xml")
-for name in ("MainActivity", "CompanionModel", "DeviceSecurity", "CompanionClient"):
+for name in ("MainActivity", "CompanionModel", "DeviceSecurity", "CompanionClient", "NotificationVault", "SelectedNotificationListener", "NotificationCard"):
     assert (android / f"app/src/main/java/com/inara/companion/{name}.kt").is_file()
 sdk = os.getenv("ANDROID_HOME") or os.getenv("ANDROID_SDK_ROOT")
 tools = {name: shutil.which(name) for name in ("java", "javac", "gradle", "adb")}

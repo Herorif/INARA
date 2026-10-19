@@ -3,6 +3,10 @@
     <application android:label="INARA Companion" android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
+        <service android:name=".SelectedNotificationListener" android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
+        </service>
         <activity android:name=".MainActivity" android:exported="true" android:resizeableActivity="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

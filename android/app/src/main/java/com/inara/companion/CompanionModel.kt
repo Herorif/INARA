@@ -21,12 +21,15 @@ data class CompanionState(
     val project: String = "", val fingerprint: String = "", val grants: List<String> = emptyList(),
     val jobs: List<JSONObject> = emptyList(), val messages: List<Pair<String, String>> = emptyList(),
     val draft: String = "", val pending: Boolean = false, val preview: JSONObject? = null,
+    val notificationState: JSONObject? = null, val notificationPolicy: JSONObject? = null,
     val recoveryRequired: Boolean = false
 )
 
 class CompanionModel(application: Application) : AndroidViewModel(application) {
     private val security = DeviceSecurity(application)
     private val client = CompanionClient(security)
+    private val notifications = NotificationVault(application)
+    private var reviewedNotificationPolicy: JSONObject? = null
     private val mutable = MutableStateFlow(CompanionState())
     val state = mutable.asStateFlow()
     private var saved = JSONObject()
@@ -50,7 +53,8 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
             project = saved.optString("project"), fingerprint = saved.optString("fingerprint"),
             grants = (0 until grants.length()).map { grants.getString(it) }, jobs = jsonList(saved.optJSONArray("jobs")),
             messages = jsonList(saved.optJSONArray("messages")).map { it.getString("sender") to it.getString("text") },
-            draft = saved.optString("draft"), pending = saved.has("pending"), preview = preview
+            draft = saved.optString("draft"), pending = saved.has("pending"), preview = preview,
+            notificationState = if (link != null) notifications.snapshot() else null, notificationPolicy = reviewedNotificationPolicy
         )
         if (link != null && persist) security.write(saved)
     }
@@ -61,7 +65,9 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
             try { block() }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: MobileFailure) {
+                if (failure.code.startsWith("notification_")) { notifications.stop(); reviewedNotificationPolicy = null }
                 if (failure.code in listOf("mobile_auth", "mobile_owner", "mobile_scope", "mobile_grant")) {
+                    notifications.stop(); reviewedNotificationPolicy = null
                     saved.put("phase", "access_blocked").put("grants", JSONArray()).put("jobs", JSONArray()).put("messages", JSONArray()).put("draft", "")
                 }
                 publish(failure.message ?: "Mobile authorization changed.")
@@ -158,6 +164,44 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
         val result = request("preview", JSONObject().put("kind", job.getString("kind")).put("request_id", job.getString("request_id")))
         publish("Read-only preview / ${job.getString("name")}", preview = result)
     }
+    fun notificationRefresh() = action {
+        reviewedNotificationPolicy = request("notification_policy").getJSONObject("policy")
+        val local = notifications.snapshot()
+        if (!reviewedNotificationPolicy!!.optBoolean("enabled") || (local.optBoolean("enabled") &&
+            local.optJSONObject("policy")?.optString("revision") != reviewedNotificationPolicy!!.optString("revision"))) notifications.stop()
+        publish("Review the selected application/conversation rules below. No collection or sync starts automatically.")
+    }
+    fun notificationEnable(shareText: Boolean) {
+        if (state.value.busy || state.value.phase != "paired") return
+        try {
+            notifications.enable(reviewedNotificationPolicy ?: error("Review laptop permission first"), shareText)
+            android.service.notification.NotificationListenerService.requestRebind(android.content.ComponentName(getApplication<Application>(), SelectedNotificationListener::class.java))
+            publish("Selected new notifications can now queue locally. Sync remains manual.")
+        } catch (_: Exception) { publish("Collection requires native/device acceptance, system access, and a reviewed laptop permission.") }
+    }
+    fun notificationStop() {
+        notifications.stop(); reviewedNotificationPolicy = null
+        publish("Local collection stopped and queue cleared. Revoke/clear the separate laptop copy on your laptop.")
+    }
+    fun notificationSync() = action {
+        require(BuildConfig.NOTIFICATION_ACCEPTANCE_ENABLED)
+        val remote = request("notification_policy").getJSONObject("policy")
+        val batch = notifications.batch(remote)
+        if (batch == null) publish("No selected notifications are queued.") else {
+            val result = request("notification_sync", batch)
+            val accepted = NotificationVault.strings(result.getJSONArray("accepted"))
+            val ids = NotificationVault.objects(batch.getJSONArray("events")).map { it.getString("event_id") }
+            require(result.getString("revision") == batch.getString("revision") && accepted == ids)
+            notifications.acknowledge(result.getString("revision"), accepted)
+            publish("Synced ${accepted.size} selected events. Retry is explicit and duplicate-safe; no message actions ran.")
+        }
+    }
+    fun notificationResume() {
+        if (!state.value.recoveryRequired && saved.has("link")) {
+            try { publish(state.value.message, state.value.busy, state.value.preview) }
+            catch (_: Exception) { notifications.stop() }
+        }
+    }
     fun pause() {
         draftSave?.cancel()
         if (saved.has("pending")) { saved.getJSONObject("pending").put("state", "uncertain"); security.write(saved) }
@@ -165,7 +209,7 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
         if (saved.has("link")) publish("Paused. Refresh explicitly when the laptop is available.")
     }
     fun forget() {
-        draftSave?.cancel(); client.cancel(); work?.cancel(); security.forget(); saved = JSONObject()
+        draftSave?.cancel(); client.cancel(); work?.cancel(); notifications.forget(); reviewedNotificationPolicy = null; security.forget(); saved = JSONObject()
         mutable.value = CompanionState(message = "Local identity removed. Revoke the old device on the laptop too.")
     }
     override fun onCleared() { client.cancel(); super.onCleared() }

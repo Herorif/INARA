@@ -11,9 +11,11 @@ android {
         minSdk = 28
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0-r7"
+        versionName = "0.1.0-r8"
+        // Default closed. Enable only in a separately accepted native/device test build.
+        buildConfigField("boolean", "NOTIFICATION_ACCEPTANCE_ENABLED", "false")
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }

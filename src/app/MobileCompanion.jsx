@@ -4,6 +4,7 @@ import socket from '../services/socket';
 import useStore from '../store';
 import { createMobileClient } from '../transport/mobileClient.ts';
 import PanelState from './PanelState';
+import NotificationInbox from './NotificationInbox';
 import './mobile-companion.css';
 export default function MobileCompanion() {
   const project = useStore(s => s.currentProject),
@@ -103,7 +104,7 @@ export default function MobileCompanion() {
           })}>Fingerprints match / Approve</button></div></article>)}</section>}
     <section className="mobile-link-card"><h3>Paired devices</h3>{!report?.devices.length ? <p>No device has access.</p> : report.devices.map(device => <article key={device.device_id} className="mobile-device"><strong>{device.name} / {device.revoked ? 'Revoked' : device.expires < Date.now() / 1000 ? 'Expired' : 'Paired'}</strong><span>{device.project} / {device.grants.join(', ')}</span><code>{device.fingerprint}</code><button disabled={device.revoked || busy} onClick={() => act(() => client.current.revoke({
           device_id: device.device_id
-        }))}>Revoke access</button></article>)}</section>
+        }))}>Revoke access</button>{device.project === project && <NotificationInbox device={device} project={project} />}</article>)}</section>
     <footer>Android source is ready for a separate toolchain build. Calls, notifications, microphone access and WhatsApp replies are not enabled by pairing.</footer>
   </div>;
 }

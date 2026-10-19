@@ -759,6 +759,39 @@
       "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
       "replacement": "MobileTransport / MobileService",
       "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "notification_inbox": {
+      "schema": "DeviceRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Owner renderer only; captured current project and device scope; read-only notification ledger/policy, no external actions",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "notification_policy": {
+      "schema": "NotificationPolicy",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Owner renderer only; captured current project and device scope; read-only notification ledger/policy, no external actions",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "notification_clear": {
+      "schema": "DeviceRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Owner renderer only; captured current project and device scope; read-only notification ledger/policy, no external actions",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
     }
   },
   "http_routes": {
@@ -1491,6 +1524,18 @@
       "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
       "grant": "chat:ask",
       "effects": "Read durable request outcome without replay"
+    },
+    "/v1/notification_policy": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "status:read (own policy only)",
+      "effects": "Read-only selected notification ledger; no notification actions or replies"
+    },
+    "/v1/notification_sync": {
+      "schema": "NotificationBatch",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "status:read + separate device/project notifications:sync policy for ingestion",
+      "effects": "Read-only selected notification ledger; no notification actions or replies"
     }
   }
 }

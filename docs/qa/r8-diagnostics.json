@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "platform": "Windows",
+  "architecture": "AMD64",
+  "python": "3.12.10",
+  "python_supported": true,
+  "built_ui_present": true,
+  "electron_present": true,
+  "core_lock_present": true,
+  "android_tools_present": {
+    "java": false,
+    "javac": false,
+    "gradle": false,
+    "adb": false
+  },
+  "android_sdk_configured": false,
+  "private_content_included": false,
+  "network_accessed": false,
+  "limits": "Presence checks only; no provider, model, Android build or device acceptance implied."
+}

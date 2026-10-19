@@ -17,8 +17,11 @@ from services.mobile_contracts import (
     MobilePreview,
 )
 from services.tools import ServiceError
+from services.notifications import NotificationBatch
 
 OPERATIONS = {
+    "notification_policy": MobileEmpty,
+    "notification_sync": NotificationBatch,
     "claim": PairClaim,
     "finish": MobileEmpty,
     "status": MobileEmpty,
@@ -88,6 +91,8 @@ class MobileAPI:
                 else:
                     grant = {
                         "status": "status:read",
+                        "notification_policy": "status:read",
+                        "notification_sync": "status:read",
                         "jobs": "jobs:read",
                         "preview": "jobs:read",
                         "chat": "chat:ask",
@@ -97,7 +102,11 @@ class MobileAPI:
                     value = self.service.authenticate(
                         envelope, path, grant, pending=operation == "finish"
                     )
-                    if operation == "finish":
+                    if operation == "notification_policy":
+                        result = self.service.notifications.policy(value)
+                    elif operation == "notification_sync":
+                        result = self.service.notifications.ingest(value, args)
+                    elif operation == "finish":
                         result = {
                             "state": "pending"
                             if str(envelope.device_id) in self.service.pending

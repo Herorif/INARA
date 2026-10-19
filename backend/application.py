@@ -250,6 +250,9 @@ class Application:
         self.tasks.append(
             asyncio.create_task(self.delivery.poll_reminders(), name="reminder-delivery")
         )
+        self.tasks.append(
+            asyncio.create_task(self.mobile.notifications.maintain(), name="notification-retention")
+        )
         try:
             if self.startup_summary:
                 self.startup_summary()

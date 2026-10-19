@@ -20,6 +20,9 @@ class MobileService:
         self.challenge = None
         self.pending = {}
         self.running = {}
+        from services.notifications import NotificationInbox
+
+        self.notifications = NotificationInbox(self)
         # Deliberately empty dispatcher. Phone chat cannot invoke even read-file tools.
         self.chat = ConversationService(
             ToolDispatcher(lambda: {}),
@@ -181,6 +184,7 @@ class MobileService:
             raise ServiceError("mobile_scope", "Device does not belong to this owner.")
         value["revoked"] = True
         self.identities.save(value)
+        self.notifications.revoke(value)
         await self.stop_requests(str(identifier))
 
     def status(self, value):

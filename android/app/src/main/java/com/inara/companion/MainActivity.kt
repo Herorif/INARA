@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    override fun onResume() { super.onResume(); model?.notificationResume() }
     override fun onStop() { model?.pause(); super.onStop() }
 }
 
@@ -81,6 +82,7 @@ fun CompanionScreen(model: CompanionModel) {
                             enabled = !state.busy && pastedInvitation.isNotBlank()) { Text("Use pasted invitation") }
                     }
                     ChatCard(state, model)
+                    if (state.phase == "paired") NotificationCard(state, model)
                 }
             }
             if (wide) Row(Modifier.fillMaxSize()) {
@@ -117,7 +119,7 @@ private fun LinkCard(state: CompanionState, importInvitation: () -> Unit, refres
     if (state.phase == "unpaired" && !state.recoveryRequired) Button(onClick = importInvitation, enabled = !state.busy) { Text("Import laptop invitation") }
     if (state.phase != "unpaired") Button(onClick = refresh, enabled = !state.busy) { Text(if (state.phase == "pending") "Check laptop approval" else "Refresh laptop") }
     if (state.phase != "unpaired" || state.recoveryRequired) TextButton(onClick = forget, enabled = !state.busy) { Text("Forget local link") }
-    Text("No calls, notifications, microphone or tool control. No background polling.", style = MaterialTheme.typography.bodySmall)
+    Text("No calls, microphone or tool control. Notification access is separately gated. No background polling.", style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable

@@ -17,11 +17,10 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Non-exported signing key plus independently encrypted, non-backed-up local state. */
-class DeviceSecurity(context: Context) {
+class DeviceSecurity(context: Context, private val storageName: String = "companion-state.enc", private val storageAlias: String = "inara-device-storage-v1") {
     private val keys = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-    private val file = AtomicFile(File(context.noBackupFilesDir, "companion-state.enc"))
+    private val file = AtomicFile(File(context.noBackupFilesDir, storageName))
     private val signingAlias = "inara-device-signing-v1"
-    private val storageAlias = "inara-device-storage-v1"
     private fun signingKey() {
         if (!keys.containsAlias(signingAlias)) {
             KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore").apply {
@@ -59,7 +58,7 @@ class DeviceSecurity(context: Context) {
         require(raw.size in 29..524288)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, storageKey(), GCMParameterSpec(128, raw.copyOfRange(0, 12)))
-        cipher.updateAAD("INARA-ANDROID-1".toByteArray(Charsets.UTF_8))
+        cipher.updateAAD((if (storageName == "companion-state.enc") "INARA-ANDROID-1" else "INARA-ANDROID-1:$storageName").toByteArray(Charsets.UTF_8))
         return JSONObject(String(cipher.doFinal(raw.copyOfRange(12, raw.size)), Charsets.UTF_8))
     }
     fun write(value: JSONObject) {
@@ -67,11 +66,12 @@ class DeviceSecurity(context: Context) {
         require(raw.size <= 500000)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, storageKey())
-        cipher.updateAAD("INARA-ANDROID-1".toByteArray(Charsets.UTF_8))
+        cipher.updateAAD((if (storageName == "companion-state.enc") "INARA-ANDROID-1" else "INARA-ANDROID-1:$storageName").toByteArray(Charsets.UTF_8))
         val output = file.startWrite()
         try { output.write(cipher.iv + cipher.doFinal(raw)); file.finishWrite(output) }
         catch (failure: Exception) { file.failWrite(output); throw failure }
     }
+    fun forgetStorage() { file.delete(); keys.deleteEntry(storageAlias) }
     fun forget() {
         file.delete()
         keys.deleteEntry(signingAlias); keys.deleteEntry(storageAlias)

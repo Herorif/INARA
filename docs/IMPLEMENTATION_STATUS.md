@@ -2,6 +2,14 @@
 
 Updated 19 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
+## Current milestone: R8 source complete, release acceptance pending
+
+R8 adds the selected read-only notification inbox, separate per-device/project grants, explicit app/conversation rules, metadata-only defaults/redaction, encrypted bounded retention, ordered removal tombstones, duplicate-safe manual sync, local count summaries and visible revoke/clear controls. The native Android collection/access/sync gate remains off until compilation and controlled device acceptance. No WhatsApp drafts/replies/actions or calls were added. [Behavior and verification](R8_NOTIFICATIONS.md).
+
+Current acceptance: **810 Python passes / one Blender skip, 66 Node passes**, plus type/drift/lint/build, source guards and native desktop notification/TLS fixtures. Android native build/device acceptance remains unrun.
+
+Offline support diagnostics, dependency/license metadata inventory, source-pilot staging/hash verification and a machine-readable release/backlog inventory are implemented. They do not imply a signed installer or standalone release. [Remaining release gates and advanced-feature backlog](RELEASE_READINESS.md).
+
 ## Completed behavior
 
 The supported `backend/server.py` now starts with the lean core environment and serves typed conversation without an `AudioLoop`, microphone permission, camera or voice connection. Google SDK clients initialize on a text request and are closed afterwards. `INARA_TEXT_MODEL` selects the text model; the initial default is `gemini-3.8-flash`.

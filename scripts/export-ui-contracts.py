@@ -22,7 +22,10 @@ from services.speech import SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend  # 
 
 from services.mobile_contracts import ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt  # noqa: E402
 
+from services.notifications import NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch  # noqa: E402
+
 GROUPS = {
+    "notifications": (NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch),
     "mobile": (ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt),
     "speech": (SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend),
     "image": (ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats, JobRequest, JobLifetime),

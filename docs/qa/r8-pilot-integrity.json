@@ -1,0 +1,9 @@
+{
+  "integrity": "passed",
+  "files": 197,
+  "kind": "source-pilot",
+  "self_contained": false,
+  "signed": false,
+  "installed": false,
+  "note": "Hashes detect drift, not authenticity. Review and signing/distribution acceptance remain required."
+}
