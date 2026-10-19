@@ -31,6 +31,7 @@ class NativeHost:
         self.token, self.instance_id = secrets.token_hex(32), str(uuid.uuid4())
         self.workspace = None
         self.pending_open = not resident_only
+        self.pending_quick = False
         self.hide_workspace = hide_workspace
         self.loop = self.thread = self.server = self.runtime = None
         self.process_factory = process_factory or WorkspaceProcess
@@ -201,7 +202,8 @@ class NativeHost:
 
         asyncio.run_coroutine_threadsafe(announce(), self.loop)
 
-    def open_workspace(self):
+    def open_workspace(self, quick=False):
+        self.pending_quick = quick
         if self.state.phase != "ready":
             self.pending_open = True
             return
@@ -217,7 +219,9 @@ class NativeHost:
                             owner == self.state.identity.owner
                             and self.runtime.client_roles.get(sid) == "workspace"
                         ):
-                            await self.runtime.sio.emit("workspace_focus", {}, room=sid)
+                            await self.runtime.sio.emit(
+                                "workspace_focus", {"quick": quick}, room=sid
+                            )
 
                 asyncio.run_coroutine_threadsafe(focus(), self.loop)
             return
@@ -239,6 +243,7 @@ class NativeHost:
                     "profile": str(self.profile.resolve()),
                     "state": self.state.snapshot(),
                     "hide": self.hide_workspace,
+                    "quick": quick,
                     "dev": os.getenv("INARA_DEV_SERVER") == "1",
                 },
                 self.root,
@@ -290,7 +295,7 @@ class NativeHost:
             self.release_workspace()
         if self.pending_open and self.state.phase == "ready":
             self.pending_open = False
-            self.open_workspace()
+            self.open_workspace(self.pending_quick)
         if self.workspace and self.state.visible and time.monotonic() - self.workspace_started > 20:
             if not any(role == "workspace" for role in tuple(self.runtime.client_roles.values())):
                 self.release_workspace()
@@ -317,8 +322,8 @@ class NativeHost:
         self.publish()
 
     def action(self, action):
-        if action == "open":
-            self.open_workspace()
+        if action in {"open", "quick"}:
+            self.open_workspace(quick=action == "quick")
         elif action == "gaming":
             self.state.mode(not self.state.identity.gaming)
             self.publish()

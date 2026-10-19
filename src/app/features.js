@@ -1,5 +1,6 @@
 /** One catalog for navigation, commands and panel labels. */
 export const features = [
+  { id: 'quick', title: 'Quick assistant', group: 'Assist', keywords: 'voice push talk microphone hotkey compact chat' },
   { id: 'capabilities', title: 'Capability center', group: 'System', keywords: 'setup diagnostics hardware resources queue readiness', flag: 'showCapabilities' },
   { id: 'activity', title: 'Activity & artifacts', group: 'Organize', keywords: 'history exports revisions jobs' },
   { id: 'cad', title: '3D studio', group: 'Create', keywords: 'model mesh stl glb blender scene', heavy: true, flag: 'showCadWindow' },

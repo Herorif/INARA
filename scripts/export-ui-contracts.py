@@ -18,7 +18,10 @@ from services.cad import (  # noqa: E402
 
 from services.cad_changes import EditableFields, ObjectEdit, ChangeSet, ChangePrompt  # noqa: E402
 
+from services.speech import SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend  # noqa: E402
+
 GROUPS = {
+    "speech": (SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend),
     "image": (ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats, JobRequest, JobLifetime),
     "cad": (SolidRecipe, SceneObject, ScenePresentation, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest, JobLifetime, EditableFields, ObjectEdit, ChangeSet, ChangePrompt),
 }

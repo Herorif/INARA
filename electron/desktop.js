@@ -43,7 +43,14 @@ let mainWindow,
   identity,
   preferencesPath,
   booting = false;
-let hotkeyReady = false;
+let hotkeyReady = false, quickRequested = false;
+function setQuickMode(value) {
+  quickRequested = value;
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  mainWindow.setSize(value ? 520 : 1440, value ? 740 : 940);
+  mainWindow.webContents.send('quick-assistant', value);
+}
 const notificationIds = new Set();
 app.setAppUserModelId('INARA.Desktop');
 const ownsInstance = app.requestSingleInstanceLock();
@@ -91,8 +98,8 @@ function openWindow() {
     return;
   }
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 940,
+    width: quickRequested ? 520 : 1440,
+    height: quickRequested ? 740 : 940,
     minWidth: 390,
     minHeight: 560,
     title: 'INARA · Command deck',
@@ -306,10 +313,11 @@ if (ownsInstance) app.whenReady().then(() => {
   tray = new Tray(nativeImage.createFromPath(path.join(root, 'assets/icons/inara.png')));
   tray.on('click', () => controller.open());
   tray.on('balloon-click', () => controller.open());
-  hotkeyReady = globalShortcut.register('CommandOrControl+Shift+Space', () => controller.open());
+  hotkeyReady = globalShortcut.register('CommandOrControl+Shift+Space', () => { quickRequested = true; controller.open(); if (!mainWindow?.webContents.isLoading()) setQuickMode(true); });
   ipcMain.on('desktop-bootstrap', event => {
-    event.returnValue = trusted(event) ? { token, clientId: identity?.id || '' } : {};
+    event.returnValue = trusted(event) ? { token, clientId: identity?.id || '', quick: quickRequested } : {};
   });
+  ipcMain.on('quick-mode', (event, value) => { if (trusted(event) && typeof value === 'boolean') setQuickMode(value); });
   ipcMain.on('window-minimize', event => {
     if (trusted(event)) mainWindow.minimize();
   });

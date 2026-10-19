@@ -311,7 +311,7 @@ Acceptance: no worker/model/device leak, no unwanted GPU allocation in resident/
 
 ### R5. Creative Studio v2: stronger workflows and 3D vibe coding
 
-Status: the offline editing, branch/review, view/compare and image recipe/gallery workflow is implemented. See [R5 implementation and acceptance gates](R5_CREATIVE_STUDIO.md). Optional engineering-kernel and actual Blender/image/provider acceptance remains gated; R6 is the next whole milestone.
+Status: the offline editing, branch/review, view/compare and image recipe/gallery workflow is implemented. See [R5 implementation and acceptance gates](R5_CREATIVE_STUDIO.md). Optional engineering-kernel and actual Blender/image/provider acceptance remains gated; R6 is now implemented within its fixture acceptance boundary; R7 is next.
 
 Product outcome: edit an existing design through selection, constrained transforms, dimensions, undo/redo and revision comparison. A natural-language change should propose a validated change set against the selected revision, show its effect and build a new revision after review.
 
@@ -324,6 +324,8 @@ R5c expands the fixed Blender bridge with validated materials/lights/cameras/ren
 Acceptance: offline flows work without providers, schema-only proposals are labelled as proposals, every successful edit has validated exports, stale requests cannot corrupt revisions, and cancellation preserves the last valid artifact. Installation-independent work proceeds while configuration remains deferred. No fixture run establishes model quality or GPU fitness.
 
 ### R6. Quick assistant and voice v2
+
+Status: implemented with synthetic media and injected provider acceptance. See [R6 behavior and remaining physical acceptance](R6_QUICK_ASSISTANT.md). Production microphone/provider/local speech quality and Bluetooth/sleep tests remain deferred.
 
 Product outcome: a compact hotkey panel for everyday assistance, push-to-talk, streaming transcript, speech responses and interruption, with typed use always available. Add a clear listening/thinking/speaking state and device recovery. Wake-word activation is a later optional profile with its own measured idle cost.
 

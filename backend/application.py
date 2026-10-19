@@ -38,6 +38,7 @@ from transport.contracts import UI_CONTRACT_VERSION
 from transport.confirmations import ConfirmationTransport
 from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
+from services.speech import SpeechService, SpeechTransport
 from services.scheduler_tools import register_scheduler_tools
 from services.sessions import SessionStore
 from services.storage import Database
@@ -98,6 +99,8 @@ class Application:
         self.conversation_transport = ConversationTransport(
             sio, self.conversation, self.dispatcher, self.sessions
         )
+        self.speech = SpeechService(self)
+        self.speech_transport = SpeechTransport(self)
         self.reminder_transport = ReminderTransport(sio, self.dispatcher, reminders, self.sessions)
         # Legacy integrations retain their existing contracts and load only on demand.
         self.inara = LazyService("inara")
@@ -136,17 +139,29 @@ class Application:
         )
         self.compat_transport = CompatibilityTransport(sio, self.dispatcher, self.sessions)
         self.workspace = WorkspaceService(self)
-        self.workspace_transport = WorkspaceTransport(sio, self.dispatcher, self.sessions, self.workspace)
+        self.workspace_transport = WorkspaceTransport(
+            sio, self.dispatcher, self.sessions, self.workspace
+        )
         self.extended_actions = ExtendedActions(self)
         self.connection = ConnectionTransport(self)
-        self.sessions.face_authenticated = lambda: self.connection.authenticated or face_authenticated()
+        self.sessions.face_authenticated = lambda: (
+            self.connection.authenticated or face_authenticated()
+        )
         self.settings_service.permission_names |= frozenset(self.dispatcher.tools)
         self.settings_transport = SettingsTransport(
-            sio, self.sessions, self.settings_service,
-            self.connection.settings_changed, self.connection.validate_settings,
+            sio,
+            self.sessions,
+            self.settings_service,
+            self.connection.settings_changed,
+            self.connection.validate_settings,
         )
         self.lifecycle = LifecycleTransport(
-            sio, self.sessions, resources, self.restrict_resources, self.close, request_exit,
+            sio,
+            self.sessions,
+            resources,
+            self.restrict_resources,
+            self.close,
+            request_exit,
             after_resource=self.connection.resource_changed,
         )
         self.tasks = []
@@ -168,7 +183,12 @@ class Application:
             summary = (
                 status_summary() if status_summary else {"status": "running", "text_ready": True}
             )
-            return {**summary, "instance_id": instance_id, "resources": resources.snapshot(), "ui_contract_version": UI_CONTRACT_VERSION}
+            return {
+                **summary,
+                "instance_id": instance_id,
+                "resources": resources.snapshot(),
+                "ui_contract_version": UI_CONTRACT_VERSION,
+            }
 
     def authorize_owner(self, context):
         from services.tools import ServiceError
@@ -181,6 +201,7 @@ class Application:
 
     async def restrict_resources(self):
         operations = [
+            self.speech_transport.stop_sid(),
             self.cad_transport.close(),
             self.image_transport.close(),
             self.local_transport.stop_sid(),
@@ -200,6 +221,7 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
+        await self.speech_transport.stop_sid(sid)
         await self.conversation_transport.stop_sid(sid)
         await self.local_transport.stop_sid(sid)
         await self.compat_transport.stop_sid(sid)
@@ -234,6 +256,7 @@ class Application:
         try:
             results = await asyncio.gather(
                 self.conversation_transport.stop_sid(),
+                self.speech_transport.stop_sid(),
                 self.cad_transport.close(),
                 self.image_transport.close(),
                 self.local_transport.stop_sid(),

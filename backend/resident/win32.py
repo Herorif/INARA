@@ -484,7 +484,7 @@ class Tray:
     def _message(self, window, message, wparam, lparam):
         try:
             if message == self.OPEN or message == 0x312:
-                self.on_action("open")
+                self.on_action("quick" if message == 0x312 else "open")
             elif message == self.QUIT:
                 self.on_action("quit")
             elif message == self.CALL:

@@ -1,0 +1,10 @@
+{
+  "unconfigured_preflight_no_microphone": true,
+  "synthetic_worklet_review_edit_shared_conversation": true,
+  "suspend_releases_capture": true,
+  "quick_full_switch": true,
+  "physical_microphone_used": false,
+  "real_provider_used": false,
+  "real_speech_accuracy_verified": false,
+  "passed": true
+}

@@ -1,8 +1,6 @@
 """Voice/direct/typed schema and policy parity, with no audio/provider imports."""
 
 import asyncio
-import ast
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -214,61 +212,6 @@ async def test_expiry_invalid_alias_unknown_function_and_project_switch(voice):
     assert "error" not in await bridge.call("write_file", VALID["write_file"])
     assert (bridge.binding["project_path"] / "note.txt").exists()
 
-
-def test_live_receiver_has_only_the_injected_dispatch_path():
-    tree = ast.parse(
-        (Path(__file__).resolve().parents[1] / "backend/inara.py").read_text(encoding="utf-8")
-    )
-    receiver = next(
-        n
-        for n in ast.walk(tree)
-        if isinstance(n, ast.AsyncFunctionDef) and n.name == "receive_audio"
-    )
-    attributes = {node.attr for node in ast.walk(receiver) if isinstance(node, ast.Attribute)}
-    assert "tool_bridge" in attributes and "call" in attributes
-    assert (
-        not {
-            "cad_agent",
-            "web_agent",
-            "handle_tool_call",
-            "approve_voice",
-            "_pending_confirmations",
-        }
-        & attributes
-    )
-
-
-def test_live_audio_resource_close_releases_streams_client_and_engine_once():
-    from unittest.mock import Mock
-
-    tree = ast.parse(
-        (Path(__file__).resolve().parents[1] / "backend/inara.py").read_text(encoding="utf-8")
-    )
-    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "AudioLoop")
-    close = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "close")
-    namespace = {}
-    exec(
-        compile(ast.Module(body=[close], type_ignores=[]), "audio-close-contract", "exec"),
-        namespace,
-    )
-    audio = SimpleNamespace(
-        audio_stream=SimpleNamespace(close=Mock()),
-        output_stream=SimpleNamespace(close=Mock()),
-        pya=SimpleNamespace(terminate=Mock()),
-        client=SimpleNamespace(close=Mock()),
-    )
-    stream, output, engine, client = (
-        audio.audio_stream,
-        audio.output_stream,
-        audio.pya,
-        audio.client,
-    )
-    namespace["close"](audio)
-    namespace["close"](audio)
-    stream.close.assert_called_once()
-    output.close.assert_called_once()
-    engine.terminate.assert_called_once()
-    client.close.assert_called_once()
 
 
 @pytest.mark.asyncio

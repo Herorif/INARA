@@ -59,11 +59,11 @@ class CapabilityCenter:
             ),
             (
                 "voice",
-                "Voice conversation",
+                "Reviewed push-to-talk",
                 provider_installed,
                 key,
-                "Microphone and provider acceptance deferred.",
-                model_id("voice"),
+                "Explicit prepare/hold/review/send. Microphone and transcription acceptance deferred.",
+                model_id("speech"),
             ),
             (
                 "camera",

@@ -1,5 +1,5 @@
 {
-  "checkpoint": "R5 immutable creative branches and reviewed bounded change sets",
+  "checkpoint": "R6 bounded reviewed push-to-talk and quick assistant",
   "socket_routes": {
     "acknowledge_reminder": {
       "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
@@ -416,8 +416,8 @@
       "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
       "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
       "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "status": "migrated-envelope"
+      "replacement": "Quick assistant / SpeechTransport; old AudioLoop fails with voice_migrated",
+      "status": "retired production audio path; compatibility schema retained"
     },
     "resume_conversation": {
       "schema": "ResumeConversation",
@@ -482,8 +482,8 @@
       "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
       "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
       "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "status": "migrated-envelope"
+      "replacement": "Quick assistant / SpeechTransport; old AudioLoop fails with voice_migrated",
+      "status": "retired production audio path; compatibility schema retained"
     },
     "stop_audio": {
       "schema": "EmptyRequest",
@@ -626,6 +626,72 @@
       "response": "Origin-only typed ACK/error",
       "lifetime": "Panel/disconnect/core cancellation; bounded provider timeout; no replay",
       "replacement": "CadTransport / bounded CAD changes",
+      "status": "migrated"
+    },
+    "speech_begin": {
+      "schema": "SpeechBegin",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_frame": {
+      "schema": "SpeechFrame",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_finish": {
+      "schema": "SpeechTurn",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_send": {
+      "schema": "SpeechSend",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_cancel": {
+      "schema": "SpeechTurn",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "cancel_conversation": {
+      "schema": "CancelConversation",
+      "caller": "Pinned owner renderer, including while locked",
+      "context": "Origin SID only",
+      "effects": "Cancel origin typed requests and pending approval",
+      "policy": "Owner/renderer gate",
+      "response": "ACK and scoped idle event",
+      "lifetime": "Immediate task cancellation and cleanup",
+      "replacement": "ConversationTransport",
       "status": "migrated"
     }
   },
@@ -864,7 +930,7 @@
       "policy": "Shared start_audio permission; own alias deny also enforced",
       "context": "Authenticated desktop owner and immutable project snapshot",
       "lifetime": "30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
+      "replacement": "Retired production audio path; migration message; injected legacy bridge policy fixtures retained",
       "model_visible": false
     },
     "resume_audio": {
@@ -872,7 +938,7 @@
       "policy": "Shared start_audio permission; own alias deny also enforced",
       "context": "Authenticated desktop owner and immutable project snapshot",
       "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
+      "replacement": "Retired production audio path; migration message; injected legacy bridge policy fixtures retained",
       "model_visible": false
     },
     "video_frame": {
@@ -1077,6 +1143,14 @@
       "lifetime": "40 second dispatcher timeout; owned provider/task cleanup",
       "replacement": "CadTransport.execute_change_plan",
       "status": "migrated"
+    },
+    "speech_capture": {
+      "schema": "SpeechBegin",
+      "policy": "Shared start_audio permission; independent speech_capture denial; owner/project recheck after approval",
+      "context": "Origin renderer SID, pinned owner, captured project and conversation UUID",
+      "lifetime": "One bounded turn; pending approval and turn cancel on origin disconnect/core close/restriction",
+      "replacement": "SpeechService / SpeechTransport",
+      "model_visible": false
     }
   },
   "voice_declarations": {

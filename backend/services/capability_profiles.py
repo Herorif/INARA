@@ -6,6 +6,7 @@ import os
 RAM_HEADROOM_MB = 1024
 
 MODEL_DEFAULTS = {
+    "speech": ("INARA_TRANSCRIPTION_MODEL", None),
     "text": ("INARA_TEXT_MODEL", "gemini-3.8-flash"),
     "voice": ("INARA_VOICE_MODEL", "models/gemini-2.5-flash-native-audio-preview-12-2025"),
     "vision": ("INARA_VISION_MODEL", "gemini-2.0-flash"),
@@ -16,7 +17,7 @@ MODEL_DEFAULTS = {
 
 def model_id(capability):
     variable, default = MODEL_DEFAULTS[capability]
-    return os.getenv(variable, default)
+    return os.getenv(variable) or (model_id("text") if default is None else default)
 
 
 # Admission estimates, not measured peaks or an OS memory sandbox. No automatic

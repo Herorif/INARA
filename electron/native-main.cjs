@@ -11,6 +11,7 @@ if (!/^[a-f0-9]{64}$/.test(bootstrap.token) || !path.isAbsolute(bootstrap.profil
 app.setPath('userData', bootstrap.profile);
 let window, control, state = bootstrap.state, closing = false;
 const trusted = event => window && !window.isDestroyed() && event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame;
+const quickMode = value => { if (!window || window.isDestroyed()) return; if(window.isMaximized())window.unmaximize(); window.setSize(value ? 520 : 1440, value ? 740 : 940); window.webContents.send('quick-assistant', !!value); };
 const publish = value => {
   state = value;
   if (window && !window.isDestroyed()) window.webContents.send('resident-state', state);
@@ -29,7 +30,7 @@ async function register(id) {
     bootstrap.clientId = id;
     control = io('http://127.0.0.1:8000', { auth: { token: bootstrap.token, client_id: id, role: 'workspace' }, reconnection: false });
     control.on('resident_state', publish);
-    control.on('workspace_focus', () => { if (window?.isMinimized()) window.restore(); window?.show(); window?.focus(); });
+    control.on('workspace_focus', value => { quickMode(value?.quick);  if (window?.isMinimized()) window.restore(); window?.show(); window?.focus(); });
     // Used by the isolated lifecycle verification; same behavior as the titlebar.
     control.on('workspace_close', () => window?.close());
     await new Promise((resolve, reject) => {
@@ -42,12 +43,13 @@ async function register(id) {
   return true;
 }
 app.whenReady().then(async () => {
-  window = new BrowserWindow({ width: 1440, height: 940, minWidth: 390, minHeight: 560,
+  window = new BrowserWindow({ width: bootstrap.quick ? 520 : 1440, height: bootstrap.quick ? 740 : 940, minWidth: 390, minHeight: 560,
     frame: false, show: false, title: 'INARA · Command deck', backgroundColor: '#080d18',
     icon: path.join(root, 'assets/icons/inara.png'),
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: !bootstrap.hide, offscreen: !!bootstrap.hide, preload: path.join(__dirname, 'preload.js') } });
   bindCaptureLifecycle(window, powerMonitor);
-  ipcMain.on('desktop-bootstrap', event => { event.returnValue = trusted(event) ? { token: bootstrap.token, clientId: bootstrap.clientId } : {}; });
+  ipcMain.on('desktop-bootstrap', event => { event.returnValue = trusted(event) ? { token: bootstrap.token, clientId: bootstrap.clientId, quick: bootstrap.quick } : {}; });
+  ipcMain.on('quick-mode', (event, value) => { if (trusted(event) && typeof value === 'boolean') quickMode(value); });
   ipcMain.on('window-minimize', event => { if (trusted(event)) window.minimize(); });
   ipcMain.on('window-maximize', event => { if (trusted(event)) window.isMaximized() ? window.unmaximize() : window.maximize(); });
   ipcMain.on('window-close', event => { if (trusted(event)) window.close(); });

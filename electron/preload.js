@@ -6,6 +6,9 @@ const bootstrap = ipcRenderer.sendSync('desktop-bootstrap') || {};
 contextBridge.exposeInMainWorld('electronAPI', {
   sessionToken: bootstrap.token || '',
   clientId: bootstrap.clientId || '',
+  quickMode: bootstrap.quick === true,
+  setQuickMode: value => ipcRenderer.send('quick-mode', value),
+  onQuickAssistant: callback => { const listener = (_, value) => callback(value); ipcRenderer.on('quick-assistant', listener); return () => ipcRenderer.removeListener('quick-assistant', listener); },
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),

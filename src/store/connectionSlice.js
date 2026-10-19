@@ -1,12 +1,4 @@
-import socket, { emitSocket } from '../services/socket';
-
-const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUnavailable }) => {
-    if (!backendConnected) return 'Backend Disconnected';
-    if (aiConnecting) return 'AI Connecting';
-    if (aiConnected) return 'AI Connected';
-    if (aiUnavailable) return 'AI Unavailable';
-    return 'Backend Connected';
-};
+import socket from '../services/socket';
 
 export const createConnectionSlice = (set, get) => ({
     // State
@@ -34,58 +26,6 @@ export const createConnectionSlice = (set, get) => ({
     setIsMuted: (val) => set({ isMuted: val }),
     setCurrentProject: (val) => set({ currentProject: val }),
 
-    togglePower: () => {
-        const { aiConnected, aiConnecting, backendConnected, micDevices, selectedMicId } = get();
-        if (aiConnecting) return;
-
-        if (aiConnected) {
-            emitSocket('stop_audio');
-            set({
-                aiConnected: false,
-                aiConnecting: false,
-                aiUnavailable: false,
-                isMuted: false,
-                status: getConnectionStatus({
-                    backendConnected,
-                    aiConnected: false,
-                    aiConnecting: false,
-                    aiUnavailable: false,
-                }),
-                listeningState: 'idle',
-            });
-        } else {
-            if (!backendConnected) {
-                set({ status: 'Backend Disconnected', localDevicesReady: false });
-                return;
-            }
-
-            const index = micDevices.findIndex(d => d.deviceId === selectedMicId);
-            const device = micDevices.find(d => d.deviceId === selectedMicId);
-
-            emitSocket('start_audio', {
-                device_index: index >= 0 ? index : null,
-                device_name: device ? device.label : null,
-                muted: false,
-            });
-            set({
-                aiConnected: false,
-                aiConnecting: true,
-                aiUnavailable: false,
-                status: 'AI Connecting',
-                isMuted: false,
-            });
-        }
-    },
-
-    toggleMute: () => {
-        const { aiConnected, isMuted } = get();
-        if (!aiConnected) return;
-        if (isMuted) {
-            emitSocket('resume_audio');
-            set({ isMuted: false });
-        } else {
-            emitSocket('pause_audio');
-            set({ isMuted: true });
-        }
-    },
+    togglePower: () => { set({showQuickAssistant:true}); window.electronAPI?.setQuickMode?.(true); },
+    toggleMute: () => { set({showQuickAssistant:true}); window.electronAPI?.setQuickMode?.(true); },
 });

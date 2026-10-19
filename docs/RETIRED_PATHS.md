@@ -32,3 +32,7 @@ Tests use isolated data and injected adapters or offline workers. No real microp
 ## Next
 
 R3 starts with shared UI/RPC lifecycle and typed/generated contracts, then reusable JARVIS panels. Follow the bounded next task in [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Worker hard isolation/reservations, creative provider acceptance, consolidated physical audio and Android remain subsequent milestones.
+
+## R6 production voice retirement
+
+`backend/inara.py:AudioLoop` now raises `voice_migrated` before any device/SDK initialization. `backend/voice/pipeline.py:VoicePipeline` aliases that shim; importing the voice namespace no longer imports camera/audio helpers. Former always-on capture, provider receive and playback loops are removed. `services/voice.py` and `services/live_config.py` remain dormant compatibility schema/policy fixtures, and legacy WorkspaceService accepts injected audio fixtures; neither is the production voice entry. Production uses `services/speech.py` plus renderer-owned explicit PTT and local playback. [R6 details](R6_QUICK_ASSISTANT.md).

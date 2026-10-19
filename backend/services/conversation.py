@@ -75,7 +75,11 @@ class ConversationService:
         # Preserve history on socket reconnect; ownership is the stable desktop client ID.
         self.dispatcher.disconnect(owner)
 
-    async def reply(self, owner, request, project, request_approval=None, *, origin_sid=None):
+    async def reply(
+        self, owner, request, project, request_approval=None, *, origin_sid=None, authorize=None
+    ):
+        if authorize:
+            authorize()
         key = str(request.conversation_id)
         conversation = self.conversations.get(key)
         if conversation is None:
@@ -86,6 +90,8 @@ class ConversationService:
         if conversation.owner != owner or conversation.project != str(project.resolve()):
             raise ServiceError("conversation_scope", "Start a new conversation for this project.")
         async with conversation.lock:
+            if authorize:
+                authorize()
             request_id = str(request.request_id)
             if self.store is not None:
                 history, previous = self.store.claim(
@@ -123,6 +129,8 @@ class ConversationService:
                         ),
                         self.timeout,
                     )
+                    if authorize:
+                        authorize()
                     if not response.tool_calls:
                         if not response.text:
                             raise ServiceError("empty_response", "The provider returned no answer.")
@@ -171,8 +179,13 @@ class ConversationService:
                                 owner,
                                 call.name,
                                 call.args,
-                                {"project_path": project, "principal": owner, "origin_sid": origin_sid},
+                                {
+                                    "project_path": project,
+                                    "principal": owner,
+                                    "origin_sid": origin_sid,
+                                },
                                 request_approval,
+                                authorize=authorize,
                             )
                         except (ServiceError, ValidationError) as exc:
                             output = {

@@ -10,6 +10,7 @@ import './workspace.css';
 import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
 import { flags, heavyFeatures } from './features';
 const CommandPalette = lazy(() => import('./CommandPalette'));
+const QuickAssistant = lazy(() => import('./QuickAssistant'));
 const ActivityCenter = lazy(() => import('./ActivityCenter'));
 import PanelState from './PanelState';
 const AuthLock = lazy(() => import('../components/AuthLock'));
@@ -88,6 +89,9 @@ function FeatureCard({
         <span className="feature-tag">{tag}</span><strong>{title}</strong><p>{description}</p><span className="feature-arrow"><ArrowUpRight size={20} /></span></button>;
 }
 export default function CommandDeck() {
+  const quick = useStore(s => s.showQuickAssistant);
+  const setQuick = useCallback(value => { if (value) { setCamera(false); setCommands(false); useStore.setState(Object.fromEntries(Object.values(flags).map(flag => [flag, false]))); } useStore.setState({showQuickAssistant:value}); window.electronAPI?.setQuickMode?.(value); }, []);
+  useEffect(() => window.electronAPI?.onQuickAssistant?.(setQuick), [setQuick]);
   const [commands, setCommands] = useState(false);
   const closeCommands = useCallback(() => setCommands(false), []);
   const [page, setPage] = useState('assistant'),
@@ -138,6 +142,7 @@ export default function CommandDeck() {
     if (gaming) closeFeature();
   }, [gaming, closeFeature]);
   const openFeature = (feature, heavy = heavyFeatures.has(feature), requestId = null) => {
+    if (feature === 'quick') { if (!locked) setQuick(true); return; }
     if (locked || (gaming && heavy)) return;
     useStore.setState({ studioSelection: requestId ? { feature, requestId, project: currentProject } : null });
     closeFeature();
@@ -172,6 +177,7 @@ export default function CommandDeck() {
   };
   useEffect(() => {
     const key = event => {
+      if (event.ctrlKey && event.shiftKey && event.code === 'Space') { event.preventDefault(); setQuick(true); }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !activeFeature && !locked) {
         event.preventDefault(); setCommands(value => !value);
       }
@@ -181,8 +187,9 @@ export default function CommandDeck() {
   }, [activeFeature, locked]);
   useEffect(() => { if (locked) setCommands(false); }, [locked]);
   const pending = reminders.filter(r => r.status === 'pending' || r.status === 'snoozed');
-  return <div className={`command-deck ${gaming ? 'gaming-mode' : ''}`} data-resource-state={resource.state} data-ui-contract-version={UI_CONTRACT_VERSION}>
-        <a href="#main-workspace" className="skip-link">Skip to workspace</a>
+  return <div className={`command-deck ${gaming ? 'gaming-mode' : ''} ${quick ? 'quick-mode' : ''}`} data-resource-state={resource.state} data-ui-contract-version={UI_CONTRACT_VERSION}>
+        {quick && <Suspense fallback={<PanelState kind="loading" title="Preparing quick assistant" />}><QuickAssistant gaming={gaming} onExpand={() => setQuick(false)} onClose={() => window.electronAPI ? window.electronAPI.close() : setQuick(false)} /></Suspense>}
+        {!quick && <><a href="#main-workspace" className="skip-link">Skip to workspace</a>
         <header className="titlebar"><div className="brand"><span className="brand-symbol">i</span><span>INARA<span className="brand-sub">PERSONAL INTELLIGENCE</span></span></div>
             <div className="titlebar-center"><span className={`status-dot ${connected ? '' : 'offline'}`} />{connected ? 'SYSTEM ONLINE' : 'CONNECTING'}<span className="title-divider" /> COMMAND DECK</div>
             <div className="window-actions"><button aria-label="Minimize window" onClick={() => window.electronAPI?.minimize()}><Minus size={16} /></button>
@@ -204,12 +211,7 @@ export default function CommandDeck() {
                 <section className="hero"><div className="hero-copy"><div className="eyebrow"><span className="tiny-line" /> A MIND FOR YOUR EVERYDAY</div>
                     <h1>Ready when<br /><span>you are.</span></h1><p>From the smallest task to your next big idea.<br className="desktop-break" /> Let’s make room for what matters.</p>
                     <div className="hero-actions"><button className="primary-button" onClick={() => setPage('studio')}>Explore Studio <ArrowUpRight size={16} /></button>
-                        <button className="voice-button" disabled={!connected || gaming} onClick={() => {
-                  emitSocket('set_resource_state', {
-                    state: 'studio'
-                  });
-                  useStore.getState().togglePower();
-                }}><AudioLines size={17} />{aiConnected ? 'End voice session' : 'Start voice session'}</button></div></div>
+                        <button className="voice-button" disabled={!connected} onClick={() => setQuick(true)}><AudioLines size={17} />Quick assistant</button></div></div>
                     <CoreOrb active={processing || aiConnected} quiet={gaming} /></section>
                 <div className="assistant-grid"><Conversation /><aside className="context-column">
                     <section className="surface system-card"><div className="section-heading"><span className="eyebrow">SYSTEM PULSE</span><Zap size={15} /></div>
@@ -248,7 +250,8 @@ export default function CommandDeck() {
             <footer className="workspace-footer"><span>INARA <span className="footer-separator">/</span> YOUR PERSONAL INTELLIGENCE</span><span><span className="status-dot" /> {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span></footer>
         </main></div>
         {activeFeature && <FeatureDialog key={activeFeature} feature={activeFeature} onClose={closeFeature} />}
-        {commands && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={feature => feature === 'activity' ? setPage('activity') : openFeature(feature)} gaming={gaming} /></Suspense>}
+        </>}
+        {commands && !quick && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={feature => feature === 'activity' ? setPage('activity') : openFeature(feature)} gaming={gaming} /></Suspense>}
         <ReminderAlert /><ConfirmationPopup />{locked && <Suspense fallback={null}><AuthLock /></Suspense>}
     </div>;
 }

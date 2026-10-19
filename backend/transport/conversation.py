@@ -13,14 +13,27 @@ class ResumeConversation(BaseModel):
     conversation_id: uuid.UUID
 
 
+class CancelConversation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
 class ConversationTransport:
-    events = ("user_input", "resume_conversation")
+    events = ("user_input", "resume_conversation", "cancel_conversation")
 
     def __init__(self, sio, service, dispatcher, sessions):
         self.sio, self.service, self.dispatcher, self.sessions = sio, service, dispatcher, sessions
         self.running = {}
         for name in self.events:
             sio.on(name, handler=getattr(self, name))
+
+    async def cancel_conversation(self, sid, data=None):
+        try:
+            self.sessions.require_owner(sid, {"renderer"}, allow_locked=True)
+            CancelConversation.model_validate(data)
+            await self.stop_sid(sid)
+            return {"ok": True}
+        except (ServiceError, ValidationError):
+            return {"ok": False, "code": "invalid_request"}
 
     async def resume_conversation(self, sid, data):
         try:
@@ -70,7 +83,11 @@ class ConversationTransport:
             if principal is None or not self.dispatcher.authenticated(principal):
                 raise ServiceError("authentication_required", "Authentication is required.")
             context = self.sessions.context(sid)
-            scope = {"request_id": str(request.request_id), "conversation_id": str(request.conversation_id), "project": context.project_path.name}
+            scope = {
+                "request_id": str(request.request_id),
+                "conversation_id": str(request.conversation_id),
+                "project": context.project_path.name,
+            }
 
             async def approve(payload):
                 await self.sio.emit("tool_confirmation_request", payload, room=sid)

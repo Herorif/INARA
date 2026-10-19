@@ -1,10 +1,10 @@
-# Supported route/policy matrix (R2c cleanup)
+# Supported route/policy matrix (R6)
 
-The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) covers 52 socket routes, `/status`, 53 dispatcher tools (40 provider-visible) and the 37 active voice functions. The retired static declarations are recorded in [Retired paths](RETIRED_PATHS.md); they no longer appear in the active inventory.
+The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) covers **63 socket routes, `/status`, 55 dispatcher tools (40 model-visible)** and 37 dormant compatibility voice mappings. Production speech uses the common conversation tool catalog. Both old always-on entry points are retired.
 
 ## Policy conventions
 
-Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and `True` or missing policy requests owner approval. Aliases preserve canonical, source and target denials. Active voice functions use shared schemas and the dispatcher, with a trusted session guard before and after approval. Voice-generated events retain that guard for delayed delivery. Owner safety controls remain independent of editable permissions.
+Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and `True` or missing policy requests owner approval. Aliases preserve canonical, source and target denials. Dormant compatibility voice mappings retain shared schemas and the dispatcher, with a trusted session guard before and after approval. Voice-generated events retain that guard for delayed delivery. Owner safety controls remain independent of editable permissions.
 
 ## Socket routes
 
@@ -62,6 +62,13 @@ Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and 
 | `upload_memory` | UploadMemory | Authenticated desktop owner renderer; Captured owner/project; voice session bound to origin SID and project | Shared denial/approval with canonical alias; owner recheck before adapter work | Send bounded user context to the current project voice session | Origin SID status/error; authenticated same-owner renderer callbacks only | Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending | WorkspaceService / WorkspaceTransport; **migrated-envelope** |
 | `user_input` | ConversationRequest | Authenticated connected owner; role unrestricted; Registry principal, immutable project snapshot and trusted origin SID for tool execution | Shared dispatcher tool gates; durable owner/project request scope | Provider/shared tool work | Result/transcript/error or restore/failure to SID | Serialized turn/provider deadlines; origin-disconnect and app-close cancellation; provider cleanup | ConversationTransport; role policy review remains; **existing** |
 | `video_frame` | VideoFrame | Authenticated desktop owner renderer; Captured owner/project; voice session bound to origin SID and project | Shared denial/approval with canonical alias; owner recheck before adapter work | Bounded JPEG/PNG frame; <=2 FPS; current voice session only | Origin SID status/error; authenticated same-owner renderer callbacks only | Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending | WorkspaceService / WorkspaceTransport; **migrated-envelope** |
+
+| `cancel_conversation` | CancelConversation | Pinned owner renderer, including while locked; Origin SID only | Owner/renderer gate | Cancel origin typed requests and pending approval | ACK and scoped idle event | Immediate task cancellation and cleanup | ConversationTransport; **migrated** |
+| `speech_begin` | SpeechBegin | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
+| `speech_frame` | SpeechFrame | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
+| `speech_finish` | SpeechTurn | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
+| `speech_send` | SpeechSend | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
+| `speech_cancel` | SpeechTurn | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
 
 ## HTTP routes
 
@@ -125,7 +132,9 @@ Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and 
 | `write_clipboard` | ClipboardRequest | Shared per-tool permission; owner authorization | Yes | 30s cooperative deadline; caller-owned cancellation |
 | `write_file` | WriteArguments | Shared permissions[write_file]; absent/True requires approval; deny rejects | Yes | Existing provider/service/worker lifetime |
 
-## Active voice functions
+| `speech_capture` | SpeechBegin | Existing start_audio approval and owner/project recheck | No | Pending approval / bounded turn; origin/resource/core cleanup |
+
+## Dormant compatibility voice mappings
 
 These schemas are generated from the target dispatcher contracts. `generate_cad` retains the legacy prompt workflow under the explicit `legacy_generate_cad` target; the typed parametric build tool keeps its existing schema. Filesystem listing/search is project-contained. No implicit Google Search tool or WhatsApp reply function is exposed.
 
@@ -171,7 +180,7 @@ These schemas are generated from the target dispatcher contracts. `generate_cad`
 
 ## Remaining sequence
 
-R2c retirement is complete. [Retired paths and evidence](RETIRED_PATHS.md) records the removed declarations, helpers and fallback approvals. R3 shared UI/RPC/contracts and JARVIS panel consolidation is next. R4/R5/R6 retain worker isolation and hardware/provider acceptance.
+R1-R6 are implemented within their documented offline/fixture acceptance boundaries. R7 Android secure pairing is next; physical speech, provider, Blender/image/kernel and gaming acceptance remain deferred.
 
 ## R4 additive desktop controls
 
@@ -180,3 +189,7 @@ R2c retirement is complete. [Retired paths and evidence](RETIRED_PATHS.md) recor
 ## R5 immutable creative editing
 
 `cad_review_changes` accepts a strict ChangeSet against an owner/project-scoped saved base and returns a proposal without side effects. `cad_plan_changes` accepts ChangePrompt and uses the hidden `plan_cad_changes` dispatcher tool with shared generate_cad approval, owner/base rechecks, bounded provider execution and planner cleanup. CAD/image submit schemas now include paired parent UUID/fingerprint fields; stale or foreign parents reject before worker claim. Inventory: 57 socket routes, 54 tools (40 text-visible), 37 voice mappings. [R5 details](R5_CREATIVE_STUDIO.md).
+
+## R6 quick assistant and reviewed speech
+
+Five `speech_*` routes use generated SpeechBegin/Frame/Turn/Send contracts. They authorize the pinned owner renderer and capture project/conversation/turn/SID scope. Preparation uses the hidden `speech_capture` tool and existing `start_audio` permission. Capture is explicit, one turn at a time, with mono 16 kHz PCM16, 20 ms/640-byte frames, exact sequence/timestamps, a 20-second cap, eight queued renderer frames and bounded transcription. Only reviewed Send calls the common conversation/dispatcher. `cancel_conversation` cancels typed work for the origin SID. Cancellation, device loss, disconnect, project/lock/resource changes, panel closure and core shutdown invalidate work without replay. See [R6 evidence and limits](R6_QUICK_ASSISTANT.md).
