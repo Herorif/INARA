@@ -209,7 +209,15 @@ class SpeechService:
                     raise ServiceError("speech_transcript", "Transcript exceeded its limit.")
                 await self.status(turn, "transcribing", transcript=text)
 
-            text = await asyncio.wait_for(self.transcriber(raw, partial), 40)
+            from services.usage import CURRENT_USAGE
+
+            token = CURRENT_USAGE.set(
+                self.app.usage.operation(turn.owner, turn.project, "transcription", turn.turn_id)
+            )
+            try:
+                text = await asyncio.wait_for(self.transcriber(raw, partial), 40)
+            finally:
+                CURRENT_USAGE.reset(token)
             self.authorize(turn)
             if not isinstance(text, str) or not text.strip() or len(text) > 12000:
                 raise ServiceError(

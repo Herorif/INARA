@@ -17,6 +17,7 @@ from pydantic import (
 )
 from services.creative_jobs import CreativeJobService, ExportMetadata, JobRequest, read_export  # noqa: F401
 from services.revisions import RevisionParent
+from services.usage import metered_generate
 from services.tools import ServiceError, ToolSpec
 
 
@@ -193,7 +194,8 @@ async def plan_recipe(prompt, provider_factory=None):
     try:
         provider = (provider_factory or create_text_provider)()
         async with asyncio.timeout(30):
-            response = await provider.generate(
+            response = await metered_generate(
+                provider,
                 [Message(MessageRole.USER, prompt)],
                 tools=[
                     {

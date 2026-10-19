@@ -26,7 +26,10 @@ from services.notifications import NotificationPolicy, NotificationRule, Notific
 
 from services.memory_contracts import MemoryQuery, MemoryWrite, MemoryRevision, MemoryForget, MemoryRetention, MemoryRestore, MemoryRestoreApply, MemorySource  # noqa: E402
 
+from services.usage_contracts import UsagePolicy  # noqa: E402
+
 GROUPS = {
+    "usage": (UsagePolicy,),
     "memory": (MemoryQuery, MemoryWrite, MemoryRevision, MemoryForget, MemoryRetention, MemoryRestore, MemoryRestoreApply, MemorySource),
     "notifications": (NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch),
     "mobile": (ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt),

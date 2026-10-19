@@ -23,6 +23,8 @@ from services.mobile import MobileService
 from transport.mobile import MobileTransport
 from services.conversation import ConversationService
 from services.project_memory import ProjectMemory
+from services.usage import UsageService
+from transport.usage import UsageTransport
 from transport.memory import MemoryTransport
 from services.image_transport import ImageTransport
 from services.images import ImageService, register_image_tool
@@ -81,6 +83,8 @@ class Application:
         self.dispatcher = ToolDispatcher(
             lambda: settings["tool_permissions"], authenticated=self.sessions.authenticated
         )
+        self.usage = UsageService(self)
+        self.dispatcher.tool_scope = self.usage.tool_scope
         register_project_tools(self.dispatcher)
         register_scheduler_tools(
             self.dispatcher, self.scheduler, reminders, authorize=self.authorize_owner
@@ -90,6 +94,8 @@ class Application:
         self.images = ImageService(
             database, resources, partial(self.delivery.publish_job, "image_job")
         )
+        self.cad.usage = self.images.usage = self.usage
+        self.usage_transport = UsageTransport(self)
         self.capabilities = CapabilityCenter(self)
         register_cad_tools(self.dispatcher, self.cad)
         register_image_tool(self.dispatcher, self.images)
@@ -102,7 +108,7 @@ class Application:
         self.memory = ProjectMemory(self)
         self.memory_transport = MemoryTransport(self)
         self.conversation = ConversationService(
-            self.dispatcher, store=SessionStore(database), memory=self.memory
+            self.dispatcher, store=SessionStore(database), memory=self.memory, usage=self.usage
         )
         self.conversation_transport = ConversationTransport(
             sio, self.conversation, self.dispatcher, self.sessions
@@ -231,6 +237,7 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
+        await self.quality.stop_sid(sid)
         await self.mobile_transport.stop_sid(sid)
         await self.speech_transport.stop_sid(sid)
         await self.conversation_transport.stop_sid(sid)
@@ -273,6 +280,7 @@ class Application:
         self.memory.previews.clear()
         try:
             results = await asyncio.gather(
+                self.quality.stop_sid(),
                 self.mobile_transport.stop_sid(),
                 self.mobile.close(),
                 self.conversation_transport.stop_sid(),

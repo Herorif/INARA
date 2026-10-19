@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
 from llm.base import Message, MessageRole
 from services.tools import ServiceError
 from services.memory_contracts import MemorySource
+from services.usage import metered_generate
 
 
 class ConversationRequest(BaseModel):
@@ -59,6 +60,7 @@ class ConversationService:
         store=None,
         instructions=None,
         memory=None,
+        usage=None,
     ):
         self.dispatcher = dispatcher
         self.provider_factory = provider_factory
@@ -66,6 +68,7 @@ class ConversationService:
         self.conversations = {}
         self.store = store
         self.memory = memory
+        self.usage = usage
         self.instructions = instructions or (
             "You are INARA, a capable desktop assistant. Use project tools only when needed. "
             "Tool access is enforced by the application. Report actual results honestly. "
@@ -92,7 +95,16 @@ class ConversationService:
         self.dispatcher.disconnect(owner)
 
     async def reply(
-        self, owner, request, project, request_approval=None, *, origin_sid=None, authorize=None
+        self,
+        owner,
+        request,
+        project,
+        request_approval=None,
+        *,
+        origin_sid=None,
+        authorize=None,
+        billing_owner=None,
+        usage_feature="desktop_chat",
     ):
         if authorize:
             authorize()
@@ -128,6 +140,13 @@ class ConversationService:
                     raise previous
                 return previous
             provider = None
+            usage = (
+                self.usage.operation(
+                    billing_owner or owner, project, usage_feature, f"{key}:{request_id}"
+                )
+                if self.usage
+                else None
+            )
             messages = [*conversation.messages[-20:], Message(MessageRole.USER, request.text)]
             request_index = len(messages) - 1
             try:
@@ -152,7 +171,8 @@ class ConversationService:
                     if context_messages:
                         provider_messages[request_index] = context_messages[0]
                     response = await asyncio.wait_for(
-                        provider.generate(
+                        (usage.generate if usage else metered_generate)(
+                            provider,
                             provider_messages,
                             tools=[{"function_declarations": self.dispatcher.schemas()}]
                             if self.dispatcher.schemas()
@@ -227,7 +247,7 @@ class ConversationService:
                     messages.append(
                         Message(MessageRole.ASSISTANT, response.text or "", attachments=attachments)
                     )
-                    for call in response.tool_calls:
+                    for call_index, call in enumerate(response.tool_calls):
                         try:
                             output = await self.dispatcher.dispatch(
                                 owner,
@@ -237,6 +257,7 @@ class ConversationService:
                                     "project_path": project,
                                     "principal": owner,
                                     "origin_sid": origin_sid,
+                                    "usage_operation": f"{key}:{request_id}:{_}:{call_index}",
                                 },
                                 request_approval,
                                 authorize=authorize,

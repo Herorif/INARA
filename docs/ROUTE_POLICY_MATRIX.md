@@ -216,3 +216,8 @@ Current exact inventory: 72 desktop socket routes, one desktop status route, 55 
 ## Project memory after R8
 
 Current exact inventory: 79 desktop socket routes, one desktop status route, 55 shared tools (40 text-visible), 37 dormant voice aliases and 10 isolated mobile HTTPS routes. Seven new strict owner/renderer routes are memory_list, memory_write, memory_forget, memory_retention, memory_export, memory_restore_preview and memory_restore_apply. Mutations and restore require current collection revisions; recovery also requires an unexpired scoped preview. No model mutation tools or mobile memory routes were added. Desktop typed/reviewed-speech retrieval reads only explicitly enabled unarchived notes, revalidates after provider responses and returns bounded source metadata. [Details](PROJECT_MEMORY.md).
+
+
+## Usage and quality after project memory
+
+Current exact inventory: 84 desktop socket routes, one desktop status route, 55 shared tools (40 text-visible), 37 dormant voice aliases and 10 isolated mobile HTTPS routes. usage_state/usage_policy and quality_state/quality_run/quality_cancel require the pinned owner renderer; cancel is an owner safety control available while locked. Budgets are owner-wide, receipt/report display is project-scoped, and policy changes require a captured revision. No mobile/model management tool was added. Shared dispatcher guards block legacy cloud tools/aliases under caps; conversation/CAD/transcription steps reserve allowances before provider execution. Quality owns one fixed, offline, disposable worker with a deadline and origin/core cleanup. [Details](USAGE_AND_QUALITY.md).

@@ -2,6 +2,12 @@
 
 Updated 19 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap.
 
+## Current post-revamp milestone: usage and quality
+
+Acceptance: 911 Python passes / one Blender skip, 78 Node passes, type/drift/lint/build and all 12 offline contract evaluations. Native acceptance uses only synthetic provider/data; actual provider invoice and model-quality acceptance remain deferred.
+
+Usage & quality adds explicit owner-wide daily/monthly authorization allowances, per-invocation admission across desktop/phone chat/CAD/transcription, sanitized provider token receipts and local job duration receipts. It defaults to monitor only and does not claim to measure invoices. The fixed 12-case offline assistant/memory/budget/CAD/image suite runs in an owned disposable process/profile, with no real provider or user data. [Coverage and acceptance limits](USAGE_AND_QUALITY.md). Browser/device adapter modernization is next for source work; configuration and release/device gates remain open.
+
 ## Current post-revamp milestone: project memory
 
 Verification: 865 Python regression passes / one Blender skip, 72 Node passes, focused integration checks, type/drift/lint/build and actual hidden desktop memory/recovery/source-citation acceptance. No paid API or real user data was used.

@@ -28,6 +28,7 @@ class MobileService:
             ToolDispatcher(lambda: {}),
             timeout=30,
             store=SessionStore(app.database),
+            usage=app.usage,
             instructions="You are INARA in a tool-free phone conversation. You cannot inspect files, control the laptop, approve actions, or read desktop conversations. Explain those limits when relevant. WhatsApp drafting and sending are unavailable.",
         )
         from services.mobile_listener import MobileListener
@@ -257,6 +258,8 @@ class MobileService:
                         ConversationRequest(**args.model_dump()),
                         Path(value["project_path"]),
                         authorize=lambda: self.recheck(value, "chat:ask"),
+                        billing_owner=value["owner"],
+                        usage_feature="phone_chat",
                     ),
                     55,
                 )

@@ -1,5 +1,6 @@
 """One validated dispatch boundary for model and direct-client tools."""
 
+from contextlib import nullcontext
 import asyncio
 import base64
 import inspect
@@ -115,7 +116,9 @@ class ToolDispatcher:
             if owner == principal and not future.done():
                 future.set_result(False)
 
-    async def dispatch(self, principal, name, arguments, context, request_approval=None, *, authorize=None):
+    async def dispatch(
+        self, principal, name, arguments, context, request_approval=None, *, authorize=None
+    ):
         if authorize:
             authorize()
         if not self.authenticated(principal):
@@ -126,7 +129,11 @@ class ToolDispatcher:
         validated = spec.arguments.model_validate(arguments)
         permission = spec.permission or name
         policy = self.permissions().get(permission, True)
-        if policy == "deny" or self.permissions().get(name) == "deny" or self.permissions().get(spec.alias_for) == "deny":
+        if (
+            policy == "deny"
+            or self.permissions().get(name) == "deny"
+            or self.permissions().get(spec.alias_for) == "deny"
+        ):
             raise ServiceError("permission_denied", "This action is disabled.")
         if policy not in (False, "allow_within_scope"):
             if request_approval is None:
@@ -136,7 +143,11 @@ class ToolDispatcher:
             self.pending[request_id] = (principal, future)
             try:
                 await request_approval(
-                    {"id": request_id, "tool": name, "args": approval_arguments(validated.model_dump())}
+                    {
+                        "id": request_id,
+                        "tool": name,
+                        "args": approval_arguments(validated.model_dump()),
+                    }
                 )
                 approved = await asyncio.wait_for(future, self.timeout)
             except TimeoutError as exc:
@@ -157,10 +168,13 @@ class ToolDispatcher:
             raise ServiceError("permission_denied", "This action is no longer authorized.")
 
         async def execute():
-            result = spec.execute(
-                validated, {**context, "principal": principal, "request_approval": request_approval}
-            )
-            return await result if inspect.isawaitable(result) else result
+            scope = getattr(self, "tool_scope", None)
+            with scope(name, {**context, "principal": principal}) if scope else nullcontext():
+                result = spec.execute(
+                    validated,
+                    {**context, "principal": principal, "request_approval": request_approval},
+                )
+                return await result if inspect.isawaitable(result) else result
 
         if spec.execution_timeout is None:
             return await execute()

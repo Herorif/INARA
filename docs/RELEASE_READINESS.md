@@ -40,7 +40,7 @@ These gates need external tooling, physical devices, signing ownership or the pr
 | Memory enhancements | Project memory is implemented with local lexical search, consent, retention/forget and same-profile protected recovery. Optional embedding retrieval and portable cross-account recovery keys remain future work. See [Project memory](PROJECT_MEMORY.md). |
 | Browser/desktop automation | Owned browser tasks, bounded DOM/accessibility contracts, hostile-content handling and app-specific acceptance |
 | Devices/printing | Further adapter decomposition, actual capability discovery, slicer/printer completion and physical acceptance |
-| Usage and quality | Per-job usage accounting, enforceable daily/monthly cloud caps and representative CAD/image/assistant quality evaluations |
+| Provider cost and quality acceptance | Usage allowance controls, token/local-job receipts and 12 offline contract evaluations are implemented. Actual provider invoice calibration and real model accuracy/creativity/latency acceptance remain deferred. See [Usage and quality](USAGE_AND_QUALITY.md). |
 | Creative/media acceptance | Real Blender/local diffusion/kernel exports and microphone/camera/Bluetooth/sleep/voice quality once setup is explicitly chosen |
 | Calls | Handset/OEM/carrier feasibility first. Ordinary Android dialer control does not imply SIM/personal WhatsApp audio access. No forwarding/number migration/live-call action has been performed |
 | WhatsApp actions | Excluded until specifically requested: no reply drafting, sending, acknowledgements or notification action execution |
@@ -50,4 +50,9 @@ Continue with source-only backlog work while setup remains deferred. Do not call
 
 ## First post-revamp step completed
 
-[Project memory](PROJECT_MEMORY.md) is implemented and fixture/native-desktop verified. This does not close Android/installer/signing gates. The next source implementation is usage budgets and repeatable quality evaluations, followed by browser/device/printing modernization. No provider configuration or physical-device permissions were enabled.
+[Project memory](PROJECT_MEMORY.md) is implemented and fixture/native-desktop verified. This does not close Android/installer/signing gates. Usage allowance controls and offline evaluations are also implemented. The next source implementation is browser/device/printing modernization. No provider configuration or physical-device permissions were enabled.
+
+
+## Second post-revamp step completed
+
+[Usage and quality](USAGE_AND_QUALITY.md) implements conservative INARA admission allowances and explicit fixture evaluations. Monitor-only is the default; no live provider pricing or invoice ceiling is claimed. Source acceptance does not close provider-quality, Android, signing, installer or long-run hardware gates. Continue with owned browser/desktop tasks and device-adapter cleanup while setup stays deferred.

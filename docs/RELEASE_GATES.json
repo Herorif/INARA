@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "milestone": "Project memory after R8",
+  "milestone": "Usage allowances and offline quality after project memory",
   "gates": [
     {
       "id": "desktop-source",
@@ -102,10 +102,10 @@
     },
     {
       "id": "budgets-evaluations",
-      "track": "backlog",
-      "status": "pending",
-      "required": false,
-      "evidence": "Per-job usage accounting, enforceable daily/monthly cloud caps and representative task-quality evaluation suite remain follow-on work"
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "USAGE_AND_QUALITY.md; integer owner-wide admission allowances, metered provider/local-job receipts and 12 owned offline fixture evaluations. Invoice costs and real model quality are not verified."
     },
     {
       "id": "phone-call-feasibility",
@@ -120,6 +120,13 @@
       "status": "excluded",
       "required": false,
       "evidence": "Reply drafting/sending, acknowledgements and notification action execution remain excluded until specifically requested"
+    },
+    {
+      "id": "provider-cost-quality-acceptance",
+      "track": "optional",
+      "status": "deferred",
+      "required": false,
+      "evidence": "Actual model pricing/invoice reconciliation and real-model task quality/latency acceptance require explicitly chosen provider setup; current allowances are not guaranteed invoice ceilings"
     }
   ]
 }

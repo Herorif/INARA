@@ -64,6 +64,16 @@ Follow [R1-R8 and the follow-on tracks](INARA_REVAMP_PLAN.md#current-baseline-an
 
 R1 software, R2a and R2b1-R2b5 policy groups and R2c retirement are implemented. The two latest authorized steps are complete: live voice uses shared schemas/dispatch, and owner-only connection hydration plus owned face-process lifetime replace facade callbacks. Optional provider/hardware behavior and legacy generated-code/browser hard isolation remain separate acceptance work.
 
+## Usage and quality completed; next source implementation
+
+The second post-revamp source milestone adds Usage & quality, owner-wide integer daily/monthly authorization allowances, atomic per-invocation reservation, provider-reported token counters, request/job references, local creative-job duration receipts and 12 owned offline product-contract evaluations. Caps default off (monitor only); no provider/key/model configuration or paid requests were performed. [Behavior, coverage and limits](USAGE_AND_QUALITY.md).
+
+Validation: **911 Python tests passed with one Blender skip; 78 Node tests passed**. Types, generated-contract drift, Ruff, production build and all 12 offline fixture evaluations passed. Native fixture acceptance and limitations are recorded in the usage/quality evidence. No paid provider or hosted CI run is claimed.
+
+These limits govern owner-assigned INARA allowances; actual provider invoice cost is unknown. Timeouts/cancellations/missing metadata retain their allowance. No automatic refunds or retries. Metered paths include desktop/phone conversation, CAD proposals and transcription. Legacy unmetered cloud tools/aliases are blocked when caps are enabled; local jobs, memory and reminders remain usable. Fixture evaluations are explicitly not real-model quality acceptance.
+
+Next source implementation: owned browser/desktop automation and device-adapter cleanup. Replace the retained autonomous browser seam with bounded typed operations, explicit owner/project/task lifetime, hostile-content handling and cancellation. Integrate every provider step with usage admission before enabling it under caps; preserve the legacy guard until parity is tested. Continue device/printer adapter separation without real hardware actions or automatic dependency downloads. Android build/device, signing/distribution/update recovery and provider/hardware acceptance remain separate open release gates. No additional lettered budget substep is scheduled for this source/fixture milestone.
+
 ## Project memory completed; next source implementation
 
 The first post-revamp step is implemented: owner-reviewed project facts/preferences/decisions, editable sources/tags, version metadata, local lexical search, bounded protected retention, archive/forget, encrypted same-profile export, reviewed non-overwriting recovery and explicitly opted-in assistant context with source labels. Raw memory context is not saved as an extra conversation message; historical answers/backups remain separate from Forget. [Implementation and limits](PROJECT_MEMORY.md).
@@ -72,7 +82,7 @@ The responsive lazy panel is available from Command quick launch and the command
 
 Verification: **865 Python regression checks passed with one Blender skip; 72 Node checks passed**. Final focused memory/conversation/speech checks, types, generated-contract drift, Ruff, production build and actual hidden desktop memory/recovery/provider-fixture acceptance passed. No hosted CI or real-provider quality claim is made.
 
-Next source implementation: usage budgets and repeatable quality evaluations. Track per-request/job usage, enforce configurable daily/monthly caps, and add representative assistant/CAD/image fixture evaluations before paid-provider acceptance. Preserve explicit provider setup, resource budgets, approvals and owned cancellation. Browser/device/printing modernization follows. Android build/device acceptance and signed distribution remain separate open release gates.
+Usage budgets and offline quality fixtures are now implemented in the checkpoint above. Browser/device/printing modernization is next; real provider price/invoice and model-quality acceptance stay deferred. Android build/device acceptance and signed distribution remain separate open release gates.
 
 ## R8 completed; next work after the source revamp
 
@@ -84,7 +94,7 @@ Offline release/support tooling now provides whitelist diagnostics, dependency/l
 
 1. R1-R8 source implementation milestones are complete within their documented boundaries. Do not schedule an R8a or another cosmetic refactor checkpoint. Source work can continue on the explicit post-revamp backlog while setup stays deferred.
 2. Next release prerequisite: Android build/dependency verification, then controlled Fold8 acceptance. JDK/Gradle/SDK/ADB are absent. No APK/native tests or physical notification behavior are claimed. Do not download dependencies automatically or flip `NOTIFICATION_ACCEPTANCE_ENABLED` as routine setup.
-3. Project memory is now implemented in the post-revamp milestone above. Next source work is usage budgets/quality evaluations, followed by browser/device adapter modernization. Optional embedding retrieval and portable recovery-key design remain future memory enhancements.
+3. Project memory is now implemented in the post-revamp milestone above. Usage allowance controls/offline evaluations are implemented. Next source work is browser/device adapter modernization. Optional embedding retrieval and portable recovery-key design remain future memory enhancements.
 4. Desktop release still needs clean-machine self-contained core/optional-worker packaging, installer/uninstaller, signing/license clearance, explicit startup/update choices, interrupted-update recovery/rollback and long-run Legion acceptance. Source staging/checksums do not satisfy those gates.
 5. Real provider/model/Blender/image/kernel/microphone/camera/printer setup and exact hardware acceptance remain deferred. The user explicitly deferred the real-game benchmark.
 6. No real notification access, phone calls, forwarding, SIM/account migration or live messages were used. WhatsApp reply drafting/sending, acknowledgements and notification action execution remain excluded until specifically requested. Retain the existing SIM/personal WhatsApp number.
@@ -195,6 +205,6 @@ Use Medium as the default, increase effort when complexity or a demonstrated fai
 
 ## Prompt for the next implementation session
 
-> Continue the post-revamp work from docs/RELEASE_READINESS.md and docs/RELEASE_GATES.json. R1-R8 source/fixture milestones are implemented. Android build/device acceptance and self-contained signed distribution remain open; do not download tooling or configure real providers/devices automatically. Project memory is implemented; read docs/PROJECT_MEMORY.md. If setup remains deferred, implement the next usage-budget and quality-evaluation milestone: per-request/job accounting, daily/monthly caps and fixture task evaluations while preserving resource, identity, storage and dispatcher boundaries. Keep real notifications and WhatsApp/call actions disabled.
+> Continue the post-revamp work from docs/RELEASE_READINESS.md and docs/RELEASE_GATES.json. R1-R8 source/fixture milestones are implemented. Android build/device acceptance and self-contained signed distribution remain open; do not download tooling or configure real providers/devices automatically. Project memory and usage/quality source milestones are implemented; read docs/PROJECT_MEMORY.md and docs/USAGE_AND_QUALITY.md. If setup remains deferred, implement owned typed browser/desktop tasks and device-adapter cleanup with fixture-only acceptance. Preserve shared usage admission, approvals, captured owner/project scope and owned process cancellation. Keep unmetered legacy cloud paths blocked under caps until the replacement is verified. Keep real notifications and WhatsApp/call actions disabled.
 
 The implementation model is a development choice. INARA's own local/cloud runtime models remain separately configured through the capability router, with dedicated speech, image and vision adapters where needed.

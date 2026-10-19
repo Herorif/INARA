@@ -100,7 +100,7 @@ class GeminiProvider(BaseLLMProvider):
     def _client(self):
         if self.__client is None:
             from google import genai
-            self.__client = genai.Client(api_key=self._api_key)
+            self.__client = genai.Client(api_key=self._api_key, http_options={"retry_options": {"attempts": 1}})
         return self.__client
 
     @property
@@ -126,8 +126,11 @@ class GeminiProvider(BaseLLMProvider):
             system_instruction=system_instruction,
             temperature=temperature,
         )
+        if kwargs.get("max_output_tokens") is not None:
+            config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
             config.tools = tools
+            config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if kwargs.get("thinking", False):
             config.thinking_config = types.ThinkingConfig(include_thoughts=True)
 
@@ -140,7 +143,7 @@ class GeminiProvider(BaseLLMProvider):
         )
 
         if not response.candidates:
-            return LLMResponse()
+            return LLMResponse(raw=response)
 
         candidate = response.candidates[0]
         text_parts = []
@@ -176,8 +179,11 @@ class GeminiProvider(BaseLLMProvider):
             system_instruction=system_instruction,
             temperature=temperature,
         )
+        if kwargs.get("max_output_tokens") is not None:
+            config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
             config.tools = tools
+            config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if kwargs.get("thinking", False):
             config.thinking_config = types.ThinkingConfig(include_thoughts=True)
 
@@ -249,8 +255,11 @@ class GeminiVoiceProvider(BaseVoiceProvider):
             input_audio_transcription={},
             system_instruction=system_instruction,
         )
+        if kwargs.get("max_output_tokens") is not None:
+            config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
             config.tools = tools
+            config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if voice_name:
             config.speech_config = types.SpeechConfig(
                 voice_config=types.VoiceConfig(

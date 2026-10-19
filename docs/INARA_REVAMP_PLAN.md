@@ -427,3 +427,8 @@ R1-R8 source milestones are implemented within their documented offline/fixture 
 ## Project memory checkpoint after R8
 
 The first post-revamp project-memory implementation is complete within the limits in [Project memory](PROJECT_MEMORY.md): protected owner/project collections, editable provenance, local lexical retrieval, explicit assistant sharing, retention/archive/forget and reviewed same-profile backup/recovery. Embedding semantics and portable cross-account key recovery remain future enhancements. The next source milestone is per-request/job usage budgets and task-quality evaluations; the existing release/device/configuration gates remain open.
+
+
+## Usage and quality checkpoint
+
+The second post-revamp source milestone is implemented: [Usage and quality](USAGE_AND_QUALITY.md). Conservative owner-wide admission allowances, metered provider/local-job receipts and 12 offline contract evaluations work without provider configuration or model downloads. Actual invoices/model quality remain unverified. Browser/desktop task ownership and device/printing adapter modernization are next; existing Android, signing, packaging, hardware and WhatsApp/call boundaries remain unchanged.

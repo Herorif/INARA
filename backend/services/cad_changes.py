@@ -12,6 +12,7 @@ from pydantic import (
     field_validator,
 )
 from services.cad import Recipe, SceneObject, SolidRecipe, ScenePresentation
+from services.usage import metered_generate
 from services.tools import ServiceError
 
 
@@ -103,7 +104,8 @@ async def propose_changes(prompt, base, provider_factory=None):
     try:
         provider = (provider_factory or create_text_provider)()
         async with asyncio.timeout(30):
-            result = await provider.generate(
+            result = await metered_generate(
+                provider,
                 [Message(MessageRole.USER, json.dumps({"request": prompt, "base_recipe": base}))],
                 tools=[
                     {

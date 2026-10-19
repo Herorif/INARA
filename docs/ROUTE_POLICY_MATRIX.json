@@ -869,6 +869,61 @@
       "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
       "replacement": "MemoryTransport / ProjectMemory",
       "status": "implemented"
+    },
+    "usage_state": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "usage_policy": {
+      "schema": "UsagePolicy",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "quality_state": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "quality_run": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "quality_cancel": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
     }
   },
   "http_routes": {

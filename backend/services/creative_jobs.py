@@ -422,6 +422,18 @@ class CreativeJobService:
             finally:
                 self.active.pop(running["key"], None)
                 self.governor.release(running["key"])
+            if getattr(self, "usage", None):
+                try:
+                    self.usage.local_job(
+                        owner,
+                        project,
+                        "image_local" if self.namespace == "image_jobs:" else "cad_local",
+                        value,
+                    )
+                except Exception:
+                    print(
+                        "[SERVER] Local job usage receipt could not save; original job history is preserved."
+                    )
             await self.publish(owner, value)
 
     async def cancel(self, owner, project, request_id):
