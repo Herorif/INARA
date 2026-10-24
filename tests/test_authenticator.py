@@ -3,7 +3,8 @@ Tests for Face Authentication.
 """
 import pytest
 import os
-import numpy as np
+
+np = pytest.importorskip("numpy")
 
 # Try to import the authenticator, skip all tests if dependencies missing
 try:

@@ -114,7 +114,7 @@ def test_missing_or_failed_or_stale_evaluation_refuses_model_calls(tmp_path, mon
 
 @pytest.mark.asyncio
 async def test_capacity_failure_occurs_before_loading_runtime(monkeypatch):
-    import psutil
+    psutil = pytest.importorskip("psutil")
     monkeypatch.setattr(psutil, "virtual_memory", lambda: SimpleNamespace(available=1024))
     monkeypatch.setattr(asyncio, "create_subprocess_exec", AsyncMock(side_effect=AssertionError("No load")))
     with pytest.raises(ServiceError) as error:

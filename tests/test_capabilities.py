@@ -278,7 +278,8 @@ def test_success_evidence_and_performance_are_owner_and_profile_scoped(applicati
             "request_id": str(args.request_id),
             "project": context["project_path"].name,
             "recipe": args.model_dump(
-                mode="json", exclude={"request_id", "base_request_id", "base_fingerprint"}
+                mode="json",
+                exclude={"request_id", "base_request_id", "base_fingerprint", "reference"},
             ),
             "created_at": time.time(),
             "state": "succeeded",
