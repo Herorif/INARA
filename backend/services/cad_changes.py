@@ -14,6 +14,7 @@ from pydantic import (
 from services.cad import Recipe, SceneObject, SolidRecipe, ScenePresentation
 from services.usage import metered_generate
 from services.tools import ServiceError
+from services.handoff_contracts import CreativeReference
 
 
 class RevisionReference(BaseModel):
@@ -65,6 +66,7 @@ class ChangeSet(RevisionReference, EditList):
 
 class ChangePrompt(RevisionReference):
     prompt: StrictStr = Field(min_length=1, max_length=2000)
+    reference: CreativeReference | None = None
 
 
 def apply_changes(base, edits):

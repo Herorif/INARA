@@ -255,6 +255,30 @@ class UsageService:
         finally:
             self.active.discard(ticket["id"])
 
+    def begin_local_call(self, owner, project, request_id, *, model="local_structured_english"):
+        """Content-free local admission, never a cloud authorization or invoice."""
+        self.owner(owner)
+        _, month = self.periods()
+        identifier = scope_hash(f"local-call\n{owner}\n{Path(project).resolve()}\n{request_id}")
+        kind = "usage_local_v1:" + scope_hash(owner) + ":" + month
+        with self.database.transaction() as db:
+            if self.database.get(db, kind, identifier):
+                raise ServiceError("usage_duplicate", "This local call was already admitted; it will not replay.")
+            count = db.execute("SELECT count(*) FROM documents WHERE kind=?", (kind,)).fetchone()[0]
+            if count >= 4096:
+                raise ServiceError("usage_capacity", "Monthly local receipt capacity reached.")
+            ticket = {
+                "id": identifier, "kind": kind, "request_id": str(request_id),
+                "provider_step": None, "project": Path(project).name,
+                "project_scope": scope_hash(Path(project).resolve()), "feature": "local_call",
+                "model": str(model)[:120], "state": "reserved",
+                "created_at": self.clock(), "allowance_microusd": 0, "cloud": False,
+                "tokens": None, "duration_seconds": None,
+            }
+            self.database.put(db, kind, identifier, ticket)
+        self.active.add(identifier)
+        return ticket
+
     def local_job(self, owner, project, feature, value):
         _, month = self.periods()
         identifier = scope_hash(

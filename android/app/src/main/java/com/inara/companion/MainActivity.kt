@@ -82,6 +82,7 @@ fun CompanionScreen(model: CompanionModel) {
                             enabled = !state.busy && pastedInvitation.isNotBlank()) { Text("Use pasted invitation") }
                     }
                     ChatCard(state, model)
+                    if (state.phase == "paired") CallReceiptsCard(state, model)
                     if (state.phase == "paired") NotificationCard(state, model)
                 }
             }

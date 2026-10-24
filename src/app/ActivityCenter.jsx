@@ -7,6 +7,14 @@ import { createImageClient } from '../transport/imageClient.ts';
 import { artifactBytes, pendingJob } from '../features/creative/client';
 import PanelState from './PanelState';
 import './workspace-tools.css';
+import '../features/creative/handoff.css';
+function HandoffAction({item, disabled, onOpen}) {
+  const [destination,setDestination] = useState(item.kind === 'cad' ? 'image' : 'cad');
+  return <div className="activity-handoff"><label>Use recipe in <select aria-label={`Reference destination for ${item.name}`} value={destination} onChange={event=>setDestination(event.target.value)}><option value="cad">3D blueprint brief</option><option value="image">Image concept brief</option></select></label><button disabled={disabled || !/^[a-f0-9]{64}$/.test(item.recipe_fingerprint || '')} onClick={()=>{
+    useStore.setState({studioHandoff:{id:crypto.randomUUID(),project:item.project,source_kind:item.kind,source_request_id:item.request_id,source_fingerprint:item.recipe_fingerprint,destination}});
+    onOpen(destination);
+  }}>Review handoff <ArrowUpRight size={14}/></button></div>;
+}
 export default function ActivityCenter({ onOpen, gaming }) {
   const project = useStore(state => state.currentProject), connected = useStore(state => state.backendConnected);
   const activity = useStore(state => state.activity);
@@ -58,6 +66,8 @@ export default function ActivityCenter({ onOpen, gaming }) {
       <p>{item.error || (item.state === 'succeeded' ? 'Saved revision. Ready to explore or export.' : item.phase?.replaceAll('_', ' ') || 'Waiting for an update.')}</p>
       <div className="activity-formats">{item.base_request_id && <span>BRANCH / {item.base_request_id.slice(0,8)}</span>}{pendingJob(item) && <span>{item.background ? 'BACKGROUND / WORKSPACE LIFETIME' : 'PANEL LIFETIME'}</span>}{item.artifacts.map(format => <span key={format}>{format.toUpperCase()}</span>)}</div>
       <footer><button disabled={gaming || loading} title={gaming ? 'Paused in gaming mode' : undefined} onClick={() => onOpen(item.kind, item.request_id)}>Open revision<ArrowUpRight size={15} /></button>{item.state === 'succeeded' && item.artifacts.includes(item.kind === 'image' ? 'png' : 'glb') && <button aria-label={`Download ${item.name}`} disabled={!connected || !!exporting} onClick={() => download(item)}><Download size={15} />{exporting === item.key ? 'Preparing…' : 'Export'}</button>}</footer>
+      {item.reference && <small>Recipe reference / {item.reference.source_kind} / {item.reference.source_request_id.slice(0,8)}</small>}
+      {item.state === 'succeeded' && <HandoffAction item={item} disabled={gaming || loading || !connected} onOpen={onOpen}/>}
     </article>; })}</div> : !loading && <PanelState title="A space for your next idea" detail="Your saved 3D builds and image revisions will appear here. Open Studio when you are ready." />}
   </section>;
 }

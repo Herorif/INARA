@@ -1,6 +1,17 @@
 {
   "checkpoint": "R7 opt-in TLS pairing, narrow mobile grants and Android source",
   "socket_routes": {
+    "creative_handoff": {
+      "schema": "HandoffRequest",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Current owner/project; exact saved revision UUID and recipe fingerprint",
+      "effects": "Read and integrity-check saved recipe JSON; prepare bounded metadata-only brief. No media, provider or worker.",
+      "policy": "Strict source/destination enums; successful scoped source and digest validation; no paths or unscoped imports",
+      "response": "Origin-only ACK with HandoffDraft and source provenance",
+      "lifetime": "Synchronous bounded local read; client disposal drops late ACKs; Apply and execution remain separate",
+      "replacement": "HandoffTransport / CreativeHandoffs",
+      "status": "implemented"
+    },
     "acknowledge_reminder": {
       "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
       "caller": "Authenticated owner renderer; resident receipt ACK permitted while face-locked",
@@ -1001,6 +1012,105 @@
       "lifetime": "Request-only; no new timer or worker",
       "replacement": "ConnectionsReadiness / ConnectionsTransport",
       "status": "migrated"
+    },
+    "call_lab_state": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_lab_check": {
+      "schema": "LabReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_lab_stop": {
+      "schema": "LabReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_lab_record": {
+      "schema": "LabReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_test_state": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Read controlled-test policy/readiness and metadata-only draft/own active lease",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_prepare": {
+      "schema": "TestPrepare",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Validate and store protected enrollment draft; imported confirmation flags must be false",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_review": {
+      "schema": "TestRevision",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Revalidate policy, profile, backend physical proof, source/helper pins and resources; issue one-use 60s review only when all pass",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_arm": {
+      "schema": "TestArm",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Consume review once; typed exact confirmation; start one core-owned 30s incoming-call lease with structured local speech only",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_stop": {
+      "schema": "TestStop",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Stop only the exact origin-bound one-call lease and invalidate its pending reviews",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
     }
   },
   "http_routes": {
@@ -1761,6 +1871,18 @@
       "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
       "grant": "status:read + separate device/project notifications:sync policy for ingestion",
       "effects": "Read-only selected notification ledger; no notification actions or replies"
+    },
+    "/v1/call_receipts": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "calls:read (separate explicit pairing opt-in)",
+      "effects": "Read at most 20 finished owner/project call summaries, no transcript or call actions"
+    },
+    "/v1/call_receipt": {
+      "schema": "MobileCallReceipt",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "calls:read (separate explicit pairing opt-in)",
+      "effects": "Explicit read of one bounded finished protected transcript; excludes lab fixtures, active/expired records and all call/reply actions"
     }
   }
 }

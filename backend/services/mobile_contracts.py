@@ -17,6 +17,7 @@ class ListenerRequest(MobileModel):
 
 class PairRequest(MobileModel):
     allow_chat: StrictBool = False
+    allow_calls: StrictBool = False
 
 
 class DeviceRequest(MobileModel):
@@ -62,3 +63,7 @@ class MobileChat(MobileReceipt):
 class MobilePreview(MobileModel):
     kind: Literal["cad", "image"]
     request_id: uuid.UUID
+
+
+class MobileCallReceipt(MobileModel):
+    id: uuid.UUID

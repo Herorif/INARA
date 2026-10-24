@@ -225,8 +225,12 @@ class NativeHost:
 
                 asyncio.run_coroutine_threadsafe(focus(), self.loop)
             return
-        executable = self.root / "node_modules/electron/dist/electron.exe"
-        if not executable.exists() or not (self.root / "dist/index.html").exists():
+        from resident.layout import workspace_executable
+        try:
+            executable = workspace_executable(self.root)
+        except (OSError, ValueError):
+            executable = None
+        if executable is None or not (self.root / "dist/index.html").exists():
             self.state.error = (
                 "Build/install the workspace with scripts/bootstrap.ps1, then reopen it."
             )
@@ -244,7 +248,7 @@ class NativeHost:
                     "state": self.state.snapshot(),
                     "hide": self.hide_workspace,
                     "quick": quick,
-                    "dev": os.getenv("INARA_DEV_SERVER") == "1",
+                    "dev": not (self.root / "desktop-pilot.json").exists() and os.getenv("INARA_DEV_SERVER") == "1",
                 },
                 self.root,
             )

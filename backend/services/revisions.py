@@ -4,6 +4,7 @@ import hashlib
 import json
 import uuid
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from services.handoff_contracts import CreativeReference
 
 
 def recipe_fingerprint(recipe):
@@ -26,6 +27,7 @@ class RevisionParent(BaseModel):
     model_config = ConfigDict(extra="forbid")
     base_request_id: uuid.UUID | None = None
     base_fingerprint: str | None = Field(default=None, pattern="^[a-f0-9]{64}$")
+    reference: CreativeReference | None = None
 
     @model_validator(mode="after")
     def paired_reference(self):

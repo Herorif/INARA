@@ -62,7 +62,7 @@ class MobileTransport:
                         await self.app.mobile.listener.stop()
                 elif name == "mobile_pair":
                     bundle = self.app.mobile.pair(
-                        owner, self.app.projects.get_current_project_path(), args.allow_chat
+                        owner, self.app.projects.get_current_project_path(), args.allow_chat, args.allow_calls
                     )
                     from services.mobile_qr import invitation_qr
 

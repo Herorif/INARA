@@ -1,5 +1,6 @@
 import { isArtifact, isJobUpdate } from './guards.ts';
 import { RpcError, createRpcScope, type RpcSocket } from './rpc.ts';
+import {isCadRecipe} from './cadRecipe.ts';
 import type { BuildRequest, ArtifactRequest, PlanRequest, Recipe, JobRequest, JobLifetime, ChangeSet, ChangePrompt } from './generated/cad.ts';
 export type CadJob = { request_id: string; project: string; state: string; phase: string; recipe?: Recipe; [key: string]: unknown };
 export interface CadCalls {
@@ -31,8 +32,9 @@ export function createCadClient(socket: RpcSocket) {
         if (event === 'cad_artifact' && !isArtifact((result as CadCalls['cad_artifact']['result']).artifact)) {
           throw new RpcError('The saved export could not be read. Refresh history.', 'invalid_response');
         }
-        if ((event === 'cad_review_changes' || event === 'cad_plan_changes') && (!(result as CadCalls['cad_review_changes']['result']).proposal?.recipe || (result as CadCalls['cad_review_changes']['result']).proposal?.base_request_id !== (data as ChangeSet).base_request_id || (result as CadCalls['cad_review_changes']['result']).proposal?.base_fingerprint !== (data as ChangeSet).base_fingerprint)) throw new RpcError('The core returned an invalid change proposal.', 'invalid_response');
-        if (event === 'cad_plan' && !(result as CadCalls['cad_plan']['result']).recipe) {
+        if ((event === 'cad_review_changes' || event === 'cad_plan_changes') && (!isCadRecipe((result as CadCalls['cad_review_changes']['result']).proposal?.recipe) || (result as CadCalls['cad_review_changes']['result']).proposal?.base_request_id !== (data as ChangeSet).base_request_id || (result as CadCalls['cad_review_changes']['result']).proposal?.base_fingerprint !== (data as ChangeSet).base_fingerprint)) throw new RpcError('The core returned an invalid change proposal.', 'invalid_response');
+        if (event === 'cad_plan' && (!isCadRecipe((result as CadCalls['cad_plan']['result']).recipe) ||
+          ((data as PlanRequest).target === 'scene' && ((result as CadCalls['cad_plan']['result']).recipe.shape !== 'scene' || (result as CadCalls['cad_plan']['result']).recipe.engine !== 'offline')))) {
           throw new RpcError('The core returned an invalid blueprint. Your current design was preserved.', 'invalid_response');
         }
         return result;

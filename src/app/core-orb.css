@@ -1,0 +1,93 @@
+.core-orb {
+  width:335px;
+  height:315px;
+  flex-shrink:0;
+  position:relative;
+  display:grid;
+  place-items:center;
+  margin-right:10px
+}
+.orb-instrument {
+  width:300px;
+  overflow:visible;
+  filter:drop-shadow(0 0 15px #42c5e320)
+}
+.orb-instrument circle,.orb-instrument path {
+  fill:none;
+  stroke:#62cadd50;
+  stroke-width:.65
+}
+.orb-instrument .ring-accent {
+  stroke:#83dfec;
+  stroke-width:2
+}
+.orb-instrument .orb-disc {
+  fill:#12334320;
+  stroke:#65d3e433
+}
+.orb-instrument .orb-fine {
+  stroke:#81dcec15
+}
+.orb-instrument .orb-crosshair {
+  stroke:#9cbcd733;
+  stroke-width:1
+}
+.orb-instrument .orb-dots circle {
+  fill:#94e9ef;
+  stroke:none
+}
+.orb-ring {
+  transform-origin:180px 180px;
+  animation:orbit 100s linear infinite
+}
+.orb-inner {
+  transform-origin:180px 180px;
+  animation:orbit 70s linear infinite reverse
+}
+.orb-halo {
+  position:absolute;
+  inset:50px;
+  border-radius:50%;
+  background:radial-gradient(circle,#64dae621,#41b9c909 40%,transparent 70%);
+  box-shadow:0 0 85px 0 #33b6d511
+}
+.orb-coordinate {
+  position:absolute;
+  font:6px Consolas,monospace;
+  letter-spacing:1.5px;
+  color:#527a91
+}
+.coord-a {
+  top:43px;
+  right:0
+}
+.coord-b {
+  bottom:60px;
+  left:0
+}
+.orb-caption {
+  position:absolute;
+  bottom:9px;
+  font:8px Consolas,monospace;
+  letter-spacing:2px;
+  color:#81a6b8;
+  display:flex;
+  align-items:center;
+  gap:9px
+}
+.is-active .orb-halo {
+  background:radial-gradient(circle,#64dae64d,transparent 70%)
+}
+.is-active .orb-ring {
+  animation-duration:24s
+}
+.is-quiet .orb-ring,.is-quiet .orb-inner {
+  animation-play-state:paused
+}
+@keyframes orbit {
+  to {
+    transform:rotate(360deg)
+  }
+}
+
+.orb-instrument .orb-glyph { fill: url(#core-light); stroke: none; filter: drop-shadow(0 0 13px #6de6f05c); }

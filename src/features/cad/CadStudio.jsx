@@ -4,6 +4,8 @@ import useStore from '../../store';
 import socket from '../../services/socket';
 import ModelPreview from './ModelPreview';
 import DraftPreview from './DraftPreview';
+import BlueprintReview from './BlueprintReview';
+import HandoffReview, {ReferenceNotice} from '../creative/HandoffReview';
 import SceneEditor, { newObject } from './SceneEditor';
 import { artifactBytes, mergeJob, pendingJob } from './client';
 import { createCadClient } from '../../transport/cadClient.ts';
@@ -68,6 +70,8 @@ function CadSession({ project }) {
   const draft = useRecipeDraft(defaults);
   const { recipe, setRecipe, resetRecipe } = draft;
   const [base, setBase] = useState(null), [compare, setCompare] = useState(''), [proposal, setProposal] = useState(null);
+  const [proposalMode, setProposalMode] = useState('auto');
+  const [reference,setReference] = useState(null);
   const [objectIndex, setObjectIndex] = useState(0), [draftView, setDraftView] = useState(false);
   const [jobs, setJobs] = useState([]),
     [selected, setSelected] = useState(null);
@@ -84,6 +88,8 @@ function CadSession({ project }) {
     alive = useRef(false),
     epoch = useRef(0);
   const restoreRecipe = useRef(true), pendingBranch = useRef(null);
+  const handoffVersion = useRef('');
+  handoffVersion.current = `${draft.version.current}:${prompt}`;
   const job = jobs.find((value) => value.request_id === selected),
     busy = pendingJob(job);
   const accept = (incoming) => {
@@ -115,7 +121,7 @@ function CadSession({ project }) {
       if(completed){setBase(completed);pendingBranch.current=null;}
       if (restoreRecipe.current) {
         const restored = response.jobs.find(value => value.request_id === selectedRef.current) || (!selectedRef.current ? response.jobs[0] : null);
-        if (restored) { selectedRef.current = restored.request_id; setSelected(restored.request_id); resetRecipe(restored.recipe); setBase(restored.state === 'succeeded' ? restored : null); }
+        if (restored) { selectedRef.current = restored.request_id; setSelected(restored.request_id); resetRecipe(restored.recipe); setReference(restored.reference || null); setBase(restored.state === 'succeeded' ? restored : null); }
         else if (selectedRef.current) setError('That revision is outside recent history. Select another saved revision.');
         restoreRecipe.current = false;
       }
@@ -136,6 +142,7 @@ function CadSession({ project }) {
     setJobs([]);
     resetRecipe(defaults);
     setBase(null);setCompare('');setProposal(null);setObjectIndex(0);
+    setReference(null);
     setCapabilities({
       blender: false
     });
@@ -145,7 +152,7 @@ function CadSession({ project }) {
     const update = (incoming) => accept(incoming);
     client.on('cad_job', update);
     client.on('connect', refresh);
-    client.on('disconnect', () => {epoch.current++;setPlanning(false);setExporting('');setRefreshing(false);setUncertain(true);});
+    client.on('disconnect', () => {epoch.current++;setPlanning(false);setProposal(null);setExporting('');setRefreshing(false);setUncertain(true);});
     if (socket.connected) refresh();
     return () => {
       alive.current = false;
@@ -174,6 +181,7 @@ function CadSession({ project }) {
       const response = await rpc('cad_submit', {
         ...recipe,
         ...parentReference(base),
+        reference,
         request_id
       }, 70000);
       if (alive.current && generation === epoch.current) accept(response.job);
@@ -202,15 +210,15 @@ function CadSession({ project }) {
   };
   const plan = async () => {
     const generation = epoch.current, version = draft.version.current;
-    const reference = parentReference(base);
+    const ancestry = parentReference(base);
     setPlanning(true);setError('');setProposal(null);
     try {
-      const response = base
-        ? await rpc('cad_plan_changes', { ...reference, prompt }, 110000)
-        : await rpc('cad_plan', { prompt }, 110000);
+      const response = base && proposalMode === 'auto'
+        ? await rpc('cad_plan_changes', { ...ancestry, prompt, reference }, 110000)
+        : await rpc('cad_plan', { prompt, reference, target: proposalMode === 'scene' || (proposalMode === 'auto' && recipe.shape === 'scene') ? 'scene' : 'solid' }, 110000);
       if (!alive.current || generation !== epoch.current) return;
       if (draft.version.current !== version) { setError('The draft changed while planning. Request a new proposal.'); return; }
-      setProposal({ recipe: response.proposal?.recipe || response.recipe, version, ...reference });
+      setProposal({ recipe: response.proposal?.recipe || response.recipe, version, ...ancestry });
     } catch (failure) {
       if (alive.current && generation === epoch.current) setError(failure.message);
     } finally {
@@ -221,7 +229,7 @@ function CadSession({ project }) {
     if (!proposal || proposal.version !== draft.version.current || (proposal.base_request_id !== parentReference(base).base_request_id || proposal.base_fingerprint !== parentReference(base).base_fingerprint)) {
       setError('The draft or base revision changed. Request a new proposal.');setProposal(null);return;
     }
-    setRecipe(proposal.recipe);setProposal(null);
+    setRecipe(proposal.recipe);setObjectIndex(0);setDraftView(true);setProposal(null);
   };
   const download = async (format) => {
     const generation = epoch.current;
@@ -258,7 +266,9 @@ function CadSession({ project }) {
     detail={!connected ? 'Saved builds remain in your project. History refreshes after reconnecting.' : error || 'Checking revisions and available tools.'}
     action={connected && !refreshing && (!busy || uncertain) ? refresh : undefined} actionLabel="Refresh history" />}
     <RevisionTools draft={draft} base={base} jobs={jobs} selected={selected} compare={compare} onCompare={setCompare} disabled={busy || planning} onNew={() => {setBase(null);setProposal(null);}} />
-    {proposal && <section className="proposal-review" aria-label="Blueprint proposal review"><h4>Review your proposed changes</h4><p>Edits target the saved base. Applying replaces the current draft; it does not build or execute code.</p><RecipeComparison before={recipe} after={proposal.recipe} title="Proposed field changes" /><button disabled={busy || planning} onClick={applyProposal}>Apply to draft</button> <button onClick={() => setProposal(null)}>Discard proposal</button></section>}
+    <HandoffReview destination="cad" project={project} version={handoffVersion} disabled={busy || planning || refreshing} onApply={value=>{setPrompt(value.prompt);setReference(value.reference);setProposal(null);setProposalMode('scene');}}/>
+    <ReferenceNotice reference={reference} disabled={busy || planning} onClear={()=>setReference(null)}/>
+    {proposal && <BlueprintReview key={proposal.version} proposal={proposal} recipe={recipe} disabled={busy || planning} onApply={applyProposal} onDiscard={() => setProposal(null)}/>}
     <div className="cad-layout">
       <aside className="cad-builder">
         <form onSubmit={build}>
@@ -291,7 +301,7 @@ function CadSession({ project }) {
           <button className="primary-button cad-build" type="submit" disabled={!connected || refreshing || busy || planning}>{busy ? <Loader2 size={16} className="cad-spinner" /> : <Box size={17} />}{busy ? 'Build in progress' : 'Build new revision'}</button>
           {busy && <button className="cad-cancel" type="button" onClick={cancel}><Square size={13} />Cancel build</button>}
         </form>
-        <details className="cad-ai"><summary><Sparkles size={15} />AI blueprint<span>OPTIONAL</span></summary><p>Describe a supported solid, or propose edits to the selected saved revision. Review before applying.</p><textarea aria-label="Blueprint description" maxLength={2000} value={prompt} disabled={planning || busy} placeholder="An open enclosure, 80 × 60 × 30 mm, with 3 mm walls…" onChange={(event) => setPrompt(event.target.value)} /><button className="text-button" disabled={!connected || planning || busy || !prompt.trim()} onClick={plan}>{planning ? 'Proposing dimensions…' : 'Propose dimensions'}<Sparkles size={13} /></button></details>
+        <details className="cad-ai"><summary><Sparkles size={15} />AI blueprint<span>OPTIONAL</span></summary><p>Describe a solid or an assembly of up to eight parts. Preview the proposal, review its fields, then apply it to your draft.</p><label className="cad-field">Proposal type<select aria-label="Blueprint proposal type" value={proposalMode} disabled={planning || busy} onChange={event => {setProposalMode(event.target.value);setProposal(null);}}><option value="auto">{base ? 'Refine saved revision' : 'Use selected shape'}</option><option value="solid">New solid blueprint</option><option value="scene">New scene assembly</option></select></label><textarea aria-label="Blueprint description" maxLength={2000} value={prompt} disabled={planning || busy} placeholder="A desk organiser: a ceramic base, an open enclosure and two amber dividers. Use millimetres." onChange={(event) => setPrompt(event.target.value)} /><button className="text-button" disabled={!connected || planning || busy || !prompt.trim()} onClick={plan}>{planning ? 'Proposing dimensions…' : 'Propose dimensions'}<Sparkles size={13} /></button></details>
 <p className="cad-builder-note">{capabilities.kernel_reason || 'Holes, fillets, booleans and STEP require a validated engineering adapter. No kernel is enabled.'}</p>
         {legacyData && <button className="text-button" onClick={() => setLegacy(true)}>Open previous voice design</button>}
       </aside>
@@ -310,7 +320,7 @@ function CadSession({ project }) {
     </div>
     {job?.error && !error && <PanelState compact kind="error" title="Build stopped" detail={job.error} />}
     <RevisionHistory kind="cad" project={project} jobs={jobs} selected={selected} busy={busy} connected={connected} refreshing={refreshing} uncertain={uncertain} onRefresh={refresh} onSelect={(value) => {
-      selectedRef.current = value.request_id;setSelected(value.request_id);if (value.recipe) resetRecipe(value.recipe);setBase(value.state === 'succeeded' ? value : null);setProposal(null);setObjectIndex(0);setCompare('');setError('');
+      selectedRef.current = value.request_id;setSelected(value.request_id);if (value.recipe) resetRecipe(value.recipe);setReference(value.reference || null);setBase(value.state === 'succeeded' ? value : null);setProposal(null);setObjectIndex(0);setCompare('');setError('');
     }} />
   </div>;
 }

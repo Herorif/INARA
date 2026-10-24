@@ -1,3 +1,5 @@
+import './core-orb.css';
+
 export default function CoreOrb({
   active,
   quiet

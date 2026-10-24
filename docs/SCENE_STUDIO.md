@@ -20,7 +20,7 @@ When selected, the owned Python worker invokes Blender in background/factory-sta
 
 Blender is a descendant of the atomic Windows Job Object, inherits the worker's credential-filtered environment and is killed with its owned tree on cancellation/exit. The core deadline is 120 seconds for Blender (30 seconds for offline work); the child command also has a 110-second timeout. Nonzero exits, missing/oversize artifacts and invalid signatures fail without replacing earlier designs. Successful Blender revisions add BLEND and PNG downloads to STL, GLB and Recipe. This is process ownership, not a security sandbox or a GPU/thermal scheduler.
 
-**Blender is not installed in this environment. Its live import/render/export test is explicitly skipped.** The bridge is implemented and syntax checked; its intended `.blend`/PNG/export workflow remains unverified until tested with an actual installation. No installation or provider configuration was performed. The optional AI blueprint adapter stays limited to single-solid data proposals; scene AI proposals are deferred.
+**Blender is not installed in this environment. Its live import/render/export test is explicitly skipped.** The bridge is implemented and syntax checked; its intended `.blend`/PNG/export workflow remains unverified until tested with an actual installation. No installation or provider configuration was performed. Optional AI blueprints now support [reviewed typed scene proposals](SCENE_PROPOSALS.md), with synthetic provider acceptance and actual offline builds. Real provider quality remains unverified.
 
 ## Verification
 

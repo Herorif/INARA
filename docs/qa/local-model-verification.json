@@ -1,0 +1,117 @@
+{
+  "format": 1,
+  "date": "2026-10-24",
+  "scope": "Order 3 source integration and actual local installation; real model-quality/performance acceptance remains blocked",
+  "candidate": {
+    "format": 1,
+    "runtime": {
+      "version": "b11669",
+      "name": "llama-b11669-bin-win-cpu-x64.zip",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-win-cpu-x64.zip",
+      "bytes": 19537886,
+      "sha256": "37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b"
+    },
+    "model": {
+      "id": "Qwen/Qwen3-4B-GGUF:Q4_K_M",
+      "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+      "name": "Qwen3-4B-Q4_K_M.gguf",
+      "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q4_K_M.gguf",
+      "bytes": 2497280256,
+      "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+    }
+  },
+  "runtime_installed": true,
+  "model_download_sha256_verified": true,
+  "runtime_archive_sha256_verified": true,
+  "runtime_help_verified": true,
+  "service_installed": false,
+  "automatic_startup": false,
+  "load_policy": "Explicit session only, shared core profile CPU2/RAM6144MiB/VRAM0; require at least 7GiB available; shut down at session exit",
+  "python_checks": {
+    "passed": 174,
+    "by_module": {
+      "tests.test_call_model": 25,
+      "tests.test_call_local": 13,
+      "tests.test_call_admission": 25,
+      "tests.test_call_lab": 14,
+      "tests.test_call_bridge": 30,
+      "tests.test_usage": 46,
+      "tests.test_application": 16,
+      "tests.test_resource_policy": 5
+    },
+    "report": ".runtime/local-model/tests.xml"
+  },
+  "client_checks": {
+    "passed": 5
+  },
+  "checks": {
+    "ruff": "passed",
+    "typescript": "passed",
+    "generated_contract_drift": "passed",
+    "vite_build": "passed",
+    "pip_check": "passed"
+  },
+  "real_evaluation": {
+    "attempted": true,
+    "loaded": false,
+    "accepted_for_calls": false,
+    "code": "call_model_capacity",
+    "available_gib_at_attempt": 1.81,
+    "available_gib_at_recheck": 2.24,
+    "required_available_gib": 7,
+    "quality_measured": false,
+    "latency_measured": false,
+    "peak_runtime_ram_measured": false,
+    "owner_apps_terminated": false
+  },
+  "behavior": [
+    "Exact-substring field validation; no invented model fields accepted",
+    "Controller retains readback and literal yes/no confirmation",
+    "Schema/size/timeout validation; no tool calls or redirects",
+    "Random-key authenticated loopback-only inference with proxy/environment inheritance disabled",
+    "No built-in runtime agents, web UI, GPU offload or external model downloads during inference",
+    "Structured dialogue remains default; model mode requires a current passing real-evaluation receipt plus separate physical acceptance",
+    "Readiness inspects installed/accepted state without loading weights"
+  ],
+  "pending": [
+    "Free sufficient RAM and execute real inference quality/latency/RAM acceptance; source fixtures are not model quality",
+    "Actual phone/call/duplex-audio acceptance remains owner-deferred",
+    "Protected mobile receipt sync",
+    "General assistant/coding/3D/image quality and specialist model evaluation",
+    "Separate runtime/model/package redistribution review; no signing or license approval inferred"
+  ],
+  "phone_accessed": false,
+  "microphone_or_speaker_opened": false,
+  "cloud_provider_used": false,
+  "live_enabled": false,
+  "whatsapp_text_actions_enabled": false,
+  "inputs_sha256": {
+    "config/local-call-model.json": "b2c2663da832bff94679b487565f52315bc2eac6e5c0fb11b8ee76aad0089e30",
+    "backend/calls/local_model.py": "5ab3b00eba4fc87c2680ff57afeeb2585ece9755a6d10e58cf15a7c385acb66f",
+    "backend/calls/model_evaluation.py": "20fc6187a20ca49ee4ce3abbbd9e84516f852dc680f04ee1911108091ef5b98b",
+    "backend/calls/local_voice.py": "6be99fe3ef8ecdaee89051416572d502c1309eba6ea26efd26d9050b5f7c77d1",
+    "backend/calls/admission.py": "7f25b836cb1f969242fcb0d224e8a78ba6c1cd561b4ab7ea182ee10526998bdb",
+    "backend/workers/call_bridge_worker.py": "ca84270c84caa69a0b04023906365e931dffb3187a57cccebacefc922e9f6390",
+    "backend/calls/lab.py": "2401078cda5e42db6650c0dcb0305a1456d97fa99d338e090dfc0ce867f8d67a",
+    "backend/calls/lab_contracts.py": "6bb2218e4de1e5bb1f21db4dcaa6ac1d075cd4706962a9e1b02d9bc6fcf3f031",
+    "backend/services/resources.py": "bc47c35f74df5f5cc646de3b45ba7dc6ec734a7705e546dded64cc49fcae3292",
+    "backend/services/capability_profiles.py": "d92af62a1bf21b676b9cfe238884f352e43776ac9ba8ac51c4b37b2e2b02a74e",
+    "backend/services/usage.py": "f4cfb8103e81667ce521b07bdf3436f30ebd550b16354ccc7588b9e36a1a7dd0",
+    "scripts/setup-call-model.py": "e70974aed4583c5fd5e94f0d6dab2bb26913ab10cf3a0b824dbe0c97550091c7",
+    "scripts/call-model.py": "def5c97a741b9366bafcdf31c7097c54cfb16a07df9a88bc82f4a6a76b358b6d",
+    "requirements-call-model.txt": "b320fb849d624c26c802796c6499fa227777daa155115ca6524d62b23b03ab4e",
+    "src/app/CallLab.jsx": "ae27744be17bb714106a2cdfabd388f37d0e7f32402c08452988f1d3650af882",
+    "src/transport/callLabClient.ts": "46214609ee08bec2386ba4aae93dd35c32b571dc0ce75d658cf467cde11e89bf",
+    "src/transport/generated/callLab.ts": "d46e91cda4361c423b6c606b8fd0a3b2c3e85d08b2d0f9391f3da486df9a3dfe",
+    "src/transport/generated/callLab.schema.json": "c70516f105da6009792804cc0bcb3c7d292ae1c33a0ea000fee36044c8b7ffde",
+    "tests/test_call_model.py": "333dba2f67f9e0d5d9f8551703a832c506f90feabb0ace763738a33f2a8c8ffc",
+    "tests/test_call_lab.mjs": "47c9a9800ccc1fb17381d4f69d90cdf9db10113d1665c919f37f7734fd4c0dc5"
+  },
+  "owner_followup": {
+    "date": "2026-10-24",
+    "decision": "Cannot free sufficient resources; defer real benchmark",
+    "model_accepted": false,
+    "memory_guard_lowered": false,
+    "replacement_model_downloaded": false
+  }
+}

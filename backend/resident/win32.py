@@ -180,9 +180,11 @@ class WorkspaceProcess:
             startup.startup.flags = 0x101  # STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW
             startup.startup.stdin, startup.startup.stdout, startup.startup.stderr = read, null, null
             startup.attributes = C.cast(attributes, W.LPVOID)
-            command = C.create_unicode_buffer(
-                subprocess.list2cmdline([str(executable), str(entrypoint)])
-            )
+            arguments = [str(executable)]
+            if Path(executable).name.lower() in {"python.exe", "pythonw.exe"}:
+                arguments.append("-B")  # Isolated ._pth ignores PYTHONDONTWRITEBYTECODE.
+            arguments.append(str(entrypoint))
+            command = C.create_unicode_buffer(subprocess.list2cmdline(arguments))
             allowed = {
                 "systemroot",
                 "systemdrive",
@@ -208,6 +210,7 @@ class WorkspaceProcess:
                 "homepath",
                 "processor_architecture",
                 "number_of_processors",
+                "pythondontwritebytecode",
                 "comspec",
                 "pathext",
             }

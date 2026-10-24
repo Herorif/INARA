@@ -1,14 +1,18 @@
-# INARA Android companion (R7 source)
+# INARA Android companion (debug pilot)
 
-Native Kotlin/Compose source for pairing, laptop status, scoped job previews and separately granted tool-free chat. **No APK was compiled or installed in this environment.** JDK/Gradle/SDK/ADB were unavailable. Manifest/source guards and Python protocol fixtures do not prove Android runtime behavior.
+Native Kotlin/Compose companion for pairing, laptop status, scoped job previews and separately granted tool-free chat. **A clean strict offline debug build is accepted, 23 October 2026**, with real Kotlin/Java compilation, one passing JVM protocol test and APK signature verification. No phone/emulator installation or runtime acceptance has occurred. [Build evidence and preserved APK location](../docs/qa/android-build-verification.json).
 
-The app has only INTERNET permission. It has no camera/microphone permission, notification listener, default-dialer role, calls integration, foreground service or background worker. Existing SIM and personal WhatsApp are unaffected.
+The source manifest declares only INTERNET. The compiled manifest additionally contains AndroidX's app-owned signature-only `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, verified with aapt2; it adds no phone/audio permission. It has no camera/microphone permission, default-dialer role, calls integration, foreground service or background worker. The protected notification listener exists in source behind a false acceptance flag, as detailed below. Existing SIM and personal WhatsApp are unaffected.
 
-## Build when tooling is provided
+## Protected call receipt reads
 
-Pinned baseline: JDK 17, Gradle 8.11.1, Android SDK platform 35 / Build Tools 35.0.0, AGP 8.9.2, Kotlin/Compose compiler 2.1.20 and Compose BOM 2025.04.01. These are explicit source pins, not a claim to be the latest versions or a resolved dependency lock. [AGP compatibility](https://developer.android.com/build/releases/agp-8-9-0-release-notes), [Compose compiler setup](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler).
+Version 0.1.1-receipts (code 2) adds an explicit read-only calls:read pairing grant, manual saved-call list/transcript reads and protected bounded caching. Existing devices receive no new grants. A fresh strict offline build, four JVM tests and APK signature verification pass; phone install/runtime acceptance remains pending. [Implementation, current artifact and limits](../docs/MOBILE_CALL_RECEIPTS.md). No call answering or WhatsApp text action is enabled.
 
-`./build.ps1` checks pre-existing tools/SDK and runs Gradle offline with two workers and a 2 GB JVM cap. It installs nothing. There is deliberately no wrapper that downloads Gradle on first use. If dependencies are missing, a separately authorized `./build.ps1 -ResolveDependencies` permits normal Gradle dependency resolution; it still requires an existing SDK. First successful build must record dependency resolution/verification, run the included JVM protocol-vector test and inspect Compose previews/emulator behavior before an APK is described as usable. No Gradle dependency lock/checksum file was fabricated without a build.
+## Build with the local toolchain
+
+Pinned baseline: JDK 17, Gradle 8.14.6, Android SDK platform 35 / Build Tools 35.0.0, AGP 8.9.2, Kotlin/Compose compiler 2.1.20 and Compose BOM 2025.04.01. Real resolved locks and SHA-256 verification metadata are now present. These are validated compatibility pins, not a latest-version claim. [AGP compatibility](https://developer.android.com/build/releases/agp-8-9-0-release-notes), [Compose compiler setup](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler).
+
+`./build.ps1 -Preflight` checks local presence without executing tools. `./build.ps1` checks exact tool versions, then runs a clean offline build with strict dependency verification, one worker and the 768 MB JVM cap. It installs nothing. First dependency recording uses the explicit `-RecordDependencies` mode, optionally with `-ResolveDependencies` when downloads are undertaken. Recording is not accepted-build status: review generated locks/checksums and rerun the normal offline build. The runner audits fresh JVM tests, APK structure and apksigner results, with local source/output hash receipts. [Commands, evidence contract and remaining limits](../docs/ANDROID_BUILD_ACCEPTANCE.md). No real dependency lock/checksum file or APK was fabricated without a build. Compose/emulator/device acceptance remains separate.
 
 ## Pairing ceremony
 
@@ -29,6 +33,6 @@ See [protocol, evidence and limits](../docs/R7_ANDROID_FOUNDATION.md). API/provi
 
 ## R8 selected notifications (source only)
 
-The protected notification listener, encrypted bounded queue, explicit consent/rule review and manual duplicate-safe sync are now present in source. `BuildConfig.NOTIFICATION_ACCEPTANCE_ENABLED` remains false. No build, native JVM/Keystore tests, APK, phone permission or real notification acceptance was performed. Do not flip the flag or enable system access until a separately authorized native/device acceptance process is available. INTERNET is still the only uses-permission; the non-exported listener requires the system's BIND_NOTIFICATION_LISTENER_SERVICE binding permission.
+The protected notification listener, encrypted bounded queue, explicit consent/rule review and manual duplicate-safe sync are compiled. `BuildConfig.NOTIFICATION_ACCEPTANCE_ENABLED` remains false. The JVM protocol test does not exercise Android Keystore, notifications or device permissions. No real notification acceptance was performed. Do not flip the flag or enable system access until a separately authorized native/device acceptance process is available. INTERNET remains the only source-declared uses-permission (the merged APK also has the app-owned AndroidX signature permission); the non-exported listener requires the system's BIND_NOTIFICATION_LISTENER_SERVICE binding permission.
 
 See [R8 source behavior and limits](../docs/R8_NOTIFICATIONS.md) and [remaining release gates](../docs/RELEASE_READINESS.md). No WhatsApp replies/drafts/actions or call handling is implemented. No background networking, history scan or automatic sync was added.

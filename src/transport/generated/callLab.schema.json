@@ -1,0 +1,412 @@
+{
+  "LabReference": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "title": "LabReference",
+    "type": "object"
+  },
+  "LabRun": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "mode": {
+        "const": "offline_fixture",
+        "title": "Mode",
+        "type": "string"
+      },
+      "state": {
+        "enum": [
+          "running",
+          "completed",
+          "interrupted",
+          "failed",
+          "uncertain"
+        ],
+        "title": "State",
+        "type": "string"
+      },
+      "code": {
+        "anyOf": [
+          {
+            "maxLength": 120,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Code"
+      },
+      "started_at": {
+        "title": "Started At",
+        "type": "number"
+      },
+      "finished_at": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Finished At"
+      },
+      "record_id": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Record Id"
+      }
+    },
+    "required": [
+      "id",
+      "mode",
+      "state",
+      "started_at"
+    ],
+    "title": "LabRun",
+    "type": "object"
+  },
+  "LabState": {
+    "$defs": {
+      "CallAvailability": {
+        "additionalProperties": false,
+        "properties": {
+          "admission_ready": {
+            "title": "Admission Ready",
+            "type": "boolean"
+          },
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "live_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Live Enabled",
+            "type": "boolean"
+          },
+          "voice_mode": {
+            "const": "local_structured_english",
+            "default": "local_structured_english",
+            "title": "Voice Mode",
+            "type": "string"
+          },
+          "cloud_fallback": {
+            "const": false,
+            "default": false,
+            "title": "Cloud Fallback",
+            "type": "boolean"
+          },
+          "blockers": {
+            "items": {
+              "enum": [
+                "call_components_missing",
+                "call_resources_busy",
+                "resource_policy",
+                "resource_fault",
+                "resource_capacity",
+                "call_physical_unverified"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Blockers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "admission_ready",
+          "active",
+          "blockers"
+        ],
+        "title": "CallAvailability",
+        "type": "object"
+      },
+      "LabRun": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "const": "offline_fixture",
+            "title": "Mode",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "running",
+              "completed",
+              "interrupted",
+              "failed",
+              "uncertain"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Code"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "number"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Finished At"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Id"
+          }
+        },
+        "required": [
+          "id",
+          "mode",
+          "state",
+          "started_at"
+        ],
+        "title": "LabRun",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "project": {
+        "maxLength": 200,
+        "title": "Project",
+        "type": "string"
+      },
+      "live_enabled": {
+        "const": false,
+        "default": false,
+        "title": "Live Enabled",
+        "type": "boolean"
+      },
+      "physical_verified": {
+        "const": false,
+        "default": false,
+        "title": "Physical Verified",
+        "type": "boolean"
+      },
+      "helper_built": {
+        "title": "Helper Built",
+        "type": "boolean"
+      },
+      "audio_installed": {
+        "title": "Audio Installed",
+        "type": "boolean"
+      },
+      "voice_configured": {
+        "title": "Voice Configured",
+        "type": "boolean"
+      },
+      "model_installed": {
+        "title": "Model Installed",
+        "type": "boolean"
+      },
+      "model_accepted": {
+        "title": "Model Accepted",
+        "type": "boolean"
+      },
+      "worker_supported": {
+        "title": "Worker Supported",
+        "type": "boolean"
+      },
+      "worker_busy": {
+        "title": "Worker Busy",
+        "type": "boolean"
+      },
+      "admission": {
+        "$ref": "#/$defs/CallAvailability"
+      },
+      "runs": {
+        "items": {
+          "$ref": "#/$defs/LabRun"
+        },
+        "maxItems": 24,
+        "title": "Runs",
+        "type": "array"
+      }
+    },
+    "required": [
+      "project",
+      "helper_built",
+      "audio_installed",
+      "voice_configured",
+      "model_installed",
+      "model_accepted",
+      "worker_supported",
+      "worker_busy",
+      "admission",
+      "runs"
+    ],
+    "title": "LabState",
+    "type": "object"
+  },
+  "LabSegment": {
+    "additionalProperties": false,
+    "properties": {
+      "role": {
+        "enum": [
+          "caller",
+          "assistant"
+        ],
+        "title": "Role",
+        "type": "string"
+      },
+      "text": {
+        "maxLength": 12000,
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": [
+      "role",
+      "text"
+    ],
+    "title": "LabSegment",
+    "type": "object"
+  },
+  "LabRecord": {
+    "$defs": {
+      "LabSegment": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "caller",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 12000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "text"
+        ],
+        "title": "LabSegment",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "mode": {
+        "const": "offline_fixture",
+        "default": "offline_fixture",
+        "title": "Mode",
+        "type": "string"
+      },
+      "source": {
+        "enum": [
+          "sim",
+          "whatsapp_personal"
+        ],
+        "title": "Source",
+        "type": "string"
+      },
+      "state": {
+        "enum": [
+          "completed",
+          "interrupted",
+          "failed",
+          "uncertain"
+        ],
+        "title": "State",
+        "type": "string"
+      },
+      "identity_verified": {
+        "const": false,
+        "default": false,
+        "title": "Identity Verified",
+        "type": "boolean"
+      },
+      "message_confirmed": {
+        "const": false,
+        "default": false,
+        "title": "Message Confirmed",
+        "type": "boolean"
+      },
+      "transcript": {
+        "items": {
+          "$ref": "#/$defs/LabSegment"
+        },
+        "maxItems": 200,
+        "title": "Transcript",
+        "type": "array"
+      }
+    },
+    "required": [
+      "id",
+      "source",
+      "state",
+      "transcript"
+    ],
+    "title": "LabRecord",
+    "type": "object"
+  }
+}

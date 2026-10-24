@@ -23,6 +23,8 @@ def model_id(capability):
 # Admission estimates, not measured peaks or an OS memory sandbox. No automatic
 # CPU->GPU escalation. Image CUDA support is held until hardware acceptance.
 WORKER_PROFILES = {
+    "call_local": {"cpu": 1, "ram_mb": 512, "vram_mb": 0, "device": "cpu"},
+    "call_model": {"cpu": 2, "ram_mb": 6144, "vram_mb": 0, "device": "cpu"},
     "cad_offline": {"cpu": 2, "ram_mb": 512, "vram_mb": 0, "device": "cpu"},
     "cad_blender": {"cpu": 2, "ram_mb": 2048, "vram_mb": 0, "device": "cpu"},
     "image_cpu": {"cpu": 2, "ram_mb": 8192, "vram_mb": 0, "device": "cpu"},

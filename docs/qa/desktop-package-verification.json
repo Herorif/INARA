@@ -1,0 +1,23 @@
+{
+  "self_contained": false,
+  "signed": false,
+  "external_python_used": true,
+  "ui": {
+    "passed": true,
+    "destinations": 5,
+    "widths": [
+      390,
+      1440
+    ],
+    "external_package_resolution_disabled": true,
+    "media_requests": 0,
+    "external_requests": 0
+  },
+  "passed": true,
+  "staged_core_used": true,
+  "staged_electron_used": true,
+  "node_npm_required": false,
+  "model_device_workers_started": 0,
+  "graceful_core_stop": true,
+  "package_unchanged_after_run": true
+}

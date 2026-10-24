@@ -10,8 +10,8 @@ BrowserWindow.prototype.loadFile=async function(...args){
  const window=this;await load.apply(window,args);const evaluate=source=>window.webContents.executeJavaScript(source),result={};
  const screenshot=async name=>{await sleep(200);fs.writeFileSync(path.join(output,name),(await window.webContents.capturePage()).toPNG());};
  const button=text=>evaluate(`[...document.querySelectorAll('.usage-center button')].find(button=>button.textContent.trim()===${JSON.stringify(text)})?.click()`);
- const set=(label,value)=>evaluate(`(()=>{const el=document.querySelector('[aria-label=${JSON.stringify(label)}]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
- const open=async()=>{await evaluate(`[...document.querySelectorAll('.quick-launch button')].find(button=>button.textContent.includes('Usage & quality')).click()`);await until(()=>evaluate(`!!document.querySelector('.usage-meters')`));};
+ const set=(label,value)=>evaluate(`(()=>{const el=document.querySelector('[aria-label=${JSON.stringify(label)}]');const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+ const open=async()=>{await evaluate(`document.querySelector('[aria-label="Open command palette"]').click()`);await until(()=>evaluate(`!!document.querySelector('[aria-label="Search commands"]')`));await set('Search commands','Usage & quality');await until(()=>evaluate(`document.querySelector('[role="option"] strong')?.textContent==='Usage & quality'`));await evaluate(`document.querySelector('[role="option"]').click()`);await until(()=>evaluate(`!!document.querySelector('.usage-meters')`));};
  try{
   await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
   await open();assert.equal(await evaluate(`document.querySelector('.usage-mode').textContent`),'MONITOR ONLY');

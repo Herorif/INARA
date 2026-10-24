@@ -6,6 +6,7 @@ export type ListenerRequest = {
 };
 export type PairRequest = {
   "allow_chat"?: boolean;
+  "allow_calls"?: boolean;
 };
 export type PairDecision = {
   "device_id": string;
@@ -44,4 +45,7 @@ export type MobilePreview = {
 export type MobileReceipt = {
   "conversation_id": string;
   "request_id": string;
+};
+export type MobileCallReceipt = {
+  "id": string;
 };

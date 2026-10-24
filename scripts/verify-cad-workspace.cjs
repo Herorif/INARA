@@ -193,7 +193,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await until(()=>evaluate(`!!document.querySelector('.proposal-review')`));
     assert.equal(await evaluate(`document.querySelector('[aria-label="position X"]').value`),'0');
     assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),4);
-    await evaluate(`document.querySelector('.proposal-review button').click()`);
+    await evaluate(`[...document.querySelectorAll('.proposal-review button')].find(button=>button.textContent==='Apply to draft').click()`);
     await until(()=>evaluate(`document.querySelector('[aria-label="position X"]').value==='20'`));
     await evaluate(`[...document.querySelectorAll('.cad-workbench > .draft-view-tools button')].find(button=>button.textContent==='Draft blockout').click()`);
     await until(()=>evaluate(`!!document.querySelector('.cad-draft-viewport canvas') && document.querySelector('.cad-draft-viewport').dataset.draftValid==='true'`));
@@ -214,16 +214,86 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`[...[...document.querySelectorAll('[aria-label="Saved model views"]')].at(-1).querySelectorAll('button')].find(button=>button.textContent==='Front').click();[...[...document.querySelectorAll('[aria-label="Saved model views"]')].at(-1).querySelectorAll('button')].find(button=>button.textContent==='Restore view').click()`);
     result.r5={saved_view_controls:true,undo_redo_transforms:true,proposal_requires_review_no_worker:true,fixture_proposal_only:true,draft_blockout_canvas:true,child_revision_preserves_parent:true,saved_revision_comparison:true};
 
-    await evaluate(`document.querySelector('[aria-label="Close panel"]').click();document.querySelector('nav [aria-label="Activity"]').click()`);
+    await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.studio-tabs')`));
+    await evaluate(`[...document.querySelectorAll('.studio-tabs button')].find(button=>button.textContent.includes('Artifacts')).click()`);
     await until(() => evaluate(`document.querySelectorAll('.activity-card').length >= 4 && !document.querySelector('.panel-state--loading')`));
     assert.equal(await evaluate(`document.querySelector('.activity-center').textContent.includes('GLB')`), true);
     fs.writeFileSync(path.join(output,'activity-desktop.png'), (await window.webContents.capturePage()).toPNG());
-    await evaluate(`document.querySelector('.activity-card footer button').click()`);
+    await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.querySelector('.eyebrow').textContent.includes('3D STUDIO')).querySelector('footer button').click()`);
     await until(() => evaluate(`document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true'`));
     assert.equal(await evaluate(`document.querySelectorAll('.scene-roster button').length`),3);
     assert.equal(await evaluate(`[...document.querySelectorAll('[aria-label="Saved model views"] button')].some(button=>button.textContent==='Restore view' && !button.disabled)`),true);
     result.bookmark_restored_after_panel_close=true;
     result.activity_restores_selected_revision = true; result.long_revision_names = true;
+
+    // Scene proposals use injected provider data and the real approval/worker path.
+    await evaluate(`document.querySelector('.cad-ai').open=true; const mode=document.querySelector('[aria-label="Blueprint proposal type"]'); mode.value='scene'; mode.dispatchEvent(new Event('change',{bubbles:true}));`);
+    await evaluate(`{const input=document.querySelector('.cad-ai textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'SCENE BLUEPRINT FIXTURE');input.dispatchEvent(new Event('input',{bubbles:true}));}`);
+    await evaluate(`document.querySelector('.cad-ai button').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await until(()=>evaluate(`document.querySelectorAll('.blueprint-parts article').length===2`));
+    assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),5);
+    assert.equal(await evaluate(`document.querySelectorAll('.scene-roster button').length`),3);
+    await evaluate(`[...document.querySelectorAll('.proposal-review button')].find(button=>button.textContent==='Preview proposal').click()`);
+    await until(()=>evaluate(`document.querySelector('.proposal-review .cad-draft-viewport')?.dataset.draftValid==='true'`));
+    await evaluate(`document.querySelector('.proposal-review').scrollIntoView({block:'start'})`);await sleep(250);
+    fs.writeFileSync(path.join(output,'scene-proposal-desktop.png'),(await window.webContents.capturePage()).toPNG());
+    window.setContentSize(390,844);await sleep(200);
+    assert.equal(await evaluate(`document.documentElement.scrollWidth > innerWidth || document.querySelector('.proposal-review').scrollWidth > document.querySelector('.proposal-review').clientWidth`),false);
+    fs.writeFileSync(path.join(output,'scene-proposal-390.png'),(await window.webContents.capturePage()).toPNG());
+    window.setContentSize(1440,1000);
+    await evaluate(`[...document.querySelectorAll('.proposal-review button')].find(button=>button.textContent==='Apply to draft').click()`);
+    await until(()=>evaluate(`document.querySelectorAll('.scene-roster button').length===2 && !document.querySelector('.proposal-review')`));
+    assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),5);
+    await evaluate(`[...document.querySelectorAll('.cad-workbench > .draft-view-tools button')].find(button=>button.textContent==='Saved revision').click();document.querySelector('.cad-build').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await until(()=>evaluate(`document.querySelector('.cad-status strong')?.textContent==='Ready to explore' && document.querySelectorAll('.cad-history-list button').length===6 && document.querySelector('.cad-viewport')?.dataset.modelLoaded==='true'`));
+    result.scene_blueprint={fixture_provider:true,review_preview_and_apply:true,no_build_before_separate_approval:true,offline_scene_built:true,narrow_width:390};
+
+    await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+    await evaluate(`[...document.querySelectorAll('.studio-tabs button')].find(button=>button.textContent.includes('Artifacts')).click()`);
+    await until(()=>evaluate(`document.querySelectorAll('.activity-card').length>=7 && !document.querySelector('.panel-state--loading')`));
+    await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.querySelector('.eyebrow').textContent.includes('3D STUDIO')).querySelector('.activity-handoff button').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.image-studio .creative-handoff pre') && !document.querySelector('.creative-handoff button').disabled`));
+    assert.equal(await evaluate(`!!document.querySelector('.creative-reference')`),false);
+    assert.equal(await evaluate(`document.querySelectorAll('.image-history-list button').length`),1);
+    await evaluate(`document.querySelector('.creative-handoff').scrollIntoView({block:'start'})`);await sleep(200);
+    fs.writeFileSync(path.join(output,'handoff-image-desktop.png'),(await window.webContents.capturePage()).toPNG());
+    window.setContentSize(390,844);await sleep(180);
+    assert.equal(await evaluate(`document.documentElement.scrollWidth > innerWidth || document.querySelector('.creative-handoff').scrollWidth > document.querySelector('.creative-handoff').clientWidth`),false);
+    fs.writeFileSync(path.join(output,'handoff-image-390.png'),(await window.webContents.capturePage()).toPNG());
+    window.setContentSize(1440,1000);
+    await evaluate(`document.querySelector('.creative-handoff .handoff-actions button').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.creative-reference') && !document.querySelector('.creative-handoff')`));
+    assert.equal(await evaluate(`document.querySelector('.image-director textarea').value.includes('Reference recipe:')`),true);
+    assert.equal(await evaluate(`document.querySelectorAll('.image-history-list button').length`),1);
+
+    await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+    await evaluate(`[...document.querySelectorAll('.studio-tabs button')].find(button=>button.textContent.includes('Artifacts')).click()`);
+    await until(()=>evaluate(`document.querySelectorAll('.activity-card').length>=7 && !document.querySelector('.panel-state--loading')`));
+    await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.querySelector('.eyebrow').textContent.includes('IMAGE ATELIER')).querySelector('.activity-handoff button').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.cad-studio .creative-handoff pre') && !document.querySelector('.creative-handoff button').disabled`));
+    // Editing the existing draft invalidates the pending Apply instead of overwriting it.
+    await evaluate(`{const input=document.querySelector('.cad-ai textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'Preserve this edited brief');input.dispatchEvent(new Event('input',{bubbles:true}));}`);
+    await until(()=>evaluate(`document.querySelector('.creative-handoff .handoff-actions button').disabled`));
+    await evaluate(`document.querySelectorAll('.creative-handoff .handoff-actions button')[1].click()`);
+    assert.equal(await evaluate(`document.querySelector('.cad-ai textarea').value`),'Preserve this edited brief');
+    await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+    await evaluate(`[...document.querySelectorAll('.studio-tabs button')].find(button=>button.textContent.includes('Artifacts')).click()`);
+    await until(()=>evaluate(`document.querySelectorAll('.activity-card').length>=7 && !document.querySelector('.panel-state--loading')`));
+    await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.querySelector('.eyebrow').textContent.includes('IMAGE ATELIER')).querySelector('.activity-handoff button').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.cad-studio .creative-handoff pre') && !document.querySelector('.creative-handoff button').disabled`));
+    await evaluate(`document.querySelector('.creative-handoff').scrollIntoView({block:'start'})`);await sleep(200);
+    fs.writeFileSync(path.join(output,'handoff-cad-desktop.png'),(await window.webContents.capturePage()).toPNG());
+    await evaluate(`document.querySelector('.creative-handoff .handoff-actions button').click()`);
+    await until(()=>evaluate(`!!document.querySelector('.creative-reference') && !document.querySelector('.creative-handoff')`));
+    assert.equal(await evaluate(`document.querySelector('.cad-ai textarea').value.includes('not pixel analysis')`),true);
+    assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),6);
+    assert.equal(await evaluate(`document.querySelector('[aria-label="Blueprint proposal type"]').value`),'scene');
+    result.creative_handoffs={both_directions:true,metadata_only:true,review_apply_discard:true,stale_draft_rejected:true,no_extra_workers_or_provider_calls:true,narrow_width:390};
     result.passed = true;
   } catch (error) {
     result.passed = false;

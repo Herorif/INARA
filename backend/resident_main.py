@@ -16,6 +16,10 @@ def main():
         if getattr(sys, name) is None:
             setattr(sys, name, open(os.devnull, "w", encoding="utf-8"))
     os.environ.pop("ELECTRON_RUN_AS_NODE", None)
+    # Isolated packaged Python intentionally omits script/CWD/user import paths.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    if (Path(__file__).resolve().parents[1] / "desktop-pilot.json").exists():
+        sys.dont_write_bytecode = True
     profile = Path(os.getenv("INARA_DESKTOP_DATA_DIR") or (Path(os.environ["APPDATA"]) / "inara"))
     from resident.host import NativeHost
 

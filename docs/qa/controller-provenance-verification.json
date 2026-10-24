@@ -1,0 +1,48 @@
+{
+  "format": 1,
+  "kind": "inara-controller-provenance-development-acceptance",
+  "controller_manifest_sha256": "aff88cd9364e31c4fc984c79825bfef1f46d634b4e2b24ae9d3d13152263633a",
+  "collector_sha256": "825b7268742898283adc6b52deb7fca5e626bc274619b66bd93175409cb46551",
+  "report_sha256": "91cad878687f11aaf846b31e3004b6a940aa3472cd1cc8450baa4f32e9d9d93b",
+  "evidence_directory": ".runtime/controller-provenance/managed-update-20261022",
+  "controller_files": 2672,
+  "components": 43,
+  "notice_files": 51,
+  "native_files": 38,
+  "missing_notice_components": [],
+  "pending_controller_reviews": 48,
+  "desktop_reviews_pending_separately": 85,
+  "collect_and_rederive_verify": "passed",
+  "focused_tests": {
+    "tests": 139,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_provenance_tests": 23,
+  "scoped_ruff": "passed",
+  "test_evidence": ".runtime/controller-provenance-tests/20261022-final.xml",
+  "refusal_coverage": [
+    "changed report/approval claims",
+    "notice tampering",
+    "queue approval claims",
+    "unexpected/missing evidence",
+    "changed external delivery copy",
+    "source/bootstrap drift",
+    "wrong manifest pin",
+    "dependency metadata mismatch/duplicates/incomplete closure",
+    "declared missing/escaping notices",
+    "shared metadata",
+    "overwrite/unsafe outputs"
+  ],
+  "network_accessed": false,
+  "private_profile_read": false,
+  "packaged_runtime_executed": false,
+  "controller_modified": false,
+  "release_authorized": false,
+  "license_clearance": false,
+  "production_policies": {
+    "RELEASE_TRUST_POLICY.json": "disabled",
+    "WINDOWS_SIGNING_POLICY.json": "disabled"
+  }
+}

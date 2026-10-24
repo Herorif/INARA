@@ -509,3 +509,7 @@
 .cad-shapes { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .scene-actions button:disabled { opacity:.4; }
 .scene-editor button:focus-visible, .scene-vector input:focus-visible, .cad-field select:focus-visible { outline:2px solid #62d9e2; outline-offset:2px; }
+.blueprint-parts { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:.7rem; margin:1rem 0; }
+.blueprint-parts article { display:flex; flex-direction:column; gap:.45rem; padding:1rem; border:1px solid var(--deck-border); border-radius:12px; background:rgba(103,232,249,.035); min-width:0; overflow-wrap:anywhere; }
+.blueprint-parts article strong { font-size:.85rem; }.blueprint-parts article span,.blueprint-parts article small { color:var(--deck-muted); font-size:.75rem; }
+.blueprint-review-actions { display:flex; flex-wrap:wrap; gap:.7rem; margin-top:1rem; }

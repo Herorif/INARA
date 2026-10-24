@@ -1,8 +1,53 @@
 # INARA code cleanup and JARVIS interface plan
 
-Updated 14 October 2026. The core/native/creative foundation is already implemented; the ordered remaining work is R1-R8 in [the reconciled roadmap](INARA_REVAMP_PLAN.md#current-baseline-and-implementation-sequence-14-october-2026). This extends the [system architecture](INARA_REVAMP_PLAN.md) and translates the [project findings](PROJECT_REVIEW.md) into implementation work. Make the application easier to maintain and give it a responsive JARVIS-style interface while meeting the laptop resource budgets.
+Updated 20 October 2026. R1-R8 source milestones and the Command OS UI refinement below are complete within their documented acceptance boundaries. The owner's latest priority is [personal incoming-call answering](IMPLEMENTATION_HANDOFF.md#current-priority-incoming-call-answering-and-message-taking), beginning with a real bridge feasibility gate; the earlier [UI-to-WhatsApp roadmap](IMPLEMENTATION_HANDOFF.md#current-priorities-unified-ui-through-whatsapp-assistance) retains the creative backlog. Older checkpoint descriptions below are historical, not a request to repeat completed work. This extends the [system architecture](INARA_REVAMP_PLAN.md) and translates the [project findings](PROJECT_REVIEW.md) into implementation work. Make the application easier to maintain and give it a responsive JARVIS-style interface while meeting the laptop resource budgets.
 
 The cleanup and interface changes should ship in reviewable increments. Preserve existing user data and working integrations, establish shared contracts, then move features behind those contracts. The interface should reveal actual assistant state and make creative work easy to inspect and revise.
+
+## Command OS UI refinement, 20 October 2026
+
+Implemented the requested visual refinement and workspace unification. Five primary destinations replace the scattered feature launch flow: Assistant, Studio, Inbox, Tasks and Connections. Creative tools and substantial controls open inside the main canvas; the command palette and navigation remain accessible. Preferences and other short dialogs can overlay the active tool without destroying its draft. Closing a dock restores keyboard focus; Escape dismisses dialogs without accidentally cancelling the docked tool.
+
+The graphite/cyan design now has a compact titlebar, clearer typography, consistent surface depth, restrained decorative SVG/CSS artwork, a collapsible context inspector and a live creative-activity tray. A bottom navigation bar serves narrow windows. Assistant has readable message/citation presentation, a multiline composer with Enter/Shift+Enter/IME handling, auto-sizing and explicit offline/restoration/processing states. Textarea measurement uses scheduled, guarded updates to avoid ResizeObserver feedback loops. Decorative rendering stops while hidden, idle or in gaming mode as applicable.
+
+`CommandDeck` owns navigation and presentation state. `workspaceNavigation` partitions docked tools from short dialogs; `FeatureContent` owns one lazy panel registry and shared error boundary. `FeatureWorkspace` and `FeatureDialog` share that content with appropriate focus semantics and unique heading IDs. Conversation, overview, inspector and activity tray have separate ownership. Obsolete hero/layout/duplicated conversation styles were removed; orb and reminder styles moved beside their owning components. Existing service, typed transport, approval and job-lifetime boundaries are retained.
+
+Inbox is a read-only view of existing current-project paired sources and retained notifications. It does not pair a phone, grant access, collect notifications or start a provider automatically. Notification policy and clearing stay in the companion management flow. Lock, disconnect, project changes, revocation and stale replies invalidate the visible scope. AI summaries, drafts, sending and calls remain deferred.
+
+Validation for this UI change: 98 Node checks (94 module tests plus four resident tests), transport TypeScript, generated-contract drift, production build and Python verification-script lint. Hidden native shell acceptance checks all five destinations at 390/768/1440/2560px, docked keyboard navigation, focus return, Preferences preserving the mounted image draft, command search while docked, metadata error/retry, reduced motion and 200% zoom/root text. No provider/device/creative worker or physical media activation occurs in the shell fixture. The last full Python regression baseline remains the prior 1,053 passes/one Blender skip; it is not a new full-suite run for this presentation change.
+
+The adapted offline renderer checks also pass all nine shared panel interiors, disabled offline actions and bundled hand tracking against a synthetic canvas. Native phone fixtures pass pairing, notification redaction/deduplication/clearing, revocation and replay rejection; native memory fixtures pass multiline sending, source citations, reviewed memory changes, retention and protected backup/recovery. Both fixtures release their owned listener/provider. These checks use temporary data and local fixtures, without a physical phone or paid provider.
+
+Source evidence is recorded under `.runtime/command-qa/` by `scripts/verify-command.py`; run-specific screenshots and memory figures are in the implementation status. This is desktop renderer/native fixture acceptance, not a compiled Android UI, real notification access, signed release, gaming benchmark or real creative-model quality acceptance. User-adjustable pane widths and saved layouts remain optional later refinements; the implemented inspector is collapsible. Next source work follows the typed multi-object scene milestone in the handoff.
+
+## Current UI redesign brief, 19 October 2026
+
+Concept: **INARA Command OS**, a calm spacecraft console with the current task or artifact at its center. Keep the established graphite/cyan identity, but improve typography, hierarchy, spacing and continuity. The voice core is a compact state indicator that expands during voice use; a large decorative hero must not displace useful work. No invented telemetry or continuously running decorative 3D scene.
+
+```text
+Navigation   Project / search / resource mode
+Assistant    Conversation or artifact canvas    Context inspector
+Studio       (resizable working panes)          (collapsible)
+Inbox
+Tasks        Job progress / pending approvals / activity
+Connections
+```
+
+| Workspace | Primary experience |
+| --- | --- |
+| Assistant | Persistent conversation, text/voice composer, references and reviewable action cards. Keep Quick assistant as a separately lazy compact surface. |
+| Studio | Artifact-first canvas with scene tree/gallery, contextual properties, prompt/proposed edits, revision compare and export. Use explicit Image, 3D and Vision subviews; mount only the active expensive viewer. |
+| Inbox | Source/conversation list, selected content and provenance beside an on-demand summary. Show partial notification coverage and core connectivity. Current scope has no draft/send controls. |
+| Tasks | Reviewed plans, current step, pending owner decision, cancellation and durable outcomes. Never imply an unknown action succeeded. |
+| Connections | Consistent readiness/setup cards for phone, providers and devices; distinguish missing setup, configured, detected and actually verified. Settings, memory and usage open in a shared system drawer or dedicated view as appropriate. |
+
+Use docked/resizable panes and persistent navigation for long workflows. Reserve dialogs for short forms and decisions. Consolidate toolbars, fields, tabs, status chips, artifact cards, approvals, empty/error/setup states and the task tray into shared components. Migrate feature presentation incrementally under `src/features/`, with tokens/components in `src/shared/design/` and `src/shared/ui/`; retain existing contracts, service ownership, approvals and typed clients. Move a feature only with its working flow and retire duplicate CSS/layout after parity. Avoid a wholesale backend rewrite or file moves for their own sake.
+
+Refine the existing token palette below rather than create another competing theme. Use a readable locally bundled sans-serif body, selective mono labels, clear surface depth and restrained cyan selection; amber means owner attention, green completion and red failure, always with labels. Use short functional transitions, visible keyboard focus and reduced-motion support. Sketch and review Assistant, Studio and Inbox at desktop and narrow sizes before migrating all workspaces; complete this as one accepted UI milestone.
+
+Acceptance: working primary flows and real state coverage (empty, offline, setup needed, processing, waiting for owner, cancelled and failed), keyboard/focus/text scaling/contrast checks, desktop and 390px visual review, no narrow overflow, state preserved across pane changes, and unchanged authorization/resource ownership. Fold cover/unfold behavior requires later native device acceptance. Hidden/minimized rendering stops; inactive viewers unmount; workspace closure releases Electron and heavy resources. Compare native recovery to the existing short fixture baseline of about 66.5 MB, without presenting that sample as a sustained hardware budget. Record before/after screenshots and measurements, not only a successful build.
+
+Model request: the owner asks for Astra with Ultra/highest suitable reasoning for this redesign. Select the supported client option before executing that work; this document does not switch models. Astra owns the cohesive design and final visual/integration review; routine subsequent work can retain the cost-conscious implementation policy in the handoff. This has no effect on the resident assistant's runtime model or memory footprint. [Model controls](https://learn.chatgpt.com/docs/models).
 
 ## Code organization
 

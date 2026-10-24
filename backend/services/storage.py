@@ -29,7 +29,7 @@ class WindowsProtection:
         buffer = ctypes.create_string_buffer(data)
         source = Blob(len(data), ctypes.cast(buffer, ctypes.POINTER(ctypes.c_ubyte)))
         target = Blob()
-        library = ctypes.WinDLL("crypt32", use_last_error=True)
+        library = ctypes.WinDLL("crypt32.dll", winmode=0x800, use_last_error=True)
         function = library.CryptUnprotectData if decrypt else library.CryptProtectData
         function.argtypes = [
             ctypes.POINTER(Blob),
@@ -46,7 +46,7 @@ class WindowsProtection:
         try:
             return ctypes.string_at(target.data, target.size)
         finally:
-            free = ctypes.WinDLL("kernel32", use_last_error=True).LocalFree
+            free = ctypes.WinDLL("kernel32.dll", winmode=0x800, use_last_error=True).LocalFree
             free.argtypes = [ctypes.c_void_p]
             free.restype = ctypes.c_void_p
             free(target.data)

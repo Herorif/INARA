@@ -42,12 +42,12 @@ function Blockout({ objects, selected, onSelect, onMove, disabled }) {
     {blockParts(object).map((part,partIndex) => <mesh key={partIndex} position={part.center} onPointerDown={event => {event.stopPropagation();if (!disabled) onSelect(index);}}><boxGeometry args={part.size} /><meshStandardMaterial color={colors[object.material] || colors.cyan} roughness={.5} metalness={.25} emissive={index === selected ? '#14474d' : '#000000'} /></mesh>)}
   </group>)}</group></group>;
 }
-export default function DraftPreview({ recipe, selected, onSelect, onMove, disabled }) {
+export default function DraftPreview({ recipe, selected, onSelect, onMove, disabled, readOnly = false }) {
   const objects = recipe.shape === 'scene' ? recipe.objects : [recipe];
   const valid = objects?.length > 0 && objects.every(object => blockParts(object).length > 0 && ['position','rotation','scale'].every(key => !object[key] || object[key].every(v => typeof v === 'number' && Number.isFinite(v))));
   return <div className="cad-viewport cad-draft-viewport" data-draft-valid={!!valid}>
-    <div className="cad-view-label">DRAFT BLOCKOUT / {recipe.shape === 'scene' ? 'SELECT + TRANSLATE' : 'DIMENSION PREVIEW'}</div>
+    <div className="cad-view-label">{readOnly ? 'PROPOSAL / ORBIT TO INSPECT' : `DRAFT BLOCKOUT / ${recipe.shape === 'scene' ? 'SELECT + TRANSLATE' : 'DIMENSION PREVIEW'}`}</div>
     {valid ? <Canvas frameloop="demand" dpr={[1,1.5]} camera={{position:[1.9,1.5,2.1],fov:42,near:.001,far:100}}><ambientLight intensity={1.2} /><directionalLight position={[4,7,5]} intensity={2.2} /><Blockout objects={objects} selected={selected} onSelect={onSelect} onMove={onMove} disabled={disabled || recipe.shape !== 'scene'} /></Canvas> : <div className="cad-preview-empty"><strong>Complete valid dimensions to preview</strong></div>}
-    <div className="cad-view-guide">Blockout only / build to validate topology. Gizmo: local axes, 1 mm snap.</div>
+    <div className="cad-view-guide">{readOnly ? 'Approximate blockout / apply to edit; build to validate geometry.' : 'Blockout only / build to validate topology. Gizmo: local axes, 1 mm snap.'}</div>
   </div>;
 }

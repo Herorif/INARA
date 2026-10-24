@@ -12,11 +12,13 @@ export function recordActivity(entries, kind, job, project) {
     error: job.error,
     background: job.background === true,
     resources: job.resources,
+    recipe_fingerprint: job.recipe_fingerprint,
+    reference: job.reference,
   });
   return [merged, ...entries.filter(item => item.key !== key)].slice(0, 48);
 }
 export const createActivitySlice = (set, get) => ({
-  activity: [], studioSelection: null,
+  activity: [], studioSelection: null, studioHandoff: null,
   restoreActivity: (kind, jobs, startedAt) => set(state => {
     const ids = new Set(jobs.map(job => job.request_id));
     let activity = state.activity.filter(item => item.kind !== kind || ids.has(item.request_id) || !item.created_at || item.created_at > startedAt);

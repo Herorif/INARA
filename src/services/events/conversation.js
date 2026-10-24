@@ -37,7 +37,7 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
     // --- Project ---
     unsubs.push(onSocket('project_update', (data) => {
         const changed = data.project !== s().currentProject;
-        useStore.setState({ currentProject: data.project, conversationId: conversationForProject(data.project), ...(changed ? { activity: [], studioSelection: null, confirmationRequest: null, pendingTextRequest: null, textProcessing: false } : {}) });
+        useStore.setState({ currentProject: data.project, conversationId: conversationForProject(data.project), ...(changed ? { activity: [], studioSelection: null, studioHandoff: null, confirmationRequest: null, pendingTextRequest: null, textProcessing: false } : {}) });
         if (changed && s().backendConnected) resumeConversation(true);
     }));
 

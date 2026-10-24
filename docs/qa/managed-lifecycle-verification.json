@@ -1,0 +1,182 @@
+{
+  "format": 1,
+  "kind": "inara-managed-lifecycle-development-acceptance",
+  "distinct_python_checks": 542,
+  "lifecycle_checks": 32,
+  "worker_entry_checks": 35,
+  "python_runs": {
+    ".runtime/managed-lifecycle-tests/focused.xml": {
+      "tests": 538,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/managed-lifecycle-tests/final-lifecycle-worker.xml": {
+      "tests": 65,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/managed-lifecycle-tests/accepted.xml": {
+      "tests": 137,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "scoped_ruff": "passed",
+  "powershell_parser": "passed",
+  "final_packaged_source_matches_checkout": true,
+  "source_sha256": {
+    "scripts/managed-lifecycle.py": "fe51f86dabdd2441b709d47e90bc12ef0519f31d90b9afadee2e2bdd6ec06eac",
+    "scripts/managed-update.py": "2d5056fb82e17ffc242cd73745e2b6f715a1d489b4bfe7871fd88b75ebe5940a",
+    "scripts/managed-ui.py": "94afb3d9e42fb730b7b985d99c50946006e7ec42a80be623fd6095fd23f8dacf",
+    "scripts/managed-ui.ps1": "4edf500deddb6167694fa7993c8d2f0ebd156c0a5059938e0f20602a27267645",
+    "scripts/desktop-backup.py": "b227ab254a1fc39c069f535c8338177df2abb65c5df5489bd6c86d8eb9b8b999",
+    "scripts/desktop-recovery.py": "51a1e8b68129b972ca656d07e4b408e1897c684818a7b9c2182ba2dedfe092e9",
+    "scripts/controller.py": "142409a31037cc09674c13b52d57de5ecaf03af23d774cf2d8151317ec613305",
+    "scripts/controller-package.py": "b755966b84800e69103303a1da5fbfe762fe9a440fe8c595628e67104d15eb8a",
+    "backend/services/storage.py": "ee112edef465cfc4b90bb6461f6da8fbc48fc51c658d6d045a5eddb5c9889631",
+    "native/setup/Managed.xaml": "8406d6ceec00c32d0893fc3c434126956133f560b5ae45451319163b3c3bda63",
+    "scripts/verify-managed-ui.ps1": "603323db3b2fd2fa79e02a1f61d99d5f4b319b5b6746e1f4fe9814d2016e20bb",
+    "scripts/verify-managed-bridge.ps1": "adb196976797d54b63c38076d6d017922a29c621213c0d1992e32d52854bdae5",
+    "scripts/verify-controller.py": "9157d838e81da96d9f83fc519580101df515f0f6e6a76c258266d8d591239659",
+    "tests/test_managed_lifecycle.py": "eb9ae71545f9ae9f6f1662864e5e5fefd278b4497fc837d7af9bf976eca5ee06",
+    "tests/test_managed_ui.py": "50b1cf20d18f942f21b28e592b2483e3d973160f384e695181678f7900be0e49"
+  },
+  "controller_acceptance": {
+    "bootstrap_policy_status": {
+      "launched": false,
+      "release_authorized": false,
+      "release_mode": "disabled",
+      "windows_mode": "disabled"
+    },
+    "certificate_store_configured": false,
+    "clean_machine_verified": false,
+    "controller": {
+      "files": 2681,
+      "integrity": "passed",
+      "manifest_sha256": "eec5097e7ddea570ab46213ad79fd910c8c886dc1462a538de5e3a35eec66d89",
+      "release_authorized": false,
+      "runtime_executed": false
+    },
+    "format": 1,
+    "kind": "inara-controller-development-acceptance",
+    "network_acceptance_measured": false,
+    "production_installation_created": false,
+    "refusals": {
+      "disabled_windows_policy": true,
+      "missing_guarded_launch_configuration": true,
+      "missing_launch_configuration": true,
+      "missing_lifecycle_authorization": true,
+      "missing_managed_state_configuration": true,
+      "missing_native_ui_manifest_pin_before_window": true,
+      "missing_profile_copy_configuration": true,
+      "wrong_bootstrap_pin_before_python": true
+    },
+    "release_authorized": false,
+    "resident_launched": false,
+    "unsigned_source_probe": {
+      "cache_only": true,
+      "file_sha256": "142409a31037cc09674c13b52d57de5ecaf03af23d774cf2d8151317ec613305",
+      "release_authorized": false,
+      "signer_sha256": null,
+      "status": "0x800b0003",
+      "timestamp_sha256": null
+    },
+    "upstream_python_probe": {
+      "cache_only": true,
+      "file_sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "inara_identity_enrolled": false,
+      "release_authorized": false,
+      "signer_sha256": "f0e4f5974299809383869188a87d305827ace5a7336e7c35ed03858d5816ee62",
+      "status": "0x00000000",
+      "timestamp_sha256": "122776489a543e3e71426ef7338bea0e6561d5047a4e2b9351590bdcff168ace"
+    }
+  },
+  "actual_worker_bridge_acceptance": {
+    "native_async_dispatcher": true,
+    "read_only_refusal_no_root_or_anchor": true,
+    "passed": true,
+    "resident_launched": false,
+    "fixture_only": true,
+    "ports_opened": 0,
+    "actual_bundled_python_worker": true,
+    "trusted_lifecycle_adapters_loaded_before_ready": true,
+    "bad_pin_refused_before_ready": true,
+    "production_installation_created": false,
+    "verified_bootstrap_before_worker": true,
+    "persistent_protocol": true,
+    "idle_eof_exit": true
+  },
+  "native_ui_acceptance": {
+    "widths": [
+      1120,
+      780
+    ],
+    "resume_abort_routes": true,
+    "edit_invalidates": true,
+    "passed": true,
+    "busy_inputs_and_close_blocked": true,
+    "review_consumed": true,
+    "native_wpf_rendered": true,
+    "review_apply_binding": true,
+    "signed_lifecycle_route": true,
+    "backup_prepare_routes": true,
+    "returned_pin_not_adopted": true,
+    "interrupted_apply_preserves_review_evidence": true,
+    "separate_exact_erasure_confirmation": true,
+    "backend_mutations": 0,
+    "fixture_only": true,
+    "expired_review_refused": true,
+    "refusal_clears_stale_result": true
+  },
+  "controller_provenance": {
+    "collect": "passed",
+    "rederive_verify": "passed",
+    "evidence_directory": ".runtime/controller-provenance/managed-lifecycle-20261022-accepted",
+    "report_sha256": "7019ac320f3d536dc217ba8ccb85d2a5bdb498731beead5c0d33fa4ffb5afcd8",
+    "components": 43,
+    "notice_files": 51,
+    "native_files": 38,
+    "pending_reviews": 48,
+    "missing_notice_components": []
+  },
+  "coverage": [
+    "Actual Windows-account encrypted backup and typed preparation with synthetic profile",
+    "Separate lifecycle signing domain rejects update-domain signatures",
+    "Typed activation rechecks owner, generation, exact prepared inventory and unsupported records even with rewritten receipt",
+    "Signed activation/profile rollback retain format 3 and original data",
+    "Software removal retains profiles, signatures, grants, checkpoints, floor and external archives",
+    "Separate erasure exact phrase required again at resume",
+    "Before/after deletion and three metadata-write interruption boundaries",
+    "Cancellation refuses after deletion or metadata commit",
+    "Unknown/shared/foreign/changed entries and corrupted sealed inventories refuse",
+    "Canonical relative CLI paths remain recoverable",
+    "Changed source after apply snapshot cannot enter backup",
+    "Trusted-controller output paths refused"
+  ],
+  "screenshots": {
+    "managed-profiles.png": "a4b13ef4a81787638c95b74193711746ef29056d5e9d90d3acd475aa93632a74",
+    "managed-erasure-780.png": "4a4f39fd43d7ef9b25ab4d03f54277173eb8916b50891dfd9e8f95c861cb5122"
+  },
+  "desktop_reviews_pending_separately": 85,
+  "production_policies": {
+    "RELEASE_TRUST_POLICY.json": "disabled",
+    "WINDOWS_SIGNING_POLICY.json": "disabled"
+  },
+  "private_profile_read": false,
+  "production_identity_configured": false,
+  "providers_or_devices_configured": false,
+  "production_signed_package_native_window_mutation_verified": false,
+  "clean_machine_verified": false,
+  "secure_disk_sanitization_claimed": false,
+  "release_authorized": false,
+  "limitations": [
+    "Source transitions use synthetic signers, in-memory private keys, inert payloads and injected native signature adapters; no real release is authorized.",
+    "Actual native worker bridge covers verified startup, finite protocol, refusal, no root/anchor creation and EOF; real production UI mutation remains pending.",
+    "Profile copies require the original Windows account, same installation/version and compatible owner; unknown records refuse.",
+    "Profile file erasure retains external backups and encrypted path inventories/trust history; it is not secure disk sanitization.",
+    "Both production policies remain disabled and all controller/desktop ownership decisions pending."
+  ]
+}

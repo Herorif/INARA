@@ -1,0 +1,49 @@
+{
+  "authenticode_verified": false,
+  "detached_fixture_verification": {
+    "authenticode_verified": false,
+    "clean_machine_acceptance": false,
+    "fixture_only": true,
+    "integrity": "passed",
+    "legal_identity_established": false,
+    "publisher_key_verified": true,
+    "release_authorized": false,
+    "review_records_complete": false,
+    "reviewer_key_verified": true,
+    "sequence": 1,
+    "signatures": {
+      "publisher": 1,
+      "reviewer": 1
+    },
+    "whole_payload_binding_verified": true
+  },
+  "fixture_only": true,
+  "format": 1,
+  "ledger_unchanged": true,
+  "passed": true,
+  "private_keys_persisted": false,
+  "production_policy_disabled": true,
+  "real_candidate_audit_ledger_revalidated": true,
+  "real_release_signed": false,
+  "refusals": {
+    "fixture-without-option": true,
+    "missing-reviewer": true,
+    "modified-signature": true,
+    "unconfigured-production": true
+  },
+  "release_authorized": false,
+  "unsigned_preparation": {
+    "prepared": true,
+    "private_keys_accessed": false,
+    "release_authorized": false,
+    "signed": false,
+    "signing_message_sha256": "d40eef8427cff1183d81a97d0ec6d518005e6bf3bc8dc05712feaddfe892cab9",
+    "usage": "fixture"
+  },
+  "date": "2026-10-22",
+  "python_test_passes": 90,
+  "new_trust_test_passes": 40,
+  "scoped_ruff": "passed",
+  "production_identity_enrolled": false,
+  "real_review_subjects_pending": 85
+}

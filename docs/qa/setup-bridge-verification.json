@@ -1,0 +1,10 @@
+﻿{
+    "verified_worker_boot":  true,
+    "passed":  true,
+    "ports_opened":  0,
+    "busy_window_close_blocked":  true,
+    "read_only_status_no_mutation":  true,
+    "fixture_only":  true,
+    "native_dispatcher_reply":  true,
+    "actual_private_python_worker":  true
+}

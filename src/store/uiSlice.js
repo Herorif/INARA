@@ -2,6 +2,7 @@ export const createUiSlice = (set, get) => ({
     showQuickAssistant: window.electronAPI?.quickMode === true,
     showSettings: false,
     showCapabilities: false,
+    showCallLab: false,
     showCadWindow: false,
     showImageStudio: false,
     showBrowserWindow: false,

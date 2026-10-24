@@ -19,6 +19,8 @@ from project_manager import ProjectManager
 from services.capabilities import CapabilityCenter
 from services.cad import CadService, register_cad_tools
 from services.cad_transport import CadTransport
+from services.creative_handoffs import CreativeHandoffs
+from transport.creative_handoffs import HandoffTransport
 from services.mobile import MobileService
 from transport.mobile import MobileTransport
 from services.conversation import ConversationService
@@ -30,6 +32,11 @@ from transport.browser import BrowserTransport
 from services.task_queue import TaskQueue
 from transport.task_queue import TaskQueueTransport
 from services.connections import ConnectionsReadiness
+from calls.lab import CallLab
+from calls.admission import CallAdmission
+from calls.testing import ControlledCalls
+from transport.call_testing import CallTestingTransport
+from transport.call_lab import CallLabTransport
 from transport.connections import ConnectionsTransport
 from transport.memory import MemoryTransport
 from services.image_transport import ImageTransport
@@ -90,6 +97,11 @@ class Application:
             lambda: settings["tool_permissions"], authenticated=self.sessions.authenticated
         )
         self.usage = UsageService(self)
+        self.call_admission = CallAdmission(self)
+        self.call_testing = ControlledCalls(self)
+        self.call_testing_transport = CallTestingTransport(self)
+        self.call_lab = CallLab(self)
+        self.call_lab_transport = CallLabTransport(self)
         self.dispatcher.tool_scope = self.usage.tool_scope
         register_project_tools(self.dispatcher)
         register_scheduler_tools(
@@ -101,6 +113,9 @@ class Application:
             database, resources, partial(self.delivery.publish_job, "image_job")
         )
         self.cad.usage = self.images.usage = self.usage
+        self.handoffs = CreativeHandoffs(self)
+        self.handoff_transport = HandoffTransport(self)
+        self.cad.reference_validator = self.images.reference_validator = self.handoffs.validate
         self.usage_transport = UsageTransport(self)
         self.browser = BrowserService(self)
         self.browser_transport = BrowserTransport(self)
@@ -228,7 +243,10 @@ class Application:
             )
 
     async def restrict_resources(self):
+        self.call_testing.invalidate()
         operations = [
+            self.call_admission.stop_sid(),
+            self.call_lab.stop_sid(),
             self.task_queue.stop_sid(),
             self.browser_transport.stop_sid(),
             self.speech_transport.stop_sid(),
@@ -251,6 +269,9 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
+        self.call_testing.invalidate(sid)
+        await self.call_admission.stop_sid(sid)
+        await self.call_lab.stop_sid(sid)
         await self.task_queue.stop_sid(sid)
         await self.browser_transport.stop_sid(sid)
         await self.quality.stop_sid(sid)
@@ -295,9 +316,12 @@ class Application:
             raise
 
     async def close(self):
+        self.call_testing.invalidate()
         self.memory.previews.clear()
         try:
             results = await asyncio.gather(
+                self.call_admission.stop_sid(),
+                self.call_lab.stop_sid(),
                 self.task_queue.stop_sid(),
                 self.browser_transport.stop_sid(),
                 self.quality.stop_sid(),

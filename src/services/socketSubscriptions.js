@@ -52,6 +52,7 @@ export function initSocketListeners() {
         useStore.setState({
             status: 'Backend Disconnected',
             confirmationRequest: null, pendingTextRequest: null,
+            studioHandoff: null,
             activity: s().activity.filter(item => !['approval', 'submitting'].includes(item.state)),
             backendConnected: false,
             aiConnected: false,

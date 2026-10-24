@@ -13,14 +13,14 @@ from services.creative_transport import JobLifetime  # noqa: E402
 from services.creative_jobs import JobRequest  # noqa: E402
 
 from services.cad import (  # noqa: E402
-    SolidRecipe, SceneObject, ScenePresentation, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats,
+    SolidRecipe, SceneObject, ScenePresentation, SceneBlueprint, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats,
 )
 
 from services.cad_changes import EditableFields, ObjectEdit, ChangeSet, ChangePrompt  # noqa: E402
 
 from services.speech import SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend  # noqa: E402
 
-from services.mobile_contracts import ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt  # noqa: E402
+from services.mobile_contracts import ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt, MobileCallReceipt  # noqa: E402
 
 from services.notifications import NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch  # noqa: E402
 
@@ -33,18 +33,25 @@ from services.browser_contracts import BrowserInspect, BrowserReport  # noqa: E4
 from services.task_queue_contracts import TaskCreate, TaskReference  # noqa: E402
 
 from services.connections_contracts import ConnectionCard, ConnectionsState  # noqa: E402
+from calls.lab_contracts import LabReference, LabRun, LabState, LabSegment, LabRecord  # noqa: E402
+from services.handoff_contracts import CreativeReference, HandoffRequest, HandoffDraft  # noqa: E402
+
+from calls.test_contracts import TestPrepare, TestRevision, TestArm, TestStop, TestDraft, TestReview, ControlledTestState  # noqa: E402
 
 GROUPS = {
+    "callTesting": (TestPrepare, TestRevision, TestArm, TestStop, TestDraft, TestReview, ControlledTestState),
+    "handoff": (CreativeReference, HandoffRequest, HandoffDraft),
+    "callLab": (LabReference, LabRun, LabState, LabSegment, LabRecord),
     "connections": (ConnectionCard, ConnectionsState),
     "tasks": (TaskCreate, TaskReference),
     "browser": (BrowserInspect, BrowserReport),
     "usage": (UsagePolicy,),
     "memory": (MemoryQuery, MemoryWrite, MemoryRevision, MemoryForget, MemoryRetention, MemoryRestore, MemoryRestoreApply, MemorySource),
     "notifications": (NotificationPolicy, NotificationRule, NotificationEvent, NotificationBatch),
-    "mobile": (ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt),
+    "mobile": (ListenerRequest, PairRequest, PairDecision, DeviceRequest, PairClaim, SignedEnvelope, MobileEmpty, MobileHistory, MobileChat, MobilePreview, MobileReceipt, MobileCallReceipt),
     "speech": (SpeechTurn, SpeechBegin, SpeechFrame, SpeechSend),
     "image": (ImageRecipe, ImageRequest, ImageArtifactRequest, ImageStats, JobRequest, JobLifetime),
-    "cad": (SolidRecipe, SceneObject, ScenePresentation, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest, JobLifetime, EditableFields, ObjectEdit, ChangeSet, ChangePrompt),
+    "cad": (SolidRecipe, SceneObject, ScenePresentation, SceneBlueprint, Recipe, BuildRequest, ArtifactRequest, PlanRequest, MeshStats, JobRequest, JobLifetime, EditableFields, ObjectEdit, ChangeSet, ChangePrompt),
 }
 
 

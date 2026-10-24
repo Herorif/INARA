@@ -15,11 +15,14 @@ from services.mobile_contracts import (
     MobileHistory,
     MobileReceipt,
     MobilePreview,
+    MobileCallReceipt,
 )
 from services.tools import ServiceError
 from services.notifications import NotificationBatch
 
 OPERATIONS = {
+    "call_receipts": MobileEmpty,
+    "call_receipt": MobileCallReceipt,
     "notification_policy": MobileEmpty,
     "notification_sync": NotificationBatch,
     "claim": PairClaim,
@@ -90,6 +93,8 @@ class MobileAPI:
                     result = self.service.claim(envelope, args, path)
                 else:
                     grant = {
+                        "call_receipts": "calls:read",
+                        "call_receipt": "calls:read",
                         "status": "status:read",
                         "notification_policy": "status:read",
                         "notification_sync": "status:read",
@@ -102,7 +107,11 @@ class MobileAPI:
                     value = self.service.authenticate(
                         envelope, path, grant, pending=operation == "finish"
                     )
-                    if operation == "notification_policy":
+                    if operation == "call_receipts":
+                        result = self.service.call_receipts.list(value)
+                    elif operation == "call_receipt":
+                        result = self.service.call_receipts.detail(value, args)
+                    elif operation == "notification_policy":
                         result = self.service.notifications.policy(value)
                     elif operation == "notification_sync":
                         result = self.service.notifications.ingest(value, args)

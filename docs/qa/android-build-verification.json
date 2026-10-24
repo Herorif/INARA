@@ -1,0 +1,276 @@
+{
+  "format": 1,
+  "date": "2026-10-23",
+  "scope": "Android compilation and local debug-build acceptance only",
+  "toolchain": {
+    "java": "17.0.20.1+1",
+    "gradle": "8.14.6",
+    "agp": "8.9.2",
+    "kotlin": "2.1.20",
+    "compile_sdk": 35,
+    "build_tools": "35.0.0"
+  },
+  "gradle_distribution_sha256": "7988ed071b2a07900e2ec715fca15c6ab72bce6db433af301fa7fa7e9407bd24",
+  "cache": {
+    "location": "per-workspace hashed directory in user temporary storage",
+    "workspace_cache_failed": true,
+    "outside_workspace_build_passed": true,
+    "windows_root_cause_established": false,
+    "security_settings_changed": false,
+    "cache_workspaces_manually_promoted": false,
+    "previous_failed_run_ids": [
+      "1b4c7905-b320-43a3-812a-c750bd350a2e",
+      "200dfd77-fcaa-4169-9ce8-cd961f642118",
+      "4f7110a5-296d-42fb-ba03-c87beaa3ae2d",
+      "4fcac4b7-9366-49af-8b58-a15aac798386",
+      "7faddb41-6815-4023-a45b-95c791dbaef7",
+      "b4c178e5-eae9-43a9-86b4-db5d76db1f17",
+      "ebab2136-5c0d-4746-b0b0-7de9ac17d80b"
+    ]
+  },
+  "dependency_recording": {
+    "format": 1,
+    "id": "dfa18db9-bfb1-4114-a9c6-b167c8a500df",
+    "accepted_debug_build": false,
+    "release_signed": false,
+    "device_verified": false,
+    "record_dependencies": true,
+    "apk": {
+      "bytes": 26367433,
+      "sha256": "f1ee03108ae34c51270c4f963dbefbce4432870645d4a251d548ff85e3894cfe"
+    },
+    "junit": {
+      "tests": 1,
+      "reports": {
+        "TEST-com.inara.companion.MobileProtocolTest.xml": "1b9e1226b1a40de16050312cd3773ce6c9f6974684a0313a0f3dbd5592cd4a64"
+      }
+    },
+    "dependencies": {
+      "lock_sha256": "6a40b77bb0470147ea668debb55244949428d9a3ae973b7bb3830088e64d361f",
+      "verification_sha256": "538fa425dde2919c6886c3a9bd60ec23e82d599afd16aade0dd819d3bfaed7a5",
+      "artifacts": 694
+    },
+    "signer_sha256": [
+      "3823c31c9a6edb8d21d0fcf16c17a2748e208f805ebf14478b97ea197ed3ced5"
+    ],
+    "signature_verified": true,
+    "dependency_review_required": true
+  },
+  "dependency_review": {
+    "format": 1,
+    "verification_metadata_sha256": "538fa425dde2919c6886c3a9bd60ec23e82d599afd16aade0dd819d3bfaed7a5",
+    "lock_sha256": "6a40b77bb0470147ea668debb55244949428d9a3ae973b7bb3830088e64d361f",
+    "settings_sha256": "d52c3509c42c9a95f504dfc3c4fa85fc823925a7cc013dfd98601f8de00ce8df",
+    "repository_policy": "Google Maven/Maven Central; plugin portal only for plugins; FAIL_ON_PROJECT_REPOS",
+    "cached_artifacts_checked": 694,
+    "all_cached_sha256_match": true,
+    "direct_components_checked": 9,
+    "upstream_checks": [
+      {
+        "coordinate": "androidx.activity:activity-compose:1.10.1",
+        "artifact": "activity-compose-1.10.1.aar",
+        "url": "https://dl.google.com/dl/android/maven2/androidx/activity/activity-compose/1.10.1/activity-compose-1.10.1.aar.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "androidx.activity:activity-compose:1.10.1",
+        "artifact": "activity-compose-1.10.1.module",
+        "url": "https://dl.google.com/dl/android/maven2/androidx/activity/activity-compose/1.10.1/activity-compose-1.10.1.module.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "androidx.compose:compose-bom:2025.04.01",
+        "artifact": "compose-bom-2025.04.01.pom",
+        "url": "https://dl.google.com/dl/android/maven2/androidx/compose/compose-bom/2025.04.01/compose-bom-2025.04.01.pom.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "androidx.lifecycle:lifecycle-runtime-compose:2.9.0",
+        "artifact": "lifecycle-runtime-compose-2.9.0.module",
+        "url": "https://dl.google.com/dl/android/maven2/androidx/lifecycle/lifecycle-runtime-compose/2.9.0/lifecycle-runtime-compose-2.9.0.module.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "androidx.lifecycle:lifecycle-runtime-compose:2.9.0",
+        "artifact": "lifecycle-runtime-compose-metadata-2.9.0.jar",
+        "url": "https://dl.google.com/dl/android/maven2/androidx/lifecycle/lifecycle-runtime-compose/2.9.0/lifecycle-runtime-compose-2.9.0.jar.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0",
+        "artifact": "lifecycle-viewmodel-compose-2.9.0.module",
+        "url": "https://dl.google.com/dl/android/maven2/androidx/lifecycle/lifecycle-viewmodel-compose/2.9.0/lifecycle-viewmodel-compose-2.9.0.module.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0",
+        "artifact": "lifecycle-viewmodel-compose-metadata-2.9.0.jar",
+        "url": "https://dl.google.com/dl/android/maven2/androidx/lifecycle/lifecycle-viewmodel-compose/2.9.0/lifecycle-viewmodel-compose-2.9.0.jar.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "com.android.tools.build:gradle:8.9.2",
+        "artifact": "gradle-8.9.2.jar",
+        "url": "https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.9.2/gradle-8.9.2.jar.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "com.android.tools.build:gradle:8.9.2",
+        "artifact": "gradle-8.9.2.module",
+        "url": "https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.9.2/gradle-8.9.2.module.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "junit:junit:4.13.2",
+        "artifact": "junit-4.13.2.jar",
+        "url": "https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar.sha1",
+        "algorithm": "sha1",
+        "matches": true
+      },
+      {
+        "coordinate": "junit:junit:4.13.2",
+        "artifact": "junit-4.13.2.pom",
+        "url": "https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.pom.sha1",
+        "algorithm": "sha1",
+        "matches": true
+      },
+      {
+        "coordinate": "org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.1.20",
+        "artifact": "compose-compiler-gradle-plugin-2.1.20-gradle85.jar",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/compose-compiler-gradle-plugin/2.1.20/compose-compiler-gradle-plugin-2.1.20-gradle85.jar.sha1",
+        "algorithm": "sha1",
+        "matches": true
+      },
+      {
+        "coordinate": "org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.1.20",
+        "artifact": "compose-compiler-gradle-plugin-2.1.20.module",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/compose-compiler-gradle-plugin/2.1.20/compose-compiler-gradle-plugin-2.1.20.module.sha1",
+        "algorithm": "sha1",
+        "matches": true
+      },
+      {
+        "coordinate": "org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20",
+        "artifact": "kotlin-gradle-plugin-2.1.20-gradle85.jar",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.1.20/kotlin-gradle-plugin-2.1.20-gradle85.jar.sha1",
+        "algorithm": "sha1",
+        "matches": true
+      },
+      {
+        "coordinate": "org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20",
+        "artifact": "kotlin-gradle-plugin-2.1.20.module",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.1.20/kotlin-gradle-plugin-2.1.20.module.sha1",
+        "algorithm": "sha1",
+        "matches": true
+      },
+      {
+        "coordinate": "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2",
+        "artifact": "kotlinx-coroutines-android-1.10.2.jar",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-android/1.10.2/kotlinx-coroutines-android-1.10.2.jar.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      },
+      {
+        "coordinate": "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2",
+        "artifact": "kotlinx-coroutines-android-1.10.2.module",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-android/1.10.2/kotlinx-coroutines-android-1.10.2.module.sha256",
+        "algorithm": "sha256",
+        "matches": true
+      }
+    ],
+    "license_approval": false,
+    "signed_supply_chain_attestation": false,
+    "note": "HTTPS upstream checksum comparison of direct pinned components; every recorded artifact compared with cached bytes. Transitive provenance is not independently authenticated."
+  },
+  "strict_offline_build": {
+    "format": 1,
+    "id": "e60c6fd1-f3b9-443a-bf5b-ca03c1908e54",
+    "accepted_debug_build": true,
+    "release_signed": false,
+    "device_verified": false,
+    "record_dependencies": false,
+    "apk": {
+      "bytes": 26367433,
+      "sha256": "a13d17cf7769259816602379e2b83ee46c3299be6db415b8ab12811467cd8550"
+    },
+    "junit": {
+      "tests": 1,
+      "reports": {
+        "TEST-com.inara.companion.MobileProtocolTest.xml": "302e23c6460a07086b551dff93450ce05c0360ef9b7344455963f94076dcfa9f"
+      }
+    },
+    "dependencies": {
+      "lock_sha256": "6a40b77bb0470147ea668debb55244949428d9a3ae973b7bb3830088e64d361f",
+      "verification_sha256": "538fa425dde2919c6886c3a9bd60ec23e82d599afd16aade0dd819d3bfaed7a5",
+      "artifacts": 694
+    },
+    "signer_sha256": [
+      "3823c31c9a6edb8d21d0fcf16c17a2748e208f805ebf14478b97ea197ed3ced5"
+    ],
+    "signature_verified": true,
+    "dependency_review_required": false
+  },
+  "inputs": {
+    "android/app/build.gradle.kts": "967682e18432e31c9eea02a6ea2ae16dced9654a7bf875e1c556dd887f08b84d",
+    "android/app/src/main/AndroidManifest.xml": "f32381f5924084a24c0c746c0d4c22bf81f079b64c510fe08735a1613623e150",
+    "android/app/src/main/java/com/inara/companion/CompanionClient.kt": "c4a5a9362a1070147d683acbb57182b914b6fd2b14996bf84372dd6eab23de96",
+    "android/app/src/main/java/com/inara/companion/CompanionModel.kt": "98a51d3896506923c46ba00c4d1af9064d89fc566aab6e87d9124429f0503f59",
+    "android/app/src/main/java/com/inara/companion/DeviceSecurity.kt": "3323e974b6529c6223d607ee39cc1d6506198b05b85e235822a888c36b1cba12",
+    "android/app/src/main/java/com/inara/companion/MainActivity.kt": "96350821f8a206dacd591877f7d783eed3a022181d4f215a19b7790e30b4fdbd",
+    "android/app/src/main/java/com/inara/companion/MobileProtocol.kt": "165c9d4a9c64d5d360d43e81af93513b3b9e838d65cb432ea1df62fd4e1540fb",
+    "android/app/src/main/java/com/inara/companion/NotificationCard.kt": "bcaddf9a6393ac13d543cb7c6746969a62e8d345192e683126e575a354c39e7a",
+    "android/app/src/main/java/com/inara/companion/NotificationVault.kt": "d8e77664a9129ff3458f2dff63d4b464d2dab8b28ac01317af148b104d34f860",
+    "android/app/src/main/java/com/inara/companion/SelectedNotificationListener.kt": "f62cb6617eb13a8db3b8b984b7c4e109a2137ce5539d94211f5540b2462e41a4",
+    "android/app/src/main/res/xml/data_extraction_rules.xml": "4b93d03f63e550ae1ce9e064d64c0052a5aacb883e6de09ae499ee8fb8463e20",
+    "android/app/src/test/java/com/inara/companion/MobileProtocolTest.kt": "54509bd93b40a4974fcec0620522b1004bcd6caa82c2374a7fdc40f66ec45de6",
+    "android/build.gradle.kts": "1df553bc4ca0f8d14c45baebb13c5a3f4c4d949be18799c1f99e8829581c4cee",
+    "android/build.ps1": "8ce6e532908b3b97fb935ca5c00af41f924905e9d70d425352786ca6deaae0c6",
+    "android/gradle.properties": "0d24efa839e44dc2ff90a80622a5ef809a66d4e02efff9f29debbe15ead7b6f1",
+    "android/settings.gradle.kts": "d52c3509c42c9a95f504dfc3c4fa85fc823925a7cc013dfd98601f8de00ce8df",
+    "scripts/android-build.py": "77804ebea1cbf8532ff7b05e8f418b1dd26de4c96ef7c4daa66586438cf1aaad"
+  },
+  "artifact": {
+    "path": ".runtime/android-release-candidate/e60c6fd1-f3b9-443a-bf5b-ca03c1908e54/INARA-companion-debug.apk",
+    "bytes": 26367433,
+    "sha256": "a13d17cf7769259816602379e2b83ee46c3299be6db415b8ab12811467cd8550"
+  },
+  "regression_tests": {
+    "python": 49,
+    "report": ".runtime/android-diagnostics/final-build-regression.xml",
+    "jvm_protocol_tests": 1,
+    "ruff": "passed"
+  },
+  "device_accessed": false,
+  "installed_on_phone": false,
+  "notifications_enabled": false,
+  "calls_enabled": false,
+  "production_signing": false,
+  "remaining": [
+    "Fold installation/pairing and physical lifecycle/Keystore/Doze acceptance",
+    "Controlled SIM and personal WhatsApp call/audio tests later",
+    "Production identities/signing and separate license reviews",
+    "Shared live admission/availability and protected mobile receipt sync"
+  ],
+  "standing_exclusions": [
+    "WhatsApp reply/draft/acknowledgement/notification actions",
+    "Outgoing calls, forwarding and Business migration"
+  ],
+  "compiled_inspection": {
+    "package": "com.inara.companion",
+    "aapt2_manifest_permissions": [
+      "android.permission.INTERNET",
+      "com.inara.companion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+    ],
+    "androidx_internal_permission_protection_level": "signature (0x2)",
+    "javap_notification_acceptance_enabled": false,
+    "phone_microphone_camera_permissions": false
+  }
+}

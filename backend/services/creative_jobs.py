@@ -78,6 +78,7 @@ class CreativeJobService:
             timeout if timeout is not None else self.default_timeout,
         )
         self.active = {}
+        self.reference_validator = None
         self.lock = governor.creative_lock
 
     def kind(self, owner, project):
@@ -125,6 +126,7 @@ class CreativeJobService:
                     "duration_seconds",
                     "base_request_id",
                     "base_fingerprint",
+                    "reference",
                 )
                 if key in value
             },
@@ -158,15 +160,24 @@ class CreativeJobService:
             )
         return normalized
 
+    def validate_reference(self, owner, project, reference):
+        if reference is None:
+            return
+        if self.reference_validator is None:
+            raise ServiceError("reference_unavailable", "Reference validation is unavailable here.")
+        self.reference_validator(owner, project, reference)
+
     async def start(self, args, context):
         owner, project = context["principal"], Path(context["project_path"]).resolve()
         key = str(args.request_id)
         recipe = self.recipe_model.model_validate(
-            args.model_dump(exclude={"request_id", "base_request_id", "base_fingerprint"})
+            args.model_dump(exclude={"request_id", "base_request_id", "base_fingerprint", "reference"})
         ).model_dump()
         parent_id = getattr(args, "base_request_id", None)
         parent_hash = getattr(args, "base_fingerprint", None)
         parent_id = str(parent_id) if parent_id else None
+        reference = getattr(args, "reference", None)
+        reference = reference.model_dump(mode="json") if reference else None
         # The lock is otherwise held by legacy/print workflows. Reject rather
         # than building an unbounded second queue outside the owned reservations.
         if self.lock.locked():
@@ -181,6 +192,7 @@ class CreativeJobService:
                     self.recipe_model.model_validate(previous["recipe"]).model_dump() != recipe
                     or previous.get("base_request_id") != parent_id
                     or previous.get("base_fingerprint") != parent_hash
+                    or previous.get("reference") != reference
                 ):
                     raise ServiceError(
                         "request_conflict", "This build ID was already used with other settings."
@@ -188,6 +200,7 @@ class CreativeJobService:
                 return self.public(previous)
             if parent_id:
                 self.require_revision(owner, project, parent_id, parent_hash)
+            self.validate_reference(owner, project, reference)
             self.governor.require_heavy()
             backend = self.admit(recipe)
             profile = worker_profile(
@@ -226,6 +239,7 @@ class CreativeJobService:
                     "error": None,
                     "base_request_id": parent_id,
                     "base_fingerprint": parent_hash,
+                    "reference": reference,
                 }
                 self.database.put(db, kind, key, value)
             try:
@@ -261,6 +275,7 @@ class CreativeJobService:
         started = time.monotonic()
         try:
             await self.governor.acquire(running["key"], running["cancel"])
+            self.validate_reference(owner, project, value.get("reference"))
             staging = contained_path(project, f"{self.artifact_root}/.work/{uuid.uuid4()}")
             staging.parent.mkdir(parents=True, exist_ok=True)
             staging = contained_path(project, str(staging.relative_to(project)))

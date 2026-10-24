@@ -42,7 +42,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
   }
   await record();window.webContents.send('capture-pause','suspend');await phase('idle');
   assert.equal(await evaluate(`speechQA.streams.every(stream=>stream.getTracks().every(track=>track.readyState==='ended'))`),true);result.suspend_releases_capture=true;
-  await click('[aria-label="Open full workspace"]');await until(()=>evaluate(`!!document.querySelector('.pulse-status')`));assert.ok(Math.abs(window.getSize()[0]-1440)<=4);
+  await click('[aria-label="Open full workspace"]');await until(()=>evaluate(`document.querySelector('.conversation-workspace')?.dataset.conversationState==='connected'`));assert.ok(Math.abs(window.getSize()[0]-1440)<=4);
   fs.writeFileSync(path.join(output,'focus-requested.json'),'{}');await phase('idle');
   assert.ok(Math.abs(window.getSize()[0]-520)<=4);
   await click('[aria-label="Send quick message"]').catch(()=>{});

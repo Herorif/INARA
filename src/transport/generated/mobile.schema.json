@@ -32,6 +32,11 @@
         "default": false,
         "title": "Allow Chat",
         "type": "boolean"
+      },
+      "allow_calls": {
+        "default": false,
+        "title": "Allow Calls",
+        "type": "boolean"
       }
     },
     "title": "PairRequest",
@@ -240,6 +245,21 @@
       "request_id"
     ],
     "title": "MobileReceipt",
+    "type": "object"
+  },
+  "MobileCallReceipt": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "title": "MobileCallReceipt",
     "type": "object"
   }
 }

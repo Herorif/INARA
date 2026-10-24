@@ -1,0 +1,229 @@
+{
+  "format": 1,
+  "kind": "inara-local-only-setup-verification",
+  "owner_decision_date": "2026-10-23",
+  "owner_selection": {
+    "android_and_call_setup_resumed": true,
+    "voice": "local-only",
+    "phone_model_owner_reported": "Samsung Fold 8",
+    "controlled_test_calls": "later"
+  },
+  "host_observed": {
+    "cpu": "Intel Core Ultra 7 266V",
+    "ram_gib": 15.6,
+    "gpu": "Intel Arc 140V",
+    "legion_or_soak_acceptance": false
+  },
+  "android_preflight": {
+    "format": 1,
+    "pins": {
+      "java": "17",
+      "gradle": "8.11.1",
+      "platform": "35",
+      "build_tools": "35.0.0"
+    },
+    "tools_present": {
+      "java": true,
+      "javac": true,
+      "gradle": true
+    },
+    "sdk_present": {
+      "platform": true,
+      "build_tools": true,
+      "apksigner": true
+    },
+    "dependencies_recorded": false,
+    "tool_versions_verified": false,
+    "can_attempt_offline_build": false,
+    "apk_compiled": false,
+    "device_accessed": false,
+    "network_accessed": false,
+    "note": "Presence only. Build runner verifies exact tool versions; checksums need independent review after first resolution."
+  },
+  "voice_verification": {
+    "passed": true,
+    "synthetic_phrase": "Please leave a message for the owner.",
+    "recognized": "please leave a message for the owner",
+    "tts_pcm_bytes": 124056,
+    "tts_rate": 24000,
+    "stt_rate": 16000,
+    "local_stt_loaded": true,
+    "microphone_opened": false,
+    "speaker_opened": false,
+    "network_used_for_inference": false,
+    "live_call_activated": false,
+    "actual_caller_quality_verified": false
+  },
+  "model_download": {
+    "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
+    "sha256": "30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498",
+    "upstream_signature_verified": false,
+    "microphone_opened": false
+  },
+  "tool_archives": [
+    {
+      "name": "jdk17-windows-x64.zip",
+      "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_windows_hotspot_17.0.20.1_1.zip",
+      "digest": "e53a79c3c3d86865bd7e787903884331068e71321714ffd44f145785affc7cb0",
+      "sha256": "e53a79c3c3d86865bd7e787903884331068e71321714ffd44f145785affc7cb0"
+    },
+    {
+      "name": "gradle-8.11.1-bin.zip",
+      "url": "https://services.gradle.org/distributions/gradle-8.11.1-bin.zip",
+      "digest": "f397b287023acdba1e9f6fc5ea72d22dd63669d59ed4a289a29b1a76eee151c6",
+      "sha256": "f397b287023acdba1e9f6fc5ea72d22dd63669d59ed4a289a29b1a76eee151c6"
+    },
+    {
+      "name": "android-commandline-16.0.zip",
+      "url": "https://dl.google.com/android/repository/commandlinetools-win-12266719_latest.zip",
+      "algorithm": "sha1",
+      "digest": "32787c10f55911fd109848906b1275723e79f659",
+      "sha256": "f9088c04a44f1f37a8a3a228a7663e11ae9445fa07529c96cef38acb985a88f3"
+    }
+  ],
+  "installed_packages": {
+    "vosk": "0.3.45",
+    "sounddevice": "0.5.6",
+    "cffi": "2.1.1",
+    "srt": "3.5.3",
+    "tqdm": "4.70.1"
+  },
+  "native_helper": {
+    "passed": true,
+    "live_call_activated": false,
+    "physical_audio_opened": false,
+    "app_ui_inspected": false,
+    "real_api_used": false,
+    "native_compiled": true,
+    "native_invalid_requests_rejected": true,
+    "synthetic_suite_passed": true,
+    "preflight": {
+      "mode": "experimental_one_call_lab",
+      "helper_built": true,
+      "audio_adapter_installed": true,
+      "voice_configured": true,
+      "voice_mode": "local_structured_english",
+      "cloud_fallback": false,
+      "live_routes_verified": false,
+      "resident_auto_start": false,
+      "android_standalone_supported": false
+    }
+  },
+  "python_runs": {
+    ".runtime/local-setup-tests/release.xml": {
+      "tests": 92,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/local-setup-tests/android-runner-final.xml": {
+      "tests": 35,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "focused_distinct_python_checks": 92,
+  "new_local_setup_readiness_checks": 15,
+  "client_checks": 4,
+  "typescript": "passed",
+  "frontend_build": "passed",
+  "scoped_ruff": "passed",
+  "pip_check": "passed",
+  "source_manifest_guards": "passed",
+  "actual_android_attempts": [
+    {
+      "format": 1,
+      "id": "4f7110a5-296d-42fb-ba03-c87beaa3ae2d",
+      "accepted_debug_build": false,
+      "release_signed": false,
+      "device_verified": false,
+      "record_dependencies": true,
+      "error": "Build acceptance failed. Inspect the local Gradle/signature output and input/dependency/test evidence."
+    },
+    {
+      "format": 1,
+      "id": "b4c178e5-eae9-43a9-86b4-db5d76db1f17",
+      "accepted_debug_build": false,
+      "release_signed": false,
+      "device_verified": false,
+      "record_dependencies": true,
+      "error": "Build acceptance failed. Inspect the local Gradle/signature output and input/dependency/test evidence."
+    },
+    {
+      "format": 1,
+      "id": "ebab2136-5c0d-4746-b0b0-7de9ac17d80b",
+      "accepted_debug_build": false,
+      "release_signed": false,
+      "device_verified": false,
+      "record_dependencies": true,
+      "error": "Build acceptance failed. Inspect the local Gradle/signature output and input/dependency/test evidence."
+    },
+    {
+      "format": 1,
+      "id": "200dfd77-fcaa-4169-9ce8-cd961f642118",
+      "accepted_debug_build": false,
+      "release_signed": false,
+      "device_verified": false,
+      "record_dependencies": true,
+      "error": "Build acceptance failed. Inspect the local Gradle/signature output and input/dependency/test evidence."
+    }
+  ],
+  "android_dependency_records": {
+    "lockfile_present": false,
+    "partial_verification_metadata_present": true,
+    "partial_metadata_sha256": "8f2b6b22f3a39582f1de3a38ed7ad6eda6f5200588a2ed42ce1d98a8f339ae1d",
+    "accepted": false,
+    "independent_review_completed": false
+  },
+  "android_build_blocker": {
+    "observed": "Gradle 8.11.1 cannot move temporary transform workspaces to immutable cache locations on this Windows host. Retry, disabled filesystem watching and a single worker all failed.",
+    "stage": "configuration, then app:checkDebugAarMetadata",
+    "cause_confirmed": false,
+    "security_settings_changed": false,
+    "caches_deleted_or_manually_promoted": false,
+    "related_upstream_report": "https://github.com/gradle/gradle/issues/31392"
+  },
+  "call_clients_observed": {
+    "Phone Link": "0.26082.121.0",
+    "WhatsApp Desktop": "2.2640.100.0",
+    "accounts_accessed": false,
+    "actual_controls_enrolled": false
+  },
+  "call_readiness": {
+    "local_components_present": true,
+    "dedicated_audio_routes_configured": false,
+    "physical_duplex_verified": false,
+    "live_enabled": false,
+    "cloud_fallback": false,
+    "general_conversational_llm": false,
+    "language": "English",
+    "duplex_mode": "half-duplex",
+    "mobile_standalone_answering": false
+  },
+  "source_sha256": {
+    "scripts/setup-local-tools.py": "eada8ea76f5f01766f8e5513c2e45f71c01e5aa9cdf27745afb665b640d61eaf",
+    "scripts/setup-android-local.ps1": "8abc888d8e99b1ad03c3b281aca1a586b320145be5c9abcfb615f0ab8d4f2bec",
+    "scripts/local-call-speech.ps1": "f9efa2989b4a18c9849f157cedf88aa2ac925d8fffe0a01fd9b39104477e75f7",
+    "scripts/call-bridge.py": "79a47ca9c71810f68af3b2b9a11aded3fd3281c5dcaf93a94c8ee9991946c8d7",
+    "backend/calls/local_voice.py": "ef6d03220549a2ee5e90eb0ad432d61b2e140cdea87fa2d990f49c23a56add14",
+    "backend/calls/lab.py": "614965c5b21847570398a178be6a06cae4598adb38d5a2694d13c8fe9998db59",
+    "backend/workers/call_bridge_worker.py": "c9d32589bcb03b088fa4f69bb350c29962364ab0b47d1dd658401aded4dd6114",
+    "android/build.ps1": "85aac41d05feaa926f7926712ee3c0d65e3146dffa9bbc31d04d736e1dd695d5",
+    "requirements-call-local.txt": "21162aa601b3927ad27f4addb41623c1e2bf7cf7ab895331dc4f91bc438d38ff",
+    "tests/test_call_local.py": "4052bfdd3d15bbc8fd8d30c94c844b1d4b6d3b67012494147ebda7c1c62904f3",
+    "tests/test_call_lab.py": "5a6ed4ee0a494bea70527cda2aec3b83716791d042c6e251afb4f398bbbb92dd",
+    "src/app/CallLab.jsx": "adadff2ee501f285c2144853158436259511dc3a6f346b33223c818cc1111be5"
+  },
+  "live_call_activated": false,
+  "physical_audio_opened": false,
+  "phone_accessed": false,
+  "apk_installed": false,
+  "apk_accepted": false,
+  "notifications_enabled": false,
+  "whatsapp_text_actions_enabled": false,
+  "global_path_or_persistent_execution_policy_changed": false,
+  "production_signing_enabled": false,
+  "production_reviews_entered": false,
+  "release_authorized": false
+}

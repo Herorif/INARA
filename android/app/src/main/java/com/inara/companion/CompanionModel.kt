@@ -22,7 +22,9 @@ data class CompanionState(
     val jobs: List<JSONObject> = emptyList(), val messages: List<Pair<String, String>> = emptyList(),
     val draft: String = "", val pending: Boolean = false, val preview: JSONObject? = null,
     val notificationState: JSONObject? = null, val notificationPolicy: JSONObject? = null,
-    val recoveryRequired: Boolean = false
+    val recoveryRequired: Boolean = false,
+    val callReceipts: List<JSONObject> = emptyList(), val callReceipt: JSONObject? = null,
+    val callsSyncedAt: Long = 0
 )
 
 class CompanionModel(application: Application) : AndroidViewModel(application) {
@@ -48,15 +50,40 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
     private fun publish(message: String, busy: Boolean = false, preview: JSONObject? = null, persist: Boolean = true) {
         val link = saved.optJSONObject("link")
         val grants = saved.optJSONArray("grants") ?: JSONArray()
+        val now = System.currentTimeMillis() / 1000
+        val canReadCalls = (0 until grants.length()).any { grants.getString(it) == "calls:read" } && saved.optLong("expires") > now
+        if (!canReadCalls) clearCalls()
+        else {
+            try {
+                val old = saved.optJSONArray("call_receipts") ?: JSONArray()
+                val retained = JSONArray()
+                for (index in 0 until old.length()) {
+                    val item = old.getJSONObject(index)
+                    if (item.getDouble("started_at") >= now - 7 * 86400) { CallReceiptJson.metadata(item); retained.put(item) }
+                }
+                require(retained.length() <= 20)
+                saved.put("call_receipts", retained)
+                saved.optJSONObject("call_receipt")?.let { item ->
+                    if (item.getDouble("started_at") < now - 7 * 86400) saved.remove("call_receipt")
+                    else CallReceiptJson.detail(JSONObject().put("project", saved.optString("project")).put("read_only", true)
+                        .put("raw_audio_retained", false).put("receipt", item), saved.optString("project"), item.getString("id"))
+                }
+            } catch (_: Exception) { clearCalls() }
+        }
         mutable.value = CompanionState(
             phase = saved.optString("phase", "unpaired"), busy = busy, message = message,
             project = saved.optString("project"), fingerprint = saved.optString("fingerprint"),
             grants = (0 until grants.length()).map { grants.getString(it) }, jobs = jsonList(saved.optJSONArray("jobs")),
             messages = jsonList(saved.optJSONArray("messages")).map { it.getString("sender") to it.getString("text") },
             draft = saved.optString("draft"), pending = saved.has("pending"), preview = preview,
-            notificationState = if (link != null) notifications.snapshot() else null, notificationPolicy = reviewedNotificationPolicy
+            notificationState = if (link != null) notifications.snapshot() else null, notificationPolicy = reviewedNotificationPolicy,
+            callReceipts = jsonList(saved.optJSONArray("call_receipts")), callReceipt = saved.optJSONObject("call_receipt"),
+            callsSyncedAt = saved.optLong("calls_synced_at")
         )
         if (link != null && persist) security.write(saved)
+    }
+    private fun clearCalls() {
+        saved.remove("call_receipts"); saved.remove("call_receipt"); saved.remove("calls_synced_at")
     }
     private fun action(block: suspend () -> Unit) {
         if (work?.isActive == true || state.value.recoveryRequired) return
@@ -104,6 +131,7 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
             publish("Waiting for laptop approval. Compare both fingerprints first.")
         } else {
             saved.put("phase", "paired").put("project", approval.getString("project")).put("grants", approval.getJSONArray("grants"))
+                .put("expires", approval.getLong("expires"))
             val status = request("status")
             val jobs = request("jobs")
             require(jobs.getJSONArray("jobs").length() <= 12)
@@ -163,6 +191,30 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
     fun preview(job: JSONObject) = action {
         val result = request("preview", JSONObject().put("kind", job.getString("kind")).put("request_id", job.getString("request_id")))
         publish("Read-only preview / ${job.getString("name")}", preview = result)
+    }
+    fun refreshCallReceipts() = action {
+        require(state.value.phase == "paired" && "calls:read" in state.value.grants)
+        saved.remove("call_receipt")
+        val result = request("call_receipts")
+        saved.put("call_receipts", CallReceiptJson.list(result, saved.getString("project")))
+            .put("calls_synced_at", System.currentTimeMillis() / 1000)
+        publish("Saved call receipt list refreshed. Open a receipt explicitly to read its transcript.")
+    }
+    fun openCallReceipt(id: String) = action {
+        require(state.value.phase == "paired" && "calls:read" in state.value.grants)
+        require(jsonList(saved.optJSONArray("call_receipts")).any { it.getString("id") == id })
+        saved.remove("call_receipt"); publish("Reading the selected call receipt…", true)
+        val result = request("call_receipt", JSONObject().put("id", id))
+        saved.put("call_receipt", CallReceiptJson.detail(result, saved.getString("project"), id))
+        publish("Saved call transcript / caller identity and message confirmation are unverified.")
+    }
+    fun closeCallReceipt() {
+        if (state.value.busy) return
+        saved.remove("call_receipt"); publish("Call transcript closed.")
+    }
+    fun clearCallReceipts() {
+        if (state.value.busy) return
+        clearCalls(); publish("Local call receipt cache cleared. The laptop copy is unchanged.")
     }
     fun notificationRefresh() = action {
         reviewedNotificationPolicy = request("notification_policy").getJSONObject("policy")

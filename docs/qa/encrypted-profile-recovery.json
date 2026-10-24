@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "actual_windows_dpapi": true,
+  "separate_process_backup_preview_restore": true,
+  "restored_protected_record_read_in_new_process": true,
+  "all_original_files_byte_identical": true,
+  "empty_directories_restored": true,
+  "backup_plaintext_markers_absent": true,
+  "original_profile_unchanged": true,
+  "installation_state_unchanged": true,
+  "automatic_activation": false,
+  "project_paths_rewritten": false,
+  "bundled_python_used": true,
+  "cross_account_acceptance": false,
+  "real_profile_used": false,
+  "signed": false
+}

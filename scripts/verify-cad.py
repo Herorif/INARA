@@ -1,6 +1,7 @@
 """Actual native host + hidden CAD UI; inspect worker exit and warmed resident recovery."""
 
 import ctypes as C
+import asyncio
 from ctypes import wintypes as W
 import json
 import os
@@ -12,6 +13,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
+sys.path.insert(1, str(ROOT))
 output = ROOT / ".runtime/cad-qa" / f"run-{uuid.uuid4()}"
 output.mkdir(parents=True)
 for key, name in [
@@ -129,6 +131,37 @@ def verify():
             return await original_planner(prompt, base)
 
         host.runtime.runtime.cad_transport.change_planner = fixture_planner
+        host.runtime.runtime.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 16000}
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock
+        from llm.base import LLMResponse, ToolCall
+        from services.cad import SceneObject, plan_scene
+
+        fake = SimpleNamespace(_model="fixture-only", generate=AsyncMock(return_value=LLMResponse(
+            tool_calls=[ToolCall("fixture", "propose_cad_recipe", {
+                "name": "Proposed desk organiser", "shape": "scene", "objects": [
+                    SceneObject(name="Base", width=120, height=5, material="ceramic").model_dump(),
+                    SceneObject(name="Tray", shape="enclosure", position=[10, 5, 5], material="amber").model_dump(),
+                ],
+            })])), close=AsyncMock())
+        host.runtime.runtime.cad_transport.scene_planner = lambda prompt: plan_scene(prompt, lambda: fake)
+        # A labeled saved-image fixture supplies recipe metadata for reverse handoff.
+        from tests.image_support import FixtureImageService
+        from services.images import ImageRequest
+        app = host.runtime.runtime
+
+        async def seed_image():
+            previous_state = app.resources.state
+            app.resources.select("studio")
+            fixture = FixtureImageService(app.database, app.resources, process_factory=worker)
+            context = {"principal": host.state.identity.owner, "project_path": app.projects.get_current_project_path()}
+            args = ImageRequest(name="Handoff image fixture", prompt="A ceramic organiser with amber accents")
+            await fixture.start(args, context)
+            await asyncio.gather(*(run["task"] for run in tuple(fixture.active.values())))
+            assert fixture.load(context["principal"], context["project_path"], args.request_id)["state"] == "succeeded"
+            app.resources.select(previous_state)
+
+        asyncio.run_coroutine_threadsafe(seed_image(), host.loop).result(30)
         result["proposal_fixture_only"] = True
         result["before_workspace"] = sample()
         host.tray.post(host.open_workspace)
@@ -136,7 +169,8 @@ def verify():
         result["ui"] = json.loads((output / "ui-verification.json").read_text())
         assert result["ui"]["passed"], result["ui"]
         until(lambda: host.workspace is None and not host.runtime.cad_service.active)
-        assert len(worker_pids) == 5
+        assert len(worker_pids) == 7
+        assert fake.generate.await_count == 1 and fake.close.await_count == 1
         for pid in worker_pids:
             handle = api(kernel, "OpenProcess", [W.DWORD, W.BOOL, W.DWORD], W.HANDLE)(
                 0x100000, False, pid

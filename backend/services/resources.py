@@ -99,6 +99,15 @@ class ResourceGovernor:
             )
         return now
 
+    def reserve_call(self, key, profile="call_local"):
+        """Incoming calls never wait behind a creative job or stale ringing view."""
+        if self.reservations or self.runner is not None:
+            raise ServiceError("call_resources_busy", "Finish the active work before preparing a call session.")
+        if profile not in {"call_local", "call_model"}:
+            raise ServiceError("call_resource_profile", "Unknown local call resource profile.")
+        self.reserve(key, profile)
+        self.runner = key
+
     async def acquire(self, key, cancel):
         previous = time.monotonic()
         deadline = previous + self.queue_timeout

@@ -1,0 +1,69 @@
+{
+  "bootstrap_policy_status": {
+    "launched": false,
+    "release_authorized": false,
+    "release_mode": "disabled",
+    "windows_mode": "disabled"
+  },
+  "bootstrap_sha256": "f1307956b12acaa6c20c390ee30a7612f0198d4e1fada43799d3d3ae45516915",
+  "certificate_store_configured": false,
+  "clean_machine_verified": false,
+  "controller": {
+    "files": 2668,
+    "integrity": "passed",
+    "manifest_sha256": "8891e893aed87a7623ac169ab1a98bc4a342331e377eb05e57291abe66ea1414",
+    "release_authorized": false,
+    "runtime_executed": false
+  },
+  "controller_artifact": ".runtime/controllers/windows-controller-20261022-v2",
+  "focused_tests": {
+    "new_controller_checks": 33,
+    "passed": 216,
+    "ruff": "passed"
+  },
+  "format": 1,
+  "kind": "inara-controller-development-acceptance",
+  "network_acceptance_measured": false,
+  "production_installation_created": false,
+  "real_review_ledger": {
+    "events": 0,
+    "head_sha256": "7e46a1dc53cf0b445ad2b8e5bd7b1836655d70a38c6b781f054ebbb1e8d94ffa",
+    "pending": 85,
+    "subjects": 85
+  },
+  "receipt_acceptance": {
+    "changed_reviewed_authorization_refused": true,
+    "expired_authorization_refused": true,
+    "interrupted_registration_recovered": true,
+    "mode": "synthetic production-purpose identities and inert payloads only",
+    "partial_receipt_refused": true,
+    "resident_executed": false,
+    "root_metadata_independently_signed": false,
+    "signature_refusal_before_payload_walk": true,
+    "source_independent_check": true
+  },
+  "refusals": {
+    "disabled_windows_policy": true,
+    "missing_launch_configuration": true,
+    "wrong_bootstrap_pin_before_python": true
+  },
+  "release_authorized": false,
+  "resident_launched": false,
+  "unsigned_source_probe": {
+    "cache_only": true,
+    "file_sha256": "e9a6cc19a2694323a26feed4ac9910d2bdb78d0a715725c782067951081a5239",
+    "release_authorized": false,
+    "signer_sha256": null,
+    "status": "0x800b0003",
+    "timestamp_sha256": null
+  },
+  "upstream_python_probe": {
+    "cache_only": true,
+    "file_sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+    "inara_identity_enrolled": false,
+    "release_authorized": false,
+    "signer_sha256": "f0e4f5974299809383869188a87d305827ace5a7336e7c35ed03858d5816ee62",
+    "status": "0x00000000",
+    "timestamp_sha256": "122776489a543e3e71426ef7338bea0e6561d5047a4e2b9351590bdcff168ace"
+  }
+}

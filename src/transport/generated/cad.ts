@@ -17,6 +17,12 @@ export type ScenePresentation = {
   "quality"?: "preview" | "standard";
   "background"?: "dark" | "neutral";
 };
+export type CreativeReference = {
+  "source_kind": "cad" | "image";
+  "source_request_id": string;
+  "source_fingerprint": string;
+  "source_sha256": string;
+};
 export type EditableFields = {
   "name"?: string | null;
   "width"?: number | null;
@@ -41,6 +47,11 @@ export type SolidRecipe = {
   "height"?: number;
   "thickness"?: number;
 };
+export type SceneBlueprint = {
+  "name": string;
+  "shape": "scene";
+  "objects": Array<SceneObject>;
+};
 export type Recipe = {
   "name"?: string;
   "shape"?: "box" | "bracket" | "enclosure" | "scene";
@@ -55,6 +66,7 @@ export type Recipe = {
 export type BuildRequest = {
   "base_request_id"?: string | null;
   "base_fingerprint"?: string | null;
+  "reference"?: CreativeReference | null;
   "name"?: string;
   "shape"?: "box" | "bracket" | "enclosure" | "scene";
   "width"?: number;
@@ -72,6 +84,8 @@ export type ArtifactRequest = {
 };
 export type PlanRequest = {
   "prompt": string;
+  "target"?: "solid" | "scene";
+  "reference"?: CreativeReference | null;
 };
 export type MeshStats = {
   "vertices": number;
@@ -96,4 +110,5 @@ export type ChangePrompt = {
   "base_request_id": string;
   "base_fingerprint": string;
   "prompt": string;
+  "reference"?: CreativeReference | null;
 };

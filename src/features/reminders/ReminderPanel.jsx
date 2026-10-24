@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Bell, Plus, Trash2, Clock3, ArrowUpRight } from 'lucide-react';
 import useStore from '../../store';
 import socket, { emitSocket } from '../../services/socket';
+import './reminders.css';
 export default function ReminderPanel() {
   const reminders = useStore(state => state.reminders);
   const connected = useStore(state => state.backendConnected);

@@ -1,259 +1,157 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ListChecks, ArrowUp, ArrowUpRight, Gauge, BookOpen, Smartphone, AudioLines, Bell, Box, Camera, ChevronRight, Cpu, Gamepad2, Globe2, LayoutDashboard, Layers3, Maximize2, Minus, Power, Settings2, ShieldCheck, Sparkles, X, Zap, Search, History } from 'lucide-react';
+import { ArrowUpRight, AudioLines, Box, Cable, ChevronRight, Command, Gamepad2, History, Inbox, Layers3, ListChecks, Maximize2, MessageSquare, Minus, PanelRight, Power, Search, Settings2, X } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
-import CoreOrb from './CoreOrb';
 import FeatureDialog from './FeatureDialog';
+import FeatureWorkspace from './FeatureWorkspace';
+import Conversation from './Conversation';
+import WorkspaceOverview from './WorkspaceOverview';
+import WorkspaceInspector from './WorkspaceInspector';
+import WorkspaceTray from './WorkspaceTray';
 import ReminderAlert from '../components/ReminderAlert';
 import ConfirmationPopup from '../components/ConfirmationPopup';
-import './workspace.css';
+import PanelState from './PanelState';
 import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
 import { flags, heavyFeatures } from './features';
-const ConnectionReadiness = lazy(() => import('./ConnectionReadiness'));
+import { clearedFeatures, dialogFeatures, featureWorkspace, workspaceTitles } from './workspaceNavigation';
+import './workspace.css';
+
 const CommandPalette = lazy(() => import('./CommandPalette'));
 const QuickAssistant = lazy(() => import('./QuickAssistant'));
 const ActivityCenter = lazy(() => import('./ActivityCenter'));
-import PanelState from './PanelState';
+const InboxWorkspace = lazy(() => import('./InboxWorkspace'));
 const AuthLock = lazy(() => import('../components/AuthLock'));
+const navigation = [['assistant', MessageSquare, 'Assistant'], ['studio', Layers3, 'Studio'], ['inbox', Inbox, 'Inbox'], ['tasks', ListChecks, 'Tasks'], ['connections', Cable, 'Connections']];
+
 function Clock() {
   const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
-  return <div className="deck-clock"><strong>{time.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      })}</strong>
-        <span>{time.toLocaleDateString([], {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short'
-      })}</span></div>;
+  useEffect(() => { const timer = setInterval(() => setTime(new Date()), 60000); return () => clearInterval(timer); }, []);
+  return <time className="deck-clock" dateTime={time.toISOString()}>{time.toLocaleTimeString([], { hour:'2-digit',minute:'2-digit' })}<span>{time.toLocaleDateString([], { weekday:'short',day:'numeric',month:'short' })}</span></time>;
 }
-function Conversation() {
-  const messages = useStore(s => s.messages);
-  const processing = useStore(s => s.textProcessing);
-  const restoring = useStore(s => s.conversationRestoring);
-  const connected = useStore(s => s.backendConnected);
-  const input = useStore(s => s.inputValue);
-  const newChat = useStore(s => s.startNewConversation);
-  const inputRef = useRef(null),
-    end = useRef(null);
-  useEffect(() => {
-    end.current?.scrollIntoView({
-      block: 'nearest'
-    });
-  }, [messages, processing]);
-  const suggest = text => {
-    useStore.setState({
-      inputValue: text
-    });
-    inputRef.current?.focus();
-  };
-  return <section className="conversation-panel surface" aria-labelledby="conversation-title">
-        <div className="section-heading"><div><span className="eyebrow">DIRECT CHANNEL</span><h2 id="conversation-title">You & INARA<span className="heading-dot">.</span></h2></div>
-            <button className="text-button" disabled={!connected || processing || restoring} onClick={newChat}>New conversation <span>+</span></button></div>
-        <div className="conversation-scroll" role="log" aria-live="polite" aria-label="Conversation">
-            {messages.length === 0 ? <div className="chat-welcome"><div className="welcome-mark"><Sparkles size={24} /></div>
-                <h3>What’s on your mind?</h3><p>A quick question, an ambitious idea, or something you’d rather hand over.</p>
-                <div className="suggestions">{['Help me plan my day', 'What can we build together?', 'List my reminders'].map(text => <button key={text} onClick={() => suggest(text)}>{text}<ArrowUpRight size={14} /></button>)}</div>
-            </div> : messages.slice(-30).map((message, index) => <article key={index} className={`chat-message ${message.sender === 'You' ? 'from-you' : ''}`}>
-                <span className="message-avatar">{message.sender === 'You' ? 'H' : message.sender === 'System' ? '·' : 'I'}</span>
-                <div><header><strong>{message.sender}</strong>{message.time && <time>{message.time}</time>}</header><p>{message.text}</p>{!!message.memory_sources?.length && <small className="memory-citations">Project memory: {message.memory_sources.map(source => `${source.title} (v${source.version})`).join(" / ")}</small>}</div></article>)}
-            {processing && <div className="processing-line"><span /><span /><span /> INARA is thinking</div>}<div ref={end} />
-        </div>
-        <form className="composer" onSubmit={event => {
-      event.preventDefault();
-      useStore.getState().handleSend({
-        key: 'Enter',
-        isComposing: false
-      });
-    }}>
-            <div className="composer-field"><Sparkles size={18} /><input ref={inputRef} aria-label="Message INARA" placeholder={restoring ? 'Restoring your conversation…' : 'Ask, imagine, create…'} value={input} onChange={event => useStore.setState({
-          inputValue: event.target.value
-        })} disabled={!connected || processing || restoring} />
-                <button className="send-button" type="submit" aria-label="Send message" disabled={!connected || processing || restoring || !input.trim()}><ArrowUp size={19} /></button></div>
-            <div className="composer-foot"><span><ShieldCheck size={12} /> Your project. Your permission.</span><span>{connected ? 'ENTER TO SEND' : 'WAITING FOR BACKEND'}</span></div>
-        </form>
-    </section>;
-}
-function FeatureCard({
-  icon: Icon,
-  title,
-  description,
-  tag,
-  onClick,
-  disabled
-}) {
-  return <button className="feature-card" onClick={onClick} disabled={disabled}><span className="feature-icon"><Icon size={24} /></span>
-        <span className="feature-tag">{tag}</span><strong>{title}</strong><p>{description}</p><span className="feature-arrow"><ArrowUpRight size={20} /></span></button>;
-}
+
 export default function CommandDeck() {
-  const quick = useStore(s => s.showQuickAssistant);
-  const setQuick = useCallback(value => { if (value) { setCamera(false); setCommands(false); useStore.setState(Object.fromEntries(Object.values(flags).map(flag => [flag, false]))); } useStore.setState({showQuickAssistant:value}); window.electronAPI?.setQuickMode?.(value); }, []);
-  useEffect(() => window.electronAPI?.onQuickAssistant?.(setQuick), [setQuick]);
+  const quick = useStore(state => state.showQuickAssistant);
+  const connected = useStore(state => state.backendConnected);
+  const processing = useStore(state => state.textProcessing);
+  const currentProject = useStore(state => state.currentProject);
+  const locked = useStore(state => state.isLockScreenVisible);
+  const activeFlag = useStore(state => Object.keys(flags).find(key => !dialogFeatures.has(key) && state[flags[key]]) || null);
+  const activeDialog = useStore(state => Object.keys(flags).find(key => dialogFeatures.has(key) && state[flags[key]]) || null);
+  const [page, setPage] = useState('assistant');
+  const [camera, setCamera] = useState(false);
   const [commands, setCommands] = useState(false);
-  const closeCommands = useCallback(() => setCommands(false), []);
-  const [page, setPage] = useState('assistant'),
-    [camera, setCamera] = useState(false);
-  const [resident, setResident] = useState({
-      phase: 'browser',
-      visible: true,
-      gaming: false
-    }),
-    [memory, setMemory] = useState(null);
-  const connected = useStore(s => s.backendConnected),
-    processing = useStore(s => s.textProcessing);
-  const currentProject = useStore(s => s.currentProject),
-    aiConnected = useStore(s => s.aiConnected);
-  const reminders = useStore(s => s.reminders),
-    locked = useStore(s => s.isLockScreenVisible);
-  const activeFlag = useStore(s => Object.keys(flags).find(key => s[flags[key]]) || null);
-  const [resource, setResource] = useState({
-    state: 'chat'
-  });
+  const [inspector, setInspector] = useState(() => window.matchMedia('(min-width: 1200px)').matches);
+  const [tray, setTray] = useState(false);
+  const [visible, setVisible] = useState(!document.hidden);
+  const [resident, setResident] = useState({ phase:'browser',visible:true,gaming:false });
+  const [memory, setMemory] = useState(null);
+  const [resource, setResource] = useState({ state:'chat' });
+  const canvas = useRef(null);
   const gaming = resident.gaming || resource.state === 'gaming';
   const activeFeature = camera ? 'camera' : activeFlag;
-  const closeFeature = useCallback(() => {
-    setCamera(false);
-    useStore.setState(Object.fromEntries(Object.values(flags).map(flag => [flag, false])));
+  const section = page === 'activity' ? 'studio' : page;
+  const closeCommands = useCallback(() => setCommands(false), []);
+  const closeDialog = useCallback(() => useStore.setState(clearedFeatures('dialog')), []);
+  const closeFeature = useCallback(() => { setCamera(false); useStore.setState(clearedFeatures('workspace')); }, []);
+  const setQuick = useCallback(value => {
+    if (value && useStore.getState().isLockScreenVisible) return;
+    if (value) { setCamera(false); setCommands(false); useStore.setState(clearedFeatures()); }
+    useStore.setState({ showQuickAssistant:value });
+    window.electronAPI?.setQuickMode?.(value);
   }, []);
+  useEffect(() => window.electronAPI?.onQuickAssistant?.(setQuick), [setQuick]);
   useEffect(() => {
+    let live = true;
     const api = window.electronAPI;
-    api?.residentStatus().then(value => {
-      if (value) setResident(value);
-    });
-    const cleanup = api?.onResidentState(setResident);
+    api?.residentStatus?.().then(value => { if (live && value) setResident(value); }).catch(() => {});
+    const cleanup = api?.onResidentState?.(setResident);
     const resourceUpdate = value => setResource(value);
     socket.on('resource_state', resourceUpdate);
     const metrics = async () => {
-      const value = await api?.metrics();
-      if (value) setMemory(value.electronMemoryMB);
+      if (document.hidden) return;
+      try { const value = await api?.metrics?.(); if (live && value) setMemory(value.electronMemoryMB); } catch { if (live) setMemory(null); }
     };
+    const visibility = () => { setVisible(!document.hidden); if (!document.hidden) metrics(); };
+    document.addEventListener('visibilitychange', visibility);
+    const media = window.matchMedia('(min-width: 1200px)');
+    const resize = event => { if (!event.matches) setInspector(false); };
+    media.addEventListener('change', resize);
     metrics();
-    const interval = setInterval(metrics, 10000);
-    return () => {
-      cleanup?.();
-      clearInterval(interval);
-      socket.off('resource_state', resourceUpdate);
-    };
+    const timer = setInterval(metrics, 10000);
+    return () => { live = false; cleanup?.(); clearInterval(timer); socket.off('resource_state', resourceUpdate); document.removeEventListener('visibilitychange', visibility); media.removeEventListener('change', resize); };
   }, []);
   useEffect(() => {
-    if (gaming) closeFeature();
-  }, [gaming, closeFeature]);
-  const openFeature = (feature, heavy = heavyFeatures.has(feature), requestId = null) => {
-    if (feature === 'quick') { if (!locked) setQuick(true); return; }
+    if (locked) { closeFeature(); closeDialog(); setCommands(false); setQuick(false); useStore.setState({studioHandoff:null}); }
+    else if (gaming && activeFeature && heavyFeatures.has(activeFeature)) closeFeature();
+  }, [locked, gaming, activeFeature, closeFeature, closeDialog, setQuick]);
+  useEffect(() => { if (activeFeature) { setPage(featureWorkspace(activeFeature)); setInspector(false); } }, [activeFeature]);
+
+  const navigate = useCallback(next => {
+    if (locked) return;
+    closeDialog();
+    if (next !== page || next === 'activity') closeFeature();
+    setPage(next);
+    if (next === 'tasks') useStore.setState({ ...clearedFeatures('workspace'), [flags.tasks]:true });
+    canvas.current?.scrollTo({ top:0 });
+  }, [locked, page, closeDialog, closeFeature]);
+  const openFeature = useCallback((feature, heavy = heavyFeatures.has(feature), requestId = null) => {
     if (locked || (gaming && heavy)) return;
-    useStore.setState({ studioSelection: requestId ? { feature, requestId, project: currentProject } : null });
-    closeFeature();
-    if (heavy) emitSocket('set_resource_state', {
-      state: 'studio'
-    });
-    if (feature === 'camera') setCamera(true);else useStore.setState({
-      [flags[feature]]: true
-    });
+    if (feature === 'quick') { setQuick(true); return; }
+    if (feature === 'activity' || feature === 'inbox') { navigate(feature); return; }
+    if (!flags[feature] && feature !== 'camera') return;
+    if (dialogFeatures.has(feature)) {
+      useStore.setState({ ...clearedFeatures('dialog'), [flags[feature]]:true });
+    } else {
+      closeDialog();
+      // Re-selecting the current tool leaves its draft/session mounted.
+      if (feature !== activeFeature) {
+        setCamera(feature === 'camera');
+        useStore.setState({ ...clearedFeatures('workspace'), ...(flags[feature] ? { [flags[feature]]:true } : {}) });
+      }
+      useStore.setState({ studioSelection:requestId ? { feature, requestId, project:currentProject } : null });
+      setPage(featureWorkspace(feature)); setInspector(false);
+      if (heavy) emitSocket('set_resource_state', { state:'studio' });
+    }
     if (feature === 'reminder') emitSocket('get_reminders');
     if (feature === 'settings' && navigator.mediaDevices) navigator.mediaDevices.enumerateDevices().then(devices => useStore.setState({
-      micDevices: devices.filter(d => d.kind === 'audioinput'),
-      speakerDevices: devices.filter(d => d.kind === 'audiooutput'),
-      webcamDevices: devices.filter(d => d.kind === 'videoinput')
+      micDevices:devices.filter(device => device.kind === 'audioinput'), speakerDevices:devices.filter(device => device.kind === 'audiooutput'), webcamDevices:devices.filter(device => device.kind === 'videoinput')
     })).catch(() => {});
-  };
+  }, [locked, gaming, activeFeature, currentProject, closeDialog, navigate, setQuick]);
   const toggleGaming = async () => {
     const value = !gaming;
-    try {
-      await window.electronAPI?.setGaming(value);
-    } catch {
-      setResident(previous => ({ ...previous, error: 'Gaming mode could not change. Check the core connection and retry.' }));
-      return;
-    }
-    setResident(previous => ({
-      ...previous,
-      gaming: value
-    }));
-    emitSocket('set_resource_state', {
-      state: value ? 'gaming' : 'chat'
-    });
+    try { await window.electronAPI?.setGaming(value); }
+    catch { setResident(previous => ({ ...previous,error:'Gaming mode could not change. Check the core connection and retry.' })); return; }
+    setResident(previous => ({ ...previous,gaming:value,error:null }));
+    emitSocket('set_resource_state', { state:value ? 'gaming' : 'chat' });
   };
   useEffect(() => {
     const key = event => {
+      if (locked || useStore.getState().confirmationRequest) return;
       if (event.ctrlKey && event.shiftKey && event.code === 'Space') { event.preventDefault(); setQuick(true); }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !activeFeature && !locked) {
-        event.preventDefault(); setCommands(value => !value);
-      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !activeDialog && !quick) { event.preventDefault(); setCommands(value => !value); }
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [activeFeature, locked]);
-  useEffect(() => { if (locked) setCommands(false); }, [locked]);
-  const pending = reminders.filter(r => r.status === 'pending' || r.status === 'snoozed');
-  return <div className={`command-deck ${gaming ? 'gaming-mode' : ''} ${quick ? 'quick-mode' : ''}`} data-resource-state={resource.state} data-ui-contract-version={UI_CONTRACT_VERSION}>
-        {quick && <Suspense fallback={<PanelState kind="loading" title="Preparing quick assistant" />}><QuickAssistant gaming={gaming} onExpand={() => setQuick(false)} onClose={() => window.electronAPI ? window.electronAPI.close() : setQuick(false)} /></Suspense>}
-        {!quick && <><a href="#main-workspace" className="skip-link">Skip to workspace</a>
-        <header className="titlebar"><div className="brand"><span className="brand-symbol">i</span><span>INARA<span className="brand-sub">PERSONAL INTELLIGENCE</span></span></div>
-            <div className="titlebar-center"><span className={`status-dot ${connected ? '' : 'offline'}`} />{connected ? 'SYSTEM ONLINE' : 'CONNECTING'}<span className="title-divider" /> COMMAND DECK</div>
-            <div className="window-actions"><button aria-label="Minimize window" onClick={() => window.electronAPI?.minimize()}><Minus size={16} /></button>
-                <button aria-label="Maximize window" onClick={() => window.electronAPI?.maximize()}><Maximize2 size={14} /></button>
-                <button aria-label="Close to tray" title="Close workspace; INARA stays in the tray" onClick={() => window.electronAPI?.close()}><X size={18} /></button></div></header>
-        <div className="deck-layout"><aside className="navigation"><div className="nav-caption">WORKSPACE</div>
-            <nav aria-label="Main navigation">{[['assistant', LayoutDashboard, 'Command'], ['studio', Layers3, 'Studio'], ['devices', Cpu, 'Connections'], ['activity', History, 'Activity']].map(([key, Icon, label]) => <button key={key} className={page === key ? 'selected' : ''} aria-label={label} title={label} aria-current={page === key ? 'page' : undefined} onClick={() => setPage(key)}><Icon size={19} /><span>{label}</span>{page === key && <span className="nav-active-mark" />}</button>)}</nav>
-            <div className="nav-project"><span className="eyebrow">CURRENT PROJECT</span><span><Box size={16} />{currentProject || 'temp'}</span><small>Context kept across sessions</small></div>
-            <div className="nav-bottom"><button aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={19} /><span>Gaming mode</span><span className="toggle-switch" /></button>
-                <button aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={19} /><span>Preferences</span></button>
-                {window.electronAPI && <button className="quit-button" aria-label="Quit INARA" onClick={() => window.electronAPI.quit()}><Power size={18} /><span>Quit INARA</span></button>}
-                <div className="resident-note"><span className="status-dot" />{window.electronAPI ? 'Always within reach' : 'Browser preview'}<small>{resident.hotkeyReady ? 'CTRL + SHIFT + SPACE' : window.electronAPI ? 'REOPEN FROM SYSTEM TRAY' : 'DESKTOP MODE IN ELECTRON'}</small></div></div>
-        </aside>
-        <main id="main-workspace" className="workspace" tabIndex={-1}>
-            <div className="workspace-top"><span className="breadcrumb">WORKSPACE <ChevronRight size={12} /><strong>{page === 'assistant' ? 'Command' : page === 'studio' ? 'Studio' : page === 'activity' ? 'Activity' : 'Connections'}</strong></span><button className="command-trigger" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={15} /><span>Find a tool</span><kbd>Ctrl K</kbd></button><Clock /></div>
-            {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}
-            {gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} /> Gaming mode active. Creative tools and camera are paused; text and reminders remain available.</div>}
-            {page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Preparing your activity" />}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)} /></Suspense> : page === 'assistant' ? <>
-                <section className="hero"><div className="hero-copy"><div className="eyebrow"><span className="tiny-line" /> A MIND FOR YOUR EVERYDAY</div>
-                    <h1>Ready when<br /><span>you are.</span></h1><p>From the smallest task to your next big idea.<br className="desktop-break" /> Let’s make room for what matters.</p>
-                    <div className="hero-actions"><button className="primary-button" onClick={() => setPage('studio')}>Explore Studio <ArrowUpRight size={16} /></button>
-                        <button className="voice-button" disabled={!connected} onClick={() => setQuick(true)}><AudioLines size={17} />Quick assistant</button></div></div>
-                    <CoreOrb active={processing || aiConnected} quiet={gaming} /></section>
-                <div className="assistant-grid"><Conversation /><aside className="context-column">
-                    <section className="surface system-card"><div className="section-heading"><span className="eyebrow">SYSTEM PULSE</span><Zap size={15} /></div>
-                        <div className="pulse-status"><span className={`status-dot ${connected ? '' : 'offline'}`} /><strong>{connected ? 'At your service' : 'Waiting for connection'}</strong></div>
-                        <button className="text-button" onClick={() => openFeature('capabilities')}>Capability center / diagnostics <ChevronRight size={14} /></button><div className="system-row"><span>Resource mode</span><strong>{gaming ? 'Gaming' : resource.state === 'studio' ? 'Studio' : 'Lightweight'}</strong></div>
-                        <div className="system-row"><span>Voice</span><strong>{aiConnected ? 'Active' : 'Off'}</strong></div>
-                        <div className="system-row"><span>Workspace memory</span><strong>{memory === null ? '—' : `${Math.round(memory)} MB`}</strong></div>
-                        <div className="pulse-footer"><ShieldCheck size={13} /><span>Actions stay under your control</span></div></section>
-                    <section className="surface reminders-card"><div className="section-heading"><span className="eyebrow">ON YOUR RADAR</span><Bell size={16} /></div>
-                        <h2>{pending.length ? `${pending.length} upcoming` : 'A clear horizon'}<span className="heading-dot">.</span></h2>
-                        {pending.length ? pending.slice(0, 3).map(r => <div className="radar-reminder" key={r.id}><span className="radar-dot" /><div><strong>{r.task}</strong><span>{new Date(r.trigger_at * 1000).toLocaleString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}</span></div></div>) : <p>Nothing scheduled right now.<br />More space for your next idea.</p>}
-                        <button className="text-button" onClick={() => openFeature('reminder')}>Open reminders <ArrowUpRight size={15} /></button></section>
-                </aside></div>
-                <div className="quick-launch"><span className="eyebrow">A LITTLE MORE POSSIBLE</span><button onClick={() => openFeature('cad')} disabled={gaming}><Box size={17} />3D studio<ArrowUpRight size={14} /></button>
-                    <button onClick={() => openFeature('camera')} disabled={gaming}><Camera size={17} />Vision studio<ArrowUpRight size={14} /></button><button onClick={() => openFeature('usage')}><Gauge size={17} />Usage &amp; quality<ArrowUpRight size={14} /></button><button onClick={() => openFeature('memory')}><BookOpen size={17} />Project memory<ArrowUpRight size={14} /></button><button onClick={() => openFeature('tasks')}><ListChecks size={17} />Reviewed tasks<ArrowUpRight size={14} /></button><button onClick={() => openFeature('desktop')}><Cpu size={17} />Desktop tools<ArrowUpRight size={14} /></button></div>
-            </> : <>
-                <section className="page-intro"><span className="eyebrow">{page === 'studio' ? 'IDEAS, GIVEN FORM' : 'YOUR WORLD, CONNECTED'}</span><h1>{page === 'studio' ? <>Make something<br /><span>extraordinary.</span></> : <>A command center<br /><span>for your world.</span></>}</h1>
-                    <p>{page === 'studio' ? 'Bring a little imagination. We’ll bring the workspace. Heavy tools load only when you open them.' : 'Your devices and daily tools, one deliberate action at a time.'}</p></section>
-                {page === 'devices' && <Suspense fallback={<PanelState compact kind="loading" title="Inspecting connection readiness" />}><ConnectionReadiness compact onOpen={openFeature}/></Suspense>}<div className="feature-grid">{page === 'studio' ? <>
-                    <FeatureCard icon={Box} title="3D studio" description="Build a parametric solid, explore it in 3D and export STL or GLB. Works offline." tag="LOCAL + ON DEMAND" disabled={gaming} onClick={() => openFeature('cad')} />
-                    <FeatureCard icon={Camera} title="Vision studio" description="A live perspective, when you choose. Camera access starts only with your permission." tag="CAMERA OFF" disabled={gaming} onClick={() => openFeature('camera')} />
-                    <FeatureCard icon={Globe2} title="Web inspector" description="Read public page text and discover links in a quiet, read-only workspace." tag="NO CLOUD INFERENCE" onClick={() => openFeature('browser')} />
-                    <FeatureCard icon={Sparkles} title="Image atelier" description="Shape your next visual with prompts, seeds and protected revisions. Local models load only on demand." tag="MODEL SETUP LATER" disabled={gaming} onClick={() => openFeature('image')} />
-                </> : <>
-                    <FeatureCard icon={Smartphone} title="Android companion" description="Pair a device with your permission. Read laptop status and previews; tool-free chat has its own grant." tag="OPT-IN / SECURE LINK" onClick={() => openFeature('phone')} />
-                    <FeatureCard icon={Bell} title="Reminders" description="A reliable nudge. Schedules and unfinished alerts survive restart." tag="LOCAL" onClick={() => openFeature('reminder')} />
-                    <FeatureCard icon={Cpu} title="Desktop controls" description="Apps and selected system tools, with permission at every step." tag="ON DEMAND" onClick={() => openFeature('desktop')} />
-                    <FeatureCard icon={Zap} title="Smart home" description="Connect your supported lights and devices when you’re ready." tag="EXPLICIT ACTIONS" onClick={() => openFeature('kasa')} />
-                    <FeatureCard icon={Box} title="Print workshop" description="Inspect your printers and prepare the next physical creation." tag="APPROVED STAGES" onClick={() => openFeature('printer')} />
-                </>}</div><div className="future-note"><Layers3 size={18} /><span>Offline scenes are ready. Image models and Android pairing can be configured separately. Your existing SIM and WhatsApp number stay yours.</span></div>
-            </>}
-            <footer className="workspace-footer"><span>INARA <span className="footer-separator">/</span> YOUR PERSONAL INTELLIGENCE</span><span><span className="status-dot" /> {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span></footer>
-        </main></div>
-        {activeFeature && <FeatureDialog key={activeFeature} feature={activeFeature} onClose={closeFeature} />}
-        </>}
-        {commands && !quick && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={feature => feature === 'activity' ? setPage('activity') : openFeature(feature)} gaming={gaming} /></Suspense>}
-        <ReminderAlert /><ConfirmationPopup />{locked && <Suspense fallback={null}><AuthLock /></Suspense>}
-    </div>;
+  }, [locked, activeDialog, quick, setQuick]);
+  const [title, description] = workspaceTitles[page];
+  return <div className={`command-deck ${gaming ? 'gaming-mode' : ''} ${quick ? 'quick-mode' : ''}`} data-resource-state={resource.state} data-ui-contract-version={UI_CONTRACT_VERSION} data-ui-visible={visible && resident.visible !== false}>
+    {quick && !locked && <Suspense fallback={<PanelState kind="loading" title="Preparing quick assistant"/>}><QuickAssistant gaming={gaming} onExpand={() => setQuick(false)} onClose={() => window.electronAPI ? window.electronAPI.close() : setQuick(false)}/></Suspense>}
+    {!quick && !locked && <><a href="#main-workspace" className="skip-link">Skip to workspace</a>
+      <header className="titlebar"><div className="brand"><span className="brand-symbol"><Command size={19}/></span><span>INARA<span className="brand-sub">PERSONAL INTELLIGENCE</span></span></div><div className="titlebar-center"><span className={`status-dot ${connected ? '' : 'offline'}`}/>{connected ? 'CORE ONLINE' : 'CORE OFFLINE'}<span className="title-divider"/> COMMAND OS</div><div className="window-actions"><button aria-label="Minimize window" onClick={() => window.electronAPI?.minimize()}><Minus size={16}/></button><button aria-label="Maximize window" onClick={() => window.electronAPI?.maximize()}><Maximize2 size={14}/></button><button aria-label="Close to tray" title="Close workspace; INARA stays in the tray" onClick={() => window.electronAPI?.close()}><X size={18}/></button></div></header>
+      <div className="deck-layout"><aside className="navigation"><div className="nav-caption">WORKSPACE</div><nav aria-label="Main navigation">{navigation.map(([key, Icon, label]) => <button type="button" key={key} className={section === key ? 'selected' : ''} aria-label={label} title={label} aria-current={section === key ? 'page' : undefined} onClick={() => navigate(key)}><Icon size={19}/><span>{label}</span>{section === key && <span className="nav-active-mark"/>}</button>)}</nav>
+        <div className="nav-project"><span className="eyebrow">CURRENT PROJECT</span><span><Box size={15}/><strong>{currentProject || 'temp'}</strong></span><small>One context. Room to create.</small><button onClick={() => openFeature('memory')}>View project memory <ArrowUpRight size={12}/></button></div>
+        <div className="nav-bottom"><button aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={18}/><span>Gaming mode</span><span className="toggle-switch"/></button><button aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={18}/><span>Preferences</span></button>{window.electronAPI && <button className="quit-button" aria-label="Quit INARA" onClick={() => window.electronAPI.quit()}><Power size={16}/><span>Quit INARA</span></button>}<div className="resident-note"><span className="status-dot"/>{window.electronAPI ? 'Always within reach' : 'Browser preview'}<small>{resident.hotkeyReady ? 'CTRL + SHIFT + SPACE' : window.electronAPI ? 'REOPEN FROM SYSTEM TRAY' : 'DESKTOP APP / WEB PREVIEW'}</small></div></div>
+      </aside>
+      <main id="main-workspace" className="workspace" tabIndex={-1} data-page={page}><div className="workspace-top"><div className="breadcrumb"><span>WORKSPACE</span><ChevronRight size={12}/><strong>{navigation.find(([key]) => key === section)?.[2]}</strong></div><button className="command-trigger" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={15}/><span>Find a tool or action</span><kbd>Ctrl K</kbd></button><div className="workspace-top-actions"><button className="icon-button" aria-label="Open quick assistant" title="Quick assistant" onClick={() => setQuick(true)}><AudioLines size={18}/></button><button className="icon-button" aria-label="Toggle context inspector" title="Context inspector" aria-expanded={inspector} aria-controls="workspace-inspector" onClick={() => setInspector(value => !value)}><PanelRight size={18}/></button></div><Clock/></div>
+        {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16}/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
+        <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''}`}>
+          {!activeFeature && <div className="workspace-heading"><div><span className="eyebrow">{page === 'assistant' ? 'INARA / AT YOUR SIDE' : page === 'studio' ? 'THE CREATIVE WORKSPACE' : page === 'inbox' ? 'YOUR SELECTED SIGNALS' : page === 'tasks' ? 'INTENT INTO ACTION' : page === 'activity' ? 'PROJECT HISTORY' : 'CONNECTION SYSTEMS'}</span><h1>{title}</h1><p>{description}</p></div>{page === 'assistant' && <span className="workspace-mode"><span className={`status-dot ${connected ? '' : 'offline'}`}/>{gaming ? 'Gaming' : 'On demand'}</span>}</div>}
+          {(page === 'studio' || page === 'activity') && <div className="studio-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['activity','Artifacts']].map(([key,label]) => <button key={key} aria-pressed={activeFeature === key || page === key} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={13}/>} {label}</button>)}</div>}
+          {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <Conversation onOpen={openFeature} onQuick={() => setQuick(true)}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
+        </div>{inspector && <WorkspaceInspector connected={connected} processing={processing} gaming={gaming} resource={resource} memory={memory} visible={visible && resident.visible !== false} onOpen={openFeature} onClose={() => setInspector(false)}/>}</div>
+        <WorkspaceTray expanded={tray} onToggle={() => setTray(value => !value)} onOpen={openFeature} gaming={gaming}/>
+      </main></div>{activeDialog && <FeatureDialog key={activeDialog} feature={activeDialog} onClose={closeDialog}/>}</>}
+    {commands && !quick && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={openFeature} gaming={gaming}/></Suspense>}
+    <ReminderAlert/><ConfirmationPopup/>{locked && <Suspense fallback={null}><AuthLock/></Suspense>}
+  </div>;
 }

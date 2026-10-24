@@ -8,7 +8,7 @@ const privateEndpoint=(value:unknown)=>{
   if(typeof value!=='string')return false;
   try {const url=new URL(value),parts=url.hostname.split('.').map(Number);return url.protocol==='https:' && !url.username && !url.password && !url.search && !url.hash && url.pathname==='/' && Number(url.port)>=1024 && Number(url.port)<=65535 && parts.length===4 && parts.every(part=>Number.isInteger(part)&&part>=0&&part<=255) && (parts[0]===127 || parts[0]===10 || (parts[0]===172&&parts[1]>=16&&parts[1]<=31) || (parts[0]===192&&parts[1]===168));}catch{return false;}
 };
-const device=(value:PairedDevice)=>value && uuid(value.device_id) && typeof value.name==='string' && /^[a-f0-9]{64}$/.test(value.fingerprint) && typeof value.project==='string' && Number.isFinite(value.expires) && typeof value.revoked==='boolean' && Array.isArray(value.grants) && value.grants.length<=3 && value.grants.every(grant=>['status:read','jobs:read','chat:ask'].includes(grant));
+const device=(value:PairedDevice)=>value && uuid(value.device_id) && typeof value.name==='string' && /^[a-f0-9]{64}$/.test(value.fingerprint) && typeof value.project==='string' && Number.isFinite(value.expires) && typeof value.revoked==='boolean' && Array.isArray(value.grants) && value.grants.length<=4 && value.grants.every(grant=>['status:read','jobs:read','chat:ask','calls:read'].includes(grant));
 export function createMobileClient(socket:RpcSocket){
   const scope=createRpcScope(socket);
   const report=async(event:string,data:unknown={}):Promise<MobileReport>=>{

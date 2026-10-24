@@ -1,0 +1,3 @@
+# Explicit local-only optional lab. Downloads occur during setup, never in a call.
+-r requirements-call-bridge.txt
+vosk==0.3.45

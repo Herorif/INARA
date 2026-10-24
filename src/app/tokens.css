@@ -1,12 +1,14 @@
 :root {
   color-scheme:dark;
-  --deck-bg:#080d18;
-  --deck-panel:#101725;
-  --deck-border:#ffffff0d;
-  --deck-text:#e8edf5;
-  --deck-muted:#8593aa;
-  --deck-cyan:#7de5ed;
-  --deck-amber:#eab77f;
-  --deck-radius:20px;
-  --deck-nav:210px
+  --deck-bg:#080d14;
+  --deck-panel:#101b28;
+  --deck-raised:#162536;
+  --deck-border:#aac6db17;
+  --deck-text:#eaf4ff;
+  --deck-muted:#a6bdcf;
+  --deck-cyan:#70e0ed;
+  --deck-amber:#ffc670;
+  --deck-radius:16px;
+  --deck-nav:12.25rem;
+  --deck-titlebar:3.5rem
 }

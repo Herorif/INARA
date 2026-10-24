@@ -23,6 +23,8 @@ class MobileService:
         from services.notifications import NotificationInbox
 
         self.notifications = NotificationInbox(self)
+        from calls.mobile_receipts import MobileCallReceipts
+        self.call_receipts = MobileCallReceipts(self)
         # Deliberately empty dispatcher. Phone chat cannot invoke even read-file tools.
         self.chat = ConversationService(
             ToolDispatcher(lambda: {}),
@@ -67,7 +69,7 @@ class MobileService:
             ],
         }
 
-    def pair(self, owner, project, allow_chat):
+    def pair(self, owner, project, allow_chat, allow_calls=False):
         self.owner(owner)
         self.prune()
         if not self.listener.running:
@@ -80,7 +82,7 @@ class MobileService:
             "owner": owner,
             "project": str(project.resolve()),
             "expires": self.clock() + 120,
-            "grants": ["status:read", "jobs:read"] + (["chat:ask"] if allow_chat else []),
+            "grants": ["status:read", "jobs:read"] + (["chat:ask"] if allow_chat else []) + (["calls:read"] if allow_calls else []),
         }
         return {
             "version": 1,

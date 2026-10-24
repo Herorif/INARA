@@ -17,6 +17,7 @@ from pydantic import (
 )
 from services.creative_jobs import CreativeJobService, ExportMetadata, JobRequest, read_export  # noqa: F401
 from services.revisions import RevisionParent
+from services.handoff_contracts import CreativeReference
 from services.usage import metered_generate
 from services.tools import ServiceError, ToolSpec
 
@@ -116,6 +117,21 @@ class ArtifactRequest(JobRequest):
 class PlanRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     prompt: StrictStr = Field(min_length=1, max_length=2000)
+    target: Literal["solid", "scene"] = "solid"
+    reference: CreativeReference | None = None
+
+
+class SceneBlueprint(BaseModel):
+    """Provider data only: engine selection and execution stay with the owner."""
+    model_config = ConfigDict(extra="forbid")
+    name: StrictStr = Field(min_length=1, max_length=60)
+    shape: Literal["scene"]
+    objects: list[SceneObject] = Field(min_length=1, max_length=8)
+
+    @model_validator(mode="after")
+    def validated_recipe(self):
+        Recipe.model_validate(self.model_dump())
+        return self
 
 
 class MeshStats(BaseModel):
@@ -187,6 +203,15 @@ class CadService(CreativeJobService):
 
 async def plan_recipe(prompt, provider_factory=None):
     """Optional provider proposes data only. It cannot write files or execute code."""
+    return await _plan_blueprint(prompt, SolidRecipe, provider_factory)
+
+
+async def plan_scene(prompt, provider_factory=None):
+    proposal = await _plan_blueprint(prompt, SceneBlueprint, provider_factory)
+    return Recipe.model_validate(proposal).model_dump(mode="json")
+
+
+async def _plan_blueprint(prompt, model, provider_factory):
     from llm.base import Message, MessageRole
     from services.conversation import create_text_provider
 
@@ -202,19 +227,19 @@ async def plan_recipe(prompt, provider_factory=None):
                         "function_declarations": [
                             {
                                 "name": "propose_cad_recipe",
-                                "description": "Propose one editable box, L bracket or open enclosure in millimetres.",
-                                "parameters": SolidRecipe.model_json_schema(),
+                                "description": "Propose editable boxes, L brackets or open enclosures in millimetres. Scene proposals contain one to eight placed parts.",
+                                "parameters": model.model_json_schema(),
                             }
                         ]
                     }
                 ],
-                system_instruction="Return exactly one propose_cad_recipe call. Only supported parametric solids are available. Do not invent holes, fillets, arbitrary meshes or executable code. The user reviews dimensions before building.",
+                system_instruction="Return exactly one propose_cad_recipe call matching the supplied schema. Only boxes, L brackets and open enclosures are available. For a scene use one to eight parts, dimensions/translation in millimetres, XYZ rotations in degrees and positive scale. Materials are cyan, titanium, amber or ceramic. Place parts deliberately; overlaps remain separate meshes, not boolean unions. Do not invent holes, fillets, arbitrary meshes, scripts, paths or executable code. Never choose an engine or start a build. The user previews and reviews the proposal before applying it.",
             )
             if len(response.tool_calls) != 1 or response.tool_calls[0].name != "propose_cad_recipe":
                 raise ServiceError(
                     "plan_invalid", "The planner did not return a supported blueprint."
                 )
-            return SolidRecipe.model_validate(response.tool_calls[0].args).model_dump()
+            return model.model_validate(response.tool_calls[0].args).model_dump()
     except ServiceError:
         raise
     except TimeoutError as exc:

@@ -1,0 +1,139 @@
+{
+  "format": 1,
+  "date": "2026-10-24",
+  "milestone": "Order 4: protected read-only mobile call receipt sync",
+  "scope": "Source, synthetic signed-protocol checks and actual offline Android compilation; physical phone acceptance pending",
+  "python_tests": {
+    "passed": 280,
+    "by_module": {
+      "tests.test_mobile_call_receipts": 15,
+      "tests.test_mobile": 40,
+      "tests.test_notifications": 26,
+      "tests.test_call_admission": 25,
+      "tests.test_call_lab": 14,
+      "tests.test_call_model": 25,
+      "tests.test_call_local": 13,
+      "tests.test_call_bridge": 30,
+      "tests.test_usage": 46,
+      "tests.test_application": 16,
+      "tests.test_resource_policy": 5,
+      "tests.test_android_build": 25
+    },
+    "report": ".runtime/mobile-receipt-tests.xml"
+  },
+  "desktop_client_tests": {
+    "passed": 4
+  },
+  "checks": {
+    "ruff": "passed",
+    "typescript": "passed",
+    "generated_contract_drift": "passed",
+    "vite_build": "passed",
+    "diff_check": "passed"
+  },
+  "android_build": {
+    "format": 1,
+    "id": "c34c83f2-38c0-479b-9dd1-b7613e8dfd32",
+    "accepted_debug_build": true,
+    "release_signed": false,
+    "device_verified": false,
+    "record_dependencies": false,
+    "apk": {
+      "bytes": 26383817,
+      "sha256": "4dd01543200e6d910448861aef0bb47da5a72d169aeca1e386342a5622ceb094"
+    },
+    "junit": {
+      "tests": 4,
+      "reports": {
+        "TEST-com.inara.companion.CallReceiptRulesTest.xml": "019dbb8a4c523400f0f7e05926a1a28a63da2aaf3bcb9f32717498aeb4e56305",
+        "TEST-com.inara.companion.MobileProtocolTest.xml": "ccc811393641bb66dfffec4623a26135545c9fc5b67ec21a92c6964bbdf6d791"
+      }
+    },
+    "dependencies": {
+      "lock_sha256": "6a40b77bb0470147ea668debb55244949428d9a3ae973b7bb3830088e64d361f",
+      "verification_sha256": "538fa425dde2919c6886c3a9bd60ec23e82d599afd16aade0dd819d3bfaed7a5",
+      "artifacts": 694
+    },
+    "signer_sha256": [
+      "3823c31c9a6edb8d21d0fcf16c17a2748e208f805ebf14478b97ea197ed3ced5"
+    ],
+    "signature_verified": true,
+    "dependency_review_required": false
+  },
+  "android_inputs": {
+    "android/app/build.gradle.kts": "e2c04a91571d7c2ab45975eff4a99831d122ea1e49c371708625d3c0b00df036",
+    "android/app/src/main/AndroidManifest.xml": "f32381f5924084a24c0c746c0d4c22bf81f079b64c510fe08735a1613623e150",
+    "android/app/src/main/java/com/inara/companion/CallReceiptJson.kt": "307c7bdb286f1b4a30ef0d20415048efb8f5a096cd96bd504ba2211346e06d39",
+    "android/app/src/main/java/com/inara/companion/CallReceiptRules.kt": "9464579645e40dabd04fefe01ee723528b77efbed9462c344a17ba78a4606896",
+    "android/app/src/main/java/com/inara/companion/CallReceiptsCard.kt": "35a6d885a190e156219883ce9bd8db5881c31e6ddce817decf511cb41367211e",
+    "android/app/src/main/java/com/inara/companion/CompanionClient.kt": "c4a5a9362a1070147d683acbb57182b914b6fd2b14996bf84372dd6eab23de96",
+    "android/app/src/main/java/com/inara/companion/CompanionModel.kt": "cbafdcb52d1676934b8e5432314c4f53ee5abefc404e4d9ca36bc7ebd74a391c",
+    "android/app/src/main/java/com/inara/companion/DeviceSecurity.kt": "3323e974b6529c6223d607ee39cc1d6506198b05b85e235822a888c36b1cba12",
+    "android/app/src/main/java/com/inara/companion/MainActivity.kt": "6fa1e4445e727e39bad2e9ffb52cdff5d9169905bf552353b1acff6990c5f369",
+    "android/app/src/main/java/com/inara/companion/MobileProtocol.kt": "165c9d4a9c64d5d360d43e81af93513b3b9e838d65cb432ea1df62fd4e1540fb",
+    "android/app/src/main/java/com/inara/companion/NotificationCard.kt": "bcaddf9a6393ac13d543cb7c6746969a62e8d345192e683126e575a354c39e7a",
+    "android/app/src/main/java/com/inara/companion/NotificationVault.kt": "d8e77664a9129ff3458f2dff63d4b464d2dab8b28ac01317af148b104d34f860",
+    "android/app/src/main/java/com/inara/companion/SelectedNotificationListener.kt": "f62cb6617eb13a8db3b8b984b7c4e109a2137ce5539d94211f5540b2462e41a4",
+    "android/app/src/main/res/xml/data_extraction_rules.xml": "4b93d03f63e550ae1ce9e064d64c0052a5aacb883e6de09ae499ee8fb8463e20",
+    "android/app/src/test/java/com/inara/companion/CallReceiptRulesTest.kt": "a71df30788a8847fde2e6aa681560f58d6b8f760accf9ce17d714807d72f0925",
+    "android/app/src/test/java/com/inara/companion/MobileProtocolTest.kt": "54509bd93b40a4974fcec0620522b1004bcd6caa82c2374a7fdc40f66ec45de6",
+    "android/build.gradle.kts": "1df553bc4ca0f8d14c45baebb13c5a3f4c4d949be18799c1f99e8829581c4cee",
+    "android/build.ps1": "8ce6e532908b3b97fb935ca5c00af41f924905e9d70d425352786ca6deaae0c6",
+    "android/gradle.properties": "1bbd1c933b6776a16afc31d8a2ff287fd84ae0c0ddbf56ae819594768eb5f8a8",
+    "android/settings.gradle.kts": "d52c3509c42c9a95f504dfc3c4fa85fc823925a7cc013dfd98601f8de00ce8df",
+    "scripts/android-build.py": "77804ebea1cbf8532ff7b05e8f418b1dd26de4c96ef7c4daa66586438cf1aaad"
+  },
+  "apk": {
+    "path": ".runtime/android-release-candidate/c34c83f2-38c0-479b-9dd1-b7613e8dfd32/INARA-companion-debug.apk",
+    "version_code": 2,
+    "version_name": "0.1.1-receipts",
+    "bytes": 26383817,
+    "sha256": "4dd01543200e6d910448861aef0bb47da5a72d169aeca1e386342a5622ceb094"
+  },
+  "android_build_heap_mb": 768,
+  "compiled_inspection": {
+    "notification_acceptance_enabled": false,
+    "uses_permissions": [
+      "android.permission.INTERNET",
+      "com.inara.companion.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+    ],
+    "new_phone_microphone_camera_permission": false
+  },
+  "privacy_contract": [
+    "Separate default-off calls:read grant captured in explicitly approved new pairing",
+    "Signed exact-path HTTPS requests, replay protection, captured owner/project and current authorization",
+    "Metadata-only list <=20 finished admission records within seven days; lab fixture history excluded",
+    "Transcript read is explicit, <=200 literal caller/assistant segments and <=12000 characters",
+    "No audio retention, caller identity assertion, message confirmation or WhatsApp/call actions",
+    "Existing DPAPI protected source records; synthetic caller marker absent from SQLite/WAL",
+    "Manual Android refresh/open, existing Keystore AES-GCM/no-backup cache, cache clearing on known auth change/local expiry/lifecycle, explicit clear/forget",
+    "Offline revocation cannot erase cached data before the phone learns changed access"
+  ],
+  "remaining": [
+    "Actual phone install/pair, Keystore/process death/fold/Doze/TLS/revocation acceptance",
+    "Controlled SIM/personal WhatsApp duplex audio and control tests remain deferred",
+    "Local model real benchmark remains owner-deferred; guard unchanged and no model loaded",
+    "Production signing/custody and separate 52 controller/85 desktop review subjects pending"
+  ],
+  "phone_accessed": false,
+  "live_call_started": false,
+  "local_model_loaded": false,
+  "whatsapp_text_actions_enabled": false,
+  "production_signing_enabled": false,
+  "source_inputs_sha256": {
+    "backend/calls/mobile_receipts.py": "ecb2ee5f6758fbe2791213b3de1807b623751c2d8dacb047ed4d431df2f1bafd",
+    "backend/calls/admission.py": "5d8c46b4d4475f58be67d9dcf6e565bfa0c7a3c670ed5641883add4c3099b73c",
+    "backend/services/mobile.py": "1fd8e8dbbe8fa9f2e8a60a7d445d1b726cbbdab3e1d00a091a13538626745839",
+    "backend/services/mobile_contracts.py": "e9681e279c360a05b97b11e77de708e3bfe70a3b8eaddf04097ab398f4662659",
+    "backend/transport/mobile.py": "4e73cbde06e452a49b94648d88491efa6e6afd98f32bdaef1fee3c682c392a54",
+    "backend/transport/mobile_api.py": "c78a54d49904b7320827afbb7b532256664afa8070ea620ab1ba7cc890e264a8",
+    "src/app/MobileCompanion.jsx": "b886dda2722617d98c37e33a465489996223f03cec285e8584595ab96ad51e7b",
+    "src/transport/mobileClient.ts": "d16e019320c316c291d3fa72b354b828e46d2718df2ef633f9f29f24218b650f",
+    "src/transport/generated/mobile.ts": "cc2681764469bb6aa735ec0ecb1796b03ec3cc94d140352daa8e63bff00d6f6e",
+    "src/transport/generated/mobile.schema.json": "bb79f38e3af2225dea5fa19ee9292430fa40a5c56fdbe8480341634b3118537a",
+    "tests/test_mobile_call_receipts.py": "8aa728609ffa208dfdeef7cee178f52e49712a1cd881e8b317fa9b314f633d84",
+    "tests/test_mobile.mjs": "7da85f4210afd07c82fa7ff51423efa9f2d7b4246411598d1245bdd71272a63d",
+    "docs/ROUTE_POLICY_MATRIX.json": "d70c85a19a10f69e17f37bd5ed0209f48ca588b662f822abc794a29adfb545f2",
+    "scripts/export-ui-contracts.py": "9cde8da98da9f4e4b154f5e38041f45ee9d28b5b50602723d994b6fabf8a1305"
+  }
+}

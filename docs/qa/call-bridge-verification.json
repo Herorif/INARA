@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "live_call_activated": false,
+  "physical_audio_opened": false,
+  "app_ui_inspected": false,
+  "real_api_used": false,
+  "native_compiled": true,
+  "native_invalid_requests_rejected": true,
+  "synthetic_suite_passed": true,
+  "preflight": {
+    "mode": "experimental_one_call_lab",
+    "helper_built": true,
+    "audio_adapter_installed": false,
+    "voice_configured": false,
+    "live_routes_verified": false,
+    "resident_auto_start": false,
+    "android_standalone_supported": false
+  }
+}

@@ -1,0 +1,60 @@
+.feature-dialog.feature-workspace {
+  position: relative;
+  inset: auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  transform: none;
+  border: 1px solid var(--deck-border);
+  border-radius: 16px;
+  background: var(--deck-panel);
+  box-shadow: 0 12px 40px #00000018;
+  overflow: hidden;
+}
+
+.feature-dialog.feature-workspace:focus {
+  outline: none;
+}
+
+.feature-dialog.feature-workspace > .panel-header {
+  flex-shrink: 0;
+  padding: 14px 20px;
+}
+
+.feature-dialog.feature-workspace > .panel-header .panel-header-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+
+.feature-dialog.feature-workspace > .panel-header h2 {
+  margin: 3px 0 0;
+  font-size: 1rem;
+  letter-spacing: -.02em;
+}
+
+.feature-dialog.feature-workspace > .legacy-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.feature-dialog.feature-workspace > .panel-state--compact {
+  flex-shrink: 0;
+  margin: 12px 16px 0;
+}
+
+@media (max-width: 640px) {
+  .feature-dialog.feature-workspace {
+    border-radius: 12px;
+  }
+
+  .feature-dialog.feature-workspace > .panel-header {
+    padding: 12px;
+  }
+}

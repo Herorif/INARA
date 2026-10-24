@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "real_bundled_packages_installed": 2,
+  "explicit_selection": true,
+  "separate_version_data": true,
+  "rollback_preserved_original_data": true,
+  "final_package_staged_and_installed": true,
+  "final_package_files": 2983,
+  "development_host_only": true,
+  "signed": false,
+  "clean_machine_acceptance": false,
+  "production_profile_used": false,
+  "downloads": false
+}

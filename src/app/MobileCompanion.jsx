@@ -14,9 +14,11 @@ export default function MobileCompanion() {
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [host, setHost] = useState('127.0.0.1'),
-    [chat, setChat] = useState(false);
+    [chat, setChat] = useState(false),
+    [calls, setCalls] = useState(false);
   const client = useRef(null);
   useEffect(() => {
+    setCalls(false);
     let live = true,
       inflight = false;
     const value = createMobileClient(socket);
@@ -86,8 +88,8 @@ export default function MobileCompanion() {
           port: 8443
         });
       })}>{enabled ? 'Stop mobile access' : 'Enable private TLS listener'}</button><small>Port 8443. Listener stays enabled until stopped or the core quits. No firewall or router rules are changed.</small></section>
-    <section className="mobile-link-card"><div className="mobile-card-heading"><ShieldCheck size={18} /><strong>Pair with your permission</strong></div><p>Read laptop status and job previews in <b>{project}</b>. Compare the full device-key fingerprint on both screens before approving.</p><label className="mobile-check"><input type="checkbox" checked={chat} onChange={event => setChat(event.target.checked)} disabled={busy} />Also allow tool-free AI chat for this project</label><button className="primary-button" disabled={!enabled || busy || !connected} onClick={() => act(async () => setInvite(await client.current.pair({
-        allow_chat: chat
+    <section className="mobile-link-card"><div className="mobile-card-heading"><ShieldCheck size={18} /><strong>Pair with your permission</strong></div><p>Read laptop status and job previews in <b>{project}</b>. Compare the full device-key fingerprint on both screens before approving.</p><label className="mobile-check"><input type="checkbox" checked={chat} onChange={event => setChat(event.target.checked)} disabled={busy} />Also allow tool-free AI chat for this project</label><label className="mobile-check"><input type="checkbox" checked={calls} onChange={event => setCalls(event.target.checked)} disabled={busy} />Also allow read-only call receipts and caller transcripts for this project</label><button className="primary-button" disabled={!enabled || busy || !connected} onClick={() => act(async () => setInvite(await client.current.pair({
+        allow_chat: chat, allow_calls: calls
       })))}><Link2 size={16} />Create 2-minute invitation</button>{invite && <div className="mobile-invitation"><strong>Invitation ready / {invite.project}</strong>{invite.qr_svg ? <img className="mobile-qr" alt="One-time pairing invitation QR" src={`data:image/svg+xml;base64,${invite.qr_svg}`} /> : <small>Offline QR rendering is not installed. Invitation-file transfer is available.</small>}<p>Download and open this file in the Android companion. It expires automatically and can be claimed once. Keep it private.</p><button onClick={save}><Download size={16} />Save invitation</button><button onClick={() => act(async () => {
           await client.current.cancel();
           setInvite(null);
@@ -105,6 +107,6 @@ export default function MobileCompanion() {
     <section className="mobile-link-card"><h3>Paired devices</h3>{!report?.devices.length ? <p>No device has access.</p> : report.devices.map(device => <article key={device.device_id} className="mobile-device"><strong>{device.name} / {device.revoked ? 'Revoked' : device.expires < Date.now() / 1000 ? 'Expired' : 'Paired'}</strong><span>{device.project} / {device.grants.join(', ')}</span><code>{device.fingerprint}</code><button disabled={device.revoked || busy} onClick={() => act(() => client.current.revoke({
           device_id: device.device_id
         }))}>Revoke access</button>{device.project === project && <NotificationInbox device={device} project={project} />}</article>)}</section>
-    <footer>Android source is ready for a separate toolchain build. Calls, notifications, microphone access and WhatsApp replies are not enabled by pairing.</footer>
+    <footer>Pairing grants only the permissions listed above. Existing devices need a new pairing for call receipt access. Calls, notifications, microphone access and WhatsApp replies are not enabled by pairing.</footer>
   </div>;
 }

@@ -26,3 +26,17 @@ test('closing pairing scope rejects pending controls and ignores late approval A
  socket.requests[0].ack({ok:true,listener:{enabled:false,endpoint:null},devices:[],pending:[]});
  assert.equal(socket.eventNames().length,0);
 });
+
+test('call receipt grant is explicit and accepts no call-control authority',async()=>{
+ const socket=new Socket(),client=createMobileClient(socket);
+ const pending=client.state();
+ const device={device_id:crypto.randomUUID(),name:'Synthetic',fingerprint:'a'.repeat(64),project:'temp',grants:['status:read','jobs:read','calls:read'],expires:1,revoked:false};
+ socket.requests[0].ack({ok:true,listener:{enabled:false,endpoint:null},devices:[device],pending:[]});
+ assert.deepEqual((await pending).devices[0].grants,device.grants);
+ const second=client.state();
+ socket.requests[1].ack({ok:true,listener:{enabled:false,endpoint:null},devices:[{...device,grants:['calls:answer']}],pending:[]});
+ await assert.rejects(second,{code:'invalid_response'});
+ const request=client.pair({allow_chat:false,allow_calls:false});
+ assert.deepEqual(socket.requests[2].data,{allow_chat:false,allow_calls:false});
+ const rejected=assert.rejects(request,{code:'scope_closed'});client.dispose();await rejected;
+});

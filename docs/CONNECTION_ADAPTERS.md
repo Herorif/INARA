@@ -60,4 +60,6 @@ The request separation follows the official [OctoPrint file API](https://docs.oc
 
 ## Next implementation
 
+The scene-proposal milestone below is now implemented: [behavior, native evidence and next sequence](SCENE_PROPOSALS.md). The call-first owner request remains higher priority when physical setup is available.
+
 Extend optional AI blueprint proposals from single solids to typed multi-object scenes: bounded object count/dimensions/transforms/materials, preview-and-review before application, captured project/request scope, stale-proposal rejection, protected revisions and shared per-provider-call usage admission. Use injected provider proposals and the existing offline scene worker for acceptance; do not configure providers, download models, invoke Blender or run real image/camera/hardware tasks automatically. No arbitrary generated Python or shell execution. Interactive browser actions, Android build/device acceptance, real providers/hardware and signed distribution/update recovery remain separately gated. WhatsApp replies and call actions stay excluded.

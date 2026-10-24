@@ -1,5 +1,7 @@
 /** One catalog for navigation, commands and panel labels. */
 export const features = [
+  { id: 'calls', title: 'Call bridge lab', group: 'Connect', keywords: 'sim whatsapp personal phone call assistant simulation check', flag: 'showCallLab' },
+  { id: 'inbox', title: 'Notification inbox', group: 'Organize', keywords: 'phone whatsapp messages selected read only signals' },
   { id: 'connections', title: 'Connections readiness', group: 'System', keywords: 'kasa printer dependencies device setup offline status', flag: 'showConnectionReadiness' },
   { id: 'tasks', title: 'Reviewed tasks', group: 'Organize', keywords: 'task queue workflow plan approval steps receipts', flag: 'showTaskQueue' },
   { id: 'usage', title: 'Usage & quality', group: 'System', keywords: 'budget spending tokens costs limits evaluations quality', flag: 'showUsageCenter' },

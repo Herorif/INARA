@@ -1,0 +1,36 @@
+{
+  "format": 1,
+  "date": "2026-10-22",
+  "passed": true,
+  "actual_candidate_audit_revalidated": true,
+  "actual_creation": true,
+  "separate_cli_status_verification": true,
+  "candidate_files": 2993,
+  "subjects": 85,
+  "categories": {
+    "asset": 5,
+    "component": 75,
+    "missing-notice": 2,
+    "runtime-baseline": 2,
+    "vendored-native": 1
+  },
+  "decisions": {
+    "pending": 85,
+    "approved": 0,
+    "rejected": 0
+  },
+  "events": 0,
+  "head_sha256": "7e46a1dc53cf0b445ad2b8e5bd7b1836655d70a38c6b781f054ebbb1e8d94ffa",
+  "python_test_passes": 82,
+  "new_review_test_passes": 39,
+  "scoped_ruff": "passed",
+  "real_decisions_recorded": false,
+  "real_profile_used": false,
+  "network_accessed": false,
+  "signing_performed": false,
+  "reviewer_authenticated": false,
+  "publisher_authenticated": false,
+  "redistribution_cleared": false,
+  "release_ready": false,
+  "limits": "Unsigned reviewer assertions with digest-bound revisions; hashes do not authenticate authorship or establish evidence adequacy. All real reviews remain pending. Signing/trust, authoritative review decisions and clean-machine acceptance remain open."
+}

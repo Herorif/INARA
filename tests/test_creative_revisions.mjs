@@ -46,7 +46,7 @@ test('proposal RPC includes exact base and rejects malformed proposal without wo
   const socket=new Socket(),client=createCadClient(socket),reference={base_request_id:'base',base_fingerprint:'a'.repeat(64)};
   const pending=client.call('cad_review_changes',{...reference,edits:[{fields:{width:100}}]});
   assert.equal(socket.requests[0].data.base_request_id,'base');
-  socket.requests[0].ack({ok:true,proposal:{...reference,edits:[],recipe:{name:'draft'}}});
+  socket.requests[0].ack({ok:true,proposal:{...reference,edits:[],recipe:{name:'draft',shape:'box',width:80,depth:60,height:30,thickness:3}}});
   assert.equal((await pending).proposal.recipe.name,'draft');
   const bad=client.call('cad_plan_changes',{...reference,prompt:'wider'});
   socket.requests[1].ack({ok:true,proposal:{recipe:{}}});

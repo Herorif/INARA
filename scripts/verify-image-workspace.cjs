@@ -46,21 +46,23 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await until(()=>evaluate(`!document.querySelector('.panel-state')`));
   result.history_error_and_explicit_recovery=true;
   window.setContentSize(1440,900);await sleep(100);
-  await evaluate(`document.querySelector('[aria-label="Close panel"]').focus()`);
-  window.webContents.sendInputEvent({type:'keyDown',keyCode:'Tab',modifiers:['shift']});
-  window.webContents.sendInputEvent({type:'keyUp',keyCode:'Tab',modifiers:['shift']});
-  await sleep(50);
-  assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`),'Refresh image history');
+  assert.equal(await evaluate(`!!document.querySelector('.feature-workspace') && !document.querySelector('.feature-workspace[aria-modal="true"]')`),true);
+  await evaluate(`(()=>{const nodes=[...document.querySelector('.feature-workspace').querySelectorAll('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]')].filter(el=>el.getClientRects().length);nodes.at(-1).focus();})()`);
   window.webContents.sendInputEvent({type:'keyDown',keyCode:'Tab'});
   window.webContents.sendInputEvent({type:'keyUp',keyCode:'Tab'});
   await sleep(50);
-  assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`),'Close panel');
+  assert.equal(await evaluate(`!!document.activeElement.closest('.feature-workspace')`),false,'Docked tools must allow keyboard navigation back to the shell');
+  window.webContents.sendInputEvent({type:'keyDown',keyCode:'K',modifiers:['control']});
+  window.webContents.sendInputEvent({type:'keyUp',keyCode:'K',modifiers:['control']});
+  await until(()=>evaluate(`document.activeElement?.getAttribute('aria-label')==='Search commands'`));
   window.webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'});
   window.webContents.sendInputEvent({type:'keyUp',keyCode:'Escape'});
-  await until(()=>evaluate(`!document.querySelector('[role="dialog"]')`));
+  await until(()=>evaluate(`!document.querySelector('.command-palette')`));
+  assert.equal(await evaluate(`!!document.querySelector('.image-studio')`),true,'Dismissing command search must retain the docked image tool');
+  await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
   await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Image atelier')).click()`);
   await until(()=>evaluate(`document.querySelector('.image-availability p')?.textContent.includes('deferred')`));
-  result.keyboard_wrap_and_escape=true;
+  result.docked_keyboard_navigation_and_palette_escape=true;
 
   fs.writeFileSync(path.join(output,'unconfigured-checked.json'),'{}');
   await until(()=>fs.existsSync(path.join(output,'fixture-enabled.json')));
@@ -114,7 +116,9 @@ BrowserWindow.prototype.loadFile=async function(...args){
   assert.equal(await evaluate(`document.querySelector('.job-lifetime input').checked`),false);
   await evaluate(`document.querySelector('.job-lifetime input').click()`);
   await until(()=>evaluate(`document.querySelector('.job-lifetime input').checked && !document.querySelector('.job-lifetime input').disabled`));
-  await evaluate(`document.querySelector('[aria-label="Close panel"]').click();document.querySelector('nav [aria-label="Activity"]').click()`);
+  await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+  await until(()=>evaluate(`!!document.querySelector('.studio-tabs')`));
+  await evaluate(`[...document.querySelectorAll('.studio-tabs button')].find(button=>button.textContent.includes('Artifacts')).click()`);
   await until(()=>evaluate(`[...document.querySelectorAll('.activity-card')].some(card=>card.textContent.includes('running')&&card.textContent.includes('BACKGROUND / WORKSPACE LIFETIME'))`));
   await screenshot('background-activity.png');
   await evaluate(`[...document.querySelectorAll('.activity-card')].find(card=>card.textContent.includes('running')).querySelector('footer button').click()`);
@@ -126,7 +130,9 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await until(()=>evaluate(`document.querySelector('.image-canvas img')?.naturalWidth===512`));
   result.cancel_preserves_previous_revision=true;
   assert.equal(requests.some(url=>/^https?:\/\//.test(url)&&!/^http:\/\/(localhost|127\.0\.0\.1):8000/.test(url)),false);
-  await evaluate(`document.querySelector('[aria-label="Close panel"]').click();document.querySelector('nav [aria-label="Activity"]').click()`);
+  await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+  await until(()=>evaluate(`!!document.querySelector('.studio-tabs')`));
+  await evaluate(`[...document.querySelectorAll('.studio-tabs button')].find(button=>button.textContent.includes('Artifacts')).click()`);
   await until(()=>evaluate(`document.querySelectorAll('.activity-card').length===3 && !document.querySelector('.panel-state--loading')`));
   assert.equal(await evaluate(`document.querySelector('.activity-center').textContent.includes('PNG')`),true);
   window.setContentSize(390,900);await sleep(150);
@@ -139,6 +145,8 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await evaluate(`document.querySelector('.image-generate').click()`);
   await until(()=>evaluate(`document.querySelector('.job-lifetime input') && !document.querySelector('.job-lifetime input').checked && document.querySelector('.image-result-status strong')?.textContent==='Bringing your idea into focus'`));
   await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
+  await until(()=>evaluate(`!!document.querySelector('.studio-tabs')`));
+  await evaluate(`[...document.querySelectorAll('.studio-tabs button')].find(button=>button.textContent.includes('Artifacts')).click()`);
   await until(()=>evaluate(`document.querySelectorAll('.activity-card').length===4 && ![...document.querySelectorAll('.activity-state')].some(span=>['running','queued'].includes(span.textContent))`));
   result.default_panel_close_cancels_worker=true;
 

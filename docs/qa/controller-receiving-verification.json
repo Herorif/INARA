@@ -1,0 +1,193 @@
+{
+  "actual_controller_review": {
+    "artifact": "controller",
+    "decisions": {
+      "approved": 0,
+      "pending": 52,
+      "rejected": 0
+    },
+    "events": 0,
+    "head_sha256": "a39d05a5594e62da19ed05d7958189f83cbb00ab305ab7a20c7d8499a40b29e5",
+    "integrity": "passed",
+    "publisher_authenticated": false,
+    "recorded_reviews_complete": false,
+    "redistribution_cleared": false,
+    "release_authorized": false,
+    "release_ready": false,
+    "reviewer_authenticated": false,
+    "subjects": 52
+  },
+  "actual_paths": {
+    "controller": ".runtime\\controllers\\managed-lifecycle-20261022-accepted",
+    "ledger": ".runtime\\controller-reviews\\receiving-20261022-accepted",
+    "provenance": ".runtime\\controller-provenance\\receiving-20261022-accepted",
+    "readiness": ".runtime\\receiving-qa\\20261022-accepted\\results.json"
+  },
+  "actual_provenance": {
+    "components": 43,
+    "controller_files": 2681,
+    "controller_manifest_sha256": "eec5097e7ddea570ab46213ad79fd910c8c886dc1462a538de5e3a35eec66d89",
+    "integrity": "passed",
+    "missing_notice_components": [],
+    "native_files": 38,
+    "notice_files": 51,
+    "pending_reviews": 52,
+    "release_authorized": false,
+    "report_sha256": "e03b3de70f98d63691a2e84c345fe78e095f2c9aa544a8584205d94f97942374"
+  },
+  "actual_readiness": {
+    "blockers": [
+      "active_key_custody_coverage_incomplete",
+      "controller_review_decisions_incomplete",
+      "custody_plan_is_draft",
+      "custody_policy_bindings_missing_or_different",
+      "independent_bootstrap_delivery_missing",
+      "independent_role_operators_not_recorded",
+      "publisher_assertion_missing_or_different",
+      "release_identity_not_configured",
+      "windows_custody_or_recovery_drill_missing",
+      "windows_signing_not_configured"
+    ],
+    "bootstrap_sha256": "ba505013d46a853f739ee33daeee61fa6cb1b60cd6b333e11a7eca4b9fda0ec1",
+    "controller_manifest_sha256": "eec5097e7ddea570ab46213ad79fd910c8c886dc1462a538de5e3a35eec66d89",
+    "controller_review": {
+      "artifact": "controller",
+      "decisions": {
+        "approved": 0,
+        "pending": 52,
+        "rejected": 0
+      },
+      "events": 0,
+      "head_sha256": "a39d05a5594e62da19ed05d7958189f83cbb00ab305ab7a20c7d8499a40b29e5",
+      "integrity": "passed",
+      "publisher_authenticated": false,
+      "recorded_reviews_complete": false,
+      "redistribution_cleared": false,
+      "release_authorized": false,
+      "release_ready": false,
+      "reviewer_authenticated": false,
+      "subjects": 52
+    },
+    "custody": {
+      "blockers": [
+        "active_key_custody_coverage_incomplete",
+        "custody_plan_is_draft",
+        "custody_policy_bindings_missing_or_different",
+        "independent_bootstrap_delivery_missing",
+        "independent_role_operators_not_recorded",
+        "publisher_assertion_missing_or_different",
+        "release_identity_not_configured",
+        "windows_custody_or_recovery_drill_missing",
+        "windows_signing_not_configured"
+      ],
+      "certificate_store_changed": false,
+      "enrollment_inventory_sha256": "875e01f10b94edb319b7331221ad20dcf037a361c8ff57bb2906f052001fdcc7",
+      "enrollment_sha256": "e9b6e64c254df5a33f7e9836889cdbe127cc913add4a73e39c9e1c828465ce99",
+      "hardware_key_custody_verified": false,
+      "identity_assertions_authenticated": false,
+      "production_configured": false,
+      "ready": false,
+      "release_authorized": false,
+      "release_policy_sha256": "d0b7415c127fdbf5811a3d17ca464fecd826b8d5db6ac3ca299b101b74a4674b",
+      "windows_policy_sha256": "35cb2a1168ec14f5c27b43351a1c7c517ac0d49c79d4889d99022d44084f8139"
+    },
+    "enrollment_inventory_sha256": "875e01f10b94edb319b7331221ad20dcf037a361c8ff57bb2906f052001fdcc7",
+    "launched": false,
+    "ledger_head_sha256": "a39d05a5594e62da19ed05d7958189f83cbb00ab305ab7a20c7d8499a40b29e5",
+    "ledger_inventory_sha256": "37539d1f89f051db6ea5269294ffa6a9e319f35bc9fd1993c569f2c9fcdbdef5",
+    "legal_identity_established": false,
+    "native_acceptance": null,
+    "provenance_inventory_sha256": "da6d210ecd54a55348792ee95db1428e03a69d1ff41d6cd7c1a94c87e39c819d",
+    "ready_for_signing_request": false,
+    "release_authorized": false
+  },
+  "actual_receiving_refusal": {
+    "output_created": false,
+    "reason": "Production-purpose external delivery trust required",
+    "refused": true
+  },
+  "clean_machine_accepted": false,
+  "controller_unchanged": true,
+  "desktop_subjects_pending": 85,
+  "format": 1,
+  "kind": "inara-receiving-preparation-acceptance",
+  "real_signed_delivery_tested": false,
+  "focused_distinct_python_checks": 195,
+  "new_receiving_checks": 26,
+  "python_runs": {
+    ".runtime/receiving-tests/focused.xml": {
+      "tests": 80,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/receiving-tests/regression.xml": {
+      "tests": 112,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/receiving-tests/interruption.xml": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/receiving-tests/envelope-drift.xml": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/receiving-tests/final-delivery.xml": {
+      "tests": 58,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/receiving-tests/release-gates.xml": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "scoped_ruff": "passed",
+  "diff_whitespace_check": "passed",
+  "source_sha256": {
+    "scripts/controller-receive.py": "e4f9abf64ee1cb6ce66ebf7d3b45dda6c091104bf2c73cefa7da61f2e80fcbea",
+    "scripts/controller-delivery.py": "04d073966b1e174ec96ade99c0485bcac0e5926facf3cd9f3e6cadf42780014c",
+    "scripts/controller-review.py": "62ce693400f269af0896804780ab582eb5f95894d800bbea26cf2fd49968cebb",
+    "scripts/controller-provenance.py": "e7643ee09a425022ae72dafe6d7ab05c6990227c1145273f3b426a3936ecc529",
+    "tests/test_controller_receive.py": "b79d7a1dad302df1882e7c7ea2667094d72b7c91a3f217432a1ec0dc6c54d1d7"
+  },
+  "external_source_copies_current": true,
+  "desktop_ledger": {
+    "subjects": 85,
+    "events": 0,
+    "tool_binding_unchanged": true
+  },
+  "production_policies": {
+    "release": "disabled",
+    "windows": "disabled"
+  },
+  "actual_cli_refusal": {
+    "exit_code": 1,
+    "stderr": "Receiving refused. Preserve independent trust and partial evidence. Nothing was installed or launched.",
+    "output_created": false
+  },
+  "limitations": [
+    "Receiver endorses exact producer evidence via external signatures; it does not regenerate producer source provenance or establish legal identity/redistribution clearance.",
+    "All positive delivery/copy/native tests use ephemeral synthetic keys, inert fixtures and injected native acceptance. No real signed artifact was delivered or executed.",
+    "Verifier/helper dependencies, policies, pins and current sequence require independent trust. A receiving receipt is not authority; later execution requires its own current guarded verification.",
+    "All existing configuration, download, device, live-call and game deferrals and WhatsApp text/outgoing exclusions remain in effect."
+  ],
+  "private_profile_read": false,
+  "production_configuration_changed": false,
+  "real_review_decisions_entered": false,
+  "real_release_signed": false,
+  "payload_executed": false,
+  "installed": false,
+  "launched": false,
+  "release_authorized": false
+}

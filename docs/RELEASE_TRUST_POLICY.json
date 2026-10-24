@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "kind": "inara-release-trust-policy",
+  "mode": "disabled",
+  "policy_sequence": 1,
+  "publisher": null,
+  "channel": "pilot",
+  "minimum_sequence": 1,
+  "thresholds": {"publisher": 1, "reviewer": 1},
+  "keys": []
+}

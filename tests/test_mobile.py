@@ -73,8 +73,8 @@ async def post(app, phone, operation, payload=None, envelope=None, **kwargs):
         )
 
 
-async def pair(app, phone, chat=False, approve=True):
-    bundle = app.mobile.pair("owner", app.projects.get_current_project_path(), chat)
+async def pair(app, phone, chat=False, approve=True, calls=False):
+    bundle = app.mobile.pair("owner", app.projects.get_current_project_path(), chat, calls)
     response = await post(
         app,
         phone,

@@ -1,0 +1,15 @@
+﻿{
+    "review_invalidated_on_edit":  true,
+    "separate_erasure_confirmation":  true,
+    "busy_action_lock":  true,
+    "passed":  true,
+    "native_wpf_rendered":  true,
+    "recovery_route":  true,
+    "tray_launch_default":  true,
+    "backend_mutations":  0,
+    "fixture_only":  true,
+    "widths":  [
+                   1120,
+                   780
+               ]
+}

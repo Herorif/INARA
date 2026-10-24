@@ -1,7 +1,7 @@
 """CAD-specific contract and optional proposal RPC over the shared creative transport."""
 
 import asyncio
-from services.cad import BuildRequest, ArtifactRequest, PlanRequest, plan_recipe, blender_executable
+from services.cad import BuildRequest, ArtifactRequest, PlanRequest, Recipe, SceneBlueprint, plan_recipe, plan_scene, blender_executable
 from services.cad_changes import ChangeSet, ChangePrompt, apply_changes, propose_changes
 from services.creative_transport import CreativeTransport
 from services.tools import ServiceError, ToolSpec
@@ -23,11 +23,12 @@ class CadTransport(CreativeTransport):
         }
 
     def __init__(
-        self, *args, planner=plan_recipe, change_planner=propose_changes, authorize=None, **kwargs
+        self, *args, planner=plan_recipe, scene_planner=plan_scene, change_planner=propose_changes, authorize=None, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.planner, self.authorize = planner, authorize
         self.change_planner = change_planner
+        self.scene_planner = scene_planner
         self.dispatcher.register(
             ToolSpec(
                 "plan_cad_changes",
@@ -42,7 +43,7 @@ class CadTransport(CreativeTransport):
         self.dispatcher.register(
             ToolSpec(
                 "plan_cad",
-                "Propose validated CAD dimensions for owner review; requires configured provider.",
+                "Propose a solid or a scene of up to eight typed parts for owner review; requires configured provider. Does not build.",
                 PlanRequest,
                 self.execute_plan,
                 execution_timeout=40,
@@ -61,7 +62,18 @@ class CadTransport(CreativeTransport):
         if owns:
             self.planning[owner] = task
         try:
-            return await self.planner(args.prompt)
+            self.service.validate_reference(owner, context["project_path"], args.reference)
+            result = await (self.scene_planner if args.target == "scene" else self.planner)(args.prompt)
+            self.service.validate_reference(owner, context["project_path"], args.reference)
+            if self.authorize:
+                self.authorize(context)
+            if args.target == "scene":
+                recipe = Recipe.model_validate(result)
+                SceneBlueprint.model_validate(recipe.model_dump(include={"name", "shape", "objects"}))
+                if recipe.engine != "offline":
+                    raise ServiceError("plan_invalid", "Blueprint proposals cannot select an external engine.")
+                return recipe.model_dump(mode="json")
+            return result
         finally:
             if owns:
                 self.planning.pop(owner, None)
@@ -79,11 +91,13 @@ class CadTransport(CreativeTransport):
             await self.sio.emit("tool_confirmation_request", payload, room=sid)
 
         try:
-            return {
-                "recipe": await self.dispatcher.dispatch(
-                    owner, "plan_cad", args.model_dump(), context, approve
-                )
-            }
+            recipe = await self.dispatcher.dispatch(
+                owner, "plan_cad", args.model_dump(), context, approve
+            )
+            current = self.context(sid)
+            if current["principal"] != owner or current["project_path"] != context["project_path"]:
+                raise ServiceError("proposal_stale", "The proposal workspace changed. Request a new blueprint.")
+            return {"recipe": recipe}
         finally:
             self.planning.pop(owner, None)
 
@@ -114,7 +128,9 @@ class CadTransport(CreativeTransport):
             base = self.service.require_revision(
                 owner, context["project_path"], args.base_request_id, args.base_fingerprint
             )
+            self.service.validate_reference(owner, context["project_path"], args.reference)
             edits = await self.change_planner(args.prompt, base)
+            self.service.validate_reference(owner, context["project_path"], args.reference)
             if self.authorize:
                 self.authorize(context)
             return self.review(

@@ -66,6 +66,44 @@
     "type": "object"
   },
   "ImageRequest": {
+    "$defs": {
+      "CreativeReference": {
+        "additionalProperties": false,
+        "properties": {
+          "source_kind": {
+            "enum": [
+              "cad",
+              "image"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_request_id": {
+            "format": "uuid",
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "source_fingerprint": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Fingerprint",
+            "type": "string"
+          },
+          "source_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_request_id",
+          "source_fingerprint",
+          "source_sha256"
+        ],
+        "title": "CreativeReference",
+        "type": "object"
+      }
+    },
     "additionalProperties": false,
     "properties": {
       "base_request_id": {
@@ -93,6 +131,17 @@
         ],
         "default": null,
         "title": "Base Fingerprint"
+      },
+      "reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CreativeReference"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
       },
       "name": {
         "default": "Untitled visual",
