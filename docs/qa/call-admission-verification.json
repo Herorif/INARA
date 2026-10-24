@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "date": "2026-10-24",
+  "milestone": "Order 2: core-owned local-call admission and truthful availability source integration",
+  "scope": "Source/inert-fixture acceptance only; physical live calls remain closed",
+  "python_tests": {
+    "passed": 149,
+    "by_module": {
+      "tests.test_call_admission": 25,
+      "tests.test_call_lab": 14,
+      "tests.test_call_local": 13,
+      "tests.test_call_bridge": 30,
+      "tests.test_usage": 46,
+      "tests.test_application": 16,
+      "tests.test_resource_policy": 5
+    },
+    "reports": [
+      ".runtime/call-admission-tests.xml",
+      ".runtime/call-admission-lifecycle-tests.xml"
+    ]
+  },
+  "frontend_tests": {
+    "passed": 5,
+    "command": ".tools/node-v24.21.0-win-x64/node.exe --experimental-strip-types --test tests/test_call_lab.mjs"
+  },
+  "checks": {
+    "ruff": "passed",
+    "typescript": "passed",
+    "generated_contract_drift": "passed",
+    "vite_build": "passed",
+    "vite_build_context": "Normal-context run after sandbox denied esbuild parent-directory reads",
+    "vite_existing_warnings": [
+      "CJS Node API deprecation",
+      "stale Browserslist data",
+      "large CAD chunk"
+    ]
+  },
+  "behavior": [
+    "One core-owned session with immediate shared resource reservation; no incoming-call queue",
+    "Fixed local CPU1/RAM512MB/VRAM0 admission estimate, not an OS resource limit",
+    "Owner/project/origin checks and recurring authorization through the owned supervisor",
+    "Disconnect, lock, project change, resident/gaming mode, resource fault and physical acceptance withdrawal stop the session",
+    "Durable request ledger with no automatic replay; orphaned running metadata becomes uncertain on readiness read",
+    "Local usage receipts have cloud=false and zero cloud allowance even with exhausted cloud caps",
+    "Standalone CLI run refuses before profile read; no public live-start route",
+    "Call Lab distinguishes software admission readiness from physical availability"
+  ],
+  "limitations": [
+    "Real call control/audio/phone acceptance not performed",
+    "Future controlled integration must provide a trusted physical-acceptance verifier; currently none is enrolled",
+    "Tests use inert supervisors, synthetic profiles and isolated temporary databases; no actual live-mode OS worker launched",
+    "No render screenshot or phone/emulator UI acceptance in this step",
+    "Only core-owned creative-worker scheduling is shared; no new hard CPU/RAM limit or game benchmark",
+    "256-request per-owner/project replay ledger and 24 recent admission summaries; no automatic ledger reset",
+    "Protected mobile receipt sync remains pending; this is not phone delivery acceptance"
+  ],
+  "live_enabled": false,
+  "physical_verified": false,
+  "microphone_or_speaker_opened": false,
+  "phone_accessed": false,
+  "cloud_provider_used": false,
+  "local_llm_installed": false,
+  "whatsapp_text_actions_enabled": false,
+  "production_signing_enabled": false,
+  "inputs_sha256": {
+    "backend/calls/admission.py": "17a2fb309a2b641122470ebb101038d541c21fbc8801da8ca36176a7803b61f4",
+    "backend/calls/lab.py": "ca44a41245f2aa7480a56b112c82f5896bea9b46a2ace3b164024c885752e51d",
+    "backend/calls/lab_contracts.py": "3cbf28fafd764907a562ddc696863fda8f6ac76e99d255b0e16b78244d8966f3",
+    "backend/application.py": "35af65005c3300fdff52128427f11e9659893bfcdf38e74f31cf5596527db4fb",
+    "backend/services/resources.py": "76097105d4e0b3de8be64e64c3d176c920b208b08f8e73230f6a1d602fc92a7c",
+    "backend/services/capability_profiles.py": "063ceee1ea50841b5e132c48ae7ec99e5796b17b8423c31c711d9bbb2afd533c",
+    "backend/services/usage.py": "802950afa79dcc6a7d1e072bb765220409f99c7b0546e7a6825f6ee61e9de4be",
+    "scripts/call-bridge.py": "bacff4c996971c520c9d3364b59959f0a901bd89cc2c1315275ef8205e1f5e96",
+    "src/app/CallLab.jsx": "a0f7b81be5e451a9e63f5c4129b7fa4ec588e43e829a32c190c5e5376fa1e3e4",
+    "src/transport/callLabClient.ts": "d6f88c01fa8251ccc46796045f9f16b4fdff95a0aedc8bc39cb9cb7595c2ded2",
+    "src/transport/generated/callLab.ts": "7d9318d5515fdfef11b206c904f33c6968e48dbaf6f2654dcc657a1a28f8528f",
+    "src/transport/generated/callLab.schema.json": "da01c124392a7b83c99d43820d22f26d37b4eb9fb0b0ecc1ad7cd78356954797",
+    "tests/test_call_admission.py": "d9bb97cf30515e45b8cb336a1c24aee252281161497562bacc9a58a0fcdbfa4e",
+    "tests/test_call_lab.mjs": "5aadcd1fed1357e56710716e63e9421b30bfd9004f963d22451f6c087c7a59d8"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "installed_core_used": true,
+  "bundled_python_used": true,
+  "isolated_data_used": true,
+  "resident_lease_blocks_switch": true,
+  "workspace_started": false,
+  "model_device_workers_started": 0,
+  "graceful_core_stop": true,
+  "package_unchanged_after_run": true,
+  "lock_released_after_stop": true,
+  "signed": false,
+  "clean_machine_acceptance": false
+}

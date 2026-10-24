@@ -3,8 +3,23 @@
  * Direct import - no React Context needed since the instance never changes.
  */
 import io from 'socket.io-client';
+import { emitConnected } from './subscriptions';
 
-const socket = io('http://localhost:8000');
+let clientId = window.electronAPI?.clientId || localStorage.getItem('inara_client_id');
+if (!clientId) {
+    clientId = crypto.randomUUID();
+    localStorage.setItem('inara_client_id', clientId);
+}
+const socket = io('http://localhost:8000', {
+    autoConnect: false,
+    auth: { client_id: clientId, token: window.electronAPI?.sessionToken
+        || import.meta.env.VITE_INARA_SESSION_TOKEN || '' },
+});
+
+// Complete native owner registration before the renderer hydrates owner-only state.
+Promise.resolve(window.electronAPI?.registerResident(clientId)).catch(() => {
+    // The desktop status bridge reports registration failure. Text reconnect remains available.
+}).finally(() => socket.connect());
 
 /** Subscribe to a socket event, returns unsubscribe function. */
 export const onSocket = (event, handler) => {
@@ -13,12 +28,6 @@ export const onSocket = (event, handler) => {
 };
 
 /** Emit a socket event. */
-export const emitSocket = (event, data) => {
-    if (typeof data === 'undefined') {
-        socket.emit(event);
-        return;
-    }
-    socket.emit(event, data);
-};
+export const emitSocket = (event, data) => emitConnected(socket, event, data);
 
 export default socket;

@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "bundled_private_worker_used": true,
+  "fresh_install_and_explicit_selection": true,
+  "owned_native_resident_started": true,
+  "resident_survived_setup_close": true,
+  "resident_lease_blocked_management": true,
+  "owned_resident_graceful_quit": true,
+  "software_removed_profiles_retained": true,
+  "separate_exact_data_erasure_confirmation": true,
+  "synthetic_data_erased_after_confirmation": true,
+  "control_candidate_unchanged": true,
+  "real_profile_used": false,
+  "registry_or_startup_changed": false,
+  "signed": false,
+  "clean_machine_acceptance": false
+}

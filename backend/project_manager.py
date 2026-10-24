@@ -5,28 +5,34 @@ import time
 from pathlib import Path
 
 class ProjectManager:
-    def __init__(self, workspace_root: str):
+    def __init__(self, workspace_root: str, state_store=None):
         self.workspace_root = Path(workspace_root)
         self.projects_dir = self.workspace_root / "projects"
         self.current_project = "temp"
+        self.state_store = state_store
         
         # Ensure projects root exists
         if not self.projects_dir.exists():
             self.projects_dir.mkdir(parents=True)
             
-        # Clear temp project on startup if it exists
-        temp_path = self.projects_dir / "temp"
-        if temp_path.exists():
-            print("[ProjectManager] Clearing temp project...")
-            shutil.rmtree(temp_path)
-            
-        # Ensure temp project receives fresh creation
+        # Startup is non-destructive: unsaved designs and history are recoverable.
         self.create_project("temp")
+        if state_store is not None:
+            from services.storage import scope_hash
+            self._state_key = scope_hash(self.workspace_root.resolve())
+            with state_store.connection() as db:
+                previous = state_store.get(db, "workspace", self._state_key)
+            if previous:
+                name = previous.get("project", "")
+                if name and name == Path(name).name and (self.projects_dir / name).is_dir():
+                    self.current_project = name
 
     def create_project(self, name: str):
         """Creates a new project directory with subfolders."""
         # Sanitize name to be safe for filesystem
         safe_name = "".join([c for c in name if c.isalnum() or c in (' ', '-', '_')]).strip()
+        if not safe_name:
+            return False, "Project name must contain a letter or number."
         project_path = self.projects_dir / safe_name
         
         if not project_path.exists():
@@ -35,6 +41,8 @@ class ProjectManager:
             (project_path / "browser").mkdir()
             print(f"[ProjectManager] Created project: {safe_name}")
             return True, f"Project '{safe_name}' created."
+        for folder in ("cad", "browser"):
+            (project_path / folder).mkdir(exist_ok=True)
         return False, f"Project '{safe_name}' already exists."
 
     def switch_project(self, name: str):
@@ -44,6 +52,9 @@ class ProjectManager:
         
         if project_path.exists():
             self.current_project = safe_name
+            if self.state_store is not None:
+                with self.state_store.transaction() as db:
+                    self.state_store.put(db, "workspace", self._state_key, {"project": safe_name})
             print(f"[ProjectManager] Switched to project: {safe_name}")
             return True, f"Switched to project '{safe_name}'."
         return False, f"Project '{safe_name}' does not exist."
@@ -63,6 +74,13 @@ class ProjectManager:
             "sender": sender,
             "text": text
         }
+        if self.state_store is not None:
+            from services.storage import scope_hash
+            key = scope_hash(self.get_current_project_path().resolve())
+            with self.state_store.transaction() as db:
+                records = self.state_store.get(db, "legacy_voice_chat", key) or []
+                self.state_store.put(db, "legacy_voice_chat", key, [*records, entry][-200:])
+            return
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
 
@@ -143,6 +161,13 @@ class ProjectManager:
 
     def get_recent_chat_history(self, limit: int = 10):
         """Returns the last 'limit' chat messages from history."""
+        if self.state_store is not None:
+            from services.storage import scope_hash
+            key = scope_hash(self.get_current_project_path().resolve())
+            with self.state_store.connection() as db:
+                records = self.state_store.get(db, "legacy_voice_chat", key)
+            if records:
+                return records[-limit:]
         log_file = self.get_current_project_path() / "chat_history.jsonl"
         if not log_file.exists():
             return []

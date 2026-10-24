@@ -1,0 +1,50 @@
+{
+  "UsagePolicy": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "enabled": {
+        "default": false,
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "daily_microusd": {
+        "default": 0,
+        "maximum": 1000000000000,
+        "minimum": 0,
+        "title": "Daily Microusd",
+        "type": "integer"
+      },
+      "monthly_microusd": {
+        "default": 0,
+        "maximum": 1000000000000,
+        "minimum": 0,
+        "title": "Monthly Microusd",
+        "type": "integer"
+      },
+      "per_call_microusd": {
+        "default": 0,
+        "maximum": 1000000000000,
+        "minimum": 0,
+        "title": "Per Call Microusd",
+        "type": "integer"
+      },
+      "max_output_tokens": {
+        "default": 4096,
+        "maximum": 16384,
+        "minimum": 256,
+        "title": "Max Output Tokens",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "revision"
+    ],
+    "title": "UsagePolicy",
+    "type": "object"
+  }
+}

@@ -7,21 +7,15 @@ const SNOOZE_OPTIONS = [5, 15, 30];
 
 const ReminderAlert = () => {
     const activeAlert = useStore(s => s.activeAlert);
-    const dismissAlert = useStore(s => s.dismissAlert);
-    const removeReminder = useStore(s => s.removeReminder);
 
     if (!activeAlert) return null;
 
     const handleSnooze = (minutes) => {
-        emitSocket('user_input', {
-            text: `Snooze reminder ${activeAlert.id.slice(0, 8)} for ${minutes} minutes`,
-        });
-        dismissAlert();
+        emitSocket('snooze_reminder', { reminder_id: activeAlert.id, delivery_id: activeAlert.delivery_id, minutes });
     };
 
     const handleDismiss = () => {
-        removeReminder(activeAlert.id);
-        dismissAlert();
+        emitSocket('dismiss_reminder', { delivery_id: activeAlert.delivery_id });
     };
 
     return (
@@ -43,6 +37,7 @@ const ReminderAlert = () => {
                             <span className="text-[10px] font-bold tracking-widest text-amber-400">REMINDER</span>
                         </div>
                         <button
+                            aria-label="Dismiss reminder"
                             onClick={handleDismiss}
                             className="p-1 rounded text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
                         >

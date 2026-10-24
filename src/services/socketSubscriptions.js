@@ -3,8 +3,14 @@
  * Called once at app startup from main.jsx. Returns cleanup function.
  * Replaces the 300-line useEffect in the old App.jsx.
  */
-import socket, { onSocket } from './socket';
+import socket from './socket';
+import { createSubscriptions } from './subscriptions';
+import { registerConversationEvents } from './events/conversation';
+import { registerCreativeEvents } from './events/creative';
+import { registerDevicesEvents } from './events/devices';
+import { registerRemindersEvents } from './events/reminders';
 import useStore from '../store';
+import { conversationForProject } from '../store/chatSlice';
 
 const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUnavailable }) => {
     if (!backendConnected) return 'Backend Disconnected';
@@ -15,9 +21,16 @@ const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUn
 };
 
 export function initSocketListeners() {
+    const scope = createSubscriptions(socket);
+    const onSocket = scope.on;
     const unsubs = [];
     const s = useStore.getState;
-
+    const deliveredReminderIds = new Set();
+    const resumeConversation = (force = false) => {
+        if (!force && (s().conversationRestoring || s().textProcessing)) return;
+        useStore.setState({ conversationRestoring: true });
+        socket.emit('resume_conversation', { conversation_id: s().conversationId });
+    };
     // --- Connection ---
     unsubs.push(onSocket('connect', () => {
         const current = s();
@@ -32,11 +45,15 @@ export function initSocketListeners() {
             }),
         });
         socket.emit('get_settings');
+        resumeConversation();
     }));
 
     unsubs.push(onSocket('disconnect', () => {
         useStore.setState({
             status: 'Backend Disconnected',
+            confirmationRequest: null, pendingTextRequest: null,
+            studioHandoff: null,
+            activity: s().activity.filter(item => !['approval', 'submitting'].includes(item.state)),
             backendConnected: false,
             aiConnected: false,
             aiConnecting: false,
@@ -44,6 +61,8 @@ export function initSocketListeners() {
             localDevicesReady: false,
             isMuted: true,
             listeningState: 'idle',
+            textProcessing: false,
+            conversationRestoring: false,
         });
     }));
 
@@ -90,7 +109,8 @@ export function initSocketListeners() {
     }));
 
     unsubs.push(onSocket('error', (data) => {
-        console.error('Socket Error:', data);
+        if (data.conversation_id && data.conversation_id !== s().conversationId) return;
+        if (data.project && data.project !== s().currentProject) return;
         s().addMessage('System', `Error: ${data.msg}`);
         if (data.msg?.startsWith('AI unavailable:')) {
             useStore.setState({
@@ -111,10 +131,13 @@ export function initSocketListeners() {
 
     // --- Auth ---
     unsubs.push(onSocket('auth_status', (data) => {
-        console.log('Auth Status:', data);
+        const unlocked = data.authenticated && !s().isAuthenticated;
         useStore.setState({ isAuthenticated: data.authenticated });
         if (!data.authenticated) {
             useStore.setState({ isLockScreenVisible: true });
+        } else if (unlocked && s().backendConnected) {
+            resumeConversation();
+            socket.emit('get_reminders');
         }
     }));
 
@@ -129,238 +152,23 @@ export function initSocketListeners() {
         }
     }));
 
-    // --- CAD ---
-    unsubs.push(onSocket('cad_data', (data) => {
-        console.log('Received CAD Data:', data);
-        useStore.setState({ cadData: data, cadThoughts: '', showCadWindow: true });
-    }));
-
-    unsubs.push(onSocket('cad_status', (data) => {
-        console.log('Received CAD Status:', data);
-        if (data.attempt) {
-            useStore.setState({
-                cadRetryInfo: {
-                    attempt: data.attempt,
-                    maxAttempts: data.max_attempts || 3,
-                    error: data.error,
-                }
-            });
-        }
-        if (data.status === 'generating' || data.status === 'retrying') {
-            useStore.setState({ cadData: { format: 'loading' }, showCadWindow: true });
-            if (data.status === 'generating' && data.attempt === 1) {
-                useStore.setState({ cadThoughts: '' });
-            }
-        } else if (data.status === 'failed') {
-            useStore.setState({ cadData: { format: 'loading' } });
-        }
-    }));
-
-    unsubs.push(onSocket('cad_thought', (data) => {
-        s().appendCadThought(data.text);
-    }));
-
-    // --- Browser ---
-    unsubs.push(onSocket('browser_frame', (data) => {
-        useStore.setState(state => ({
-            browserData: {
-                image: data.image,
-                logs: [...state.browserData.logs, data.log].filter(l => l).slice(-50),
-            },
-            showBrowserWindow: true,
-        }));
-    }));
-
-    // --- Transcription ---
-    unsubs.push(onSocket('transcription', (data) => {
-        s().appendTranscription(data.sender, data.text);
-    }));
-
     // --- Tool Confirmation ---
     unsubs.push(onSocket('tool_confirmation_request', (data) => {
-        console.log('Received Confirmation Request:', data);
         useStore.setState({ confirmationRequest: data });
     }));
 
-    // --- Print Window Request ---
-    unsubs.push(onSocket('request_print_window', () => {
-        const clamp = s().clampToViewport;
-        const clamped = clamp({ x: window.innerWidth / 2, y: window.innerHeight / 2 }, { w: 380, h: 380 });
-        useStore.setState(state => ({
-            showPrinterWindow: true,
-            elementPositions: { ...state.elementPositions, printer: clamped },
-        }));
+    unsubs.push(onSocket('task_queue_approval_closed', data => {
+        if (s().confirmationRequest?.task_queue?.id === data.id) useStore.setState({ confirmationRequest: null });
     }));
 
-    // --- Phone Calls ---
-    unsubs.push(onSocket('call_incoming', (data) => {
-        console.log('[CALL] Incoming:', data);
-        useStore.setState({ incomingCall: data, showPhoneWindow: true });
-    }));
-
-    unsubs.push(onSocket('call_connected', (data) => {
-        console.log('[CALL] Connected:', data);
-        s().addActiveCall(data);
-    }));
-
-    unsubs.push(onSocket('call_ended', (data) => {
-        console.log('[CALL] Ended:', data);
-        s().removeActiveCall(data);
-    }));
-
-    unsubs.push(onSocket('call_status', (data) => {
-        s().updateCallStatus(data);
-    }));
-
-    // --- Desktop ---
-    unsubs.push(onSocket('desktop_system_info', (data) => {
-        useStore.setState({ systemInfo: data });
-        if (data.processes) useStore.setState({ runningApps: data.processes });
-    }));
-
-    unsubs.push(onSocket('desktop_screenshot', (data) => {
-        if (data.image) useStore.setState({ lastScreenshot: data.image });
-    }));
-
-    // --- Reminders ---
-    unsubs.push(onSocket('reminder_triggered', (data) => {
-        console.log('[REMINDER] Fired:', data);
-        useStore.setState({ activeAlert: { id: data.id, task: data.task } });
-        // Auto-open reminder window so the user sees it
-        useStore.setState({ showReminderWindow: true });
-    }));
-
-    unsubs.push(onSocket('reminder_created', (data) => {
-        s().addReminder(data);
-    }));
-
-    unsubs.push(onSocket('reminder_cancelled', (data) => {
-        s().removeReminder(data.id);
-    }));
-
-    // --- Kasa ---
-    unsubs.push(onSocket('kasa_devices', (devices) => {
-        console.log('Kasa Devices:', devices);
-        useStore.setState({ kasaDevices: devices });
-    }));
-
-    unsubs.push(onSocket('kasa_update', (data) => {
-        s().updateKasaDevice(data);
-    }));
-
-    // --- Project ---
-    unsubs.push(onSocket('project_update', (data) => {
-        console.log('Project Update:', data.project);
-        useStore.setState({ currentProject: data.project });
-        s().addMessage('System', `Switched to project: ${data.project}`);
-    }));
-
-    // --- Printers ---
-    unsubs.push(onSocket('printer_list', (list) => {
-        console.log('[PRINTERS] Count:', list.length);
-        s().setPrinterList(list);
-    }));
-
-    unsubs.push(onSocket('printer_system_status', (data) => {
-        useStore.setState({ printerSystemStatus: data });
-    }));
-
-    unsubs.push(onSocket('slicing_progress', (data) => {
-        console.log('[SLICING] Progress:', data);
-        useStore.setState({
-            slicingStatus: {
-                active: data.percent < 100,
-                percent: data.percent,
-                message: data.message,
-            }
-        });
-    }));
-
-    unsubs.push(onSocket('print_status_update', (data) => {
-        console.log('[PRINT STATUS]', data);
-        if (data.state && data.state.toLowerCase().includes('print')) {
-            useStore.setState({
-                activePrintStatus: {
-                    printer: data.printer,
-                    progress_percent: data.progress_percent,
-                    time_elapsed: data.time_elapsed,
-                    state: data.state,
-                }
-            });
-        } else if (data.state && ['idle', 'standby', 'complete', 'offline'].includes(data.state.toLowerCase())) {
-            useStore.setState({ activePrintStatus: null });
-        }
-        // Also update printer in list
-        s().updatePrinterStatus(data);
-    }));
-
-    // --- Vision ---
-    unsubs.push(onSocket('vision_alert', (data) => {
-        useStore.setState({ showVisionWindow: true });
-        s().addVisionAlert(data);
-    }));
-
-    unsubs.push(onSocket('vision_description', (data) => {
-        if (data.description) useStore.setState({ lastVisionDescription: data.description });
-    }));
-
-    unsubs.push(onSocket('vision_presence', (data) => {
-        useStore.setState({ presenceDetected: data.present });
-    }));
-
-    // --- Unified Devices ---
-    unsubs.push(onSocket('device_list', (data) => {
-        if (data.devices) useStore.setState({ allDevices: data.devices });
-    }));
-
-    unsubs.push(onSocket('device_control', (data) => {
-        if (data.device_id) {
-            const updates = { lastAction: data.action };
-            if (data.action === 'turn_on') updates.state = 'on';
-            else if (data.action === 'turn_off') updates.state = 'off';
-            s().updateDeviceState(data.device_id, updates);
-        }
-    }));
-
-    unsubs.push(onSocket('vision_watches', (data) => {
-        if (data.watches) useStore.setState({ activeWatches: data.watches });
-    }));
-
-    // --- Desktop ---
-    unsubs.push(onSocket('desktop_system_info', (data) => {
-        s().setSystemInfo(data);
-        if (data.processes) s().setRunningApps(data.processes);
-    }));
-
-    unsubs.push(onSocket('desktop_screenshot', (data) => {
-        if (data.data?.image) s().setLastScreenshot(data.data.image);
-    }));
-
-    // --- Reminders ---
-    unsubs.push(onSocket('reminder_list', (list) => {
-        s().setReminders(Array.isArray(list) ? list : []);
-    }));
-
-    unsubs.push(onSocket('reminder_triggered', (data) => {
-        s().addMessage('INARA', `Reminder: ${data.task || data.message || 'Reminder fired'}`);
-        s().setActiveAlert({ id: data.id, task: data.task });
-        s().removeReminder(data.id);
-    }));
-
-    unsubs.push(onSocket('reminder_created', (data) => {
-        s().addReminder(data);
-    }));
-
-    unsubs.push(onSocket('reminder_cancelled', (data) => {
-        s().removeReminder(data.id);
-    }));
-
-    unsubs.push(onSocket('reminder_updated', () => {
-        // No-op: local state already updated by the action that triggered this
-    }));
+    const dependencies = { onSocket, socket, store: useStore, unsubs, deliveredReminderIds, resumeConversation, conversationForProject };
+    registerConversationEvents(dependencies);
+    registerCreativeEvents(dependencies);
+    registerDevicesEvents(dependencies);
+    registerRemindersEvents(dependencies);
 
     // Return cleanup
     return () => {
-        unsubs.forEach(fn => fn());
+        scope.dispose();
     };
 }

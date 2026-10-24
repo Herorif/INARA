@@ -1,0 +1,68 @@
+{
+  "before_workspace": {
+    "working_set_mb": 63.95,
+    "private_mb": 47.11
+  },
+  "ui": {
+    "box_rendered": true,
+    "bracket_rendered": true,
+    "enclosure_rendered": true,
+    "glb_imported_with_three": true,
+    "download_formats": [
+      "stl",
+      "glb",
+      "json"
+    ],
+    "responsive_widths": [
+      1440,
+      390,
+      768
+    ],
+    "external_asset_requests": 0,
+    "reopened_history_and_preview_without_rebuild": true,
+    "optional_planner_missing_key_preserves_offline_preview": true,
+    "scene": {
+      "objects": 3,
+      "materials": [
+        "cyan",
+        "amber",
+        "titanium"
+      ],
+      "add_duplicate_remove": true,
+      "transforms": true,
+      "real_glb_download": true,
+      "restored_without_rebuild": true
+    },
+    "passed": true
+  },
+  "workers_started_and_exited": 4,
+  "geometry_module_in_resident": false,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 66.64,
+      "private_mb": 49.42
+    },
+    {
+      "working_set_mb": 66.64,
+      "private_mb": 49.42
+    },
+    {
+      "working_set_mb": 66.64,
+      "private_mb": 49.42
+    },
+    {
+      "working_set_mb": 66.64,
+      "private_mb": 49.42
+    },
+    {
+      "working_set_mb": 66.64,
+      "private_mb": 49.42
+    },
+    {
+      "working_set_mb": 66.64,
+      "private_mb": 49.42
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

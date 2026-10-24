@@ -11,6 +11,32 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
+
+def pytest_configure(config):
+    """Isolate storage before collection: smoke tests import the server at module scope."""
+    import tempfile
+    config._inara_previous_data = os.environ.get("INARA_DATA_DIR")
+    config._inara_test_data = tempfile.TemporaryDirectory(prefix="inara-tests-")
+    os.environ["INARA_DATA_DIR"] = config._inara_test_data.name
+    config._inara_previous_isolation = {key: os.environ.get(key) for key in
+                                       ("INARA_PROJECT_ROOT", "INARA_LEGACY_DATA_DIR", "INARA_SETTINGS_FILE")}
+    os.environ["INARA_PROJECT_ROOT"] = config._inara_test_data.name
+    os.environ["INARA_LEGACY_DATA_DIR"] = config._inara_test_data.name
+    os.environ["INARA_SETTINGS_FILE"] = str(Path(config._inara_test_data.name) / "settings.json")
+
+
+def pytest_unconfigure(config):
+    for key, value in config._inara_previous_isolation.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+    if config._inara_previous_data is None:
+        os.environ.pop("INARA_DATA_DIR", None)
+    else:
+        os.environ["INARA_DATA_DIR"] = config._inara_previous_data
+    config._inara_test_data.cleanup()
+
 # Settings file path
 SETTINGS_FILE = BACKEND_DIR / "settings.json"
 
@@ -54,3 +80,30 @@ def sample_stl_content():
     endloop
   endfacet
 endsolid test"""
+
+@pytest.fixture
+def application_factory(tmp_path):
+    """Fresh composition root; never replace live server module globals."""
+    from application import create_application
+    from services.storage import Database
+    from unittest.mock import AsyncMock
+
+    applications = []
+
+    def create(**overrides):
+        root = tmp_path / str(len(applications))
+        root.mkdir()
+        values = dict(settings={"face_auth_enabled": False, "tool_permissions": {},
+                                "kasa_devices": []},
+                      project_root=root, legacy_data_dir=root,
+                      database=Database(root / "private"))
+        values.update(overrides)
+        runtime = create_application(**values)
+        runtime.sio.emit = AsyncMock()
+        from types import SimpleNamespace
+        runtime.connection.check_setup = lambda: None
+        runtime.connection.worker_factory = lambda: SimpleNamespace(run=AsyncMock(), close=AsyncMock())
+        applications.append(runtime)
+        return runtime
+
+    return create

@@ -6,14 +6,89 @@
 -=It's Not A Random Acronym=-
 ```
 
-![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)
-![Electron](https://img.shields.io/badge/Electron-28-47848F?logo=electron)
+![Electron](https://img.shields.io/badge/Electron-44.7-47848F?logo=electron)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 > Your own AI that lives on your desktop, controls your house, designs your parts, runs your browser, and prints your prototypes - all by voice.
 
-> Supported runtime: `electron/main.js -> backend/server.py`. The `backend/core/` server refactor is archived reference code and is not the active app backend.
+> Supported Windows runtime: `backend/resident_main.py` hosts the tray and `backend/server.py` core. `electron/native-main.cjs` runs the workspace on demand. The `backend/core/` server refactor is archived reference code.
+
+## Current source milestone
+
+[Usage & quality](docs/USAGE_AND_QUALITY.md) now provides explicit owner-wide cloud authorization allowances, provider token/local-job receipts and 12 isolated offline contract evaluations. It defaults to monitor only; invoice cost and real model quality remain unverified.
+
+[Project memory](docs/PROJECT_MEMORY.md) now adds explicit local facts/preferences/decisions, search, consent-controlled assistant context, expiry/forget and protected same-profile backup/recovery. Open it from Command quick launch or the command palette.
+
+R1-R8 source/fixture milestones are implemented, including the read-only selected-notification desktop inbox and gated Android source. Android compilation/device acceptance, configured heavy capabilities and signed standalone distribution remain pending. [Current handoff](docs/IMPLEMENTATION_HANDOFF.md), [R8 evidence](docs/R8_NOTIFICATIONS.md), [release gates and backlog](docs/RELEASE_READINESS.md). No WhatsApp replies or calls were enabled.
+
+## Revival: durable assistant and command deck
+
+Typed chat now runs independently of the microphone and Gemini Live audio session.
+The backend boots with the lean core dependencies and loads optional capabilities
+only when requested. Projects and typed sessions survive restart, and reminders use
+transactional delivery with receipt and completion. Private payloads are protected
+with Windows DPAPI before SQLite writes; see [persistence and recovery](docs/PERSISTENCE.md).
+
+On Windows with Python 3.12 and Node.js 24 LTS:
+
+```powershell
+.\scripts\bootstrap.ps1 -Dev
+npm start
+```
+
+For backend-only development:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.lock
+.\.venv\Scripts\python.exe backend/server.py
+```
+
+The backend starts without an API key; AI requests return a clear configuration
+error until a valid key is supplied. Set `INARA_TEXT_MODEL` to select the text
+model. Voice and other legacy integrations still require their optional packages
+from `requirements.txt`; their modernization remains scheduled in the architecture.
+The new JARVIS command deck includes command, Studio and connection views. Closing
+its window leaves INARA in the system tray; Ctrl+Shift+Space reopens it, and Quit
+INARA ends the resident. Local reminders can be created without an AI key.
+Gaming mode and heavy UI activation are explicit. See [resident/workspace details](docs/RESIDENT_AND_WORKSPACE.md)
+and [rendered desktop preview](docs/qa/command-desktop.png). The native resident
+releases Electron completely when the workspace closes. See [native host measurement and limits](docs/NATIVE_RESIDENT.md).
+No WhatsApp reply capability is included.
+
+**3D Studio now works offline:** choose a solid or assemble up to eight parts, edit
+dimensions/transforms/materials, orbit the model and export STL/GLB or its recipe. Builds run in an
+owned process and stop on cancellation, Studio close or gaming mode. Saved
+revisions restore without rebuilding. AI blueprint proposals are optional and
+remain unconfigured. An optional installed-Blender bridge adds project/render exports;
+its live round trip awaits an installation. See [Scene Studio](docs/SCENE_STUDIO.md)
+and [CAD Studio](docs/CAD_STUDIO.md).
+
+**Image atelier is available in Studio:** edit prompts, frame size, seed and quality,
+then keep PNG/recipe revisions once a local model is configured. Model setup is
+still deferred; the app shows that clearly and does not fabricate output. Models
+load only inside owned workers, sharing one execution slot with CAD. See
+[Image atelier and verification](docs/IMAGE_ATELIER.md).
+
+**Vision studio v2:** local preview with source/mirror controls and opt-in two-hand
+landmarks in a bounded Web Worker. No recording, frame sharing or gesture actions.
+Camera/model resources stop on close, source/device loss, hide/sleep and gaming;
+restart is deliberate. Real camera/hand acceptance remains pending. See
+[Vision studio and verification](docs/VISION_STUDIO.md).
+
+Run the deterministic milestone and desktop-contract checks with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_admin_policy.py tests/test_route_policy.py tests/test_application.py tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py -q
+.\.venv\Scripts\python.exe -m ruff check tests/test_admin_policy.py tests/test_route_policy.py backend/application.py backend/transport tests/test_application.py backend/services tests/test_conversation_service.py
+node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs tests/test_cad_ui.mjs tests/test_vision.mjs
+npm run build
+```
+
+See [implementation status](docs/IMPLEMENTATION_STATUS.md) for verified behavior,
+current limitations and the next milestone.
 
 INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
 
@@ -316,3 +391,9 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
   <strong>Built by Herorif</strong><br>
   <em>I love you 3000</em>
 </p>
+
+Core composition, desktop session ownership and remaining legacy policy seams are documented in [Core composition (R2a)](docs/CORE_COMPOSITION.md).
+
+[Route policy matrix and migration status](docs/ROUTE_POLICY_MIGRATION.md) track the R2b feature groups and their remaining authorization work.
+
+[Settings and lifecycle policy (R2b2)](docs/SETTINGS_LIFECYCLE_POLICY.md) documents owner-only administration, atomic saves and typed native/resource controls.

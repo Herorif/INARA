@@ -6,16 +6,24 @@ Agents publish events, the server and other modules subscribe.
 """
 
 import asyncio
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine
+
+
+event_owner = ContextVar("event_owner", default=None)
+event_guard = ContextVar("event_guard", default=None)
 
 
 @dataclass
 class Event:
     """A typed event flowing through the bus."""
+
     type: str
     data: dict[str, Any] = field(default_factory=dict)
     source: str = ""  # Which agent/module emitted this
+    principal: str | None = field(default_factory=event_owner.get)
+    authorized: Callable | None = field(default_factory=event_guard.get, repr=False)
 
 
 # Type alias for event handlers
@@ -37,14 +45,17 @@ class EventBus:
 
     def on_all(self, handler: EventHandler):
         """Subscribe to all events (useful for logging/debugging)."""
-        self._global_handlers.append(handler)
+        if handler not in self._global_handlers:
+            self._global_handlers.append(handler)
+
+    def off_all(self, handler: EventHandler):
+        """Unsubscribe a global observer when its application stops."""
+        self._global_handlers = [h for h in self._global_handlers if h != handler]
 
     def off(self, event_type: str, handler: EventHandler):
         """Unsubscribe from an event type."""
         if event_type in self._handlers:
-            self._handlers[event_type] = [
-                h for h in self._handlers[event_type] if h != handler
-            ]
+            self._handlers[event_type] = [h for h in self._handlers[event_type] if h != handler]
 
     async def emit(self, event: Event):
         """Publish an event to all subscribers."""
@@ -115,22 +126,22 @@ class Events:
 
     # Reminders & routines
     REMINDER_TRIGGERED = "reminder.triggered"
-    REMINDER_CREATED   = "reminder.created"
+    REMINDER_CREATED = "reminder.created"
     REMINDER_CANCELLED = "reminder.cancelled"
-    ROUTINE_EXECUTED   = "routine.executed"
+    ROUTINE_EXECUTED = "routine.executed"
 
     # Desktop
-    DESKTOP_SCREENSHOT  = "desktop.screenshot"
+    DESKTOP_SCREENSHOT = "desktop.screenshot"
     DESKTOP_SYSTEM_INFO = "desktop.system_info"
 
     # Vision
     VISION_DESCRIPTION = "vision.description"
-    VISION_ALERT       = "vision.alert"
-    VISION_PRESENCE    = "vision.presence"
+    VISION_ALERT = "vision.alert"
+    VISION_PRESENCE = "vision.presence"
 
     # Devices (unified Kasa + HA)
-    DEVICE_LIST    = "device.list"
-    DEVICE_STATE   = "device.state"
+    DEVICE_LIST = "device.list"
+    DEVICE_STATE = "device.state"
     DEVICE_CONTROL = "device.control"
 
     # System

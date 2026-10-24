@@ -1,0 +1,120 @@
+{
+  "SpeechTurn": {
+    "additionalProperties": false,
+    "properties": {
+      "turn_id": {
+        "format": "uuid",
+        "title": "Turn Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "turn_id"
+    ],
+    "title": "SpeechTurn",
+    "type": "object"
+  },
+  "SpeechBegin": {
+    "additionalProperties": false,
+    "properties": {
+      "turn_id": {
+        "format": "uuid",
+        "title": "Turn Id",
+        "type": "string"
+      },
+      "conversation_id": {
+        "format": "uuid",
+        "title": "Conversation Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "turn_id",
+      "conversation_id"
+    ],
+    "title": "SpeechBegin",
+    "type": "object"
+  },
+  "SpeechFrame": {
+    "additionalProperties": false,
+    "properties": {
+      "turn_id": {
+        "format": "uuid",
+        "title": "Turn Id",
+        "type": "string"
+      },
+      "codec": {
+        "const": "pcm_s16le",
+        "default": "pcm_s16le",
+        "title": "Codec",
+        "type": "string"
+      },
+      "sample_rate": {
+        "const": 16000,
+        "default": 16000,
+        "title": "Sample Rate",
+        "type": "integer"
+      },
+      "channels": {
+        "const": 1,
+        "default": 1,
+        "title": "Channels",
+        "type": "integer"
+      },
+      "sequence": {
+        "exclusiveMaximum": 1000,
+        "minimum": 0,
+        "title": "Sequence",
+        "type": "integer"
+      },
+      "timestamp_ms": {
+        "exclusiveMaximum": 20000,
+        "minimum": 0,
+        "title": "Timestamp Ms",
+        "type": "integer"
+      },
+      "duration_ms": {
+        "const": 20,
+        "default": 20,
+        "title": "Duration Ms",
+        "type": "integer"
+      },
+      "data": {
+        "maxLength": 856,
+        "minLength": 856,
+        "title": "Data",
+        "type": "string"
+      }
+    },
+    "required": [
+      "turn_id",
+      "sequence",
+      "timestamp_ms",
+      "data"
+    ],
+    "title": "SpeechFrame",
+    "type": "object"
+  },
+  "SpeechSend": {
+    "additionalProperties": false,
+    "properties": {
+      "turn_id": {
+        "format": "uuid",
+        "title": "Turn Id",
+        "type": "string"
+      },
+      "text": {
+        "maxLength": 12000,
+        "minLength": 1,
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": [
+      "turn_id",
+      "text"
+    ],
+    "title": "SpeechSend",
+    "type": "object"
+  }
+}

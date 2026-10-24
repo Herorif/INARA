@@ -1,0 +1,170 @@
+{
+  "format": 1,
+  "kind": "inara-signing-delivery-preparation-acceptance",
+  "focused_distinct_python_checks": 181,
+  "new_signing_delivery_checks": 34,
+  "python_runs": {
+    ".runtime/signing-delivery-tests/initial.xml": {
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    ".runtime/signing-delivery-tests/regression.xml": {
+      "tests": 147,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "scoped_ruff": "passed",
+  "source_sha256": {
+    "scripts/controller-review.py": "2922de73946103bc1aefaf80fb245ca0d62aa26a5ad63f392efc8e6cd8c0e19d",
+    "scripts/signing-readiness.py": "c8876c29a5d8adb7eb29b3e4d13ccdd49fad7f247204bdb5f4cd20aa26554bbc",
+    "scripts/controller-delivery.py": "48294e1f3b78d7f2dfe1be9e574b2698ba1362ad63350f9f90734d46bb52e698",
+    "scripts/controller-provenance.py": "b3e5d9d50e508822905b0e150cf7f10ee2931d1c98821c736c4bd228af817211",
+    "tests/test_signing_delivery.py": "154c9251870408416f81b5e3acd036688441cf2adb5fcb28e056d8744f508473",
+    "tests/test_controller_provenance.py": "9e0e2b1923cb71f252124d3a4fb57be359244e6ef70f3fa66f51196503b6e03a"
+  },
+  "actual_readiness": {
+    "ready_for_signing_request": false,
+    "blockers": [
+      "active_key_custody_coverage_incomplete",
+      "controller_review_decisions_incomplete",
+      "custody_plan_is_draft",
+      "custody_policy_bindings_missing_or_different",
+      "independent_bootstrap_delivery_missing",
+      "independent_role_operators_not_recorded",
+      "publisher_assertion_missing_or_different",
+      "release_identity_not_configured",
+      "windows_custody_or_recovery_drill_missing",
+      "windows_signing_not_configured"
+    ],
+    "custody": {
+      "ready": false,
+      "blockers": [
+        "active_key_custody_coverage_incomplete",
+        "custody_plan_is_draft",
+        "custody_policy_bindings_missing_or_different",
+        "independent_bootstrap_delivery_missing",
+        "independent_role_operators_not_recorded",
+        "publisher_assertion_missing_or_different",
+        "release_identity_not_configured",
+        "windows_custody_or_recovery_drill_missing",
+        "windows_signing_not_configured"
+      ],
+      "enrollment_sha256": "e9b6e64c254df5a33f7e9836889cdbe127cc913add4a73e39c9e1c828465ce99",
+      "enrollment_inventory_sha256": "875e01f10b94edb319b7331221ad20dcf037a361c8ff57bb2906f052001fdcc7",
+      "release_policy_sha256": "d0b7415c127fdbf5811a3d17ca464fecd826b8d5db6ac3ca299b101b74a4674b",
+      "windows_policy_sha256": "35cb2a1168ec14f5c27b43351a1c7c517ac0d49c79d4889d99022d44084f8139",
+      "identity_assertions_authenticated": false,
+      "hardware_key_custody_verified": false,
+      "certificate_store_changed": false,
+      "production_configured": false,
+      "release_authorized": false
+    },
+    "controller_review": {
+      "integrity": "passed",
+      "subjects": 51,
+      "decisions": {
+        "pending": 51,
+        "approved": 0,
+        "rejected": 0
+      },
+      "events": 0,
+      "head_sha256": "e1b0fa25b73c1e3971864000c94ef90279be6628d790bd7914628e2c97366d5b",
+      "recorded_reviews_complete": false,
+      "reviewer_authenticated": false,
+      "redistribution_cleared": false,
+      "publisher_authenticated": false,
+      "release_ready": false,
+      "release_authorized": false,
+      "artifact": "controller"
+    },
+    "native_acceptance": null,
+    "controller_manifest_sha256": "eec5097e7ddea570ab46213ad79fd910c8c886dc1462a538de5e3a35eec66d89",
+    "bootstrap_sha256": "ba505013d46a853f739ee33daeee61fa6cb1b60cd6b333e11a7eca4b9fda0ec1",
+    "provenance_inventory_sha256": "489f3052d6eccbac3d9ec7b5c94416936c608b8c064eab7cf7c149e02e05927d",
+    "ledger_inventory_sha256": "5cf82bd7dc87acf24129ac2f9c73ecd967b0c634983620c961108a28f81bbb57",
+    "ledger_head_sha256": "e1b0fa25b73c1e3971864000c94ef90279be6628d790bd7914628e2c97366d5b",
+    "enrollment_inventory_sha256": "875e01f10b94edb319b7331221ad20dcf037a361c8ff57bb2906f052001fdcc7",
+    "release_authorized": false,
+    "launched": false,
+    "legal_identity_established": false
+  },
+  "actual_refusal": {
+    "disabled_draft_pending_delivery_request_refused": true,
+    "request_output_created": false,
+    "exit_code": 1,
+    "production_configured": false,
+    "release_authorized": false
+  },
+  "actual_public_draft": {
+    "directory": ".runtime/signing-preparation/20261022",
+    "enrollment_sha256": "e9b6e64c254df5a33f7e9836889cdbe127cc913add4a73e39c9e1c828465ce99",
+    "state": "draft"
+  },
+  "controller": {
+    "directory": ".runtime/controllers/managed-lifecycle-20261022-accepted",
+    "files": 2681,
+    "manifest_sha256": "eec5097e7ddea570ab46213ad79fd910c8c886dc1462a538de5e3a35eec66d89",
+    "artifact_unchanged": true,
+    "all_packaged_source_matches": true
+  },
+  "renewed_provenance": {
+    "directory": ".runtime/controller-provenance/signing-preparation-20261022",
+    "report_sha256": "324e5573d6370fdd44fed8cdc7ef0da3493214d553c710f390e85b2744ce306f",
+    "components": 43,
+    "notice_files": 51,
+    "native_files": 38,
+    "subjects": 51,
+    "prior_subjects": 48,
+    "additional_external_tools": 3,
+    "all_source_inputs_match": true,
+    "rederived_by_controller_ledger_and_readiness": true
+  },
+  "controller_ledger": {
+    "directory": ".runtime/controller-reviews/signing-preparation-20261022",
+    "head_sha256": "e1b0fa25b73c1e3971864000c94ef90279be6628d790bd7914628e2c97366d5b",
+    "subjects": 51,
+    "events": 0,
+    "pending": 51,
+    "approved": 0
+  },
+  "desktop_ledger": {
+    "subjects": 85,
+    "events": 0,
+    "pending": 85,
+    "tool_binding_unchanged": true
+  },
+  "production_policies": {
+    "RELEASE_TRUST_POLICY.json": "disabled",
+    "WINDOWS_SIGNING_POLICY.json": "disabled"
+  },
+  "coverage": [
+    "Exact immutable controller revisions and controller-specific delivery evidence kinds",
+    "Stale requests/attachments/destination/head/history and missing evidence refuse",
+    "Public-only exact custody schema, independent declared role operators, coverage, recovery drills, dates, policy bindings and evidence closure",
+    "Disabled/draft/pending setup refuses before native probing or request creation",
+    "Purpose-separated signatures checked before payload validation",
+    "Explicit expected sequence/policy/publisher/channel/window and exact controller/bootstrap/provenance/ledger/custody snapshots",
+    "Native enforcement and mid-verification evidence drift refusal",
+    "Positive verification retains read-only no-launch/no-install/no-enrollment/no-release semantics"
+  ],
+  "private_key_loaded_by_tools": false,
+  "private_profile_read": false,
+  "certificate_store_changed": false,
+  "production_configuration_changed": false,
+  "real_review_decisions_entered": false,
+  "real_release_signed": false,
+  "artifact_published": false,
+  "payload_executed": false,
+  "release_authorized": false,
+  "limitations": [
+    "Positive tests use ephemeral in-memory synthetic keys/public assertions, inert payloads and injected native acceptance. No actual custody, legal identity or redistribution authority is established.",
+    "Current receiving verification requires a separately trusted matching source snapshot and verifier/dependencies; no source-neutral/self-authenticating installer is claimed.",
+    "Real ownership reviews, key/certificate custody and signing/timestamps/trusted delivery/native-window/clean-machine acceptance remain pending.",
+    "Explicit external sequence/pin expectations remain necessary; no persistent delivery replay counter or online revocation/time service is added.",
+    "All configuration/device/provider/download/game/live-call deferrals and WhatsApp text/outgoing exclusions are preserved."
+  ]
+}

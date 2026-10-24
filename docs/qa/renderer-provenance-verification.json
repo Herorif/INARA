@@ -1,0 +1,107 @@
+{
+  "format": 1,
+  "date": "2026-10-21",
+  "passed": true,
+  "candidate_files": 2993,
+  "candidate_manifest_sha256": "1deb340466f6c6c7437e23fa05bbd8e857652c998fa4815e0f3d4743aaa56003",
+  "renderer_manifest_sha256": "b69caaccee0a370fe080df17f9865f480ab2202e78baedc1c6c058404bc64e8a",
+  "production_build": "passed",
+  "source_revalidation": "passed",
+  "packaged_provenance": "verified",
+  "separate_audit_verification": "passed",
+  "python_test_passes": 107,
+  "node_observer_test_passes": 6,
+  "scoped_ruff": "passed",
+  "input_records": 2162,
+  "module_records": 2155,
+  "chunk_records": 45,
+  "output_records": 67,
+  "worker_targets": 1,
+  "renderer_package_paths": 25,
+  "asset_inputs": 5,
+  "pending_asset_reviews": 5,
+  "audit_component_records": 75,
+  "license_evidence_files": 82,
+  "missing_notice_components": [
+    {
+      "ecosystem": "npm",
+      "name": "@mediapipe/tasks-vision",
+      "version": "0.10.22-rc.20250304",
+      "metadata": "source:node_modules/@mediapipe/tasks-vision/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@react-three/fiber",
+      "version": "8.18.0",
+      "metadata": "source:node_modules/@react-three/fiber/package.json"
+    }
+  ],
+  "native_acceptance_consecutive_passes": 2,
+  "native_runs": [
+    {
+      "self_contained": true,
+      "signed": false,
+      "external_python_used": false,
+      "bundled_binary_dependencies_used": true,
+      "offline_cad_worker_exited": true,
+      "offline_creative_workers": 1,
+      "ui": {
+        "passed": true,
+        "destinations": 5,
+        "widths": [
+          390,
+          1440
+        ],
+        "external_package_resolution_disabled": true,
+        "media_requests": 0,
+        "external_requests": 0
+      },
+      "passed": true,
+      "staged_core_used": true,
+      "staged_electron_used": true,
+      "node_npm_required": false,
+      "model_device_workers_started": 0,
+      "graceful_core_stop": true,
+      "package_unchanged_after_run": true
+    },
+    {
+      "self_contained": true,
+      "signed": false,
+      "external_python_used": false,
+      "bundled_binary_dependencies_used": true,
+      "offline_cad_worker_exited": true,
+      "offline_creative_workers": 1,
+      "ui": {
+        "passed": true,
+        "destinations": 5,
+        "widths": [
+          390,
+          1440
+        ],
+        "external_package_resolution_disabled": true,
+        "media_requests": 0,
+        "external_requests": 0
+      },
+      "passed": true,
+      "staged_core_used": true,
+      "staged_electron_used": true,
+      "node_npm_required": false,
+      "model_device_workers_started": 0,
+      "graceful_core_stop": true,
+      "package_unchanged_after_run": true
+    }
+  ],
+  "earlier_attempts": {
+    "sandbox_tray_creation_refused": true,
+    "uninstrumented_pre_ui_failure": true,
+    "uninstrumented_failure_cause_established": false,
+    "failure_location_reporting_added_to_harness": true
+  },
+  "real_profile_used": false,
+  "signed": false,
+  "license_clearance": false,
+  "publisher_authenticated": false,
+  "clean_machine_acceptance": false,
+  "release_ready": false,
+  "limits": "Observed main/worker graphs and exact recorded chunk/copy package origins; vendored internals, runtime downloads, reproducible build environment, authoritative asset origins and redistribution decisions remain unproven. Earlier non-diagnostic native failure is retained locally; two subsequent instrumented runs pass."
+}

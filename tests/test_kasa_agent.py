@@ -2,6 +2,7 @@
 Tests for Kasa Smart Home Agent.
 Uses REAL devices from settings.json.
 """
+import os
 import pytest
 import asyncio
 
@@ -13,7 +14,7 @@ except ImportError as e:
     HAS_KASA = False
     IMPORT_ERROR = str(e)
 
-pytestmark = pytest.mark.skipif(not HAS_KASA, reason=f"Kasa dependencies not installed: {IMPORT_ERROR if not HAS_KASA else ''}")
+pytestmark = [pytest.mark.skipif(os.getenv("INARA_LIVE_HARDWARE_TESTS") != "1", reason="Real hardware tests require explicit opt-in"), pytest.mark.skipif(not HAS_KASA, reason=f"Kasa dependencies not installed: {IMPORT_ERROR if not HAS_KASA else ''}")]
 
 
 

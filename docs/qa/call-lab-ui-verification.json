@@ -1,0 +1,46 @@
+{
+  "before_workspace": {
+    "working_set_mb": 65.72,
+    "private_mb": 49.28
+  },
+  "ui": {
+    "navigation_widths": [
+      390,
+      768,
+      1440,
+      2560
+    ],
+    "navigation_pages": [
+      "Assistant",
+      "Studio",
+      "Inbox",
+      "Tasks",
+      "Connections"
+    ],
+    "call_lab_readiness": true,
+    "isolated_check_stop_and_record": true,
+    "panel_close_stops_check": true,
+    "passed": true,
+    "docked_keyboard_navigation": true,
+    "close_dock_restores_keyboard_focus": true,
+    "modal_focus_and_escape": true,
+    "preferences_preserve_docked_viewer_and_draft": true,
+    "inspector_and_activity_toggle": true,
+    "setup_error_and_refresh_recovery": true,
+    "heavy_startup_requests": 0,
+    "zoom_200_percent": true,
+    "text_200_percent": true,
+    "reduced_motion": true,
+    "camera_and_microphone_requests": 0,
+    "external_network_requests": 0
+  },
+  "device_provider_creative_activations": 0,
+  "supervised_call_check_requests": 3,
+  "resident_after_workspace_exit": {
+    "working_set_mb": 68.25,
+    "private_mb": 50.47
+  },
+  "real_hardware_or_notifications_used": false,
+  "passed": true,
+  "graceful_core_stop": true
+}

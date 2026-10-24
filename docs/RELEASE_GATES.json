@@ -1,0 +1,363 @@
+{
+  "format": 1,
+  "milestone": "Step 5 controlled one-call software workflow accepted; physical collector/device acceptance and real model benchmark remain deferred",
+  "gates": [
+    {
+      "id": "controlled-call-workflow-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "CONTROLLED_CALL_TESTING.md and qa/controlled-call-workflow-verification.json; encrypted scoped drafts, explicit blockers, 60-second single-use origin/project/revision/capture-bound reviews, typed one-call confirmation, 30-second arm window, recurring binding/policy checks and Stop/lifecycle cancellation. 304 focused Python tests including 24 new cases, 14 client checks including five new cases, scoped Ruff/TypeScript/contract drift/Vite pass. Synthetic captures/inert supervisors only. Local test policy remains disabled and no trusted physical collector is implemented; no live token, phone/audio/model activation or real acceptance. Existing Order 4 Android artifact unchanged."
+    },
+    {
+      "id": "mobile-call-receipts-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "MOBILE_CALL_RECEIPTS.md and qa/mobile-call-receipts-verification.json; Order 4 separate default-off calls:read pairing grant and signed owner/project-scoped finished list/detail reads; active/lab history excluded, manual bounded native receipt view, encrypted no-backup cache/known authorization and local-expiry cleanup. 280 focused Python checks including 15 new receipt checks, four desktop client checks, four actual JVM tests, Ruff/TypeScript/contract drift/Vite pass. Fresh strict offline debug APK v0.1.1-receipts/code2 (26,383,817 bytes), apksigner and source/dependency audits accepted using 768MB heap. No actual phone install/render/Keystore/cache-delivery acceptance, real grant/call/model activation, production signing or message/call actions. Offline revocation cannot instantly erase phone copies."
+    },
+    {
+      "id": "local-call-model-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "LOCAL_MODEL.md and qa/local-model-verification.json; Order 3 optional portable local inference, exact pinned Qwen3 4B GGUF/runtime install and SHA256 verification, explicit-session loopback authenticated CPU-only runtime/no tool/agent/proxy/redirect/cloud fallback, exact-substring schema grounding, controller-owned confirmation, larger shared resource profile, source-bound real-evaluation gate and truthful UI presence/acceptance. 174 focused Python checks including 25 new model checks, five client checks, Ruff/TypeScript/contract drift/Vite/pip pass. Actual inference did not load due to memory guard; no model-quality, caller or distribution acceptance inferred."
+    },
+    {
+      "id": "local-call-model-quality",
+      "track": "acceptance",
+      "status": "deferred",
+      "required": true,
+      "evidence": "Real evaluation attempted 24 October and refused with call_model_capacity before startup: 1.81GiB RAM available, 7GiB required; subsequent metadata check 2.24GiB. Candidate is installed but accepted_for_calls=false. Must run actual eight-case inference suite, startup<=30s/every turn<=8s/sampled RSS<=4GiB plus shutdown verification after freeing RAM. Guard retained, no owner apps stopped. Synthetic Python tests are not model-quality acceptance; no inference performance values fabricated. Owner confirmed on 24 October 2026 they cannot free sufficient resources; real benchmark is explicitly deferred. Keep the installed candidate unloaded and unaccepted, retain the memory guard and structured default. No silent smaller-model substitution/download. Resume when resources are available."
+    },
+    {
+      "id": "local-call-admission-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "CALL_ADMISSION.md and qa/call-admission-verification.json; Order 2: one core-owned session, authenticated owner/project/origin and recurring acceptance/resource checks, no incoming-call queue, shared local CPU1/RAM512MB/VRAM0 admission estimate, protected replay ledger/restart uncertainty and content-free zero-cloud-allowance local usage receipts. CLI live execution refused before profile access; strict Call Lab admission blockers with live_enabled=false. 149 focused Python checks including 25 new admission checks, five client checks, Ruff/TypeScript/contract drift/Vite pass. Inert supervisors and synthetic enrollment only; no live OS worker, phone/audio/provider/model activation or public live-start/real physical verifier. Mobile receipt sync and physical/device/distribution gates remain open."
+    },
+    {
+      "id": "local-call-message-taking-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "LOCAL_ONLY_SETUP.md and qa/local-only-setup-verification.json; explicit local Vosk/SAPI worker, no cloud fallback or provider bootstrap, bounded structured English dialogue and half-duplex PCM contracts, local presence in offline Call Lab. 92 focused Python checks including 15 new local/setup/readiness checks, four client checks, native helper compile/protocol/refusal and actual in-memory synthetic speech recognition. No live call/audio routing/device acceptance, general conversational LLM or release authority."
+    },
+    {
+      "id": "controller-receiving-preparation-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "CONTROLLER_RECEIVING.md and qa/controller-receiving-verification.json; independently trusted source-neutral signature-before-payload receiver, exact attested inventories/report-queue/ledger/custody/native validation, reviewed bounded new-directory copy and relocatable exact-closure verification, pending statement-bound clean-machine checklist. 195 distinct focused Python checks including 26 receiving/copy/drift checks, scoped Ruff, actual unchanged 2681-file controller collect/rederive, renewed 52-pending-subject ledger and disabled-policy refusal without output. No real signing, trusted verifier delivery, installation, launch, source rederivation by receiver or clean-machine certification."
+    },
+    {
+      "id": "signing-controller-delivery-preparation-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "SIGNING_DELIVERY_PREPARATION.md; public-only pinned custody draft/readiness, separate immutable controller-specific evidence-backed review revisions and purpose-separated detached delivery preparation/verification. Signatures precede payload/provenance/native validation; explicit sequence/window/policies and exact controller/bootstrap/provenance/ledger/custody snapshots, native cache-only enforcement and drift rechecks. 181 focused Python checks including 34 new checks, scoped Ruff, actual renewed 51-pending-subject ledger/disabled draft readiness/request refusal. Existing 2681-file controller unchanged. No production identity/key/certificate configuration, actual review decisions, signer/key loader, source-neutral receiver, installer, launch, real trusted delivery or clean-machine authorization."
+    },
+    {
+      "id": "managed-profile-removal-lifecycle-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "MANAGED_LIFECYCLE.md; checkpoint-pinned encrypted backup and typed recovery preparation, separate publisher/reviewer lifecycle signatures for profile activation/rollback/removal/erasure, retained grant/floor/admission/policy history and format 3. Sealed inventory, exact journal recovery, deletion-aware cancellation, scoped byte-checked unlink/empty-rmdir, exact erasure phrase repeated at resume, source-bound backup and canonical journal paths. 542 distinct focused Python checks including 32 lifecycle checks and 35 worker/entry checks, scoped Ruff, real original-account copy and native render/bridge/controller/provenance acceptance. No production identity/profile, owned signing, real production native-window mutation, secure disk sanitization or clean-machine acceptance."
+    },
+    {
+      "id": "managed-native-status-change-recovery-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "MANAGED_NATIVE_UI.md; bootstrap-verified native entry and finite private JSON worker for metadata status, signed enrollment/renewal/rotation/update/rollback, reviewed resume and pre-commit cancellation. Single-use five-minute reviews, exact revalidation, explicit retained pins, busy/close protection and uncertain-apply review evidence. 480 distinct focused Python checks including 30 new management/entry checks, scoped Ruff, native 1120/780 render/interaction and final controller/bridge/provenance QA. No protected backup/restore/removal, real production signed-package/native-window mutation, owned signing/delivery or clean-machine acceptance."
+    },
+    {
+      "id": "controller-provenance-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "CONTROLLER_PROVENANCE.md; externally pinned controller/source/native inventory, verbatim notices, separate pending queue and copied external delivery inputs. 139 focused tests including 23 new checks and 11 release-boundary checks, scoped Ruff and actual immutable-artifact collect/rederive verification. docs/qa/controller-provenance-verification.json. No distribution clearance, approval writer, runtime execution, signing or configuration."
+    },
+    {
+      "id": "controller-distribution-review",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "CONTROLLER_RECEIVING.md and qa/controller-receiving-verification.json; unchanged 2681-file controller plus external preparation/receiving tools yield 43 components, 51 notices, 38 native binaries and 52 pending controller ledger subjects, zero events. All 85 desktop subjects remain separately pending. Actual source/license/obligation/native/security/custody/delivery decisions and redistribution clearance remain pending."
+    },
+    {
+      "id": "managed-native-lifecycle-ux",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "MANAGED_NATIVE_UI.md and MANAGED_LIFECYCLE.md; protected native status/change/resume/cancellation plus encrypted backup, typed preparation, signed profile activation/rollback and separate software/profile removal source/development-host acceptance implemented. Real owned signed-package/native-window mutation and clean-machine lifecycle acceptance remain pending. Both production policies disabled; no unsigned format-3 control path or metadata downgrade."
+    },
+    {
+      "id": "managed-update-trust-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "MANAGED_UPDATES.md; external current-account protected checkpoints/metadata images, retained policy history, external latest-state pins, dual-policy old/new publisher/reviewer change signatures, reviewed local package update/explicit rollback, retained sequence floor, format-3 unsigned-control refusal and journaled recovery/pre-commit cancellation. 281 focused checks including 31 managed-state tests, scoped Ruff, actual DPAPI refusal probes and 2672-file controller/bootstrap acceptance. Both production policies disabled and 85 actual reviews pending. Not hardware anti-rollback, account-compromise resistance, native format-3 management UX, owned signing/bootstrap delivery, real signed desktop update, cross-account or clean-machine acceptance, or release authorization."
+    },
+    {
+      "id": "renewable-admission-launch-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "ADMISSION_LAUNCH.md; root/version/policy-bound publisher/reviewer launch grants, reviewed renewal, retained history with external latest-head pins, verified bytes/profile/native trust under manager/file leases and suspended-start kill-on-close process containment. 250 focused checks including 33 new checks, scoped Ruff and actual isolated-Python lease/expiry/controller-death child/grandchild acceptance; 2670-file controller/bootstrap verification. Production policies remain disabled and 85 actual reviews pending. No real production grant/installation/resident, hardware monotonic state, trusted policy rotation, signed updater, owned bootstrap delivery, clean-machine or release authorization claimed."
+    },
+    {
+      "id": "windows-controller-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "WINDOWS_CONTROLLER.md; cache-only native Windows trust and externally pinned signer/timestamp expectations, final-byte controller inventory/bootstrap, retained reviewed admission evidence and read-only launch contract. 216 focused checks including 33 new checks, scoped Ruff and real 2668-file development-host controller/bootstrap acceptance. Production policies remain disabled, local installation metadata unsigned and all 85 real reviews pending. No resident launch, owned certificate, signed bootstrap delivery, controller redistribution clearance, monotonic update, clean-machine or release authorization claimed."
+    },
+    {
+      "id": "authenticated-package-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "SIGNED_PACKAGE.md; external policy/role/signature checks before inert payload/evidence verification, production-only exact install review/apply, in-lock state/source/copy checks and signed interrupted-copy recovery. 183 focused checks including 27 package checks and real-candidate 3067-file fixture container verification pass. Fixture/default disabled trust cannot create installation target. No real production signing, persistent installed-version trust, verified launch, Authenticode, clean-machine or release authorization claimed."
+    },
+    {
+      "id": "release-trust-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "RELEASE_TRUST.md; externally pinned role-separated public keys, domain-separated whole-candidate/inventory/audit/ledger attestations, bounded time/sequence/channel/mode checks and fixture opt-in. 90 focused checks including 40 trust checks, scoped Ruff and real-payload ephemeral fixture acceptance pass. Production policy remains disabled, 85 reviews pending, no private keys persisted or real release signed. Not Authenticode, legal identity, clean-machine, installer enforcement or release authorization."
+    },
+    {
+      "id": "distribution-review-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "DISTRIBUTION_REVIEW.md; exact candidate/audit/tool/subject bindings, explicit evidence-backed reviewer assertions, digest-reviewed apply and immutable revisions retaining history. 82 focused checks including 39 ledger checks and actual creation/separate status verification pass. All 85 real subjects remain pending. Unsigned assertions do not authenticate reviewers, establish evidence adequacy, grant redistribution clearance or authorize release."
+    },
+    {
+      "id": "renderer-provenance-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "RENDERER_PROVENANCE.md; actual main/worker module/chunk/output graphs, raw input hashes, verified public/WASM/loader copies, pending ownership registry and explicit new-package/audit binding. 107 Python and six Node checks, scoped Ruff, production build and real 2993-file package/audit verification pass. 2155 module records, 45 chunks, 67 outputs, 75 audited component records/82 notices. Two missing recognized npm notices and five asset decisions remain open; no reproducibility, clearance or signing claim."
+    },
+    {
+      "id": "distribution-provenance-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "DISTRIBUTION_PROVENANCE.md; candidate/collector-bound offline metadata and verbatim notices, conservative renderer coverage and rederived exact verification. 79 focused checks including 31 audit checks, scoped Ruff and actual 143-component/147-notice collection and verification pass. Six npm notice records remain gaps. Does not establish exact renderer/asset coverage, legal clearance, current security baseline, publisher authenticity or clean-machine acceptance."
+    },
+    {
+      "id": "native-setup-controls",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "NATIVE_SETUP.md; responsive native WPF/private bundled worker, review-bound install/select/launch/recovery, data-preserving removal and separately typed erasure, bounded interrupted-removal resumption. 174 focused checks, actual UI/dispatcher and bundled synthetic install/resident/removal acceptance pass. Unsigned directory-based development-host pilot; not MSI/EXE, Windows Apps registration or clean-machine acceptance."
+    },
+    {
+      "id": "reviewed-recovery-activation",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "RECOVERY_ACTIVATION.md; typed workspace/memory/conversation/terminal CAD-image scope rekeying, review-bound preparation, atomic format-2 selection and retained-data rollback. 151 focused checks and actual native restored memory/conversation/fixture-artifact access, graceful shutdown, old-control refusal and retained-data rollback pass. Unsupported record groups/SQL objects and incompatible owners/scopes reject; broad profile compatibility, signing and clean-machine acceptance remain pending."
+    },
+    {
+      "id": "encrypted-profile-recovery",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "ENCRYPTED_PROFILE_RECOVERY.md; DPAPI-wrapped AES-GCM, bounded strict archive/schema/ownership checks, explicit preview digest and new detached restore with completion receipt. 127 focused checks and actual bundled-Python DPAPI backup/preview/restore/protected-record recovery across separate processes pass. Original profile/installation pointers remain unchanged. Initial reviewed activation/project adapters are tracked separately; cross-account and clean-machine acceptance remain unclaimed."
+    },
+    {
+      "id": "desktop-version-slots",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "DESKTOP_VERSION_SLOTS.md; explicit directory-based installation/selection, verified interrupted-copy recovery, separate owned version data, atomic rollback and OS resident lease. 82 focused checks, real bundled-package switching/rollback and actual installed resident startup/shutdown pass. Unsigned tooling; broader recovery compatibility, signing and clean-machine acceptance remain pending."
+    },
+    {
+      "id": "portable-core-runtime",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "PORTABLE_CORE_RUNTIME.md; isolated CPython and 41 exact core dependencies assembled from local inputs, packaged binary/native workspace and owned offline CAD worker acceptance. Unsigned local pilot; no clean-machine installer or redistribution clearance implied."
+    },
+    {
+      "id": "desktop-workspace-package",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "DESKTOP_WORKSPACE_PACKAGE.md; bundled native workspace, installed Electron runtime staging, strict integrity inventory and actual staged core/Electron acceptance with external npm resolution disabled. Workspace-only mode needs external Python; portable-core mode is recorded separately. No Windows installer/signing acceptance implied."
+    },
+    {
+      "id": "android-build-tooling",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "ANDROID_BUILD_ACCEPTANCE.md; offline strict dependency/build evidence checks, explicit dependency-recording mode, fresh JVM/APK/apksigner audit and actual PowerShell missing-tool refusal. Fixtures do not establish Kotlin/Gradle compilation or device acceptance."
+    },
+    {
+      "id": "creative-handoff-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "CREATIVE_HANDOFFS.md; owner/project-scoped metadata-only recipe handoffs, explicit review/apply, source fingerprint/export digest validation before planning/building and durable revision provenance. No media conditioning or real provider acceptance claimed."
+    },
+    {
+      "id": "scene-proposal-source",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "SCENE_PROPOSALS.md; bounded data-only AI proposals, explicit preview/review/apply, separate approved offline build, usage/cancellation/scope checks and native synthetic-provider acceptance. Real provider output quality is unverified."
+    },
+    {
+      "id": "desktop-source",
+      "track": "desktop",
+      "status": "accepted",
+      "required": true,
+      "evidence": "R8_NOTIFICATIONS.md; Python/Node/type/lint/build and native loopback fixture checks"
+    },
+    {
+      "id": "offline-support",
+      "track": "desktop",
+      "status": "accepted",
+      "required": true,
+      "evidence": "RELEASE_READINESS.md; offline diagnostics, dependency metadata inventory and source-pilot integrity checks"
+    },
+    {
+      "id": "clean-machine-install",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "Portable Python/core, native Setup/launcher/removal and directory-based version selection accepted on development host. Still needs optional worker bundles and clean Windows account/machine install/uninstall/recovery acceptance. CONTROLLER_RECEIVING.md adds source-neutral verified receiving copies and a statement-bound pending acceptance checklist; no real clean-machine execution or certification occurred."
+    },
+    {
+      "id": "distribution-signing-licenses",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "SIGNING_DELIVERY_PREPARATION.md and CONTROLLER_RECEIVING.md; public custody/review/delivery and source-neutral receiving preparation implemented. Both policies disabled, all 52 controller and 85 desktop subjects pending. Owned identities/keys/certificates, authoritative reviews, actual signing/timestamps, independently trusted verifier/bootstrap delivery and real clean-machine/native lifecycle acceptance remain pending. No release authority from source/fixture checks or recorded assertions."
+    },
+    {
+      "id": "update-rollback",
+      "track": "desktop",
+      "status": "pending",
+      "required": true,
+      "evidence": "MANAGED_UPDATES.md, MANAGED_NATIVE_UI.md and MANAGED_LIFECYCLE.md; protected signed update/rollback and native lifecycle source implemented, including backup/typed restore, signed profile selection and separately confirmed removal with exact interrupted-transaction recovery. Broader record adapters and actual owned signed-package/native-window plus clean-machine update/rollback/interruption/removal acceptance remain pending."
+    },
+    {
+      "id": "legion-soak",
+      "track": "desktop",
+      "status": "deferred",
+      "required": true,
+      "evidence": "Exact hardware inventory, ten-minute idle and multi-hour mixed-use acceptance pending; real-game benchmark explicitly deferred"
+    },
+    {
+      "id": "android-source",
+      "track": "android",
+      "status": "accepted",
+      "required": true,
+      "evidence": "Native R7/R8 source, protected listener manifest and build-closed source guards; no compilation implied"
+    },
+    {
+      "id": "android-build",
+      "track": "android",
+      "status": "accepted",
+      "required": true,
+      "evidence": "Latest: MOBILE_CALL_RECEIPTS.md and qa/mobile-call-receipts-verification.json; clean strict offline build c34c83f2-38c0-479b-9dd1-b7613e8dfd32 accepted 24 October, version0.1.1-receipts/code2, fresh 26,383,817-byte APK, four passing actual JVM tests and apksigner/source/dependency audit. Same complete locks and 694-artifact SHA256 verification inventory; no online dependency recording. One worker/768MB heap. Pinned JDK17/Gradle8.14.6/AGP8.9.2/Kotlin2.1.20/API35/BuildTools35.0.0 retained. Original Order 1 build and failures remain archived separately. No production signing, phone/emulator or real call acceptance."
+    },
+    {
+      "id": "fold8-device",
+      "track": "android",
+      "status": "pending",
+      "required": true,
+      "evidence": "Needs explicit test-build acceptance, device Keystore/process-death/fold/unfold/Doze/TLS/permission/revocation/privacy acceptance before enabling collection Order 4 fresh debug build is accepted, but installation/pairing, receipt UI, Keystore/cache/process-death/fold/Doze/revocation/privacy acceptance still require the actual owner-approved phone session."
+    },
+    {
+      "id": "android-distribution",
+      "track": "android",
+      "status": "pending",
+      "required": true,
+      "evidence": "Needs signing/recovery ownership, distribution policy and signed APK install/uninstall/update acceptance"
+    },
+    {
+      "id": "real-capabilities",
+      "track": "optional",
+      "status": "deferred",
+      "required": false,
+      "evidence": "Provider setup, local speech/image weights, actual Blender/kernel exports, microphone/camera/Bluetooth/printers remain explicitly unconfigured/unverified"
+    },
+    {
+      "id": "project-memory",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "PROJECT_MEMORY.md; local lexical search, owner/project isolation, consent, expiry/forget and original-profile protected recovery; native fixture acceptance"
+    },
+    {
+      "id": "memory-enhancements",
+      "track": "backlog",
+      "status": "pending",
+      "required": false,
+      "evidence": "Optional embedding-based semantic retrieval and portable cross-account recovery keys remain future work; current search/recovery limits are explicit"
+    },
+    {
+      "id": "automation-device-modernization",
+      "track": "backlog",
+      "status": "pending",
+      "required": false,
+      "evidence": "Read-only browser, reviewed desktop tasks, Kasa/printer protocol separation and local Connections readiness source milestones are accepted. Interactive browser action policy and actual vendor SDK/network/physical acceptance remain pending; no automatic hardware tests."
+    },
+    {
+      "id": "budgets-evaluations",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "USAGE_AND_QUALITY.md; integer owner-wide admission allowances, metered provider/local-job receipts and 12 owned offline fixture evaluations. Invoice costs and real model quality are not verified."
+    },
+    {
+      "id": "phone-call-feasibility",
+      "track": "research",
+      "status": "deferred",
+      "required": false,
+      "evidence": "Owner prioritizes incoming SIM and personal WhatsApp AI answering/message taking. Desktop bridge prototype and supervised offline Call bridge lab are implemented; actual handset/app control and isolated duplex audio remain unverified. Forwarding, Business migration, outgoing calls and WhatsApp text actions are not selected. 23 October: local-only Vosk/SAPI components and native helper installed; synthetic in-memory recognition succeeds. Existing official Phone Link/WhatsApp Desktop present, but dedicated receive/transmit routes absent and actual controls not enrolled. Owner scheduled controlled calls later. No live answer or universal carrier/personal-account feasibility claimed. 24 October: core-owned local admission source is verified; CLI live path is disabled and no physical verifier or public live arming route is enrolled. This does not resume the deferred controlled calls. Step 5 update: owner-renderer controlled-test routes/UI are now implemented, but policy remains disabled and the backend physical collector is absent. Synthetic workflow checks do not establish physical acceptance. Implement and validate the collector with actual control/duplex/isolation/Stop/disconnect observations in the later owned device session before any one-call review can pass."
+    },
+    {
+      "id": "whatsapp-actions",
+      "track": "excluded",
+      "status": "excluded",
+      "required": false,
+      "evidence": "Reply drafting/sending, acknowledgements and notification action execution remain excluded until specifically requested"
+    },
+    {
+      "id": "provider-cost-quality-acceptance",
+      "track": "optional",
+      "status": "deferred",
+      "required": false,
+      "evidence": "Actual model pricing/invoice reconciliation and real-model task quality/latency acceptance require explicitly chosen provider setup; current allowances are not guaranteed invoice ceilings"
+    },
+    {
+      "id": "read-only-web-inspector",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "BROWSER_INSPECTOR.md; strict public HTTPS GET, owned worker cancellation, inert page text, native synthetic renderer/worker acceptance. No live-site/interactive browser acceptance."
+    },
+    {
+      "id": "reviewed-desktop-tasks",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "REVIEWED_TASKS.md; finite immutable typed file/app plans, forced per-step approvals, receipt-before-effect ordering, cancellation/recovery without replay and real native UI acceptance using isolated files/fake app adapter."
+    },
+    {
+      "id": "connection-adapters-readiness",
+      "track": "source",
+      "status": "accepted",
+      "required": true,
+      "evidence": "CONNECTION_ADAPTERS.md; injected protocol/lifetime fixtures, exact endpoint routing and local readiness with zero native adapter activations. Actual SDK/network/device acceptance remains deferred."
+    }
+  ]
+}

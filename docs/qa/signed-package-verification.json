@@ -1,0 +1,49 @@
+{
+  "candidate_code_executed": false,
+  "fixture_only": true,
+  "format": 1,
+  "installation_root_created": false,
+  "passed": true,
+  "prepared": {
+    "files": 3067,
+    "installable": false,
+    "manifest_sha256": "22c0d55f9bdf5de4277dc1d70a64723ae0ec16f7e10a3298d59851fdba56a428",
+    "prepared": true,
+    "purpose": "fixture",
+    "signed": false
+  },
+  "private_keys_persisted": false,
+  "production_identity_configured": false,
+  "real_ledger_unchanged": true,
+  "real_release_signed": false,
+  "refusals": {
+    "disabled-production-policy": true,
+    "fixture-installation": true,
+    "unsigned-package": true
+  },
+  "release_authorized": false,
+  "verified": {
+    "attestation_sha256": "f58a25365773a8195098cc2e5ae0ebd7641ba490bf942ff080690d29eb6f61f9",
+    "authenticode_verified": false,
+    "candidate_code_executed": false,
+    "files": 3067,
+    "fixture_only": true,
+    "integrity": "passed",
+    "manifest_sha256": "22c0d55f9bdf5de4277dc1d70a64723ae0ec16f7e10a3298d59851fdba56a428",
+    "purpose": "fixture",
+    "release_authorized": false,
+    "review_subjects": 85,
+    "reviews_complete": false,
+    "sequence": 1,
+    "signatures": {
+      "publisher": 1,
+      "reviewer": 1
+    }
+  },
+  "date": "2026-10-22",
+  "python_test_passes": 183,
+  "new_signed_package_test_passes": 27,
+  "scoped_ruff": "passed",
+  "windows_signed_release": false,
+  "clean_machine_acceptance": false
+}

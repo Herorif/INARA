@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "entries": [
+    {
+      "path": "assets/icons/inara.ico",
+      "sha256": "e88a17444691ddab4158442c532c7b51095bf35744e0ab78428ef9f619236f44",
+      "origin": "unverified-local-asset",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "assets/icons/inara.png",
+      "sha256": "112bcb592ee927f9e1c7ad97f270345395e931bf256e58c2d61195544ebcc696",
+      "origin": "unverified-local-asset",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "public/hand_landmarker.task",
+      "sha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1",
+      "origin": "unverified-local-asset",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    }
+  ]
+}

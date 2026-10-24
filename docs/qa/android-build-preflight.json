@@ -1,0 +1,26 @@
+﻿{
+  "format": 1,
+  "pins": {
+    "java": "17",
+    "gradle": "8.11.1",
+    "platform": "35",
+    "build_tools": "35.0.0"
+  },
+  "tools_present": {
+    "java": false,
+    "javac": false,
+    "gradle": false
+  },
+  "sdk_present": {
+    "platform": false,
+    "build_tools": false,
+    "apksigner": false
+  },
+  "dependencies_recorded": false,
+  "tool_versions_verified": false,
+  "can_attempt_offline_build": false,
+  "apk_compiled": false,
+  "device_accessed": false,
+  "network_accessed": false,
+  "note": "Presence only. Build runner verifies exact tool versions; checksums need independent review after first resolution."
+}

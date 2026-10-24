@@ -1,0 +1,55 @@
+// Actual desktop surface plus generated fixture client over loopback TLS. No phone/provider.
+const {BrowserWindow}=require('electron');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const pipe=fs.readFileSync(0,'utf8'),bootstrap=JSON.parse(pipe),read=fs.readFileSync;
+fs.readFileSync=function(file,...args){return file===0?pipe:read.call(this,file,...args);};
+const output=bootstrap.qaOutput,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const until=async predicate=>{const deadline=Date.now()+25000;while(Date.now()<deadline){if(await predicate())return;await sleep(100);}throw Error('Companion workspace condition timed out');};
+const load=BrowserWindow.prototype.loadFile;
+BrowserWindow.prototype.loadFile=async function(...args){
+ const window=this;await load.apply(window,args);const evaluate=source=>window.webContents.executeJavaScript(source),result={};
+ const screenshot=async name=>{await sleep(200);fs.writeFileSync(path.join(output,name),(await window.webContents.capturePage()).toPNG());};
+ const button=text=>evaluate(`[...document.querySelectorAll('.mobile-companion button')].find(button=>button.textContent.includes(${JSON.stringify(text)}))?.click()`);
+ window.webContents.session.on('will-download',(_,item)=>item.setSavePath(path.join(output,'invitation.json')));
+ try{
+  await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+  await evaluate(`document.querySelector('[aria-label="Connections"]').click()`);
+  await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.textContent.includes('Android companion'))`));
+  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Android companion')).click()`);
+  await until(()=>evaluate(`document.querySelector('.mobile-companion')?.textContent.includes('No device has access.') && ![...document.querySelectorAll('.mobile-companion button')].find(button=>button.textContent.includes('Enable private')).disabled`));
+  assert.equal(await evaluate(`document.querySelector('.mobile-card-heading strong').textContent`),'Network access is off');
+  await screenshot('mobile-disabled-desktop.png');
+  await button('Enable private TLS listener');await until(()=>evaluate(`document.querySelector('.mobile-card-heading strong').textContent==='Private TLS listener enabled'`));
+  await button('Create 2-minute invitation');await until(()=>evaluate(`!!document.querySelector('.mobile-invitation')`));
+  await button('Save invitation');await until(()=>fs.existsSync(path.join(output,'claim-checked.json')));
+  const claim=JSON.parse(fs.readFileSync(path.join(output,'claim-checked.json'),'utf8'));
+  await until(()=>evaluate(`document.querySelector('.mobile-companion').textContent.includes('Fixture Android companion')`));
+  assert.equal(await evaluate(`document.querySelector('.mobile-device code')?.textContent`),claim.fingerprint);
+  await evaluate(`document.querySelector('.mobile-device').scrollIntoView({block:'center'})`);await screenshot('mobile-pending-desktop.png');
+  window.setSize(390,900);await sleep(100);assert.equal(await evaluate(`document.querySelector('.mobile-companion').scrollWidth>document.querySelector('.mobile-companion').clientWidth`),false);await evaluate(`document.querySelector('.mobile-device').scrollIntoView({block:'center'})`);await screenshot('mobile-pending-390.png');
+  await button('Fingerprints match / Approve');await until(()=>evaluate(`document.querySelector('.mobile-device strong')?.textContent.includes('Paired')`));
+  fs.writeFileSync(path.join(output,'approval-checked.json'),'{}');await until(()=>fs.existsSync(path.join(output,'phone-checked.json')));
+  await until(()=>evaluate(`!!document.querySelector('.notification-summary')`));
+  await button('Review permission');
+  await evaluate(`(()=>{const el=document.querySelector('.notification-policy textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'com.example.chat *');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await evaluate(`document.querySelector('.notification-policy input[type="checkbox"]').click()`);
+  await button('Apply selected permission');await until(()=>evaluate(`document.querySelector('.notification-status')?.textContent.includes('enabled')`));
+  await button('Close policy');
+  fs.writeFileSync(path.join(output,'notification-permission.json'),'{}');await until(()=>fs.existsSync(path.join(output,'notification-uploaded.json')));
+  await button('Refresh inbox');await until(()=>evaluate(`document.querySelector('.notification-summary>span')?.textContent==='01'`));
+  assert.equal(await evaluate(`document.querySelector('.notification-stream').textContent.includes('sample@example.com')`),false);
+  assert.equal(await evaluate(`document.querySelector('.notification-stream').textContent.includes('123456')`),false);
+  assert.equal(await evaluate(`document.querySelector('.mobile-companion').scrollWidth>document.querySelector('.mobile-companion').clientWidth`),false);
+  await evaluate(`document.querySelector('.notification-inbox').scrollIntoView({block:'start'})`);await screenshot('notification-inbox-390.png');
+  window.setSize(1440,1000);await evaluate(`document.querySelector('.notification-inbox').scrollIntoView({block:'center'})`);await screenshot('notification-inbox-desktop.png');
+  await button('Clear laptop inbox');await until(()=>evaluate(`document.querySelector('.notification-summary>span')?.textContent==='00'`));
+  fs.writeFileSync(path.join(output,'notification-cleared.json'),'{}');await until(()=>fs.existsSync(path.join(output,'notification-stale-rejected.json')));
+  await button('Revoke access');await until(()=>evaluate(`document.querySelector('.mobile-device strong')?.textContent.includes('Revoked')`));
+  fs.writeFileSync(path.join(output,'revoke-checked.json'),'{}');await until(()=>fs.existsSync(path.join(output,'revocation-confirmed.json')));
+  window.setSize(768,900);await evaluate(`document.querySelector('.mobile-device').scrollIntoView({block:'center'})`);await screenshot('mobile-revoked-768.png');
+  await button('Stop mobile access');await until(()=>evaluate(`document.querySelector('.mobile-card-heading strong').textContent==='Network access is off'`));
+  result.read_only_notification_fixture_redacted_deduplicated_cleared=true;result.listener_default_off_and_explicit_loopback_tls=true;result.real_fixture_claim_owner_approval_and_revocation=true;result.signed_replay_rejected_and_chat_default_denied=true;result.responsive_widths=[1440,390,768];result.android_apk_or_device_used=false;result.provider_used=false;result.passed=true;
+ }catch(error){result.passed=false;result.error=error.stack;await screenshot('mobile-failure.png');}
+ fs.writeFileSync(path.join(output,'ui-verification.json'),JSON.stringify(result,null,2));await evaluate('window.electronAPI.close()');
+};
+require('../electron/native-main.cjs');

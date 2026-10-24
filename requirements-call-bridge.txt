@@ -1,0 +1,4 @@
+# Optional one-call lab only. This does not install virtual audio drivers or configure apps.
+# Raw streams use buffer objects; NumPy is not required.
+-r requirements-core.lock
+sounddevice==0.5.6

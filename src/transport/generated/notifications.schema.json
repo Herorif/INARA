@@ -1,0 +1,267 @@
+{
+  "NotificationPolicy": {
+    "$defs": {
+      "NotificationRule": {
+        "additionalProperties": false,
+        "properties": {
+          "package": {
+            "maxLength": 160,
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$",
+            "title": "Package",
+            "type": "string"
+          },
+          "all_conversations": {
+            "default": false,
+            "title": "All Conversations",
+            "type": "boolean"
+          },
+          "conversations": {
+            "items": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Conversations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "package"
+        ],
+        "title": "NotificationRule",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "format": "uuid",
+        "title": "Device Id",
+        "type": "string"
+      },
+      "enabled": {
+        "default": false,
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "include_text": {
+        "default": false,
+        "title": "Include Text",
+        "type": "boolean"
+      },
+      "retention_hours": {
+        "default": 24,
+        "maximum": 168,
+        "minimum": 1,
+        "title": "Retention Hours",
+        "type": "integer"
+      },
+      "rules": {
+        "items": {
+          "$ref": "#/$defs/NotificationRule"
+        },
+        "maxItems": 16,
+        "title": "Rules",
+        "type": "array"
+      }
+    },
+    "required": [
+      "device_id"
+    ],
+    "title": "NotificationPolicy",
+    "type": "object"
+  },
+  "NotificationRule": {
+    "additionalProperties": false,
+    "properties": {
+      "package": {
+        "maxLength": 160,
+        "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$",
+        "title": "Package",
+        "type": "string"
+      },
+      "all_conversations": {
+        "default": false,
+        "title": "All Conversations",
+        "type": "boolean"
+      },
+      "conversations": {
+        "items": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "maxItems": 32,
+        "title": "Conversations",
+        "type": "array"
+      }
+    },
+    "required": [
+      "package"
+    ],
+    "title": "NotificationRule",
+    "type": "object"
+  },
+  "NotificationEvent": {
+    "additionalProperties": false,
+    "properties": {
+      "event_id": {
+        "format": "uuid",
+        "title": "Event Id",
+        "type": "string"
+      },
+      "source_id": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Source Id",
+        "type": "string"
+      },
+      "conversation": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Conversation",
+        "type": "string"
+      },
+      "package": {
+        "maxLength": 160,
+        "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$",
+        "title": "Package",
+        "type": "string"
+      },
+      "timestamp": {
+        "minimum": 0,
+        "title": "Timestamp",
+        "type": "integer"
+      },
+      "sequence": {
+        "default": 0,
+        "maximum": 9007199254740991,
+        "minimum": 0,
+        "title": "Sequence",
+        "type": "integer"
+      },
+      "kind": {
+        "default": "posted",
+        "enum": [
+          "posted",
+          "removed"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "title": {
+        "default": "",
+        "maxLength": 160,
+        "title": "Title",
+        "type": "string"
+      },
+      "text": {
+        "default": "",
+        "maxLength": 1000,
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": [
+      "event_id",
+      "source_id",
+      "conversation",
+      "package",
+      "timestamp"
+    ],
+    "title": "NotificationEvent",
+    "type": "object"
+  },
+  "NotificationBatch": {
+    "$defs": {
+      "NotificationEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "source_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "conversation": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Conversation",
+            "type": "string"
+          },
+          "package": {
+            "maxLength": 160,
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$",
+            "title": "Package",
+            "type": "string"
+          },
+          "timestamp": {
+            "minimum": 0,
+            "title": "Timestamp",
+            "type": "integer"
+          },
+          "sequence": {
+            "default": 0,
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "kind": {
+            "default": "posted",
+            "enum": [
+              "posted",
+              "removed"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "maxLength": 160,
+            "title": "Title",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "source_id",
+          "conversation",
+          "package",
+          "timestamp"
+        ],
+        "title": "NotificationEvent",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "events": {
+        "items": {
+          "$ref": "#/$defs/NotificationEvent"
+        },
+        "maxItems": 10,
+        "minItems": 1,
+        "title": "Events",
+        "type": "array"
+      }
+    },
+    "required": [
+      "revision",
+      "events"
+    ],
+    "title": "NotificationBatch",
+    "type": "object"
+  }
+}

@@ -4,14 +4,16 @@
   "description": "INARA - General-Purpose AI Agent Platform",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && npx electron .\"",
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env INARA_DEV_SERVER=1 node scripts/launch-native.cjs\"",
     "backend:dev": "python backend/server.py",
     "build": "vite build",
-    "start": "npx electron ."
+    "start": "node scripts/launch-native.cjs",
+    "start:legacy": "electron .",
+    "check:types": "node node_modules/typescript/lib/tsc.js -p tsconfig.ui.json"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
     "@react-three/drei": "^9.99.0",
@@ -32,10 +34,11 @@
     "autoprefixer": "^10.4.17",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "electron": "^28.2.0",
+    "electron": "44.7.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.0",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "typescript": "5.0.4"
   }
 }

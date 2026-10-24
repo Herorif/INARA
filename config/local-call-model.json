@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "runtime": {
+    "version": "b11669",
+    "name": "llama-b11669-bin-win-cpu-x64.zip",
+    "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-win-cpu-x64.zip",
+    "bytes": 19537886,
+    "sha256": "37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b"
+  },
+  "model": {
+    "id": "Qwen/Qwen3-4B-GGUF:Q4_K_M",
+    "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+    "name": "Qwen3-4B-Q4_K_M.gguf",
+    "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q4_K_M.gguf",
+    "bytes": 2497280256,
+    "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+  }
+}

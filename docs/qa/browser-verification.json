@@ -1,0 +1,26 @@
+{
+  "before_workspace": {
+    "working_set_mb": 65.34,
+    "private_mb": 48.25
+  },
+  "ui": {
+    "passed": true,
+    "hostile_content_inert": true,
+    "links_require_explicit_inspection": true,
+    "responsive_widths": [
+      1440,
+      390
+    ],
+    "real_network_used": false
+  },
+  "owned_worker_bootstrap_output_cleanup": true,
+  "public_network_used": false,
+  "provider_used": false,
+  "tasks_released": true,
+  "resident_after_workspace_exit": {
+    "working_set_mb": 67.27,
+    "private_mb": 49.95
+  },
+  "passed": true,
+  "graceful_core_stop": true
+}

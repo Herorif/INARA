@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "real_calls": false,
+  "media_opened": false,
+  "provider_used": false,
+  "normal_fixture": true,
+  "graceful_stop": true,
+  "hung_worker_tree_terminated": true,
+  "owned_processes_exited": 4
+}

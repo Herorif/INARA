@@ -1,0 +1,26 @@
+{
+  "before_workspace": {
+    "working_set_mb": 65.31,
+    "private_mb": 47.98
+  },
+  "ui": {
+    "passed": true,
+    "local_readiness_and_refresh": true,
+    "no_private_endpoints_in_view": true,
+    "command_palette_access": true,
+    "responsive_widths": [
+      1440,
+      390
+    ],
+    "device_actions_used": false
+  },
+  "adapter_activation_count": 0,
+  "discovery_and_device_actions_used": false,
+  "provider_used": false,
+  "resident_after_workspace_exit": {
+    "working_set_mb": 66.49,
+    "private_mb": 49.72
+  },
+  "passed": true,
+  "graceful_core_stop": true
+}

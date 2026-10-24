@@ -1,0 +1,427 @@
+{
+  "TestPrepare": {
+    "$defs": {
+      "BridgeProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "sim",
+              "whatsapp_personal"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "pid": {
+            "exclusiveMinimum": 0,
+            "title": "Pid",
+            "type": "integer"
+          },
+          "executable": {
+            "maxLength": 1024,
+            "minLength": 5,
+            "title": "Executable",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "process_start": {
+            "pattern": "^[0-9]{1,20}$",
+            "title": "Process Start",
+            "type": "string"
+          },
+          "window_class": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Window Class",
+            "type": "string"
+          },
+          "answer_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Answer Id",
+            "type": "string"
+          },
+          "decline_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Decline Id",
+            "type": "string"
+          },
+          "hangup_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Hangup Id",
+            "type": "string"
+          },
+          "caller_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Caller Id",
+            "type": "string"
+          },
+          "ended_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Ended Id",
+            "type": "string"
+          },
+          "capture_endpoint": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Capture Endpoint",
+            "type": "string"
+          },
+          "playback_endpoint": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Playback Endpoint",
+            "type": "string"
+          },
+          "route_confirmed": {
+            "default": false,
+            "title": "Route Confirmed",
+            "type": "boolean"
+          },
+          "controls_confirmed": {
+            "default": false,
+            "title": "Controls Confirmed",
+            "type": "boolean"
+          },
+          "max_seconds": {
+            "default": 120,
+            "maximum": 180,
+            "minimum": 15,
+            "title": "Max Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel",
+          "pid",
+          "executable",
+          "sha256",
+          "process_start",
+          "window_class",
+          "answer_id",
+          "decline_id",
+          "hangup_id",
+          "caller_id",
+          "ended_id",
+          "capture_endpoint",
+          "playback_endpoint"
+        ],
+        "title": "BridgeProfile",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "profile": {
+        "$ref": "#/$defs/BridgeProfile"
+      }
+    },
+    "required": [
+      "profile"
+    ],
+    "title": "TestPrepare",
+    "type": "object"
+  },
+  "TestRevision": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      }
+    },
+    "required": [
+      "revision"
+    ],
+    "title": "TestRevision",
+    "type": "object"
+  },
+  "TestArm": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "review_id": {
+        "format": "uuid",
+        "title": "Review Id",
+        "type": "string"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "confirmation": {
+        "const": "ANSWER ONE CONTROLLED TEST CALL",
+        "title": "Confirmation",
+        "type": "string"
+      }
+    },
+    "required": [
+      "revision",
+      "review_id",
+      "request_id",
+      "confirmation"
+    ],
+    "title": "TestArm",
+    "type": "object"
+  },
+  "TestStop": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "title": "TestStop",
+    "type": "object"
+  },
+  "TestDraft": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "channel": {
+        "enum": [
+          "sim",
+          "whatsapp_personal"
+        ],
+        "title": "Channel",
+        "type": "string"
+      },
+      "profile_sha256": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Profile Sha256",
+        "type": "string"
+      },
+      "max_seconds": {
+        "title": "Max Seconds",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "revision",
+      "channel",
+      "profile_sha256",
+      "max_seconds"
+    ],
+    "title": "TestDraft",
+    "type": "object"
+  },
+  "TestReview": {
+    "additionalProperties": false,
+    "properties": {
+      "project": {
+        "title": "Project",
+        "type": "string"
+      },
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "ready": {
+        "title": "Ready",
+        "type": "boolean"
+      },
+      "blockers": {
+        "items": {
+          "enum": [
+            "policy_disabled",
+            "channel_disabled",
+            "profile_missing",
+            "profile_changed",
+            "evidence_missing",
+            "evidence_invalid",
+            "components_missing",
+            "resource_policy",
+            "resources_busy",
+            "resource_capacity",
+            "resource_fault"
+          ],
+          "type": "string"
+        },
+        "maxItems": 11,
+        "title": "Blockers",
+        "type": "array"
+      },
+      "review_id": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Review Id"
+      },
+      "expires_at": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Expires At"
+      }
+    },
+    "required": [
+      "project",
+      "revision",
+      "ready",
+      "blockers"
+    ],
+    "title": "TestReview",
+    "type": "object"
+  },
+  "ControlledTestState": {
+    "$defs": {
+      "TestDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "format": "uuid",
+            "title": "Revision",
+            "type": "string"
+          },
+          "channel": {
+            "enum": [
+              "sim",
+              "whatsapp_personal"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "profile_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Profile Sha256",
+            "type": "string"
+          },
+          "max_seconds": {
+            "title": "Max Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "channel",
+          "profile_sha256",
+          "max_seconds"
+        ],
+        "title": "TestDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "project": {
+        "title": "Project",
+        "type": "string"
+      },
+      "unattended_enabled": {
+        "const": false,
+        "default": false,
+        "title": "Unattended Enabled",
+        "type": "boolean"
+      },
+      "policy_enabled": {
+        "title": "Policy Enabled",
+        "type": "boolean"
+      },
+      "ready": {
+        "title": "Ready",
+        "type": "boolean"
+      },
+      "blockers": {
+        "items": {
+          "enum": [
+            "policy_disabled",
+            "channel_disabled",
+            "profile_missing",
+            "profile_changed",
+            "evidence_missing",
+            "evidence_invalid",
+            "components_missing",
+            "resource_policy",
+            "resources_busy",
+            "resource_capacity",
+            "resource_fault"
+          ],
+          "type": "string"
+        },
+        "maxItems": 11,
+        "title": "Blockers",
+        "type": "array"
+      },
+      "draft": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/TestDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "active_id": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Active Id"
+      },
+      "worker_busy": {
+        "title": "Worker Busy",
+        "type": "boolean"
+      },
+      "voice_mode": {
+        "const": "local_structured_english",
+        "default": "local_structured_english",
+        "title": "Voice Mode",
+        "type": "string"
+      }
+    },
+    "required": [
+      "project",
+      "policy_enabled",
+      "ready",
+      "blockers",
+      "worker_busy"
+    ],
+    "title": "ControlledTestState",
+    "type": "object"
+  }
+}

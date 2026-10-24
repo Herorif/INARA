@@ -1,0 +1,265 @@
+{
+  "ListenerRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "host": {
+        "default": "127.0.0.1",
+        "title": "Host",
+        "type": "string"
+      },
+      "port": {
+        "default": 8443,
+        "maximum": 65535,
+        "minimum": 1024,
+        "title": "Port",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "enabled"
+    ],
+    "title": "ListenerRequest",
+    "type": "object"
+  },
+  "PairRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "allow_chat": {
+        "default": false,
+        "title": "Allow Chat",
+        "type": "boolean"
+      },
+      "allow_calls": {
+        "default": false,
+        "title": "Allow Calls",
+        "type": "boolean"
+      }
+    },
+    "title": "PairRequest",
+    "type": "object"
+  },
+  "PairDecision": {
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "format": "uuid",
+        "title": "Device Id",
+        "type": "string"
+      },
+      "approved": {
+        "title": "Approved",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "device_id",
+      "approved"
+    ],
+    "title": "PairDecision",
+    "type": "object"
+  },
+  "DeviceRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "format": "uuid",
+        "title": "Device Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "device_id"
+    ],
+    "title": "DeviceRequest",
+    "type": "object"
+  },
+  "PairClaim": {
+    "additionalProperties": false,
+    "properties": {
+      "challenge_id": {
+        "format": "uuid",
+        "title": "Challenge Id",
+        "type": "string"
+      },
+      "secret": {
+        "maxLength": 43,
+        "minLength": 43,
+        "title": "Secret",
+        "type": "string"
+      },
+      "name": {
+        "maxLength": 60,
+        "minLength": 1,
+        "pattern": "^[\\w .()\\-]+$",
+        "title": "Name",
+        "type": "string"
+      },
+      "public_key": {
+        "maxLength": 256,
+        "minLength": 100,
+        "title": "Public Key",
+        "type": "string"
+      }
+    },
+    "required": [
+      "challenge_id",
+      "secret",
+      "name",
+      "public_key"
+    ],
+    "title": "PairClaim",
+    "type": "object"
+  },
+  "SignedEnvelope": {
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "format": "uuid",
+        "title": "Device Id",
+        "type": "string"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "timestamp": {
+        "title": "Timestamp",
+        "type": "integer"
+      },
+      "signature": {
+        "maxLength": 128,
+        "minLength": 80,
+        "title": "Signature",
+        "type": "string"
+      },
+      "payload": {
+        "maxLength": 24000,
+        "title": "Payload",
+        "type": "string"
+      }
+    },
+    "required": [
+      "device_id",
+      "request_id",
+      "timestamp",
+      "signature",
+      "payload"
+    ],
+    "title": "SignedEnvelope",
+    "type": "object"
+  },
+  "MobileEmpty": {
+    "additionalProperties": false,
+    "properties": {},
+    "title": "MobileEmpty",
+    "type": "object"
+  },
+  "MobileHistory": {
+    "additionalProperties": false,
+    "properties": {
+      "conversation_id": {
+        "format": "uuid",
+        "title": "Conversation Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "conversation_id"
+    ],
+    "title": "MobileHistory",
+    "type": "object"
+  },
+  "MobileChat": {
+    "additionalProperties": false,
+    "properties": {
+      "conversation_id": {
+        "format": "uuid",
+        "title": "Conversation Id",
+        "type": "string"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "text": {
+        "maxLength": 12000,
+        "minLength": 1,
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": [
+      "conversation_id",
+      "request_id",
+      "text"
+    ],
+    "title": "MobileChat",
+    "type": "object"
+  },
+  "MobilePreview": {
+    "additionalProperties": false,
+    "properties": {
+      "kind": {
+        "enum": [
+          "cad",
+          "image"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "request_id"
+    ],
+    "title": "MobilePreview",
+    "type": "object"
+  },
+  "MobileReceipt": {
+    "additionalProperties": false,
+    "properties": {
+      "conversation_id": {
+        "format": "uuid",
+        "title": "Conversation Id",
+        "type": "string"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "conversation_id",
+      "request_id"
+    ],
+    "title": "MobileReceipt",
+    "type": "object"
+  },
+  "MobileCallReceipt": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "title": "MobileCallReceipt",
+    "type": "object"
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "date": "2026-10-24",
+  "milestone": "Step 5 controlled one-call software workflow",
+  "scope": "Source and synthetic acceptance only; no physical collector or device acceptance",
+  "python_tests": {
+    "passed": 304,
+    "by_module": {
+      "tests.test_mobile_call_receipts": 15,
+      "tests.test_mobile": 40,
+      "tests.test_notifications": 26,
+      "tests.test_call_admission": 25,
+      "tests.test_call_lab": 14,
+      "tests.test_call_model": 25,
+      "tests.test_call_local": 13,
+      "tests.test_call_bridge": 30,
+      "tests.test_usage": 46,
+      "tests.test_application": 16,
+      "tests.test_resource_policy": 5,
+      "tests.test_android_build": 25,
+      "tests.test_controlled_calls": 24
+    },
+    "report": ".runtime/controlled-call-tests.xml"
+  },
+  "client_tests": {
+    "passed": 14,
+    "new_workflow_tests": 5,
+    "files": [
+      "tests/test_call_testing.mjs",
+      "tests/test_call_lab.mjs",
+      "tests/test_mobile.mjs"
+    ]
+  },
+  "checks": {
+    "ruff": "passed",
+    "typescript": "passed",
+    "generated_contract_drift": "passed",
+    "vite_build": "passed"
+  },
+  "ui_build_log": ".runtime/controlled-call-ui-build.log",
+  "limitations": [
+    "No visual or device QA performed",
+    "Synthetic backend capture and inert supervisors only; helper bytes never executed in tests",
+    "Physical evidence collector not implemented/enrolled",
+    "No phone install/pairing or SIM/personal WhatsApp control/duplex verification",
+    "Existing CAD chunk size warning remains in Vite build"
+  ],
+  "activation": {
+    "test_policy_enabled": false,
+    "collector_installed": false,
+    "live_armed": false,
+    "physical_audio_used": false,
+    "phone_used": false,
+    "model_loaded": false,
+    "unattended_enabled": false
+  },
+  "deferred": [
+    "physical collector/device/call acceptance",
+    "local model quality benchmark: insufficient resources; 7 GiB guard retained",
+    "production identities/signing and 52 controller/85 desktop reviews",
+    "Legion/game/soak acceptance"
+  ],
+  "android": {
+    "rebuilt": false,
+    "reason": "Android sources unchanged",
+    "retained_order4_run": "c34c83f2-38c0-479b-9dd1-b7613e8dfd32"
+  },
+  "inputs": {
+    "backend/calls/testing.py": "9dfa8fc48aac68c45cce29b3fe270014be850c759bd7496af7514b14e4c27dc3",
+    "backend/calls/test_contracts.py": "c0904e0a0e66ce2b305571cbad4c6cc950649f1e590a7b19cc25746d6ce693b2",
+    "backend/transport/call_testing.py": "362b9df17aab0a97c6eb233141b0618ffa85024b46926b5f17bb0006f305ed69",
+    "backend/application.py": "6f4d058991eff1168c3f970c8a6d676ec48e00a7b5274fdbdbff0ec59af895df",
+    "config/call-test-policy.json": "b5a1d9e683b2a210273e0e310f42c862a45346e7044d982cc43e6a6f18fcf4f0",
+    "src/app/ControlledCallTest.jsx": "d3988f65905b4883af3275769394800b7a7a6c612eff45f31767530b1c892955",
+    "src/app/CallLab.jsx": "798cbc5fb5993824490a8b033423b60cc5fca706723ccb7bbdf2250681e5cf2a",
+    "src/app/call-lab.css": "6c0c8bd28fadd30483ee901f84b6a3f961214f0a080736a46514b707afea454f",
+    "src/transport/callTestingClient.ts": "f322ce4b26c86985d7f5b5fdb91feb4bd5c2bf9582bb4f911dae2799d227999e",
+    "src/transport/generated/callTesting.ts": "d2426d7a1ef692ee0294967c7709fd94e43e2d1615184cb71454641a7975e19c",
+    "src/transport/generated/callTesting.schema.json": "0eef69cd93dcebd560eae39c7e4d92ca9e9fb5b7c54b0c23f8dbc612c1301d36",
+    "scripts/export-ui-contracts.py": "5911a1cde906287eedf3a34dcbb783774af19853d2eae5194e662128320894ed",
+    "tests/test_controlled_calls.py": "fa6713eb28965b9716967b4531145e20511a02842db0baa0174bb5961119003c",
+    "tests/test_call_testing.mjs": "24b5baa682a4f556f3d012e37291f6a7a20bb72846d1e78d0b5c70b5c48e5523",
+    "docs/ROUTE_POLICY_MATRIX.json": "d430c522d93744b885635dccc3b53efe59fdab3aa21e3eae4bf35a55ef28eef1"
+  }
+}

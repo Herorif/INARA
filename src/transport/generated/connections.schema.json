@@ -1,0 +1,187 @@
+{
+  "ConnectionCard": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "enum": [
+          "kasa",
+          "printers"
+        ],
+        "title": "Id",
+        "type": "string"
+      },
+      "title": {
+        "maxLength": 120,
+        "title": "Title",
+        "type": "string"
+      },
+      "installed": {
+        "title": "Installed",
+        "type": "boolean"
+      },
+      "loaded": {
+        "title": "Loaded",
+        "type": "boolean"
+      },
+      "configured_count": {
+        "minimum": 0,
+        "title": "Configured Count",
+        "type": "integer"
+      },
+      "observed_count": {
+        "minimum": 0,
+        "title": "Observed Count",
+        "type": "integer"
+      },
+      "state": {
+        "enum": [
+          "missing_dependency",
+          "unconfigured",
+          "unverified",
+          "observed"
+        ],
+        "title": "State",
+        "type": "string"
+      },
+      "message": {
+        "maxLength": 500,
+        "title": "Message",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "title",
+      "installed",
+      "loaded",
+      "configured_count",
+      "observed_count",
+      "state",
+      "message"
+    ],
+    "title": "ConnectionCard",
+    "type": "object"
+  },
+  "ConnectionsState": {
+    "$defs": {
+      "ConnectionCard": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "enum": [
+              "kasa",
+              "printers"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "title": "Title",
+            "type": "string"
+          },
+          "installed": {
+            "title": "Installed",
+            "type": "boolean"
+          },
+          "loaded": {
+            "title": "Loaded",
+            "type": "boolean"
+          },
+          "configured_count": {
+            "minimum": 0,
+            "title": "Configured Count",
+            "type": "integer"
+          },
+          "observed_count": {
+            "minimum": 0,
+            "title": "Observed Count",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "missing_dependency",
+              "unconfigured",
+              "unverified",
+              "observed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 500,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "installed",
+          "loaded",
+          "configured_count",
+          "observed_count",
+          "state",
+          "message"
+        ],
+        "title": "ConnectionCard",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "schema_version": {
+        "const": 1,
+        "title": "Schema Version",
+        "type": "integer"
+      },
+      "network_used": {
+        "const": false,
+        "title": "Network Used",
+        "type": "boolean"
+      },
+      "physical_verified": {
+        "const": false,
+        "title": "Physical Verified",
+        "type": "boolean"
+      },
+      "cards": {
+        "items": {
+          "$ref": "#/$defs/ConnectionCard"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "title": "Cards",
+        "type": "array"
+      },
+      "printer_discovery_installed": {
+        "title": "Printer Discovery Installed",
+        "type": "boolean"
+      },
+      "observation_active": {
+        "title": "Observation Active",
+        "type": "boolean"
+      },
+      "slicer_inspected": {
+        "title": "Slicer Inspected",
+        "type": "boolean"
+      },
+      "slicer_available": {
+        "title": "Slicer Available",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "schema_version",
+      "network_used",
+      "physical_verified",
+      "cards",
+      "printer_discovery_installed",
+      "observation_active",
+      "slicer_inspected",
+      "slicer_available"
+    ],
+    "title": "ConnectionsState",
+    "type": "object"
+  }
+}

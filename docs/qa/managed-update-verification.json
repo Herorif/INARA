@@ -1,0 +1,96 @@
+{
+  "account_protection_round_trip": true,
+  "bootstrap_sha256": "ba505013d46a853f739ee33daeee61fa6cb1b60cd6b333e11a7eca4b9fda0ec1",
+  "controller_acceptance": {
+    "bootstrap_policy_status": {
+      "launched": false,
+      "release_authorized": false,
+      "release_mode": "disabled",
+      "windows_mode": "disabled"
+    },
+    "certificate_store_configured": false,
+    "clean_machine_verified": false,
+    "controller": {
+      "files": 2672,
+      "integrity": "passed",
+      "manifest_sha256": "aff88cd9364e31c4fc984c79825bfef1f46d634b4e2b24ae9d3d13152263633a",
+      "release_authorized": false,
+      "runtime_executed": false
+    },
+    "format": 1,
+    "kind": "inara-controller-development-acceptance",
+    "network_acceptance_measured": false,
+    "production_installation_created": false,
+    "refusals": {
+      "disabled_windows_policy": true,
+      "missing_guarded_launch_configuration": true,
+      "missing_launch_configuration": true,
+      "missing_managed_state_configuration": true,
+      "wrong_bootstrap_pin_before_python": true
+    },
+    "release_authorized": false,
+    "resident_launched": false,
+    "unsigned_source_probe": {
+      "cache_only": true,
+      "file_sha256": "d748f9f1ee92c28123a5de31ab070dcd888858f893e8feeac3cb1f77230691fd",
+      "release_authorized": false,
+      "signer_sha256": null,
+      "status": "0x800b0003",
+      "timestamp_sha256": null
+    },
+    "upstream_python_probe": {
+      "cache_only": true,
+      "file_sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "inara_identity_enrolled": false,
+      "release_authorized": false,
+      "signer_sha256": "f0e4f5974299809383869188a87d305827ace5a7336e7c35ed03858d5816ee62",
+      "status": "0x00000000",
+      "timestamp_sha256": "122776489a543e3e71426ef7338bea0e6561d5047a4e2b9351590bdcff168ace"
+    }
+  },
+  "controller_artifact": ".runtime/controllers/managed-update-20261022",
+  "corrupted_ciphertext_refused": true,
+  "cross_account_acceptance_verified": false,
+  "focused_tests": {
+    "managed_state_tests": 31,
+    "passed": 281,
+    "release_boundary_tests": 11,
+    "ruff": "passed",
+    "total_distinct_tests": 292
+  },
+  "format": 1,
+  "hardware_monotonic_counter": false,
+  "kind": "inara-managed-state-development-acceptance",
+  "managed_update_sha256": "c9d74e2e226daa058ab73988f510825729e6ed3aa554ca9556216e58f3e74ca9",
+  "production_identity_configured": false,
+  "production_installation_created": false,
+  "production_policies_disabled": true,
+  "protected_state_sha256": "fb69ddf908d5f21bd91b1836af4a2df92557d93c8f1083c223029b53628cf151",
+  "protocol_fixture_acceptance": {
+    "before_after_metadata_images_encrypted": true,
+    "changed_policy_bytes_refused": true,
+    "damaged_journals_and_stale_pins_refused": true,
+    "existing_profile_markers_preserved": true,
+    "format_three_blocks_unsigned_controls": true,
+    "format_two_selection_preserved": true,
+    "identities": "ephemeral synthetic production-purpose keys only",
+    "new_authenticated_package_copied_and_selected": true,
+    "old_and_new_key_rotation": true,
+    "payloads": "inert synthetic payloads; injected native checker",
+    "pre_commit_cancellation_retains_copies": true,
+    "private_data_migrated": false,
+    "reviewed_commit_boundary_recovery": true,
+    "rollback_retains_sequence_floor": true
+  },
+  "real_release_signed": false,
+  "real_review_ledger": {
+    "events": 0,
+    "head_sha256": "7e46a1dc53cf0b445ad2b8e5bd7b1836655d70a38c6b781f054ebbb1e8d94ffa",
+    "pending": 85,
+    "subjects": 85
+  },
+  "release_authorized": false,
+  "release_ready": false,
+  "resident_launched": false,
+  "unsigned_encrypted_metadata_refused": true
+}

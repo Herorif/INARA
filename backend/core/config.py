@@ -15,6 +15,7 @@ DEFAULT_SETTINGS = {
     "face_auth_enabled": False,
     "tool_permissions": {
         "generate_cad": True,
+        "generate_image": True,
         "iterate_cad": True,
         "run_web_agent": True,
         "write_file": True,

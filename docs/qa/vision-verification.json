@@ -1,0 +1,61 @@
+{
+  "before_workspace": {
+    "working_set_mb": 62.51,
+    "private_mb": 45.97
+  },
+  "ui": {
+    "real_worker_model_and_blank_frame_inference": true,
+    "overlay_and_mirror_controls": true,
+    "bounded_worker_frame_rate": true,
+    "source_switch_releases_stream_and_model": true,
+    "native_suspend_requires_manual_restart": true,
+    "native_minimize_releases_capture": true,
+    "device_loss_releases_worker": true,
+    "late_permission_after_close_released": true,
+    "gaming_releases_capture_and_worker": true,
+    "workers": {
+      "started": 7,
+      "terminated": 7,
+      "inferredFrames": 21
+    },
+    "external_asset_requests": 0,
+    "responsive_widths": [
+      1440,
+      390,
+      768
+    ],
+    "real_camera_used": false,
+    "real_hand_accuracy_verified": false,
+    "passed": true
+  },
+  "model_modules_in_resident": false,
+  "workspace_and_capture_released": true,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 63.63,
+      "private_mb": 46.6
+    },
+    {
+      "working_set_mb": 63.63,
+      "private_mb": 46.6
+    },
+    {
+      "working_set_mb": 63.63,
+      "private_mb": 46.6
+    },
+    {
+      "working_set_mb": 63.63,
+      "private_mb": 46.6
+    },
+    {
+      "working_set_mb": 63.64,
+      "private_mb": 46.6
+    },
+    {
+      "working_set_mb": 63.83,
+      "private_mb": 46.86
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

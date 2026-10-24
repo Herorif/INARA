@@ -1,0 +1,146 @@
+{
+  "TaskCreate": {
+    "$defs": {
+      "LaunchStep": {
+        "additionalProperties": false,
+        "properties": {
+          "tool": {
+            "const": "launch_app",
+            "title": "Tool",
+            "type": "string"
+          },
+          "name": {
+            "enum": [
+              "notepad",
+              "calculator",
+              "paint",
+              "explorer",
+              "vscode"
+            ],
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "name"
+        ],
+        "title": "LaunchStep",
+        "type": "object"
+      },
+      "ReadStep": {
+        "additionalProperties": false,
+        "properties": {
+          "tool": {
+            "const": "read_file",
+            "title": "Tool",
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "path"
+        ],
+        "title": "ReadStep",
+        "type": "object"
+      },
+      "WriteStep": {
+        "additionalProperties": false,
+        "properties": {
+          "tool": {
+            "const": "write_file",
+            "title": "Tool",
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 16000,
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "path",
+          "content"
+        ],
+        "title": "WriteStep",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "title": {
+        "maxLength": 100,
+        "minLength": 1,
+        "title": "Title",
+        "type": "string"
+      },
+      "steps": {
+        "items": {
+          "discriminator": {
+            "mapping": {
+              "launch_app": "#/$defs/LaunchStep",
+              "read_file": "#/$defs/ReadStep",
+              "write_file": "#/$defs/WriteStep"
+            },
+            "propertyName": "tool"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReadStep"
+            },
+            {
+              "$ref": "#/$defs/WriteStep"
+            },
+            {
+              "$ref": "#/$defs/LaunchStep"
+            }
+          ]
+        },
+        "maxItems": 8,
+        "minItems": 1,
+        "title": "Steps",
+        "type": "array"
+      }
+    },
+    "required": [
+      "id",
+      "title",
+      "steps"
+    ],
+    "title": "TaskCreate",
+    "type": "object"
+  },
+  "TaskReference": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "title": "TaskReference",
+    "type": "object"
+  }
+}

@@ -1,0 +1,75 @@
+name: Lean core and desktop build
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  milestone:
+    runs-on: windows-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: python -m pip install -r requirements-dev.lock
+      - run: python -m pytest tests/test_adapter_protocols.py tests/test_task_queue.py tests/test_web_agent.py tests/test_browser.py tests/test_usage.py tests/test_project_memory.py tests/test_release_tools.py tests/test_notifications.py tests/test_mobile.py tests/test_speech.py tests/test_inara_tools.py tests/test_voice_dispatch.py tests/test_connection_policy.py tests/test_workspace_policy.py tests/test_workflow_policy.py tests/test_printing.py tests/test_device_printers.py tests/test_admin_policy.py tests/test_route_policy.py tests/test_application.py tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_creative_revisions.py tests/test_capabilities.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py -q
+      - run: python -m ruff check backend/devices backend/printer_agent.py backend/kasa_agent.py tests/test_adapter_protocols.py scripts/verify-connections.py tests/test_task_queue.py scripts/verify-tasks.py tests/test_web_agent.py scripts/verify-browser.py tests/test_browser.py tests/test_usage.py scripts/evaluate-quality.py scripts/verify-usage.py tests/test_project_memory.py scripts/verify-memory.py tests/test_notifications.py scripts/release-tools.py tests/test_release_tools.py scripts/check-android-source.py scripts/export-ui-contracts.py backend/inara.py tests/test_mobile.py tests/test_speech.py tests/test_inara_tools.py tests/test_voice_dispatch.py tests/test_connection_policy.py tests/test_workspace_policy.py tests/test_workflow_policy.py tests/test_printing.py tests/test_device_printers.py tests/test_admin_policy.py tests/test_route_policy.py backend/application.py backend/vision/vision_loop.py backend/transport tests/test_application.py backend/services backend/creative backend/workers backend/resident backend/resident_main.py scripts/verify-native.py scripts/verify-cad.py scripts/verify-images.py scripts/verify-vision.py scripts/verify-speech.py tests/image_support.py tests/fixtures/image_worker.py backend/core/durable_reminders.py backend/core/reminder_store.py tests/test_conversation_service.py tests/test_durable_storage.py tests/test_creative_revisions.py tests/test_capabilities.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py
+      - run: python scripts/check-android-source.py
+      - run: python scripts/export-ui-contracts.py --check
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/test_connections.mjs tests/test_tasks.mjs tests/test_browser.mjs tests/test_usage.mjs tests/test_memory.mjs tests/test_notifications.mjs tests/test_mobile.mjs tests/test_speech.mjs tests/test_creative_revisions.mjs tests/test_capabilities.mjs tests/test_workspace.mjs tests/test_rpc.mjs tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs tests/test_cad_ui.mjs tests/test_vision.mjs
+      - run: npm run check:types
+      - run: npm run build
+
+      - name: Install Electron for hidden renderer checks
+        run: |
+          $env:ELECTRON_SKIP_BINARY_DOWNLOAD = $null
+          node node_modules/electron/install.js
+      - name: Verify workspace rendering
+        run: |
+          $env:ELECTRON_RUN_AS_NODE = $null
+          $qaProcess = Start-Process node_modules/electron/dist/electron.exe -ArgumentList scripts/verify-workspace.cjs -WindowStyle Hidden -Wait -PassThru
+          exit $qaProcess.ExitCode
+      - name: Verify native host lifecycle and failure recovery
+        run: python scripts/verify-native.py --idle-seconds 10 --failure-recovery --fresh-identity
+      - name: Verify offline CAD and resource recovery
+        run: python scripts/verify-cad.py
+
+      - name: Verify image workspace and resource recovery (labelled fixture, no model)
+        run: python scripts/verify-images.py
+
+      - name: Verify Vision studio (synthetic capture, real local worker)
+        run: python scripts/verify-vision.py
+
+      - name: Verify quick assistant (synthetic audio and fixture providers)
+        run: python scripts/verify-speech.py
+
+      - name: Verify desktop companion controls (loopback TLS only)
+        run: python scripts/verify-mobile.py
+
+      - name: Verify project memory and recovery (synthetic notes and provider)
+        run: python scripts/verify-memory.py
+
+      - name: Evaluate offline product contracts
+        run: python scripts/evaluate-quality.py
+
+      - name: Verify usage dashboard and admission caps (fixtures only)
+        run: python scripts/verify-usage.py
+
+      - name: Verify read-only web inspector (synthetic page, no network)
+        run: python scripts/verify-browser.py
+
+      - name: Verify reviewed task queue (isolated files and fake app)
+        run: python scripts/verify-tasks.py
+
+      - name: Verify Connections readiness without network or adapters
+        run: python scripts/verify-connections.py

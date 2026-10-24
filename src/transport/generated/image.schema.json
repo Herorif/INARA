@@ -1,0 +1,323 @@
+{
+  "ImageRecipe": {
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled visual",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "prompt": {
+        "maxLength": 2000,
+        "minLength": 3,
+        "title": "Prompt",
+        "type": "string"
+      },
+      "negative_prompt": {
+        "default": "",
+        "maxLength": 1000,
+        "title": "Negative Prompt",
+        "type": "string"
+      },
+      "width": {
+        "default": 512,
+        "description": "Use 512, 768 or 1024 pixels.",
+        "maximum": 1024,
+        "minimum": 512,
+        "title": "Width",
+        "type": "integer"
+      },
+      "height": {
+        "default": 512,
+        "description": "Use 512, 768 or 1024 pixels.",
+        "maximum": 1024,
+        "minimum": 512,
+        "title": "Height",
+        "type": "integer"
+      },
+      "steps": {
+        "default": 24,
+        "maximum": 40,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer"
+      },
+      "seed": {
+        "default": 1234,
+        "maximum": 2147483647,
+        "minimum": 0,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "guidance": {
+        "default": 7.0,
+        "maximum": 15,
+        "minimum": 1,
+        "title": "Guidance",
+        "type": "number"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "ImageRecipe",
+    "type": "object"
+  },
+  "ImageRequest": {
+    "$defs": {
+      "CreativeReference": {
+        "additionalProperties": false,
+        "properties": {
+          "source_kind": {
+            "enum": [
+              "cad",
+              "image"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_request_id": {
+            "format": "uuid",
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "source_fingerprint": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Fingerprint",
+            "type": "string"
+          },
+          "source_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_request_id",
+          "source_fingerprint",
+          "source_sha256"
+        ],
+        "title": "CreativeReference",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "base_request_id": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Request Id"
+      },
+      "base_fingerprint": {
+        "anyOf": [
+          {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Fingerprint"
+      },
+      "reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CreativeReference"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "name": {
+        "default": "Untitled visual",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "prompt": {
+        "maxLength": 2000,
+        "minLength": 3,
+        "title": "Prompt",
+        "type": "string"
+      },
+      "negative_prompt": {
+        "default": "",
+        "maxLength": 1000,
+        "title": "Negative Prompt",
+        "type": "string"
+      },
+      "width": {
+        "default": 512,
+        "description": "Use 512, 768 or 1024 pixels.",
+        "maximum": 1024,
+        "minimum": 512,
+        "title": "Width",
+        "type": "integer"
+      },
+      "height": {
+        "default": 512,
+        "description": "Use 512, 768 or 1024 pixels.",
+        "maximum": 1024,
+        "minimum": 512,
+        "title": "Height",
+        "type": "integer"
+      },
+      "steps": {
+        "default": 24,
+        "maximum": 40,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer"
+      },
+      "seed": {
+        "default": 1234,
+        "maximum": 2147483647,
+        "minimum": 0,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "guidance": {
+        "default": 7.0,
+        "maximum": 15,
+        "minimum": 1,
+        "title": "Guidance",
+        "type": "number"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "ImageRequest",
+    "type": "object"
+  },
+  "ImageArtifactRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "format": {
+        "default": "png",
+        "enum": [
+          "png",
+          "json"
+        ],
+        "title": "Format",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "title": "ImageArtifactRequest",
+    "type": "object"
+  },
+  "ImageStats": {
+    "additionalProperties": false,
+    "properties": {
+      "width": {
+        "title": "Width",
+        "type": "integer"
+      },
+      "height": {
+        "title": "Height",
+        "type": "integer"
+      },
+      "seed": {
+        "title": "Seed",
+        "type": "integer"
+      },
+      "backend": {
+        "enum": [
+          "local_diffusers",
+          "verification_fixture"
+        ],
+        "title": "Backend",
+        "type": "string"
+      },
+      "model": {
+        "maxLength": 80,
+        "minLength": 1,
+        "title": "Model",
+        "type": "string"
+      },
+      "device": {
+        "enum": [
+          "cpu",
+          "cuda",
+          "fixture"
+        ],
+        "title": "Device",
+        "type": "string"
+      }
+    },
+    "required": [
+      "width",
+      "height",
+      "seed",
+      "backend",
+      "model",
+      "device"
+    ],
+    "title": "ImageStats",
+    "type": "object"
+  },
+  "JobRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "title": "JobRequest",
+    "type": "object"
+  },
+  "JobLifetime": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "background": {
+        "title": "Background",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "background"
+    ],
+    "title": "JobLifetime",
+    "type": "object"
+  }
+}

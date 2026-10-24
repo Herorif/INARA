@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {EventEmitter} from 'node:events';
+import {createNotificationClient,validInbox} from '../src/transport/notificationClient.ts';
+class Socket extends EventEmitter {connected=true;requests=[];emit(event,data,ack){if(event.startsWith('notification_')){this.requests.push({event,data,ack});return true;}return super.emit(event,data);}}
+const id=crypto.randomUUID(), report=()=>({device_id:id,project:'fixture',read_only:true,policy:{enabled:false,include_text:false,retention_hours:24,revision:crypto.randomUUID(),rules:[]},items:[],summary:{total:0,by_app:{},method:'local_counts',provider_used:false}});
+test('notification client never starts ingestion or provider work on construction',async()=>{const socket=new Socket(),client=createNotificationClient(socket,id);assert.equal(socket.requests.length,0);const result=client.read();assert.deepEqual(socket.requests[0].data,{device_id:id});socket.requests[0].ack({ok:true,...report()});assert.equal((await result).read_only,true);client.dispose();});
+test('foreign inbox and provider-generated summaries are rejected',()=>{assert.equal(validInbox(report(),crypto.randomUUID()),false);assert.equal(validInbox({...report(),summary:{total:0,by_app:{},method:'ai',provider_used:true}},id),false);assert.equal(validInbox({...report(),read_only:false},id),false);});
+test('disconnect and panel closure abandon pending requests with no automatic retry',async()=>{const socket=new Socket(),client=createNotificationClient(socket,id),request=client.clear();const rejected=assert.rejects(request,{code:'disconnected'});socket.connected=false;socket.emit('disconnect');await rejected;socket.connected=true;socket.emit('connect');assert.equal(socket.requests.length,1);client.dispose();socket.requests[0].ack({ok:true,...report()});assert.equal(socket.eventNames().length,0);});

@@ -1,64 +1,35 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Globe, X } from 'lucide-react';
+import React,{useEffect,useRef,useState} from 'react';
+import {Globe,ShieldCheck,ArrowUpRight,Square,Search,Link as LinkIcon} from 'lucide-react';
 import useStore from '../store';
-import { emitSocket } from '../services/socket';
+import socket from '../services/socket';
+import {createBrowserClient} from '../transport/browserClient.ts';
+import './browser-window.css';
 
-const BrowserWindow = ({ onClose }) => {
-    const browserData = useStore(s => s.browserData);
-    const [input, setInput] = useState('');
-    const logsEndRef = useRef(null);
-
-    useEffect(() => {
-        if (logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }, [browserData.logs]);
-
-    const handleSend = () => {
-        if (!input.trim()) return;
-        emitSocket('prompt_web_agent', { prompt: input });
-        setInput('');
-    };
-
-    return (
-        <div className="w-full h-full relative group bg-[#111] rounded-lg overflow-hidden flex flex-col border border-gray-800">
-            <div data-drag-handle className="h-8 bg-[#222] border-b border-gray-700 flex items-center justify-between px-2 shrink-0 cursor-grab active:cursor-grabbing">
-                <div className="flex items-center gap-2 text-gray-300 text-xs font-mono">
-                    <Globe size={14} className="text-cyan-500" />
-                    <span>WEB_AGENT_VIEW</span>
-                </div>
-                <button onClick={onClose} className="hover:bg-red-500/20 text-gray-400 hover:text-red-400 p-1 rounded transition-colors">
-                    <X size={14} />
-                </button>
-            </div>
-
-            <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
-                {browserData.image ? (
-                    <img src={`data:image/jpeg;base64,${browserData.image}`} alt="Browser View" className="max-w-full max-h-full object-contain" />
-                ) : (
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="text-gray-600 text-xs font-mono animate-pulse">Waiting for browser stream...</div>
-                    </div>
-                )}
-            </div>
-
-            <div className="h-10 bg-[#161616] border-t border-gray-800 flex items-center px-2 gap-2">
-                <span className="text-cyan-500 font-mono text-xs">{'>'}</span>
-                <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Enter command for Web Agent..."
-                    className="flex-1 bg-transparent border-none outline-none text-gray-300 text-xs font-mono placeholder-gray-600" />
-            </div>
-
-            <div className="h-24 bg-black/90 backdrop-blur border-t border-gray-800 p-2 font-mono text-[10px] overflow-y-auto text-green-500/80">
-                {browserData.logs.map((log, i) => (
-                    <div key={i} className="mb-1 border-l-2 border-cyan-900 pl-1 break-words">
-                        <span className="opacity-50 mr-2">[{new Date().toLocaleTimeString().split(' ')[0]}]</span>
-                        {log}
-                    </div>
-                ))}
-                <div ref={logsEndRef} />
-            </div>
-        </div>
-    );
-};
-
-export default BrowserWindow;
+export default function BrowserWindow(){
+  const project=useStore(s=>s.currentProject),connected=useStore(s=>s.backendConnected);
+  const [url,setUrl]=useState(''),[report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const client=useRef(null),generation=useRef(0);
+  useEffect(()=>{
+    const epoch=++generation.current,c=createBrowserClient(socket);client.current=c;
+    setUrl('');setReport(null);setBusy(false);setError('');
+    const off=c.on('disconnect',()=>{if(generation.current===epoch){setUrl('');setReport(null);setBusy(false);setError('Connection lost. Inspection stopped.');}});
+    return()=>{generation.current++;if(socket.connected)c.cancel().catch(()=>{});off();c.dispose();};
+  },[project]);
+  const inspect=async event=>{
+    event.preventDefault();if(busy||!url.trim())return;
+    const epoch=generation.current;setBusy(true);setError('');setReport(null);
+    try{const result=await client.current.inspect(url.trim());if(generation.current===epoch)setReport(result);}
+    catch(failure){if(generation.current===epoch)setError(failure.message);}
+    finally{if(generation.current===epoch)setBusy(false);}
+  };
+  const cancel=async()=>{try{await client.current.cancel();}catch(failure){setError(failure.message);}};
+  return <section className="web-inspector" aria-label="Web inspector">
+    <header className="web-inspector__header"><div className="web-inspector__sigil"><Globe size={30}/></div><div><p className="web-inspector__eyebrow">INARA / RESEARCH SYSTEMS</p><h2>Web inspector</h2><p>A clear view of the web. One page at a time.</p></div><span className="web-inspector__status"><i/>{busy?'INSPECTING':'STANDBY'}</span></header>
+    <div className="web-inspector__policy"><ShieldCheck size={18}/><span>Read only <b>/</b> No scripts <b>/</b> No account access <b>/</b> No cloud inference</span></div>
+    <form className="web-inspector__form" onSubmit={inspect}><label htmlFor="web-inspector-url">PUBLIC HTTPS ADDRESS</label><div><Search size={18}/><input id="web-inspector-url" type="url" placeholder="https://example.com/" value={url} onChange={e=>setUrl(e.target.value)} disabled={busy} required autoComplete="off"/><button type="submit" disabled={busy||!connected||!url.trim()}>Inspect <ArrowUpRight size={16}/></button>{busy&&<button type="button" className="web-inspector__stop" onClick={cancel} aria-label="Stop inspection"><Square size={15}/></button>}</div></form>
+    {error&&<p className="web-inspector__error" role="alert">{error}</p>}
+    <main className="web-inspector__body" aria-busy={busy} aria-live="polite">
+      {report?<><div className="web-inspector__result-head"><span>UNTRUSTED PAGE CONTENT</span><h3>{report.title||'Untitled page'}</h3><p>{report.url}</p></div><div className="web-inspector__columns"><article><p className="web-inspector__caption">EXTRACTED TEXT / UP TO 12,000 CHARACTERS</p><pre>{report.text||'No readable text was found.'}</pre></article><aside><p className="web-inspector__caption"><LinkIcon size={13}/> DISCOVERED ADDRESSES</p><p className="web-inspector__hint">Copy an address into the field to inspect it. Links never open automatically.</p>{report.links.map(link=><code key={link}>{link}</code>)}</aside></div></>:<div className="web-inspector__empty"><div className={busy?'web-inspector__orbit is-active':'web-inspector__orbit'}><Globe size={42}/></div><h3>{busy?'Reading the signal...':'Your next discovery starts here'}</h3><p>{busy?'Bounded retrieval in an owned worker. Stop at any time.':'Inspect public page text and discover links without executing the page.'}</p><div><span>01 / ENTER ADDRESS</span><span>02 / REVIEW PERMISSION</span><span>03 / READ & EXPLORE</span></div></div>}
+    </main><footer>Ephemeral results / 512 KiB page limit / 25 second worker deadline. Page instructions cannot run tools. Interactive actions are not enabled.</footer>
+  </section>;
+}

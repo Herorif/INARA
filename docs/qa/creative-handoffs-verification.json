@@ -1,0 +1,97 @@
+{
+  "proposal_fixture_only": true,
+  "before_workspace": {
+    "working_set_mb": 68.95,
+    "private_mb": 51.98
+  },
+  "ui": {
+    "approval_escape_denies_without_closing_parent": true,
+    "box_rendered": true,
+    "bracket_rendered": true,
+    "enclosure_rendered": true,
+    "glb_imported_with_three": true,
+    "download_formats": [
+      "stl",
+      "glb",
+      "json"
+    ],
+    "responsive_widths": [
+      1440,
+      390,
+      768
+    ],
+    "external_asset_requests": 0,
+    "reopened_history_and_preview_without_rebuild": true,
+    "optional_planner_missing_key_preserves_offline_preview": true,
+    "scene": {
+      "objects": 3,
+      "materials": [
+        "cyan",
+        "amber",
+        "titanium"
+      ],
+      "add_duplicate_remove": true,
+      "transforms": true,
+      "real_glb_download": true,
+      "restored_without_rebuild": true
+    },
+    "r5": {
+      "saved_view_controls": true,
+      "undo_redo_transforms": true,
+      "proposal_requires_review_no_worker": true,
+      "fixture_proposal_only": true,
+      "draft_blockout_canvas": true,
+      "child_revision_preserves_parent": true,
+      "saved_revision_comparison": true
+    },
+    "bookmark_restored_after_panel_close": true,
+    "activity_restores_selected_revision": true,
+    "long_revision_names": true,
+    "scene_blueprint": {
+      "fixture_provider": true,
+      "review_preview_and_apply": true,
+      "no_build_before_separate_approval": true,
+      "offline_scene_built": true,
+      "narrow_width": 390
+    },
+    "creative_handoffs": {
+      "both_directions": true,
+      "metadata_only": true,
+      "review_apply_discard": true,
+      "stale_draft_rejected": true,
+      "no_extra_workers_or_provider_calls": true,
+      "narrow_width": 390
+    },
+    "passed": true
+  },
+  "workers_started_and_exited": 7,
+  "geometry_module_in_resident": false,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 70.63,
+      "private_mb": 53.56
+    },
+    {
+      "working_set_mb": 70.63,
+      "private_mb": 53.56
+    },
+    {
+      "working_set_mb": 70.63,
+      "private_mb": 53.56
+    },
+    {
+      "working_set_mb": 70.63,
+      "private_mb": 53.56
+    },
+    {
+      "working_set_mb": 70.63,
+      "private_mb": 53.56
+    },
+    {
+      "working_set_mb": 70.63,
+      "private_mb": 53.56
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

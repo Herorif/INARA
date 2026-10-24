@@ -1,0 +1,171 @@
+{
+  "CreativeReference": {
+    "additionalProperties": false,
+    "properties": {
+      "source_kind": {
+        "enum": [
+          "cad",
+          "image"
+        ],
+        "title": "Source Kind",
+        "type": "string"
+      },
+      "source_request_id": {
+        "format": "uuid",
+        "title": "Source Request Id",
+        "type": "string"
+      },
+      "source_fingerprint": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Source Fingerprint",
+        "type": "string"
+      },
+      "source_sha256": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Source Sha256",
+        "type": "string"
+      }
+    },
+    "required": [
+      "source_kind",
+      "source_request_id",
+      "source_fingerprint",
+      "source_sha256"
+    ],
+    "title": "CreativeReference",
+    "type": "object"
+  },
+  "HandoffRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "source_kind": {
+        "enum": [
+          "cad",
+          "image"
+        ],
+        "title": "Source Kind",
+        "type": "string"
+      },
+      "source_request_id": {
+        "format": "uuid",
+        "title": "Source Request Id",
+        "type": "string"
+      },
+      "source_fingerprint": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Source Fingerprint",
+        "type": "string"
+      },
+      "destination": {
+        "enum": [
+          "cad",
+          "image"
+        ],
+        "title": "Destination",
+        "type": "string"
+      }
+    },
+    "required": [
+      "source_kind",
+      "source_request_id",
+      "source_fingerprint",
+      "destination"
+    ],
+    "title": "HandoffRequest",
+    "type": "object"
+  },
+  "HandoffDraft": {
+    "$defs": {
+      "CreativeReference": {
+        "additionalProperties": false,
+        "properties": {
+          "source_kind": {
+            "enum": [
+              "cad",
+              "image"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_request_id": {
+            "format": "uuid",
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "source_fingerprint": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Fingerprint",
+            "type": "string"
+          },
+          "source_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_request_id",
+          "source_fingerprint",
+          "source_sha256"
+        ],
+        "title": "CreativeReference",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "project": {
+        "maxLength": 255,
+        "minLength": 1,
+        "title": "Project",
+        "type": "string"
+      },
+      "destination": {
+        "enum": [
+          "cad",
+          "image"
+        ],
+        "title": "Destination",
+        "type": "string"
+      },
+      "reference": {
+        "$ref": "#/$defs/CreativeReference"
+      },
+      "source_name": {
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Source Name",
+        "type": "string"
+      },
+      "name": {
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "prompt": {
+        "maxLength": 2000,
+        "minLength": 3,
+        "title": "Prompt",
+        "type": "string"
+      },
+      "metadata_only": {
+        "const": true,
+        "default": true,
+        "title": "Metadata Only",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "project",
+      "destination",
+      "reference",
+      "source_name",
+      "name",
+      "prompt"
+    ],
+    "title": "HandoffDraft",
+    "type": "object"
+  }
+}

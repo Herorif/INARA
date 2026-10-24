@@ -1,0 +1,11 @@
+.creative-handoff { margin:1rem 0; padding:clamp(1rem,3vw,1.6rem); border:1px solid #47747f; border-radius:16px; background:linear-gradient(120deg,#132d38,#111f2e); min-width:0; }
+.creative-handoff .eyebrow,.handoff-route,.handoff-actions { display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; }
+.creative-handoff h3 { font-size:1.25rem; margin:.9rem 0; }.creative-handoff p { color:#adc3cf; line-height:1.7; font-size:.85rem; }
+.handoff-route { color:#92e3e6; font-size:.8rem; }.creative-handoff small,.creative-reference small { display:block; font-size:.72rem; color:#9ebac8; overflow-wrap:anywhere; margin:.5rem 0; }
+.creative-handoff pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:18rem; overflow:auto; padding:1rem; background:#091621; border-radius:10px; font:inherit; font-size:.82rem; line-height:1.7; }
+.handoff-actions { margin-top:1rem; }.creative-reference { display:flex; align-items:flex-start; gap:.8rem; margin:1rem 0; padding:1rem; border:1px solid #294a58; border-radius:12px; color:#a6d9df; min-width:0; flex-wrap:wrap; }
+.handoff-actions button,.creative-reference button { border:1px solid #3c6878; background:#152d3b; color:#d0ebef; padding:.65rem .95rem; border-radius:9px; cursor:pointer; font-size:.8rem; }
+.handoff-actions button:first-child { background:#86dce8; border-color:#86dce8; color:#071820; font-weight:600; }.handoff-actions button:disabled { opacity:.45; cursor:not-allowed; }
+.creative-reference>div { flex:1; min-width:min(100%,200px); }.creative-reference strong { font-size:.85rem; }.creative-reference p { font-size:.75rem; color:#9ebac8; margin:0; }
+.activity-handoff { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; padding:.8rem 0; border-top:1px solid #294450; margin-top:.8rem; }
+.activity-handoff label { display:grid; gap:.5rem; font-size:.75rem; color:#9ebac8; width:100%; }.activity-handoff select { width:100%; max-width:100%; min-width:0; padding:.6rem; color:#b9dce4; background:#101e2b; border:1px solid #35515e; border-radius:8px; }.activity-handoff button { display:flex; align-items:center; gap:.4rem; font-size:.8rem; }

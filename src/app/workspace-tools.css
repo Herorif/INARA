@@ -1,0 +1,37 @@
+﻿.command-palette { width: min(620px, calc(100vw - 24px)); border: 1px solid #80e8ec40; border-radius: 16px; background: linear-gradient(145deg, #102735, #0c1522 60%); box-shadow: 0 30px 120px #000c; overflow: hidden; color: #e3f0f6; outline: none; }
+.palette-search { display: flex; align-items: center; gap: 12px; padding: 18px; border-bottom: 1px solid #80e8ec26; color: #87dce0; }
+.palette-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #e3f0f6; font-size: 1rem; }
+.palette-caption { padding: 18px 20px 10px; font-size: 0.5625rem; color: #85a4b8; letter-spacing: .12em; }
+.palette-results { max-height: min(480px, 60dvh); overflow: auto; padding: 0 10px 10px; }
+.palette-results button { display: flex; justify-content: space-between; align-items: center; width: 100%; border: 1px solid transparent; border-radius: 9px; padding: 13px 12px; text-align: left; color: #c5d9e7; }
+.palette-results button[aria-selected=true] { background: #80e8ec0d; border-color: #80e8ec30; color: #b7f8f4; }
+.palette-results button[aria-disabled=true] { opacity: .45; }
+.palette-results strong, .palette-results small { display: block; }
+.palette-results strong { font-size: 0.875rem; font-weight: 500; }
+.palette-results small { color: #8aa1b5; font-size: 0.6875rem; margin-top: 3px; }
+.palette-results p { padding: 20px; color: #91a9bb; font-size: 0.8125rem; }
+.command-palette footer { display: flex; justify-content: space-between; gap: 10px; padding: 13px 20px; border-top: 1px solid #80e8ec1a; color: #8aa1b5; font-size: 0.625rem; }
+.activity-center .page-intro { padding-bottom: 25px; }
+.activity-center .page-intro h1 { font-size: clamp(34px, 4vw, 56px); }
+.activity-toolbar { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; margin-bottom: 24px; }
+.activity-toolbar>div { display: flex; gap: 6px; }
+.activity-toolbar button { display: inline-flex; gap: 8px; align-items: center; padding: 9px 12px; border: 1px solid #80e8ec24; border-radius: 8px; font-size: 0.75rem; color: #9bb6c8; }
+.activity-toolbar button[aria-pressed=true] { background: #80e8ec12; color: #b8f1f2; border-color: #80e8ec50; }
+.activity-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 265px), 1fr)); gap: 18px; }
+.activity-card { display: flex; flex-direction: column; min-width: 0; padding: 22px; border: 1px solid #80e8ec24; border-radius: 14px; background: radial-gradient(ellipse at 0% 0%, #80e8ec0a, transparent 75%), #0e1928; }
+.activity-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; gap: 10px; }
+.activity-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px 4px 12px 4px; border: 1px solid #80e8ec24; color: #92dde0; }
+.activity-state { font-size: 0.625rem; padding: 5px 8px; border: 1px solid #8aa1b530; border-radius: 5px; color: #a7bbca; text-transform: uppercase; letter-spacing: .05em; }
+.activity-state.state-succeeded { color: #9de1bf; border-color: #9de1bf40; }
+.activity-state.state-failed, .activity-state.state-interrupted { color: #efba7d; border-color: #efba7d40; }
+.activity-working { border-color: #80e8ec55; }
+.activity-card .eyebrow { font-size: 0.5625rem; color: #7ba3b6; }
+.activity-card h2 { font-size: 1.3125rem; line-height: 1.3; margin: 12px 0; overflow-wrap: anywhere; }
+.activity-card p { font-size: 0.75rem; color: #92aabc; line-height: 1.7; overflow-wrap: anywhere; }
+.activity-formats { display: flex; flex-wrap: wrap; gap: 5px; margin: 18px 0; }
+.activity-formats span { color: #89acbd; font: 10px monospace; padding: 4px 7px; border: 1px solid #80e8ec1a; border-radius: 4px; }
+.activity-card footer { margin-top: auto; display: flex; flex-wrap: wrap; gap: 10px; border-top: 1px solid #80e8ec1a; padding-top: 15px; }
+.activity-card footer button { display: flex; align-items: center; gap: 7px; color: #b0e4e7; font-size: 0.75rem; padding: 5px 0; }
+.command-palette button:focus-visible, .activity-center button:focus-visible { outline: 2px solid #80e8ec; outline-offset: 2px; }
+.command-palette button, .activity-center button { cursor: pointer; }
+.activity-center button:disabled { opacity: .4; cursor: default; }

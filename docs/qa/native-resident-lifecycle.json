@@ -1,0 +1,16 @@
+{
+  "real_game_benchmark": "deferred by user",
+  "resident_process_count": 2,
+  "busy_port_failure_recovery": true,
+  "open_1_seconds": 2.875,
+  "open_2_seconds": 2.875,
+  "close_reopen_same_core_identity": true,
+  "hotkey_message_and_single_instance_reopen": true,
+  "hotkey_registered": true,
+  "workspace_crash_transport_cleanup": true,
+  "resident_reminder_receipt": true,
+  "manual_gaming_guard": true,
+  "passed": true,
+  "graceful_core_stop": true,
+  "verified_at": "2026-10-14 Asia/Kuala_Lumpur"
+}

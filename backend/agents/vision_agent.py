@@ -11,6 +11,7 @@ stop_watching       Remove a watch condition
 list_watches        List active watch conditions
 """
 
+from services.capability_profiles import model_id
 import asyncio
 import base64
 import logging
@@ -32,7 +33,7 @@ class VisionAgent(BaseAgent):
         self._bus = event_bus
         self._loop = vision_loop
         self._api_key: Optional[str] = None
-        self._model = "gemini-2.0-flash"
+        self._model = model_id("vision")
 
     @property
     def name(self) -> str:

@@ -13,12 +13,13 @@ class FaceAuthenticator:
     MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
     MODEL_PATH = os.path.join(os.path.dirname(__file__), "face_landmarker.task")
     
-    def __init__(self, reference_image_path="reference.jpg", on_status_change=None, on_frame=None):
+    def __init__(self, reference_image_path="reference.jpg", on_status_change=None, on_frame=None, allow_download=False):
         """
         :param reference_image_path: Path to the user's reference photo.
         :param on_status_change: Async callback(is_authenticated: bool).
         :param on_frame: Async callback(frame_data_b64: str) to send frames to frontend.
         """
+        self.allow_download = allow_download
         self.reference_image_path = reference_image_path
         self.on_status_change = on_status_change
         self.on_frame = on_frame
@@ -35,6 +36,8 @@ class FaceAuthenticator:
     def _ensure_model(self):
         """Download the MediaPipe Face Landmarker model if not present."""
         if not os.path.exists(self.MODEL_PATH):
+            if not self.allow_download:
+                raise RuntimeError("Install the face model explicitly before enabling face verification.")
             print(f"[AUTH] Downloading Face Landmarker model...")
             try:
                 urllib.request.urlretrieve(self.MODEL_URL, self.MODEL_PATH)
@@ -160,7 +163,7 @@ class FaceAuthenticator:
     def _run_cv_loop(self, loop):
         def try_open_camera(index):
             print(f"[AUTH] Trying to open camera with index {index}...")
-            cap = cv2.VideoCapture(index, cv2.CAP_AVFOUNDATION)
+            cap = cv2.VideoCapture(index, cv2.CAP_DSHOW if os.name == "nt" else cv2.CAP_ANY)
             if not cap.isOpened():
                 print(f"[AUTH] [ERR] Could not open video device {index}.")
                 return None

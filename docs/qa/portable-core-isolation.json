@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "python_version": "3.12.10",
+  "dependencies": 41,
+  "isolated": true,
+  "external_import_paths": 0,
+  "binary_imports_passed": true,
+  "sqlite_tls_crypto_passed": true,
+  "optional_or_development_modules_loaded": 0,
+  "network_used": false,
+  "device_used": false
+}

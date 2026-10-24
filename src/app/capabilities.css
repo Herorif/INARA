@@ -1,0 +1,28 @@
+.capability-center { padding: clamp(1rem, 3vw, 2rem); color: var(--text-primary, #e6eef6); }
+.capability-intro { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+.capability-intro h2 { font-size:clamp(1.5rem, 3vw, 2rem); margin:.4rem 0; letter-spacing:-.04em; }
+.capability-intro p,.capability-note { color:var(--text-muted, #97a8bc); font-size:.85rem; line-height:1.7; }
+.capability-telemetry { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; }
+.capability-telemetry > div { display:flex; flex-direction:column; gap:.7rem; border:1px solid #243d4e; border-radius:1rem; padding:1rem; background:linear-gradient(135deg,#112b36aa,#101823); min-width:0; }
+.capability-telemetry svg { color:#61d9db; }
+.capability-telemetry span { color:#9cbbca; font-size:.75rem; }
+.capability-telemetry strong { font-size:1rem; overflow-wrap:anywhere; }
+.capability-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin:1.5rem 0; }
+.capability-card { border:1px solid #263546; border-radius:1rem; background:linear-gradient(145deg,#142332,#0e1521); padding:1.2rem; min-width:0; }
+.capability-card.available { border-top-color:#50aeb3; }
+.capability-card-heading { display:flex; justify-content:space-between; align-items:start; gap:.75rem; flex-wrap:wrap; }
+.capability-card h3 { margin:0; font-size:1rem; }
+.capability-badge { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:#9cb8cd; background:#203344; padding:.35rem .5rem; border-radius:.4rem; }
+.available .capability-badge { color:#90ebe1; background:#153a3c; }
+.blocked .capability-badge { color:#efca83; background:#44351d; }
+.capability-evidence { display:flex; flex-wrap:wrap; gap:1rem; margin:1.2rem 0; }
+.capability-evidence span { display:grid; gap:.4rem; color:#93a4b7; font-size:.7rem; }
+.capability-evidence b { color:#d4e0ee; font-weight:500; font-size:.75rem; }
+.capability-card p { font-size:.85rem; line-height:1.6; color:#becbdc; }
+.capability-card small,.capability-center > small { display:block; color:#93a4b7; font-size:.75rem; line-height:1.6; overflow-wrap:anywhere; }
+.capability-card footer { border-top:1px solid #263546; margin-top:1rem; padding-top:.8rem; font-size:.75rem; color:#7fb7c3; }
+.job-lifetime { margin:.8rem 0; padding:1rem; border:1px solid #314556; border-radius:.75rem; background:#10232a; }
+.job-lifetime label { display:flex; align-items:start; gap:.65rem; font-size:.85rem; line-height:1.6; }
+.job-lifetime input { margin-top:.3rem; accent-color:#70e1db; }
+.job-lifetime small { display:block; margin-top:.5rem; color:#9fb8c6; font-size:.75rem; line-height:1.6; }
+@media(max-width:700px) { .capability-telemetry { grid-template-columns:repeat(2,minmax(0,1fr)); } .capability-grid { grid-template-columns:1fr; } }

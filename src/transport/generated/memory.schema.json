@@ -1,0 +1,224 @@
+{
+  "MemoryQuery": {
+    "additionalProperties": false,
+    "properties": {
+      "query": {
+        "default": "",
+        "maxLength": 500,
+        "title": "Query",
+        "type": "string"
+      },
+      "include_archived": {
+        "default": false,
+        "title": "Include Archived",
+        "type": "boolean"
+      }
+    },
+    "title": "MemoryQuery",
+    "type": "object"
+  },
+  "MemoryWrite": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "title": {
+        "maxLength": 100,
+        "minLength": 1,
+        "title": "Title",
+        "type": "string"
+      },
+      "text": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "title": "Text",
+        "type": "string"
+      },
+      "category": {
+        "default": "fact",
+        "enum": [
+          "preference",
+          "fact",
+          "decision"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "source": {
+        "default": "Owner entered",
+        "maxLength": 200,
+        "minLength": 1,
+        "title": "Source",
+        "type": "string"
+      },
+      "tags": {
+        "items": {
+          "maxLength": 32,
+          "minLength": 1,
+          "type": "string"
+        },
+        "maxItems": 8,
+        "title": "Tags",
+        "type": "array"
+      },
+      "retention_days": {
+        "default": 90,
+        "maximum": 365,
+        "minimum": 1,
+        "title": "Retention Days",
+        "type": "integer"
+      },
+      "assistant_enabled": {
+        "default": false,
+        "title": "Assistant Enabled",
+        "type": "boolean"
+      },
+      "archived": {
+        "default": false,
+        "title": "Archived",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "revision",
+      "id",
+      "title",
+      "text"
+    ],
+    "title": "MemoryWrite",
+    "type": "object"
+  },
+  "MemoryRevision": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      }
+    },
+    "required": [
+      "revision"
+    ],
+    "title": "MemoryRevision",
+    "type": "object"
+  },
+  "MemoryForget": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "revision",
+      "id"
+    ],
+    "title": "MemoryForget",
+    "type": "object"
+  },
+  "MemoryRetention": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "days": {
+        "maximum": 365,
+        "minimum": 1,
+        "title": "Days",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "revision",
+      "days"
+    ],
+    "title": "MemoryRetention",
+    "type": "object"
+  },
+  "MemoryRestore": {
+    "additionalProperties": false,
+    "properties": {
+      "backup": {
+        "maxLength": 3000000,
+        "minLength": 1,
+        "title": "Backup",
+        "type": "string"
+      }
+    },
+    "required": [
+      "backup"
+    ],
+    "title": "MemoryRestore",
+    "type": "object"
+  },
+  "MemoryRestoreApply": {
+    "additionalProperties": false,
+    "properties": {
+      "revision": {
+        "format": "uuid",
+        "title": "Revision",
+        "type": "string"
+      },
+      "preview_id": {
+        "format": "uuid",
+        "title": "Preview Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "revision",
+      "preview_id"
+    ],
+    "title": "MemoryRestoreApply",
+    "type": "object"
+  },
+  "MemorySource": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "title": {
+        "title": "Title",
+        "type": "string"
+      },
+      "source": {
+        "title": "Source",
+        "type": "string"
+      },
+      "version": {
+        "title": "Version",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "id",
+      "title",
+      "source",
+      "version"
+    ],
+    "title": "MemorySource",
+    "type": "object"
+  }
+}

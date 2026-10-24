@@ -1,0 +1,410 @@
+"""Lean composition root and lifecycle for the supported desktop runtime.
+
+All services below have one owner. Importing this module creates no runtime and
+never imports server.py or an optional model implementation.
+"""
+
+import asyncio
+from contextlib import asynccontextmanager
+from functools import partial
+from pathlib import Path
+
+import socketio
+from fastapi import FastAPI
+
+from agents.scheduler_agent import SchedulerAgent
+from core.event_bus import EventBus
+from core.reminder_store import ReminderStore
+from project_manager import ProjectManager
+from services.capabilities import CapabilityCenter
+from services.cad import CadService, register_cad_tools
+from services.cad_transport import CadTransport
+from services.creative_handoffs import CreativeHandoffs
+from transport.creative_handoffs import HandoffTransport
+from services.mobile import MobileService
+from transport.mobile import MobileTransport
+from services.conversation import ConversationService
+from services.project_memory import ProjectMemory
+from services.usage import UsageService
+from transport.usage import UsageTransport
+from services.browser import BrowserService
+from transport.browser import BrowserTransport
+from services.task_queue import TaskQueue
+from transport.task_queue import TaskQueueTransport
+from services.connections import ConnectionsReadiness
+from calls.lab import CallLab
+from calls.admission import CallAdmission
+from calls.testing import ControlledCalls
+from transport.call_testing import CallTestingTransport
+from transport.call_lab import CallLabTransport
+from transport.connections import ConnectionsTransport
+from transport.memory import MemoryTransport
+from services.image_transport import ImageTransport
+from services.images import ImageService, register_image_tool
+from services.lazy import LazyService
+from services.local_actions import LocalActions
+from services.device_printers import DevicePrinterService
+from services.printing import PrintService
+from services.workspace import WorkspaceService
+from services.extended_actions import ExtendedActions
+from transport.connection import ConnectionTransport
+from transport.workspace import WorkspaceTransport
+from transport.compatibility import CompatibilityTransport
+from services.settings import SettingsService, SettingsStore
+from transport.settings import SettingsTransport
+from transport.lifecycle import LifecycleTransport
+from transport.contracts import UI_CONTRACT_VERSION
+from transport.confirmations import ConfirmationTransport
+from transport.local_actions import LocalActionTransport
+from services.resources import ResourceGovernor
+from services.speech import SpeechService, SpeechTransport
+from services.scheduler_tools import register_scheduler_tools
+from services.sessions import SessionStore
+from services.storage import Database
+from services.tools import ToolDispatcher, register_project_tools
+from transport.conversation import ConversationTransport
+from transport.delivery import EventDelivery
+from transport.reminders import ReminderTransport
+from transport.sessions import DesktopSessions
+from vision.vision_loop import VisionLoop
+
+
+class Application:
+    def __init__(
+        self,
+        *,
+        sio,
+        database,
+        projects,
+        settings,
+        reminders,
+        bus,
+        resources,
+        face_authenticated,
+        startup_summary=None,
+        status_summary=None,
+        instance_id=None,
+        settings_path=None,
+        permission_names=(),
+        request_exit=lambda: None,
+    ):
+        self.sio, self.database, self.projects, self.settings = sio, database, projects, settings
+        self.reminders, self.bus, self.resources = reminders, bus, resources
+        self.startup_summary = startup_summary
+        self.sessions = DesktopSessions(projects, settings, face_authenticated)
+        self.scheduler = SchedulerAgent(event_bus=bus, reminder_store=reminders)
+        self.dispatcher = ToolDispatcher(
+            lambda: settings["tool_permissions"], authenticated=self.sessions.authenticated
+        )
+        self.usage = UsageService(self)
+        self.call_admission = CallAdmission(self)
+        self.call_testing = ControlledCalls(self)
+        self.call_testing_transport = CallTestingTransport(self)
+        self.call_lab = CallLab(self)
+        self.call_lab_transport = CallLabTransport(self)
+        self.dispatcher.tool_scope = self.usage.tool_scope
+        register_project_tools(self.dispatcher)
+        register_scheduler_tools(
+            self.dispatcher, self.scheduler, reminders, authorize=self.authorize_owner
+        )
+        self.delivery = EventDelivery(sio, self.sessions, reminders, self.dispatcher, resources)
+        self.cad = CadService(database, resources, partial(self.delivery.publish_job, "cad_job"))
+        self.images = ImageService(
+            database, resources, partial(self.delivery.publish_job, "image_job")
+        )
+        self.cad.usage = self.images.usage = self.usage
+        self.handoffs = CreativeHandoffs(self)
+        self.handoff_transport = HandoffTransport(self)
+        self.cad.reference_validator = self.images.reference_validator = self.handoffs.validate
+        self.usage_transport = UsageTransport(self)
+        self.browser = BrowserService(self)
+        self.browser_transport = BrowserTransport(self)
+        self.task_queue = TaskQueue(self)
+        self.task_queue_transport = TaskQueueTransport(self)
+        self.capabilities = CapabilityCenter(self)
+        register_cad_tools(self.dispatcher, self.cad)
+        register_image_tool(self.dispatcher, self.images)
+        self.cad_transport = CadTransport(
+            sio, self.cad, self.dispatcher, self.studio_context, authorize=self.authorize_owner
+        )
+        self.image_transport = ImageTransport(
+            sio, self.images, self.dispatcher, self.studio_context
+        )
+        self.memory = ProjectMemory(self)
+        self.memory_transport = MemoryTransport(self)
+        self.conversation = ConversationService(
+            self.dispatcher, store=SessionStore(database), memory=self.memory, usage=self.usage
+        )
+        self.conversation_transport = ConversationTransport(
+            sio, self.conversation, self.dispatcher, self.sessions
+        )
+        self.mobile = MobileService(self)
+        self.mobile_transport = MobileTransport(self)
+        self.speech = SpeechService(self)
+        self.speech_transport = SpeechTransport(self)
+        self.reminder_transport = ReminderTransport(sio, self.dispatcher, reminders, self.sessions)
+        # Legacy integrations retain their existing contracts and load only on demand.
+        self.inara = LazyService("inara")
+        self.printer = LazyService("printer_agent", "PrinterAgent")
+        self.desktop = LazyService("agents.desktop_agent", "DesktopAgent", event_bus=bus)
+        self.vision_loop = VisionLoop(event_bus=bus, interval=5)
+        self.vision = LazyService(
+            "agents.vision_agent", "VisionAgent", event_bus=bus, vision_loop=self.vision_loop
+        )
+        self.kasa = LazyService(
+            "kasa_agent", "KasaAgent", known_devices=settings.get("kasa_devices")
+        )
+        self.devices = LazyService(
+            "agents.device_agent", "DeviceAgent", event_bus=bus, kasa_agent=self.kasa
+        )
+        self.local_actions = LocalActions(
+            self.dispatcher, self.desktop, self.devices, self.vision, self.vision_loop
+        )
+        self.local_transport = LocalActionTransport(sio, self.dispatcher, self.sessions)
+        self.confirmation_transport = ConfirmationTransport(sio, self.dispatcher, self.sessions)
+        self.settings_service = SettingsService(
+            settings,
+            SettingsStore(settings_path),
+            set(permission_names) | set(self.dispatcher.tools),
+        )
+        self.compat_service = DevicePrinterService(
+            self.dispatcher,
+            self.sessions,
+            self.settings_service,
+            self.kasa,
+            self.printer,
+            self.delivery.publish_job,
+        )
+        self.connections = ConnectionsReadiness(self)
+        self.connections_transport = ConnectionsTransport(self)
+        self.printing = PrintService(
+            database, resources, self.dispatcher, self.compat_service, self.delivery.publish_job
+        )
+        self.compat_transport = CompatibilityTransport(sio, self.dispatcher, self.sessions)
+        self.workspace = WorkspaceService(self)
+        self.workspace_transport = WorkspaceTransport(
+            sio, self.dispatcher, self.sessions, self.workspace
+        )
+        self.extended_actions = ExtendedActions(self)
+        self.connection = ConnectionTransport(self)
+        self.sessions.face_authenticated = lambda: (
+            self.connection.authenticated or face_authenticated()
+        )
+        self.settings_service.permission_names |= frozenset(self.dispatcher.tools)
+        self.settings_transport = SettingsTransport(
+            sio,
+            self.sessions,
+            self.settings_service,
+            self.connection.settings_changed,
+            self.connection.validate_settings,
+        )
+        self.lifecycle = LifecycleTransport(
+            sio,
+            self.sessions,
+            resources,
+            self.restrict_resources,
+            self.close,
+            request_exit,
+            after_resource=self.connection.resource_changed,
+        )
+        self.tasks = []
+        self.started = False
+
+        @asynccontextmanager
+        async def lifespan(_app):
+            await self.start()
+            try:
+                yield
+            finally:
+                await self.close()
+
+        self.app = FastAPI(lifespan=lifespan)
+        self.asgi = socketio.ASGIApp(sio, self.app)
+
+        @self.app.get("/status")
+        async def status():
+            summary = (
+                status_summary() if status_summary else {"status": "running", "text_ready": True}
+            )
+            return {
+                **summary,
+                "instance_id": instance_id,
+                "resources": resources.snapshot(),
+                "ui_contract_version": UI_CONTRACT_VERSION,
+            }
+
+    def authorize_owner(self, context):
+        from services.tools import ServiceError
+
+        principal = context["principal"]
+        if not self.sessions.is_owner(principal) or not self.sessions.authenticated(principal):
+            raise ServiceError(
+                "permission_denied", "Use the authenticated desktop owner for this action."
+            )
+
+    async def restrict_resources(self):
+        self.call_testing.invalidate()
+        operations = [
+            self.call_admission.stop_sid(),
+            self.call_lab.stop_sid(),
+            self.task_queue.stop_sid(),
+            self.browser_transport.stop_sid(),
+            self.speech_transport.stop_sid(),
+            self.cad_transport.close(),
+            self.image_transport.close(),
+            self.local_transport.stop_sid(),
+            self.compat_transport.stop_sid(),
+            self.compat_service.close(),
+            self.printing.close(),
+            self.workspace_transport.stop_sid(),
+            self.workspace.close(),
+            self.connection.close(),
+        ]
+        results = await asyncio.gather(*operations, return_exceptions=True)
+        for result in results:
+            if isinstance(result, BaseException):
+                raise result
+
+    def studio_context(self, sid):
+        return self.sessions.context(sid, renderer=True).tools()
+
+    async def disconnect(self, sid):
+        self.call_testing.invalidate(sid)
+        await self.call_admission.stop_sid(sid)
+        await self.call_lab.stop_sid(sid)
+        await self.task_queue.stop_sid(sid)
+        await self.browser_transport.stop_sid(sid)
+        await self.quality.stop_sid(sid)
+        await self.mobile_transport.stop_sid(sid)
+        await self.speech_transport.stop_sid(sid)
+        await self.conversation_transport.stop_sid(sid)
+        await self.local_transport.stop_sid(sid)
+        await self.compat_transport.stop_sid(sid)
+        await self.reminder_transport.stop_sid(sid)
+        await self.workspace_transport.stop_sid(sid)
+        await self.workspace.disconnect(sid)
+        principal, role = self.sessions.remove(sid)
+        await self.connection.detached()
+        if role == "renderer" and not self.sessions.rooms(principal, "renderer"):
+            if self.sessions.is_owner(principal):
+                await self.compat_service.close()
+            await self.cad_transport.stop_owner(principal)
+            await self.image_transport.stop_owner(principal)
+        # Preserve another connected channel's approval; history stays durable.
+        if not self.sessions.rooms(principal):
+            self.conversation.release_owner(principal)
+
+    async def start(self):
+        if self.started:
+            return
+        self.started = True
+        self.bus.on_all(self.delivery.bridge_legacy)
+        self.tasks.append(
+            asyncio.create_task(self.delivery.poll_reminders(), name="reminder-delivery")
+        )
+        self.tasks.append(
+            asyncio.create_task(self.mobile.notifications.maintain(), name="notification-retention")
+        )
+        self.tasks.append(
+            asyncio.create_task(self.memory.maintain(), name="project-memory-retention")
+        )
+        try:
+            if self.startup_summary:
+                self.startup_summary()
+        except BaseException:
+            await self.close()
+            raise
+
+    async def close(self):
+        self.call_testing.invalidate()
+        self.memory.previews.clear()
+        try:
+            results = await asyncio.gather(
+                self.call_admission.stop_sid(),
+                self.call_lab.stop_sid(),
+                self.task_queue.stop_sid(),
+                self.browser_transport.stop_sid(),
+                self.quality.stop_sid(),
+                self.mobile_transport.stop_sid(),
+                self.mobile.close(),
+                self.conversation_transport.stop_sid(),
+                self.speech_transport.stop_sid(),
+                self.cad_transport.close(),
+                self.image_transport.close(),
+                self.local_transport.stop_sid(),
+                self.compat_transport.stop_sid(),
+                self.compat_service.close(),
+                self.reminder_transport.stop_sid(),
+                self.printing.close(),
+                self.workspace_transport.stop_sid(),
+                self.workspace.close(),
+                self.connection.close(),
+                return_exceptions=True,
+            )
+            for result in results:
+                if isinstance(result, BaseException):
+                    raise result
+        finally:
+            self.bus.off_all(self.delivery.bridge_legacy)
+            tasks = tuple(self.tasks)
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            self.tasks.clear()
+            self.started = False
+
+
+def create_application(
+    *,
+    settings,
+    project_root,
+    legacy_data_dir=None,
+    database=None,
+    projects=None,
+    sio=None,
+    face_authenticated=lambda: False,
+    startup_summary=None,
+    status_summary=None,
+    instance_id=None,
+    settings_path=None,
+    permission_names=(),
+    request_exit=lambda: None,
+):
+    """Explicit production/test injection boundary; no private profile opened until called."""
+    database = database if database is not None else Database()
+    projects = (
+        projects
+        if projects is not None
+        else ProjectManager(str(Path(project_root)), state_store=database)
+    )
+    sio = (
+        sio
+        if sio is not None
+        else socketio.AsyncServer(
+            async_mode="asgi",
+            cors_allowed_origins=[
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "file://",
+                "null",
+            ],
+        )
+    )
+    bus = EventBus()
+    reminders = ReminderStore(backend_dir=legacy_data_dir, database=database)
+    return Application(
+        sio=sio,
+        database=database,
+        projects=projects,
+        settings=settings,
+        reminders=reminders,
+        bus=bus,
+        resources=ResourceGovernor(),
+        face_authenticated=face_authenticated,
+        startup_summary=startup_summary,
+        status_summary=status_summary,
+        instance_id=instance_id,
+        settings_path=settings_path,
+        permission_names=permission_names,
+        request_exit=request_exit,
+    )

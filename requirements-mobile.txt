@@ -1,0 +1,3 @@
+# Optional offline invitation QR rendering only. Not part of resident startup.
+# Installation is deliberately separate from this source implementation.
+qrcode==8.2

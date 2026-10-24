@@ -1,0 +1,1773 @@
+{
+  "SolidRecipe": {
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      }
+    },
+    "title": "SolidRecipe",
+    "type": "object"
+  },
+  "SceneObject": {
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      },
+      "position": {
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "title": "Position",
+        "type": "array"
+      },
+      "rotation": {
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "title": "Rotation",
+        "type": "array"
+      },
+      "scale": {
+        "items": {
+          "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "title": "Scale",
+        "type": "array"
+      },
+      "material": {
+        "default": "cyan",
+        "enum": [
+          "cyan",
+          "titanium",
+          "amber",
+          "ceramic"
+        ],
+        "title": "Material",
+        "type": "string"
+      }
+    },
+    "title": "SceneObject",
+    "type": "object"
+  },
+  "ScenePresentation": {
+    "additionalProperties": false,
+    "properties": {
+      "camera": {
+        "default": "isometric",
+        "enum": [
+          "isometric",
+          "top",
+          "front"
+        ],
+        "title": "Camera",
+        "type": "string"
+      },
+      "lighting": {
+        "default": "studio",
+        "enum": [
+          "soft",
+          "studio",
+          "contrast"
+        ],
+        "title": "Lighting",
+        "type": "string"
+      },
+      "quality": {
+        "default": "preview",
+        "enum": [
+          "preview",
+          "standard"
+        ],
+        "title": "Quality",
+        "type": "string"
+      },
+      "background": {
+        "default": "dark",
+        "enum": [
+          "dark",
+          "neutral"
+        ],
+        "title": "Background",
+        "type": "string"
+      }
+    },
+    "title": "ScenePresentation",
+    "type": "object"
+  },
+  "SceneBlueprint": {
+    "$defs": {
+      "SceneObject": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "Untitled design",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "shape": {
+            "default": "box",
+            "enum": [
+              "box",
+              "bracket",
+              "enclosure"
+            ],
+            "title": "Shape",
+            "type": "string"
+          },
+          "width": {
+            "default": 80,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "default": 60,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "default": 30,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Height",
+            "type": "number"
+          },
+          "thickness": {
+            "default": 3,
+            "maximum": 100,
+            "minimum": 0.5,
+            "title": "Thickness",
+            "type": "number"
+          },
+          "position": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Position",
+            "type": "array"
+          },
+          "rotation": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Rotation",
+            "type": "array"
+          },
+          "scale": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Scale",
+            "type": "array"
+          },
+          "material": {
+            "default": "cyan",
+            "enum": [
+              "cyan",
+              "titanium",
+              "amber",
+              "ceramic"
+            ],
+            "title": "Material",
+            "type": "string"
+          }
+        },
+        "title": "SceneObject",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Provider data only: engine selection and execution stay with the owner.",
+    "properties": {
+      "name": {
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "const": "scene",
+        "title": "Shape",
+        "type": "string"
+      },
+      "objects": {
+        "items": {
+          "$ref": "#/$defs/SceneObject"
+        },
+        "maxItems": 8,
+        "minItems": 1,
+        "title": "Objects",
+        "type": "array"
+      }
+    },
+    "required": [
+      "name",
+      "shape",
+      "objects"
+    ],
+    "title": "SceneBlueprint",
+    "type": "object"
+  },
+  "Recipe": {
+    "$defs": {
+      "SceneObject": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "Untitled design",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "shape": {
+            "default": "box",
+            "enum": [
+              "box",
+              "bracket",
+              "enclosure"
+            ],
+            "title": "Shape",
+            "type": "string"
+          },
+          "width": {
+            "default": 80,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "default": 60,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "default": 30,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Height",
+            "type": "number"
+          },
+          "thickness": {
+            "default": 3,
+            "maximum": 100,
+            "minimum": 0.5,
+            "title": "Thickness",
+            "type": "number"
+          },
+          "position": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Position",
+            "type": "array"
+          },
+          "rotation": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Rotation",
+            "type": "array"
+          },
+          "scale": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Scale",
+            "type": "array"
+          },
+          "material": {
+            "default": "cyan",
+            "enum": [
+              "cyan",
+              "titanium",
+              "amber",
+              "ceramic"
+            ],
+            "title": "Material",
+            "type": "string"
+          }
+        },
+        "title": "SceneObject",
+        "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure",
+          "scene"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      },
+      "objects": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/SceneObject"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Objects"
+      },
+      "engine": {
+        "default": "offline",
+        "enum": [
+          "offline",
+          "blender"
+        ],
+        "title": "Engine",
+        "type": "string"
+      },
+      "presentation": {
+        "$ref": "#/$defs/ScenePresentation"
+      }
+    },
+    "title": "Recipe",
+    "type": "object"
+  },
+  "BuildRequest": {
+    "$defs": {
+      "CreativeReference": {
+        "additionalProperties": false,
+        "properties": {
+          "source_kind": {
+            "enum": [
+              "cad",
+              "image"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_request_id": {
+            "format": "uuid",
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "source_fingerprint": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Fingerprint",
+            "type": "string"
+          },
+          "source_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_request_id",
+          "source_fingerprint",
+          "source_sha256"
+        ],
+        "title": "CreativeReference",
+        "type": "object"
+      },
+      "SceneObject": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "Untitled design",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "shape": {
+            "default": "box",
+            "enum": [
+              "box",
+              "bracket",
+              "enclosure"
+            ],
+            "title": "Shape",
+            "type": "string"
+          },
+          "width": {
+            "default": 80,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "default": 60,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "default": 30,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Height",
+            "type": "number"
+          },
+          "thickness": {
+            "default": 3,
+            "maximum": 100,
+            "minimum": 0.5,
+            "title": "Thickness",
+            "type": "number"
+          },
+          "position": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Position",
+            "type": "array"
+          },
+          "rotation": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Rotation",
+            "type": "array"
+          },
+          "scale": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Scale",
+            "type": "array"
+          },
+          "material": {
+            "default": "cyan",
+            "enum": [
+              "cyan",
+              "titanium",
+              "amber",
+              "ceramic"
+            ],
+            "title": "Material",
+            "type": "string"
+          }
+        },
+        "title": "SceneObject",
+        "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "base_request_id": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Request Id"
+      },
+      "base_fingerprint": {
+        "anyOf": [
+          {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Base Fingerprint"
+      },
+      "reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CreativeReference"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "name": {
+        "default": "Untitled design",
+        "maxLength": 60,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "shape": {
+        "default": "box",
+        "enum": [
+          "box",
+          "bracket",
+          "enclosure",
+          "scene"
+        ],
+        "title": "Shape",
+        "type": "string"
+      },
+      "width": {
+        "default": 80,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Width",
+        "type": "number"
+      },
+      "depth": {
+        "default": 60,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Depth",
+        "type": "number"
+      },
+      "height": {
+        "default": 30,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Height",
+        "type": "number"
+      },
+      "thickness": {
+        "default": 3,
+        "maximum": 100,
+        "minimum": 0.5,
+        "title": "Thickness",
+        "type": "number"
+      },
+      "objects": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/SceneObject"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Objects"
+      },
+      "engine": {
+        "default": "offline",
+        "enum": [
+          "offline",
+          "blender"
+        ],
+        "title": "Engine",
+        "type": "string"
+      },
+      "presentation": {
+        "$ref": "#/$defs/ScenePresentation"
+      },
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "title": "BuildRequest",
+    "type": "object"
+  },
+  "ArtifactRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "format": {
+        "default": "stl",
+        "enum": [
+          "stl",
+          "glb",
+          "json",
+          "blend",
+          "png"
+        ],
+        "title": "Format",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "title": "ArtifactRequest",
+    "type": "object"
+  },
+  "PlanRequest": {
+    "$defs": {
+      "CreativeReference": {
+        "additionalProperties": false,
+        "properties": {
+          "source_kind": {
+            "enum": [
+              "cad",
+              "image"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_request_id": {
+            "format": "uuid",
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "source_fingerprint": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Fingerprint",
+            "type": "string"
+          },
+          "source_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_request_id",
+          "source_fingerprint",
+          "source_sha256"
+        ],
+        "title": "CreativeReference",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "prompt": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "title": "Prompt",
+        "type": "string"
+      },
+      "target": {
+        "default": "solid",
+        "enum": [
+          "solid",
+          "scene"
+        ],
+        "title": "Target",
+        "type": "string"
+      },
+      "reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CreativeReference"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "PlanRequest",
+    "type": "object"
+  },
+  "MeshStats": {
+    "additionalProperties": false,
+    "properties": {
+      "vertices": {
+        "maximum": 8192,
+        "minimum": 4,
+        "title": "Vertices",
+        "type": "integer"
+      },
+      "triangles": {
+        "maximum": 4096,
+        "minimum": 4,
+        "title": "Triangles",
+        "type": "integer"
+      },
+      "watertight": {
+        "title": "Watertight",
+        "type": "boolean"
+      },
+      "volume_mm3": {
+        "exclusiveMinimum": 0,
+        "maximum": 1000000000000,
+        "title": "Volume Mm3",
+        "type": "number"
+      },
+      "bounds_mm": {
+        "items": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "title": "Bounds Mm",
+        "type": "array"
+      }
+    },
+    "required": [
+      "vertices",
+      "triangles",
+      "watertight",
+      "volume_mm3",
+      "bounds_mm"
+    ],
+    "title": "MeshStats",
+    "type": "object"
+  },
+  "JobRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "title": "JobRequest",
+    "type": "object"
+  },
+  "JobLifetime": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "format": "uuid",
+        "title": "Request Id",
+        "type": "string"
+      },
+      "background": {
+        "title": "Background",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "background"
+    ],
+    "title": "JobLifetime",
+    "type": "object"
+  },
+  "EditableFields": {
+    "$defs": {
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "anyOf": [
+          {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Name"
+      },
+      "width": {
+        "anyOf": [
+          {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Width"
+      },
+      "depth": {
+        "anyOf": [
+          {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Depth"
+      },
+      "height": {
+        "anyOf": [
+          {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Height"
+      },
+      "thickness": {
+        "anyOf": [
+          {
+            "maximum": 100,
+            "minimum": 0.5,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Thickness"
+      },
+      "position": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Position"
+      },
+      "rotation": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Rotation"
+      },
+      "scale": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Scale"
+      },
+      "presentation": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ScenePresentation"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "material": {
+        "anyOf": [
+          {
+            "maxLength": 20,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Material"
+      }
+    },
+    "title": "EditableFields",
+    "type": "object"
+  },
+  "ObjectEdit": {
+    "$defs": {
+      "EditableFields": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Depth"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height"
+          },
+          "thickness": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thickness"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Position"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rotation"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scale"
+          },
+          "presentation": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ScenePresentation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "material": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Material"
+          }
+        },
+        "title": "EditableFields",
+        "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "object_index": {
+        "anyOf": [
+          {
+            "maximum": 7,
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Object Index"
+      },
+      "fields": {
+        "$ref": "#/$defs/EditableFields"
+      }
+    },
+    "required": [
+      "fields"
+    ],
+    "title": "ObjectEdit",
+    "type": "object"
+  },
+  "ChangeSet": {
+    "$defs": {
+      "EditableFields": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Depth"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height"
+          },
+          "thickness": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thickness"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Position"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rotation"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scale"
+          },
+          "presentation": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ScenePresentation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "material": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Material"
+          }
+        },
+        "title": "EditableFields",
+        "type": "object"
+      },
+      "ObjectEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "object_index": {
+            "anyOf": [
+              {
+                "maximum": 7,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Object Index"
+          },
+          "fields": {
+            "$ref": "#/$defs/EditableFields"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "title": "ObjectEdit",
+        "type": "object"
+      },
+      "ScenePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "camera": {
+            "default": "isometric",
+            "enum": [
+              "isometric",
+              "top",
+              "front"
+            ],
+            "title": "Camera",
+            "type": "string"
+          },
+          "lighting": {
+            "default": "studio",
+            "enum": [
+              "soft",
+              "studio",
+              "contrast"
+            ],
+            "title": "Lighting",
+            "type": "string"
+          },
+          "quality": {
+            "default": "preview",
+            "enum": [
+              "preview",
+              "standard"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "background": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "neutral"
+            ],
+            "title": "Background",
+            "type": "string"
+          }
+        },
+        "title": "ScenePresentation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "edits": {
+        "items": {
+          "$ref": "#/$defs/ObjectEdit"
+        },
+        "maxItems": 16,
+        "minItems": 1,
+        "title": "Edits",
+        "type": "array"
+      },
+      "base_request_id": {
+        "format": "uuid",
+        "title": "Base Request Id",
+        "type": "string"
+      },
+      "base_fingerprint": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Base Fingerprint",
+        "type": "string"
+      }
+    },
+    "required": [
+      "edits",
+      "base_request_id",
+      "base_fingerprint"
+    ],
+    "title": "ChangeSet",
+    "type": "object"
+  },
+  "ChangePrompt": {
+    "$defs": {
+      "CreativeReference": {
+        "additionalProperties": false,
+        "properties": {
+          "source_kind": {
+            "enum": [
+              "cad",
+              "image"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_request_id": {
+            "format": "uuid",
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "source_fingerprint": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Fingerprint",
+            "type": "string"
+          },
+          "source_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_request_id",
+          "source_fingerprint",
+          "source_sha256"
+        ],
+        "title": "CreativeReference",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "base_request_id": {
+        "format": "uuid",
+        "title": "Base Request Id",
+        "type": "string"
+      },
+      "base_fingerprint": {
+        "pattern": "^[a-f0-9]{64}$",
+        "title": "Base Fingerprint",
+        "type": "string"
+      },
+      "prompt": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "title": "Prompt",
+        "type": "string"
+      },
+      "reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CreativeReference"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    "required": [
+      "base_request_id",
+      "base_fingerprint",
+      "prompt"
+    ],
+    "title": "ChangePrompt",
+    "type": "object"
+  }
+}

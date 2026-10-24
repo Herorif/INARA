@@ -1,0 +1,46 @@
+{
+  "before_workspace": {
+    "working_set_mb": 64.19,
+    "private_mb": 47.73
+  },
+  "ui": {
+    "unconfigured_preflight_no_microphone": true,
+    "synthetic_worklet_review_edit_shared_conversation": true,
+    "suspend_releases_capture": true,
+    "quick_full_switch": true,
+    "physical_microphone_used": false,
+    "real_provider_used": false,
+    "real_speech_accuracy_verified": false,
+    "passed": true
+  },
+  "model_modules_in_resident": false,
+  "workspace_and_speech_released": true,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 66.46,
+      "private_mb": 48.81
+    },
+    {
+      "working_set_mb": 66.46,
+      "private_mb": 48.81
+    },
+    {
+      "working_set_mb": 66.46,
+      "private_mb": 48.81
+    },
+    {
+      "working_set_mb": 66.46,
+      "private_mb": 48.81
+    },
+    {
+      "working_set_mb": 66.47,
+      "private_mb": 48.81
+    },
+    {
+      "working_set_mb": 66.47,
+      "private_mb": 48.81
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

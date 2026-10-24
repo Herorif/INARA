@@ -1,0 +1,73 @@
+{
+  "format": 1,
+  "date": "2026-10-21",
+  "passed": true,
+  "actual_candidate_collection": true,
+  "separate_cli_exact_verification": true,
+  "candidate_manifest_sha256": "e4a79f6a718a25fcae1d967e0d65ff14215f63053a1056eaf264757fea10189f",
+  "candidate_inventory_sha256": "0ae81e7cd052c619473ba5f3a526b9eff7ea2c3392763d873ef53ef2cace3076",
+  "collector_sha256": "e9ac8441ff1119c5f7a14e0493544a68a44e1d1afc7d004f161bd71feb5db402",
+  "candidate_files": 2990,
+  "components": 143,
+  "component_scopes": {
+    "application": 1,
+    "bundled-core": 41,
+    "bundled-runtime": 2,
+    "native-bundled": 11,
+    "renderer-conservative-superset": 88
+  },
+  "license_evidence_files": 147,
+  "combined_notice_bytes": 20857974,
+  "missing_notice_components": [
+    {
+      "ecosystem": "npm",
+      "name": "@mediapipe/tasks-vision",
+      "version": "0.10.22-rc.20250304",
+      "metadata": "source:node_modules/@mediapipe/tasks-vision/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@mediapipe/tasks-vision",
+      "version": "0.10.17",
+      "metadata": "source:node_modules/@react-three/drei/node_modules/@mediapipe/tasks-vision/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@react-three/fiber",
+      "version": "8.18.0",
+      "metadata": "source:node_modules/@react-three/fiber/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "draco3d",
+      "version": "1.5.7",
+      "metadata": "source:node_modules/draco3d/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "maath",
+      "version": "0.10.8",
+      "metadata": "source:node_modules/maath/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "stats-gl",
+      "version": "2.4.2",
+      "metadata": "source:node_modules/stats-gl/package.json"
+    }
+  ],
+  "focused_test_passes": 79,
+  "new_audit_test_passes": 31,
+  "scoped_ruff": "passed",
+  "network_accessed": false,
+  "real_profile_used": false,
+  "candidate_modified": false,
+  "exact_renderer_graph_established": false,
+  "asset_ownership_cleared": false,
+  "publisher_authenticated": false,
+  "license_clearance": false,
+  "release_ready": false,
+  "clean_machine_acceptance": false,
+  "signing_performed": false,
+  "limits": "Offline development-host notice/provenance evidence; local matching inputs and collector required for verification. Six missing recognized npm notices, exact renderer/assets coverage, baseline/redistribution review, signing and clean-machine acceptance remain open."
+}

@@ -1,0 +1,66 @@
+{
+  "BrowserInspect": {
+    "additionalProperties": false,
+    "properties": {
+      "url": {
+        "maxLength": 2048,
+        "minLength": 10,
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "title": "BrowserInspect",
+    "type": "object"
+  },
+  "BrowserReport": {
+    "additionalProperties": false,
+    "properties": {
+      "url": {
+        "maxLength": 2048,
+        "title": "Url",
+        "type": "string"
+      },
+      "title": {
+        "maxLength": 240,
+        "title": "Title",
+        "type": "string"
+      },
+      "text": {
+        "maxLength": 12000,
+        "title": "Text",
+        "type": "string"
+      },
+      "links": {
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 30,
+        "title": "Links",
+        "type": "array"
+      },
+      "untrusted_content": {
+        "const": true,
+        "default": true,
+        "title": "Untrusted Content",
+        "type": "boolean"
+      },
+      "mode": {
+        "const": "read_only_https",
+        "default": "read_only_https",
+        "title": "Mode",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url",
+      "title",
+      "text",
+      "links"
+    ],
+    "title": "BrowserReport",
+    "type": "object"
+  }
+}

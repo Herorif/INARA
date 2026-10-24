@@ -1,0 +1,1888 @@
+{
+  "checkpoint": "R7 opt-in TLS pairing, narrow mobile grants and Android source",
+  "socket_routes": {
+    "creative_handoff": {
+      "schema": "HandoffRequest",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Current owner/project; exact saved revision UUID and recipe fingerprint",
+      "effects": "Read and integrity-check saved recipe JSON; prepare bounded metadata-only brief. No media, provider or worker.",
+      "policy": "Strict source/destination enums; successful scoped source and digest validation; no paths or unscoped imports",
+      "response": "Origin-only ACK with HandoffDraft and source provenance",
+      "lifetime": "Synchronous bounded local read; client disposal drops late ACKs; Apply and execution remain separate",
+      "replacement": "HandoffTransport / CreativeHandoffs",
+      "status": "implemented"
+    },
+    "acknowledge_reminder": {
+      "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
+      "caller": "Authenticated owner renderer; resident receipt ACK permitted while face-locked",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "acknowledge reminder",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
+    },
+    "add_printer": {
+      "schema": "AddPrinter",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
+      "effects": "Persist exact configured printer endpoint and protocol; no implicit probe",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
+    },
+    "cad_artifact": {
+      "schema": "ArtifactRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative artifact",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_cancel": {
+      "schema": "JobRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative cancel",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_close": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative close",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_list": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative list",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cad_plan": {
+      "schema": "PlanRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative plan",
+      "policy": "Shared plan_cad tool aliases generate_cad permission; owner authorization and resource gate",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Approval deadline plus provider 30s/close 5s; origin owner/panel/resource shutdown cancellation",
+      "replacement": "CadTransport + shared planner dispatch",
+      "status": "migrated"
+    },
+    "cad_submit": {
+      "schema": "BuildRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative submit",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "cancel_reminder": {
+      "schema": "ReminderAction",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "cancel reminder",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
+    },
+    "confirm_tool": {
+      "schema": "Confirmation: strict id and boolean",
+      "caller": "Authenticated renderer",
+      "context": "Registry principal and shared approval owner",
+      "effects": "Resolve shared dispatcher confirmation",
+      "policy": "Shared dispatcher only for active live voice/direct/typed tools; owner-bound approval and strict boolean",
+      "response": "Scoped errors; no success ACK",
+      "lifetime": "Shared approval deadline; origin/session cancellation; no stale replay",
+      "replacement": "ConfirmationTransport / shared ToolDispatcher only",
+      "status": "migrated"
+    },
+    "connect": {
+      "schema": "Socket auth mapping; token/UUID checks",
+      "caller": "Launch-token channel; pinned/native desktop owner",
+      "context": "Registry owner/role; owner-only renderer hydration after face gate",
+      "effects": "Register channel, hydrate state, optional face loop",
+      "policy": "Control/resident channels receive no private hydration; locked renderers receive auth state/frames only",
+      "response": "Origin SID or verified owner renderer rooms; no broadcast",
+      "lifetime": "One owned face generation; last-renderer/resource/settings/quit cleanup",
+      "replacement": "ConnectionTransport / owned FaceWorker",
+      "status": "migrated"
+    },
+    "control_device": {
+      "schema": "ControlDevice",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "control device",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "control_kasa": {
+      "schema": "KasaControl",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
+      "effects": "control kasa",
+      "policy": "Shared dispatcher; control_kasa uses control_device permission alias",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
+    },
+    "create_reminder": {
+      "schema": "CreateReminder",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "create reminder",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
+    },
+    "desktop_control": {
+      "schema": "DesktopControl discriminated union",
+      "caller": "Owner workspace channel; registration allowed before native owner pin",
+      "context": "NativeHost identity checked at transport and host; no payload identity",
+      "effects": "Native register/state/close/quit/gaming",
+      "policy": "Strict action schemas; gaming boolean strict; owner safety control allowed while face-locked",
+      "response": "Scoped ACK/error; close disconnects same-owner renderers",
+      "lifetime": "Native host 5-second control timeout",
+      "replacement": "LifecycleTransport",
+      "status": "migrated"
+    },
+    "disconnect": {
+      "schema": "Socket lifecycle SID",
+      "caller": "Launch-token channel; pinned/native desktop owner",
+      "context": "Registry owner/role; owner-only renderer hydration after face gate",
+      "effects": "Cancel origin local/workspace/conversation requests and bound voice; last-renderer creative cleanup",
+      "policy": "Control/resident channels receive no private hydration; locked renderers receive auth state/frames only",
+      "response": "Origin SID or verified owner renderer rooms; no broadcast",
+      "lifetime": "One owned face generation; last-renderer/resource/settings/quit cleanup",
+      "replacement": "ConnectionTransport / owned FaceWorker",
+      "status": "migrated"
+    },
+    "discover_kasa": {
+      "schema": "NoArguments",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
+      "effects": "Discover network devices and persist device settings",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
+    },
+    "discover_printers": {
+      "schema": "NoArguments",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
+      "effects": "Discover network printers; activate lazy monitor",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
+    },
+    "dismiss_reminder": {
+      "schema": "DeliveryReceipt (UUID; extra fields forbidden)",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "dismiss reminder",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
+    },
+    "generate_cad": {
+      "schema": "PromptRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Retained CAD adapter in captured project cad/legacy folder",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
+    },
+    "get_reminders": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "get reminders",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
+    },
+    "get_settings": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Read owner settings",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
+    },
+    "get_slicer_profiles": {
+      "schema": "NoArguments",
+      "caller": "Authenticated owner renderer",
+      "context": "Pinned desktop owner and captured project",
+      "effects": "get slicer profiles",
+      "policy": "Shared per-tool denial/approval; owner authorization rechecked before execution",
+      "response": "Scoped result/error events to origin SID",
+      "lifetime": "30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation",
+      "replacement": "DevicePrinterService / CompatibilityTransport",
+      "status": "migrated"
+    },
+    "get_system_info": {
+      "schema": "NoArguments",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "get system info",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "get_tool_permissions": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Read owner settings",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
+    },
+    "image_artifact": {
+      "schema": "ImageArtifactRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative artifact",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_cancel": {
+      "schema": "JobRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative cancel",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_close": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative close",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_list": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative list",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "image_submit": {
+      "schema": "ImageRequest",
+      "caller": "Authenticated renderer",
+      "context": "Registry owner and resolved selected project",
+      "effects": "Creative submit",
+      "policy": "Shared generation permission on submit; owner/project checks; planner permission review pending",
+      "response": "Scoped ACK/error; job events to owner renderers",
+      "lifetime": "Owned service/worker/planner cancellation and deadlines",
+      "replacement": "Existing creative transport; planner policy review in R2b",
+      "status": "existing"
+    },
+    "iterate_cad": {
+      "schema": "PromptRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Retained CAD iteration in captured project cad/legacy folder",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
+    },
+    "launch_app": {
+      "schema": "LaunchApp",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "launch app",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "list_all_devices": {
+      "schema": "NoArguments",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "list all devices",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "pause_audio": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "pause audio",
+      "policy": "Independent owner safety control",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
+    },
+    "print_stl": {
+      "schema": "PrintRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured project/owner; snapshot hash and printer endpoint bound",
+      "effects": "Separate slice, upload (no start), then physical start permissions",
+      "policy": "print_stl and slice_stl/upload_gcode/start_print gates; protected request ledger rejects replay",
+      "response": "Scoped print_result/error; owner progress",
+      "lifetime": "Owned slicer/job tree and bounded network phases; cancellation/uncertainty persisted",
+      "replacement": "PrintService / CompatibilityTransport",
+      "status": "migrated"
+    },
+    "prompt_web_agent": {
+      "schema": "PromptRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Fail closed with migration guidance",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "retired"
+    },
+    "read_clipboard": {
+      "schema": "NoArguments",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "read clipboard",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "resume_audio": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "resume audio",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "Quick assistant / SpeechTransport; old AudioLoop fails with voice_migrated",
+      "status": "retired production audio path; compatibility schema retained"
+    },
+    "resume_conversation": {
+      "schema": "ResumeConversation",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry owner and captured selected project",
+      "effects": "Restore protected history",
+      "policy": "Shared dispatcher tool gates; durable owner/project request scope",
+      "response": "Result/transcript/error or restore/failure to SID",
+      "lifetime": "Existing provider/tool deadlines; durable dedupe; bounded restore",
+      "replacement": "ConversationTransport; role policy review remains",
+      "status": "existing"
+    },
+    "save_memory": {
+      "schema": "SaveMemory",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Exclusive project transcript export; no overwrite",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
+    },
+    "set_resource_state": {
+      "schema": "ResourceRequest",
+      "caller": "Owner renderer (unlocked) or trusted owner resident channel",
+      "context": "Native identity or launch-local owner; native-resident reserved for actual native host",
+      "effects": "Select governor state; resident/gaming closes creative/local/media work",
+      "policy": "Independent owner/role check; native/tray manual gaming latch wins over renderer requests",
+      "response": "Scoped ACK/error; resource_state to same-owner channels",
+      "lifetime": "Serialized transitions; service/task cancellation owners; cleanup failure remains restricted",
+      "replacement": "LifecycleTransport + Application.restrict_resources",
+      "status": "migrated"
+    },
+    "shutdown": {
+      "schema": "EmptyRequest",
+      "caller": "Fallback owner resident channel only, including locked cleanup",
+      "context": "Pinned local owner; native mode rejects socket shutdown",
+      "effects": "Close application before requesting uvicorn exit",
+      "policy": "Independent role/owner check; native quit uses desktop_control",
+      "response": "Scoped ACK/error",
+      "lifetime": "Application.close owns cleanup; failed cleanup does not request exit",
+      "replacement": "LifecycleTransport",
+      "status": "migrated"
+    },
+    "snooze_reminder": {
+      "schema": "SnoozeReminder",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; desktop-global reminder list; delivery IDs owner-bound",
+      "effects": "snooze reminder",
+      "policy": "Independent role/owner gate; shared tool policy for mutations; delivery recipient bound by store",
+      "response": "SID errors/results and owner renderer/resident refresh; control channels excluded",
+      "lifetime": "Dispatcher approval deadline; store transaction/lease",
+      "replacement": "ReminderTransport / owner-gated scheduler tools",
+      "status": "migrated"
+    },
+    "start_audio": {
+      "schema": "StartAudio",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "start audio",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "Quick assistant / SpeechTransport; old AudioLoop fails with voice_migrated",
+      "status": "retired production audio path; compatibility schema retained"
+    },
+    "stop_audio": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "stop audio",
+      "policy": "Independent owner safety control",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
+    },
+    "stop_watching": {
+      "schema": "StopWatching",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "stop watching",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "take_screenshot": {
+      "schema": "Screenshot",
+      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
+      "context": "Registry principal and immutable selected-project snapshot",
+      "effects": "take screenshot",
+      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
+      "response": "SID result/error; stamped bus events to owner renderers",
+      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
+      "replacement": "LocalActions / LocalActionTransport",
+      "status": "migrated"
+    },
+    "update_settings": {
+      "schema": "SettingsPatch",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Validate settings/known permissions; persist atomically before active integration refresh",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
+    },
+    "update_tool_permissions": {
+      "schema": "PermissionPatch (flat wire mapping)",
+      "caller": "Authenticated owner renderer only",
+      "context": "Native registered owner or launch-local pinned owner; no client-supplied project/owner",
+      "effects": "Validate settings/known permissions; persist atomically before active integration refresh",
+      "policy": "Independent owner/role/auth gate evaluated before changes; editable tool permissions cannot grant settings authority",
+      "response": "SID read/error ACK; accepted mutations to same-owner renderers only",
+      "lifetime": "Synchronous validation/atomic file replacement and in-memory commit; no model work",
+      "replacement": "SettingsService / SettingsTransport",
+      "status": "migrated"
+    },
+    "upload_memory": {
+      "schema": "UploadMemory",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Send bounded user context to the current project voice session",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
+    },
+    "user_input": {
+      "schema": "ConversationRequest",
+      "caller": "Authenticated connected owner; role unrestricted",
+      "context": "Registry principal, immutable project snapshot and trusted origin SID for tool execution",
+      "effects": "Provider/shared tool work",
+      "policy": "Shared dispatcher tool gates; durable owner/project request scope",
+      "response": "Result/transcript/error or restore/failure to SID",
+      "lifetime": "Serialized turn/provider deadlines; origin-disconnect and app-close cancellation; provider cleanup",
+      "replacement": "ConversationTransport; role policy review remains",
+      "status": "existing"
+    },
+    "video_frame": {
+      "schema": "VideoFrame",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; voice session bound to origin SID and project",
+      "effects": "Bounded JPEG/PNG frame; <=2 FPS; current voice session only",
+      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "status": "migrated-envelope"
+    },
+    "capability_diagnostics": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Registry owner and captured project",
+      "effects": "Read-only diagnostics",
+      "policy": "Owner/renderer gate; no new generation or implicit provider calls",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "On-demand cached OS counters; no device probing",
+      "replacement": "CapabilityCenter",
+      "status": "migrated"
+    },
+    "cad_lifetime": {
+      "schema": "JobLifetime (UUID and strict background boolean; extras forbidden)",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Registry owner and captured project",
+      "effects": "Change active scoped job panel lifetime",
+      "policy": "Owner/renderer gate; no new generation or implicit provider calls",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel continuation only; disconnect, workspace/core close and gaming still cancel",
+      "replacement": "CreativeTransport / CreativeJobService",
+      "status": "migrated"
+    },
+    "image_lifetime": {
+      "schema": "JobLifetime (UUID and strict background boolean; extras forbidden)",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Registry owner and captured project",
+      "effects": "Change active scoped job panel lifetime",
+      "policy": "Owner/renderer gate; no new generation or implicit provider calls",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel continuation only; disconnect, workspace/core close and gaming still cancel",
+      "replacement": "CreativeTransport / CreativeJobService",
+      "status": "migrated"
+    },
+    "cad_review_changes": {
+      "schema": "ChangeSet",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner/project and explicit immutable base ID/fingerprint",
+      "effects": "Compute a data-only proposal; no worker or artifact mutation",
+      "policy": "Owner/scope gate; shared generate_cad approval for provider planning; stale-base checks before and after provider",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel/disconnect/core cancellation; bounded provider timeout; no replay",
+      "replacement": "CadTransport / bounded CAD changes",
+      "status": "migrated"
+    },
+    "cad_plan_changes": {
+      "schema": "ChangePrompt",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner/project and explicit immutable base ID/fingerprint",
+      "effects": "Compute a data-only proposal; no worker or artifact mutation",
+      "policy": "Owner/scope gate; shared generate_cad approval for provider planning; stale-base checks before and after provider",
+      "response": "Origin-only typed ACK/error",
+      "lifetime": "Panel/disconnect/core cancellation; bounded provider timeout; no replay",
+      "replacement": "CadTransport / bounded CAD changes",
+      "status": "migrated"
+    },
+    "speech_begin": {
+      "schema": "SpeechBegin",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_frame": {
+      "schema": "SpeechFrame",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_finish": {
+      "schema": "SpeechTurn",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_send": {
+      "schema": "SpeechSend",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "speech_cancel": {
+      "schema": "SpeechTurn",
+      "caller": "Pinned authenticated owner renderer; cancel permitted while locked",
+      "context": "Origin SID, turn UUID, captured project and conversation UUID",
+      "effects": "Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn",
+      "policy": "Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools",
+      "response": "Origin-only ACK and scoped speech_state",
+      "lifetime": "20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay",
+      "replacement": "SpeechTransport / SpeechService",
+      "status": "migrated"
+    },
+    "cancel_conversation": {
+      "schema": "CancelConversation",
+      "caller": "Pinned owner renderer, including while locked",
+      "context": "Origin SID only",
+      "effects": "Cancel origin typed requests and pending approval",
+      "policy": "Owner/renderer gate",
+      "response": "ACK and scoped idle event",
+      "lifetime": "Immediate task cancellation and cleanup",
+      "replacement": "ConversationTransport",
+      "status": "migrated"
+    },
+    "mobile_state": {
+      "schema": "MobileEmpty",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_listener": {
+      "schema": "ListenerRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_pair": {
+      "schema": "PairRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_pair_cancel": {
+      "schema": "MobileEmpty",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_decide": {
+      "schema": "PairDecision",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "mobile_revoke": {
+      "schema": "DeviceRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "notification_inbox": {
+      "schema": "DeviceRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Owner renderer only; captured current project and device scope; read-only notification ledger/policy, no external actions",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "notification_policy": {
+      "schema": "NotificationPolicy",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Owner renderer only; captured current project and device scope; read-only notification ledger/policy, no external actions",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "notification_clear": {
+      "schema": "DeviceRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Desktop owner; pairing captures selected project; devices bind immutable project scope",
+      "effects": "Owner renderer only; captured current project and device scope; read-only notification ledger/policy, no external actions",
+      "policy": "Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core",
+      "replacement": "MobileTransport / MobileService",
+      "status": "implemented; Android build/hardware acceptance pending"
+    },
+    "memory_list": {
+      "schema": "MemoryQuery",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_write": {
+      "schema": "MemoryWrite",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_forget": {
+      "schema": "MemoryForget",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_retention": {
+      "schema": "MemoryRetention",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_export": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_restore_preview": {
+      "schema": "MemoryRestore",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "memory_restore_apply": {
+      "schema": "MemoryRestoreApply",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner and captured current project; encrypted memory collection",
+      "effects": "Explicit owner-reviewed memory CRUD, local search, retention or encrypted backup/recovery only",
+      "policy": "Owner renderer only; no mobile or model write route; revision-bound mutations and recovery preview",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Synchronous transaction; two-minute bounded recovery preview; no automatic retry",
+      "replacement": "MemoryTransport / ProjectMemory",
+      "status": "implemented"
+    },
+    "usage_state": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "usage_policy": {
+      "schema": "UsagePolicy",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "quality_state": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "quality_run": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "quality_cancel": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated owner renderer only",
+      "context": "Pinned owner renderer; owner-wide budget totals; current-project receipts/evaluation report",
+      "effects": "Inspect or explicitly edit admission budgets; run/cancel fixed offline fixtures only",
+      "policy": "Revision-bound policy; no model/mobile management tools; quality_cancel is owner safety control allowed while locked",
+      "response": "Origin-only strict ACK; invitation secret never broadcast",
+      "lifetime": "Atomic allowance claim before cloud calls; no refund of uncertain work; one owned offline fixture process with 20s deadline",
+      "replacement": "UsageTransport / UsageService / QualityService",
+      "status": "implemented; real provider cost/quality acceptance deferred"
+    },
+    "browser_inspect": {
+      "schema": "BrowserInspect (strict HTTPS URL)",
+      "caller": "Authenticated owner renderer only",
+      "context": "Captured owner, project and origin SID; no persisted results",
+      "effects": "One bounded public HTTPS GET inspection; page text is untrusted",
+      "policy": "Shared run_web_agent approval/denial; no provider, scripts, credentials or actions",
+      "response": "Origin ACK only; no broadcast",
+      "lifetime": "25 second owned worker deadline; cancel/disconnect/resource/quit kills process tree",
+      "replacement": "BrowserService / BrowserTransport",
+      "status": "migrated"
+    },
+    "browser_cancel": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer only",
+      "context": "Captured owner, project and origin SID; no persisted results",
+      "effects": "Cancel origin task and pending approval",
+      "policy": "Owner renderer safety stop permitted while locked",
+      "response": "Origin ACK only; no broadcast",
+      "lifetime": "25 second owned worker deadline; cancel/disconnect/resource/quit kills process tree",
+      "replacement": "BrowserService / BrowserTransport",
+      "status": "migrated"
+    },
+    "task_queue_state": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "Read project receipts; recover interrupted attempts without execution",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin ACK only; approval requests/closure scoped to origin",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
+    },
+    "task_queue_create": {
+      "schema": "TaskCreate",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "Persist immutable bounded typed draft; execute nothing",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin ACK only; approval requests/closure scoped to origin",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
+    },
+    "task_queue_run": {
+      "schema": "TaskReference",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "One non-replayable attempt; receipt commits before each approved effect",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin ACK only; approval requests/closure scoped to origin",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
+    },
+    "task_queue_cancel": {
+      "schema": "TaskReference",
+      "caller": "Authenticated desktop owner renderer",
+      "context": "Captured owner/project; active attempt bound to origin SID",
+      "effects": "Cancel origin active attempt or discard draft; safety stop allowed while locked",
+      "policy": "Owner renderer gate; execution requires fresh per-step shared-tool approval even when allowed within scope",
+      "response": "Origin acknowledgement only; no private receipt hydration while locked",
+      "lifetime": "At most 8 typed steps; 720 second total deadline; disconnect/project/panel/resource/quit stops; no replay",
+      "replacement": "TaskQueue / TaskQueueTransport",
+      "status": "migrated"
+    },
+    "connections_state": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Local dependency presence, saved counts and cached observations; no private endpoints/keys",
+      "effects": "Metadata inspection only; no discovery, optional adapter initialization or network I/O",
+      "policy": "Independent owner/role/unlock gate",
+      "response": "Origin ACK; strict whitelisted ConnectionsState",
+      "lifetime": "Request-only; no new timer or worker",
+      "replacement": "ConnectionsReadiness / ConnectionsTransport",
+      "status": "migrated"
+    },
+    "call_lab_state": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_lab_check": {
+      "schema": "LabReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_lab_stop": {
+      "schema": "LabReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_lab_record": {
+      "schema": "LabReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Captured owner and project; origin-bound worker",
+      "effects": "Metadata and offline simulation only; no live control, audio or provider",
+      "policy": "Independent owner/role/unlock gate; strict requests; resource admission for checks",
+      "response": "Origin ACK; labeled fixture metadata or scoped protected record",
+      "lifetime": "Owned kill-on-close worker; panel/disconnect/project/lock/resource cancellation",
+      "replacement": "CallLab / CallLabTransport",
+      "status": "implemented_offline_fixture"
+    },
+    "call_test_state": {
+      "schema": "EmptyRequest",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Read controlled-test policy/readiness and metadata-only draft/own active lease",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_prepare": {
+      "schema": "TestPrepare",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Validate and store protected enrollment draft; imported confirmation flags must be false",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_review": {
+      "schema": "TestRevision",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Revalidate policy, profile, backend physical proof, source/helper pins and resources; issue one-use 60s review only when all pass",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_arm": {
+      "schema": "TestArm",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Consume review once; typed exact confirmation; start one core-owned 30s incoming-call lease with structured local speech only",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "call_test_stop": {
+      "schema": "TestStop",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Captured owner/project/origin; current draft revision, process/route/channel bindings",
+      "effects": "Stop only the exact origin-bound one-call lease and invalidate its pending reviews",
+      "policy": "Disabled root controlled-test policy plus backend physical collector required for arming; renderer proof uploads/flags cannot enable it; no unattended/model/outgoing/reply actions",
+      "response": "Origin-only strict ACK; no transcript, profile paths or broadcast",
+      "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
+      "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
+      "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    }
+  },
+  "http_routes": {
+    "/status": {
+      "schema": "None",
+      "caller": "Local HTTP reader",
+      "context": "Runtime metadata",
+      "effects": "Read status",
+      "policy": "No privileged action",
+      "response": "HTTP JSON",
+      "lifetime": "Immediate snapshot",
+      "replacement": "Application status",
+      "status": "existing"
+    }
+  },
+  "shared_tools": {
+    "cancel_reminder": {
+      "schema": "ReminderAction",
+      "policy": "Shared permissions[cancel_reminder]; absent/True requires approval; deny rejects",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "control_device": {
+      "schema": "ControlDevice",
+      "policy": "Shared permissions[control_device]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "create_reminder": {
+      "schema": "CreateReminder",
+      "policy": "Shared permissions[create_reminder]; absent/True requires approval; deny rejects",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "generate_cad": {
+      "schema": "BuildRequest",
+      "policy": "Shared permissions[generate_cad]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "generate_image": {
+      "schema": "ImageRequest",
+      "policy": "Shared permissions[generate_image]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "get_system_info": {
+      "schema": "NoArguments",
+      "policy": "Shared permissions[get_system_info]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "launch_app": {
+      "schema": "LaunchApp",
+      "policy": "Shared permissions[launch_app]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "list_all_devices": {
+      "schema": "NoArguments",
+      "policy": "Shared permissions[list_all_devices]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "list_reminders": {
+      "schema": "ListReminders",
+      "policy": "Shared permissions[list_reminders]; absent/True requires approval; deny rejects",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "read_clipboard": {
+      "schema": "NoArguments",
+      "policy": "Shared permissions[read_clipboard]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "read_file": {
+      "schema": "PathArguments",
+      "policy": "Shared permissions[read_file]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "snooze_reminder": {
+      "schema": "SnoozeReminder",
+      "policy": "Shared permissions[snooze_reminder]; absent/True requires approval; deny rejects",
+      "context": "Authenticated desktop owner; desktop-global reminder store",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "stop_watching": {
+      "schema": "StopWatching",
+      "policy": "Shared permissions[stop_watching]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "take_screenshot": {
+      "schema": "Screenshot",
+      "policy": "Shared permissions[take_screenshot]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "30s cooperative execution",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "write_file": {
+      "schema": "WriteArguments",
+      "policy": "Shared permissions[write_file]; absent/True requires approval; deny rejects",
+      "context": "Authenticated principal and resolved project",
+      "lifetime": "Existing provider/service/worker lifetime",
+      "replacement": "Current shared tool; declarations consolidated at R2c",
+      "model_visible": true
+    },
+    "discover_kasa": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService",
+      "model_visible": true
+    },
+    "control_kasa": {
+      "schema": "KasaControl",
+      "policy": "control_device alias",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService",
+      "model_visible": false
+    },
+    "discover_printers": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService",
+      "model_visible": true
+    },
+    "add_printer": {
+      "schema": "AddPrinter",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService",
+      "model_visible": true
+    },
+    "get_slicer_profiles": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool approval/deny",
+      "context": "Authenticated desktop owner",
+      "lifetime": "30s cooperative execution",
+      "replacement": "DevicePrinterService",
+      "model_visible": true
+    },
+    "print_stl": {
+      "schema": "PrintRequest",
+      "policy": "print_stl outer permission plus three phase gates",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": true
+    },
+    "slice_stl": {
+      "schema": "PrintStage",
+      "policy": "Independent per-stage shared permission; root print workflow required",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": false
+    },
+    "upload_gcode": {
+      "schema": "PrintStage",
+      "policy": "Independent per-stage shared permission; root print workflow required",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": false
+    },
+    "start_print": {
+      "schema": "PrintStage",
+      "policy": "Independent per-stage shared permission; root print workflow required",
+      "context": "Authenticated owner and captured project; bound plan for internal phases",
+      "lifetime": "Owned slicer 330s; slice execution 340s; upload/start 35s each; separate approval deadlines",
+      "replacement": "PrintService; internal stages hidden from provider schemas",
+      "model_visible": false
+    },
+    "plan_cad": {
+      "schema": "PlanRequest",
+      "policy": "generate_cad permission alias",
+      "context": "Authenticated desktop owner and captured project",
+      "lifetime": "40s cooperative execution; provider 30s plus cleanup; separate approval deadline",
+      "replacement": "CadTransport planner",
+      "model_visible": true
+    },
+    "save_memory": {
+      "schema": "SaveMemory",
+      "policy": "Shared save_memory permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": true
+    },
+    "upload_memory": {
+      "schema": "UploadMemory",
+      "policy": "Shared upload_memory permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": true
+    },
+    "start_audio": {
+      "schema": "StartAudio",
+      "policy": "Shared start_audio permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "Retired production audio path; migration message; injected legacy bridge policy fixtures retained",
+      "model_visible": false
+    },
+    "resume_audio": {
+      "schema": "EmptyRequest",
+      "policy": "Shared start_audio permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "Retired production audio path; migration message; injected legacy bridge policy fixtures retained",
+      "model_visible": false
+    },
+    "video_frame": {
+      "schema": "VideoFrame",
+      "policy": "Shared video_frame permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "legacy_generate_cad": {
+      "schema": "PromptRequest",
+      "policy": "Shared generate_cad permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "iterate_cad": {
+      "schema": "PromptRequest",
+      "policy": "Shared generate_cad permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false
+    },
+    "prompt_web_agent": {
+      "schema": "PromptRequest",
+      "policy": "Shared run_web_agent permission; own alias deny also enforced",
+      "context": "Authenticated desktop owner and immutable project snapshot",
+      "lifetime": "180s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "replacement": "WorkspaceService / WorkspaceTransport",
+      "model_visible": false,
+      "status": "retired",
+      "effects": "Fail closed with migration guidance; no browser/provider construction"
+    },
+    "read_directory": {
+      "schema": "DirectoryRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "search_files": {
+      "schema": "SearchRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "create_project": {
+      "schema": "ProjectRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "switch_project": {
+      "schema": "ProjectRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_projects": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "create_routine": {
+      "schema": "RoutineRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_routines": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_running_apps": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "focus_window": {
+      "schema": "LaunchApp",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "write_clipboard": {
+      "schema": "ClipboardRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "describe_camera": {
+      "schema": "CameraQuestion",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "detect_presence": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "watch_for": {
+      "schema": "WatchRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "list_watches": {
+      "schema": "NoArguments",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "get_device_state": {
+      "schema": "DeviceRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "get_print_status": {
+      "schema": "PrinterStatusRequest",
+      "policy": "Shared per-tool permission; owner authorization",
+      "context": "Captured owner/project; trusted voice binding where applicable",
+      "lifetime": "30s cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions / shared dispatcher",
+      "model_visible": true
+    },
+    "generate_cad_prototype": {
+      "schema": "PromptRequest",
+      "policy": "Canonical legacy_generate_cad permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false
+    },
+    "run_web_agent": {
+      "schema": "PromptRequest",
+      "policy": "Canonical prompt_web_agent permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false,
+      "status": "retired",
+      "effects": "Fail closed with migration guidance; no browser/provider construction"
+    },
+    "list_smart_devices": {
+      "schema": "NoArguments",
+      "policy": "Canonical list_all_devices permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false
+    },
+    "control_light": {
+      "schema": "ControlLight",
+      "policy": "Canonical control_device permission plus source/target alias denial",
+      "context": "Captured owner/project; trusted voice binding",
+      "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
+      "replacement": "ExtendedActions compatibility alias",
+      "model_visible": false
+    },
+    "plan_cad_changes": {
+      "schema": "ChangePrompt",
+      "caller": "Owner renderer via typed proposal transport",
+      "context": "Captured owner/project/base revision",
+      "effects": "Optional provider returns bounded field edits for review",
+      "policy": "Shared generate_cad and explicit tool deny/approval; post-provider owner and base recheck",
+      "response": "Structured proposal; no generation worker",
+      "lifetime": "40 second dispatcher timeout; owned provider/task cleanup",
+      "replacement": "CadTransport.execute_change_plan",
+      "status": "migrated"
+    },
+    "speech_capture": {
+      "schema": "SpeechBegin",
+      "policy": "Shared start_audio permission; independent speech_capture denial; owner/project recheck after approval",
+      "context": "Origin renderer SID, pinned owner, captured project and conversation UUID",
+      "lifetime": "One bounded turn; pending approval and turn cancel on origin disconnect/core close/restriction",
+      "replacement": "SpeechService / SpeechTransport",
+      "model_visible": false
+    },
+    "browser_inspect": {
+      "schema": "BrowserInspect",
+      "caller": "Authenticated owner renderer only",
+      "context": "Captured owner, project and origin SID; no persisted results",
+      "effects": "One bounded public HTTPS GET inspection; page text is untrusted",
+      "policy": "Shared run_web_agent approval/denial; no provider, scripts, credentials or actions",
+      "response": "Origin ACK only; no broadcast",
+      "lifetime": "25 second owned worker deadline; cancel/disconnect/resource/quit kills process tree",
+      "replacement": "BrowserService / BrowserTransport",
+      "status": "migrated",
+      "model_visible": false
+    }
+  },
+  "voice_declarations": {
+    "cancel_reminder": {
+      "target": "cancel_reminder",
+      "schema": "ReminderAction",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "control_device": {
+      "target": "control_device",
+      "schema": "ControlDevice",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "control_light": {
+      "target": "control_light",
+      "schema": "ControlLight",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "create_project": {
+      "target": "create_project",
+      "schema": "ProjectRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "create_reminder": {
+      "target": "create_reminder",
+      "schema": "CreateReminder",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "create_routine": {
+      "target": "create_routine",
+      "schema": "RoutineRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "describe_camera": {
+      "target": "describe_camera",
+      "schema": "CameraQuestion",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "detect_presence": {
+      "target": "detect_presence",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "discover_printers": {
+      "target": "discover_printers",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "focus_window": {
+      "target": "focus_window",
+      "schema": "LaunchApp",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "generate_cad": {
+      "target": "legacy_generate_cad",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "generate_cad_prototype": {
+      "target": "generate_cad_prototype",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "get_device_state": {
+      "target": "get_device_state",
+      "schema": "DeviceRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "get_print_status": {
+      "target": "get_print_status",
+      "schema": "PrinterStatusRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "get_system_info": {
+      "target": "get_system_info",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "iterate_cad": {
+      "target": "iterate_cad",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "launch_app": {
+      "target": "launch_app",
+      "schema": "LaunchApp",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_all_devices": {
+      "target": "list_all_devices",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_projects": {
+      "target": "list_projects",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_reminders": {
+      "target": "list_reminders",
+      "schema": "ListReminders",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_routines": {
+      "target": "list_routines",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_running_apps": {
+      "target": "list_running_apps",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_smart_devices": {
+      "target": "list_smart_devices",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "list_watches": {
+      "target": "list_watches",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "print_stl": {
+      "target": "print_stl",
+      "schema": "PrintRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "read_clipboard": {
+      "target": "read_clipboard",
+      "schema": "NoArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "read_directory": {
+      "target": "read_directory",
+      "schema": "DirectoryRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "read_file": {
+      "target": "read_file",
+      "schema": "PathArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "run_web_agent": {
+      "target": "run_web_agent",
+      "schema": "PromptRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "search_files": {
+      "target": "search_files",
+      "schema": "SearchRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "snooze_reminder": {
+      "target": "snooze_reminder",
+      "schema": "SnoozeReminder",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "stop_watching": {
+      "target": "stop_watching",
+      "schema": "StopWatching",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "switch_project": {
+      "target": "switch_project",
+      "schema": "ProjectRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "take_screenshot": {
+      "target": "take_screenshot",
+      "schema": "Screenshot",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "watch_for": {
+      "target": "watch_for",
+      "schema": "WatchRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "write_clipboard": {
+      "target": "write_clipboard",
+      "schema": "ClipboardRequest",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    },
+    "write_file": {
+      "target": "write_file",
+      "schema": "WriteArguments",
+      "policy": "Shared dispatcher; session authorization before/after approval",
+      "status": "migrated"
+    }
+  },
+  "mobile_http_routes": {
+    "/v1/claim": {
+      "schema": "PairClaim",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "Single-use invitation plus possession proof",
+      "effects": "Pending owner approval only"
+    },
+    "/v1/finish": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "Pending or approved device signing key",
+      "effects": "Read pairing decision"
+    },
+    "/v1/status": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "status:read",
+      "effects": "Read resource state and paired project"
+    },
+    "/v1/jobs": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "jobs:read",
+      "effects": "Read 12 scoped job summaries"
+    },
+    "/v1/preview": {
+      "schema": "MobilePreview",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "jobs:read",
+      "effects": "Read bounded image or typed CAD recipe preview"
+    },
+    "/v1/chat": {
+      "schema": "MobileChat",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "chat:ask",
+      "effects": "Common conversation with empty tool dispatcher, idempotent claims; no actions"
+    },
+    "/v1/history": {
+      "schema": "MobileHistory",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "chat:ask",
+      "effects": "Read device/project conversation history"
+    },
+    "/v1/receipt": {
+      "schema": "MobileReceipt",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "chat:ask",
+      "effects": "Read durable request outcome without replay"
+    },
+    "/v1/notification_policy": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "status:read (own policy only)",
+      "effects": "Read-only selected notification ledger; no notification actions or replies"
+    },
+    "/v1/notification_sync": {
+      "schema": "NotificationBatch",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "status:read + separate device/project notifications:sync policy for ingestion",
+      "effects": "Read-only selected notification ledger; no notification actions or replies"
+    },
+    "/v1/call_receipts": {
+      "schema": "MobileEmpty",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "calls:read (separate explicit pairing opt-in)",
+      "effects": "Read at most 20 finished owner/project call summaries, no transcript or call actions"
+    },
+    "/v1/call_receipt": {
+      "schema": "MobileCallReceipt",
+      "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
+      "grant": "calls:read (separate explicit pairing opt-in)",
+      "effects": "Explicit read of one bounded finished protected transcript; excludes lab fixtures, active/expired records and all call/reply actions"
+    }
+  }
+}

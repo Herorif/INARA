@@ -1,0 +1,50 @@
+{
+  "before_workspace": {
+    "working_set_mb": 65.02,
+    "private_mb": 48.09
+  },
+  "ui": {
+    "read_only_notification_fixture_redacted_deduplicated_cleared": true,
+    "listener_default_off_and_explicit_loopback_tls": true,
+    "real_fixture_claim_owner_approval_and_revocation": true,
+    "signed_replay_rejected_and_chat_default_denied": true,
+    "responsive_widths": [
+      1440,
+      390,
+      768
+    ],
+    "android_apk_or_device_used": false,
+    "provider_used": false,
+    "passed": true
+  },
+  "model_modules_in_resident": false,
+  "workspace_and_mobile_listener_released": true,
+  "resident_after_worker_and_workspace_exit": [
+    {
+      "working_set_mb": 82.86,
+      "private_mb": 57.32
+    },
+    {
+      "working_set_mb": 82.86,
+      "private_mb": 57.32
+    },
+    {
+      "working_set_mb": 82.86,
+      "private_mb": 57.32
+    },
+    {
+      "working_set_mb": 82.86,
+      "private_mb": 57.32
+    },
+    {
+      "working_set_mb": 82.86,
+      "private_mb": 57.32
+    },
+    {
+      "working_set_mb": 82.86,
+      "private_mb": 57.32
+    }
+  ],
+  "passed": true,
+  "graceful_core_stop": true
+}

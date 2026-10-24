@@ -29,6 +29,11 @@ def _messages_to_gemini_contents(messages: list[Message]) -> list:
 
     contents = []
     for msg in messages:
+        original = next((att['content'] for att in msg.attachments
+                         if att.get('type') == 'provider_content'), None)
+        if original is not None:
+            contents.append(original)
+            continue
         if msg.role == MessageRole.SYSTEM:
             continue  # System instruction is passed separately in Gemini
 
@@ -85,20 +90,27 @@ class GeminiProvider(BaseLLMProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-3.8-flash",
     ):
-        from google import genai
-
         self._api_key = api_key or os.getenv("GEMINI_API_KEY")
         self._model = model
-        self._client = genai.Client(
-            http_options={"api_version": "v1beta"},
-            api_key=self._api_key,
-        )
+        self.__client = None
+
+    @property
+    def _client(self):
+        if self.__client is None:
+            from google import genai
+            self.__client = genai.Client(api_key=self._api_key, http_options={"retry_options": {"attempts": 1}})
+        return self.__client
 
     @property
     def name(self) -> str:
         return "gemini"
+
+    async def close(self):
+        if self.__client is not None:
+            await self.__client.aio.aclose()
+            self.__client = None
 
     async def generate(
         self,
@@ -114,8 +126,11 @@ class GeminiProvider(BaseLLMProvider):
             system_instruction=system_instruction,
             temperature=temperature,
         )
+        if kwargs.get("max_output_tokens") is not None:
+            config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
             config.tools = tools
+            config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if kwargs.get("thinking", False):
             config.thinking_config = types.ThinkingConfig(include_thoughts=True)
 
@@ -128,7 +143,7 @@ class GeminiProvider(BaseLLMProvider):
         )
 
         if not response.candidates:
-            return LLMResponse()
+            return LLMResponse(raw=response)
 
         candidate = response.candidates[0]
         text_parts = []
@@ -164,8 +179,11 @@ class GeminiProvider(BaseLLMProvider):
             system_instruction=system_instruction,
             temperature=temperature,
         )
+        if kwargs.get("max_output_tokens") is not None:
+            config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
             config.tools = tools
+            config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if kwargs.get("thinking", False):
             config.thinking_config = types.ThinkingConfig(include_thoughts=True)
 
@@ -237,8 +255,11 @@ class GeminiVoiceProvider(BaseVoiceProvider):
             input_audio_transcription={},
             system_instruction=system_instruction,
         )
+        if kwargs.get("max_output_tokens") is not None:
+            config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
             config.tools = tools
+            config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if voice_name:
             config.speech_config = types.SpeechConfig(
                 voice_config=types.VoiceConfig(

@@ -1,0 +1,98 @@
+{
+  "bootstrap_acceptance": {
+    "fix": "direct filesystem attribute reads replace repeated PowerShell provider inspections",
+    "full_acceptance_after_fix": "passed",
+    "initial_run": "120-second path-inspection timeout",
+    "linked_ancestor_regression": "passed"
+  },
+  "bootstrap_sha256": "ba505013d46a853f739ee33daeee61fa6cb1b60cd6b333e11a7eca4b9fda0ec1",
+  "controller_acceptance": {
+    "bootstrap_policy_status": {
+      "launched": false,
+      "release_authorized": false,
+      "release_mode": "disabled",
+      "windows_mode": "disabled"
+    },
+    "certificate_store_configured": false,
+    "clean_machine_verified": false,
+    "controller": {
+      "files": 2670,
+      "integrity": "passed",
+      "manifest_sha256": "3fd4dd370af05b5500f2a22976e604eda542d412d23e5eb9f02d71c2bc43b3f6",
+      "release_authorized": false,
+      "runtime_executed": false
+    },
+    "format": 1,
+    "kind": "inara-controller-development-acceptance",
+    "network_acceptance_measured": false,
+    "production_installation_created": false,
+    "refusals": {
+      "disabled_windows_policy": true,
+      "missing_guarded_launch_configuration": true,
+      "missing_launch_configuration": true,
+      "wrong_bootstrap_pin_before_python": true
+    },
+    "release_authorized": false,
+    "resident_launched": false,
+    "unsigned_source_probe": {
+      "cache_only": true,
+      "file_sha256": "58fffdf0f045de42c09a8027c46aded1a729005fa40c98cf9508a494f734b61f",
+      "release_authorized": false,
+      "signer_sha256": null,
+      "status": "0x800b0003",
+      "timestamp_sha256": null
+    },
+    "upstream_python_probe": {
+      "cache_only": true,
+      "file_sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+      "inara_identity_enrolled": false,
+      "release_authorized": false,
+      "signer_sha256": "f0e4f5974299809383869188a87d305827ace5a7336e7c35ed03858d5816ee62",
+      "status": "0x00000000",
+      "timestamp_sha256": "122776489a543e3e71426ef7338bea0e6561d5047a4e2b9351590bdcff168ace"
+    }
+  },
+  "controller_artifact": ".runtime/controllers/guarded-launch-20261022",
+  "controller_death_killed_child_and_grandchild": true,
+  "expired_process": {
+    "authorization_expired": true,
+    "exit_code": 1,
+    "process_tree_contained": true
+  },
+  "finite_process": {
+    "authorization_expired": false,
+    "exit_code": 0,
+    "process_tree_contained": true
+  },
+  "focused_tests": {
+    "new_grant_and_process_checks": 33,
+    "new_junction_regression_checks": 1,
+    "passed": 250,
+    "ruff": "passed"
+  },
+  "format": 1,
+  "grant_acceptance": {
+    "changed_review_refused": true,
+    "hardware_monotonic_counter": false,
+    "interrupted_commit_recovered": true,
+    "manager_and_input_leases_held_during_fixture_executor": true,
+    "mode": "synthetic production-purpose identities and inert payloads only",
+    "production_policy_rotation_implemented": false,
+    "renewal_after_source_and_previous_grant_expiry": true,
+    "restored_old_head_refused_against_latest_external_pin": true
+  },
+  "kind": "inara-guarded-process-development-acceptance",
+  "portable_python": true,
+  "production_grant_signed": false,
+  "production_installation_created": false,
+  "real_review_ledger": {
+    "events": 0,
+    "head_sha256": "7e46a1dc53cf0b445ad2b8e5bd7b1836655d70a38c6b781f054ebbb1e8d94ffa",
+    "pending": 85,
+    "subjects": 85
+  },
+  "release_authorized": false,
+  "resident_launched": false,
+  "windows_launch_sha256": "fe575ff9fd531dca773f639eb9526137a3e3c9c0117f9100c631b0bc2492f3dc",
+  "write_lease_enforced": true
+}

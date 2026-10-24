@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "restored_memory_accessible": true,
+  "restored_conversation_accessible": true,
+  "fixture_cad_artifact_accessible": true,
+  "literal_message_paths_preserved": true,
+  "recovered_profile_used_by_native_resident": true,
+  "resident_lease_retained": true,
+  "model_device_workers_started": 0,
+  "graceful_core_stop": true,
+  "rollback_to_original_passed": true,
+  "original_profile_byte_identical": true,
+  "recovery_copy_and_encrypted_backup_retained": true,
+  "installed_package_unchanged": true,
+  "older_control_refused_upgraded_state": true,
+  "real_profile_used": false,
+  "signed": false
+}
