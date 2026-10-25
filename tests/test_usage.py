@@ -291,7 +291,10 @@ async def test_unmetered_legacy_paths_are_blocked_by_shared_dispatcher(usage_app
     app = usage_app
     configure(app)
     app.settings["tool_permissions"].update({key: False for key in app.dispatcher.tools})
-    for tool in ("take_screenshot", "run_web_agent", "run_web_agent", "generate_cad"):
+    for tool in (
+        "take_screenshot", "run_web_agent", "run_web_agent", "generate_cad",
+        "legacy_generated_cad",
+    ):
         app.settings["tool_permissions"][tool] = False
     with pytest.raises(ServiceError, match="legacy cloud"):
         await app.dispatcher.dispatch(

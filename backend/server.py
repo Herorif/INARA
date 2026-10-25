@@ -33,6 +33,8 @@ DEFAULT_SETTINGS = {
     "face_auth_enabled": False, # Default OFF as requested
     "tool_permissions": {
         "generate_cad": True,
+        # Legacy AI-written build123d code runs as the user; off unless enabled.
+        "legacy_generated_cad": "deny",
         "generate_image": True,
         "run_web_agent": True,
         "write_file": True,
@@ -170,7 +172,7 @@ def _request_exit():
         uvicorn_server.should_exit = True
 
 
-from application import create_application
+from application import create_application  # noqa: E402 - settings load first
 
 runtime = create_application(
     settings=SETTINGS, project_root=project_root,

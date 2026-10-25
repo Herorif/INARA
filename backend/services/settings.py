@@ -15,7 +15,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from services.tools import ServiceError
+from services.tools import DEFAULT_DENY_PERMISSIONS, ServiceError
 
 # Retained legacy panel/declaration names, until the R2c declaration migration.
 LEGACY_PERMISSION_NAMES = frozenset(
@@ -106,7 +106,9 @@ class SettingsStore:
 class SettingsService:
     def __init__(self, settings, store, permission_names, on_change=None):
         self.settings, self.store, self.on_change = settings, store, on_change
-        self.permission_names = frozenset(permission_names) | LEGACY_PERMISSION_NAMES
+        self.permission_names = (
+            frozenset(permission_names) | LEGACY_PERMISSION_NAMES | DEFAULT_DENY_PERMISSIONS
+        )
 
     def snapshot(self):
         return copy.deepcopy(self.settings)

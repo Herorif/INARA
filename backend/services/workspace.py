@@ -13,8 +13,14 @@ import time
 import uuid
 
 from core.event_bus import event_owner
+from services.legacy_cad import LegacyScriptRunner
 from services.settings import EmptyRequest
-from services.tools import ServiceError, ToolSpec, contained_path
+from services.tools import (
+    LEGACY_GENERATED_CAD_PERMISSION,
+    ServiceError,
+    ToolSpec,
+    contained_path,
+)
 from services.workspace_contracts import (
     SaveMemory,
     UploadMemory,
@@ -30,8 +36,9 @@ WORKSPACE_TOOLS = {
     "start_audio": (StartAudio, "start_audio", 30),
     "resume_audio": (EmptyRequest, "start_audio", 10),
     "video_frame": (VideoFrame, "video_frame", 10),
-    "legacy_generate_cad": (PromptRequest, "generate_cad", 300),
-    "iterate_cad": (PromptRequest, "generate_cad", 300),
+    # Generated-code CAD never shares the safe offline generate_cad policy.
+    "legacy_generate_cad": (PromptRequest, LEGACY_GENERATED_CAD_PERMISSION, 300),
+    "iterate_cad": (PromptRequest, LEGACY_GENERATED_CAD_PERMISSION, 300),
     "prompt_web_agent": (PromptRequest, "run_web_agent", 180),
 }
 
@@ -64,6 +71,8 @@ class WorkspaceService:
         self.preflight = provider_ready
         self.audio_factory = lambda **kwargs: app.inara.get().AudioLoop(**kwargs)
         self.cad_factory = self.make_cad
+        # Injection point for the owned legacy-script process (WorkspaceProcess).
+        self.legacy_process_factory = None
         self.last_frame = 0
         for name, (schema, permission, timeout) in WORKSPACE_TOOLS.items():
             self.dispatcher.register(
@@ -307,7 +316,12 @@ class WorkspaceService:
 
             agent = None
             try:
+                # The runner awaits the child's full exit on every path, so the
+                # creative lock held here is released only after the tree is gone.
                 agent = self.cad_factory(
+                    runner=LegacyScriptRunner(
+                        self.app.resources, process_factory=self.legacy_process_factory
+                    ),
                     on_thought=callback("cad_thought", lambda v: {"text": v}),
                     on_status=callback(
                         "cad_status", lambda v: v if isinstance(v, dict) else {"status": v}

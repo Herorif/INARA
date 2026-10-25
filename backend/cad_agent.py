@@ -1,19 +1,20 @@
 from services.capability_profiles import model_id
 import os
-import json
-import asyncio
 from datetime import datetime
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Optional
+from services.legacy_cad import LegacyScriptRunner
+from services.tools import ServiceError
 
 load_dotenv()
 
 class CadAgent:
-    def __init__(self, on_thought=None, on_status=None):
-        self.client = genai.Client(http_options={"api_version": "v1beta"}, api_key=os.getenv("GEMINI_API_KEY"))
+    def __init__(self, on_thought=None, on_status=None, client=None, runner=None):
+        self.client = client or genai.Client(http_options={"api_version": "v1beta"}, api_key=os.getenv("GEMINI_API_KEY"))
+        # Generated code only ever runs in an owned, hard-deadline child process.
+        self.runner = runner or LegacyScriptRunner()
         # Using Gemini 2.5 Pro for thinking/streaming support
         self.model = model_id("legacy_cad")
         self.on_thought = on_thought  # Callback for streaming thoughts 
@@ -61,23 +62,54 @@ export_stl(result_part, 'output.stl')
 ```
 """
 
+    async def request_code(self, current_prompt: str) -> str:
+        """Stream one model answer; thoughts go to on_thought, answer text is returned."""
+        raw_content = ""
+        stream = await self.client.aio.models.generate_content_stream(
+            model=self.model,
+            contents=current_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=self.system_instruction,
+                temperature=1.0,
+                thinking_config=types.ThinkingConfig(include_thoughts=True)
+            )
+        )
+        async for chunk in stream:
+            if chunk.candidates and chunk.candidates[0].content and chunk.candidates[0].content.parts:
+                for part in chunk.candidates[0].content.parts:
+                    if not part.text:
+                        continue
+                    elif part.thought:
+                        # Stream thought to callback
+                        if self.on_thought:
+                            self.on_thought(part.text)
+                    else:
+                        # Accumulate answer text
+                        raw_content += part.text
+        return raw_content
+
+    @staticmethod
+    def project_work_dir(output_dir: Optional[str]) -> str:
+        """Generated code runs only in the project's CAD output folder, never %TEMP%."""
+        if not output_dir:
+            raise ServiceError(
+                "cad_output_required", "Legacy CAD needs the project's CAD output folder."
+            )
+        os.makedirs(output_dir, exist_ok=True)
+        return output_dir
+
     async def generate_prototype(self, prompt: str, output_dir: Optional[str] = None):
         """
-        Generates 3D geometry by asking Gemini for a script, then running it LOCALLY.
+        Generates 3D geometry by asking Gemini for a script, then running it in an
+        owned child process (hard deadline, whole-tree kill, no API keys).
         Args:
             prompt: User's description of the model to generate.
-            output_dir: Directory to save the script and STL. If None, uses temp dir.
+            output_dir: Project CAD folder for the script and STL (required; also the cwd).
         """
         print(f"[CadAgent DEBUG] [START] Generation started for: '{prompt}'")
         
         try:
-            # Use provided output_dir or fall back to temp
-            if output_dir:
-                os.makedirs(output_dir, exist_ok=True)
-                work_dir = output_dir
-            else:
-                import tempfile
-                work_dir = tempfile.gettempdir()
+            work_dir = self.project_work_dir(output_dir)
             
             # Generate timestamped filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -101,28 +133,7 @@ export_stl(result_part, 'output.stl')
                     self.on_status(status_info)
                 
                 # 1. Ask Gemini for the code with streaming and thinking
-                raw_content = ""
-                stream = await self.client.aio.models.generate_content_stream(
-                    model=self.model,
-                    contents=current_prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction=self.system_instruction,
-                        temperature=1.0,
-                        thinking_config=types.ThinkingConfig(include_thoughts=True)
-                    )
-                )
-                async for chunk in stream:
-                    if chunk.candidates and chunk.candidates[0].content and chunk.candidates[0].content.parts:
-                        for part in chunk.candidates[0].content.parts:
-                            if not part.text:
-                                continue
-                            elif part.thought:
-                                # Stream thought to callback
-                                if self.on_thought:
-                                    self.on_thought(part.text)
-                            else:
-                                # Accumulate answer text
-                                raw_content += part.text
+                raw_content = await self.request_code(current_prompt)
                 
                 if not raw_content:
                     print("[CadAgent DEBUG] [ERR] Empty response from model.")
@@ -153,26 +164,10 @@ export_stl(result_part, 'output.stl')
                     
                 print(f"[CadAgent DEBUG] [EXEC] Running local script: {script_path}")
                 
-                # 4. Execute Locally
-                import subprocess
-                import sys
-                
-                # Use the current Python interpreter (unified environment with build123d + mediapipe)
-                try:
-                    proc = await asyncio.to_thread(
-                        subprocess.run,
-                        [sys.executable, script_path],
-                        capture_output=True,
-                        text=True
-                    )
-                    stdout, stderr = proc.stdout, proc.stderr
-                except Exception as e:
-                     print(f"[CadAgent DEBUG] [ERR] Subprocess run failed: {e}")
-                     proc = type('obj', (object,), {'returncode': 1})
-                     stdout = ""
-                     stderr = str(e)
-                
-                if proc.returncode != 0:
+                # 4. Execute in an owned child (hard deadline, tree kill, no API keys)
+                returncode, stderr = await self.runner.run(script_path, work_dir)
+
+                if returncode != 0:
                     error_msg = stderr
                     # Extract a concise error message for display
                     error_lines = error_msg.strip().split('\n')
@@ -199,7 +194,7 @@ Original request: {prompt}
 """
                     continue # Retry loop
                 
-                print(f"[CadAgent DEBUG] [OK] Script executed successfully.")
+                print("[CadAgent DEBUG] [OK] Script executed successfully.")
                 
                 # 5. Read Output
                 if os.path.exists(output_stl):
@@ -219,7 +214,7 @@ Original request: {prompt}
                      print(f"[CadAgent DEBUG] [ERR] '{output_stl}' was not generated.")
                      # If script ran but no output, treat as failure and retry?
                      # Ideally yes.
-                     current_prompt = f"The script executed successfully but 'output.stl' was not found. Ensure you call `export_stl(result_part, 'output.stl')` at the end."
+                     current_prompt = "The script executed successfully but 'output.stl' was not found. Ensure you call `export_stl(result_part, 'output.stl')` at the end."
                      continue
 
             # If loop finishes without success
@@ -233,6 +228,9 @@ Original request: {prompt}
                 })
             return None
 
+        except ServiceError:
+            # Timeouts, mode cancellation and cleanup faults must reach the caller.
+            raise
         except Exception as e:
             print(f"CadAgent Error: {e}")
             import traceback
@@ -244,17 +242,11 @@ Original request: {prompt}
         Iterates on the existing design by reading 'current_design.py' and applying changes.
         Args:
             prompt: User's description of the changes to make.
-            output_dir: Directory containing existing script and where to save new STL.
+            output_dir: Project CAD folder holding the script; new STL is saved there (required).
         """
         print(f"[CadAgent DEBUG] [START] Iteration started for: '{prompt}'")
         
-        # Use provided output_dir or fall back to temp
-        if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
-            work_dir = output_dir
-        else:
-            import tempfile
-            work_dir = tempfile.gettempdir()
+        work_dir = self.project_work_dir(output_dir)
         
         # Generate timestamped filename for the output
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -284,7 +276,7 @@ Original request: {prompt}
             )
         else:
              print("[CadAgent DEBUG] [WARN] No existing script found. Falling back to fresh generation.")
-             return await self.generate_prototype(prompt)
+             return await self.generate_prototype(prompt, output_dir=work_dir)
 
         try:
 
@@ -317,28 +309,7 @@ Ensure you still export to 'output.stl'.
                     self.on_status(status_info)
                 
                 # 1. Ask Gemini for the code with streaming and thinking
-                raw_content = ""
-                stream = await self.client.aio.models.generate_content_stream(
-                    model=self.model,
-                    contents=current_prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction=self.system_instruction,
-                        temperature=1.0,
-                        thinking_config=types.ThinkingConfig(include_thoughts=True)
-                    )
-                )
-                async for chunk in stream:
-                    if chunk.candidates and chunk.candidates[0].content and chunk.candidates[0].content.parts:
-                        for part in chunk.candidates[0].content.parts:
-                            if not part.text:
-                                continue
-                            elif part.thought:
-                                # Stream thought to callback
-                                if self.on_thought:
-                                    self.on_thought(part.text)
-                            else:
-                                # Accumulate answer text
-                                raw_content += part.text
+                raw_content = await self.request_code(current_prompt)
                 
                 if not raw_content:
                     print("[CadAgent DEBUG] [ERR] Empty response from model.")
@@ -371,27 +342,10 @@ Ensure you still export to 'output.stl'.
                     
                 print(f"[CadAgent DEBUG] [EXEC] Running local script: {script_path}")
                 
-                # 4. Execute Locally
-                import subprocess
-                import sys
-                
-                # Use asyncio.to_thread for Windows compatibility (asyncio.create_subprocess_exec
-                # throws NotImplementedError on Windows with certain event loop policies)
-                try:
-                    proc = await asyncio.to_thread(
-                        subprocess.run,
-                        [sys.executable, script_path],
-                        capture_output=True,
-                        text=True
-                    )
-                    stdout, stderr = proc.stdout, proc.stderr
-                except Exception as e:
-                    print(f"[CadAgent DEBUG] [ERR] Subprocess run failed: {e}")
-                    proc = type('obj', (object,), {'returncode': 1})()
-                    stdout = ""
-                    stderr = str(e)
-                
-                if proc.returncode != 0:
+                # 4. Execute in an owned child (hard deadline, tree kill, no API keys)
+                returncode, stderr = await self.runner.run(script_path, work_dir)
+
+                if returncode != 0:
                     error_msg = stderr
                     print(f"[CadAgent DEBUG] [ERR] Script Execution Failed:\n{error_msg}")
                     
@@ -405,7 +359,7 @@ Ensure you still export to 'output.stl'.
 """
                     continue # Retry loop
                 
-                print(f"[CadAgent DEBUG] [OK] Script executed successfully.")
+                print("[CadAgent DEBUG] [OK] Script executed successfully.")
                 
                 # 5. Read Output
                 if os.path.exists(output_stl):
@@ -437,6 +391,9 @@ Ensure you still export to 'output.stl'.
                 })
             return None
 
+        except ServiceError:
+            # Timeouts, mode cancellation and cleanup faults must reach the caller.
+            raise
         except Exception as e:
             print(f"CadAgent Error: {e}")
             import traceback

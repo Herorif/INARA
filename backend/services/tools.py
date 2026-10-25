@@ -18,6 +18,18 @@ class ServiceError(Exception):
         self.code = code
 
 
+# Permission keys whose absence from settings means "deny" rather than "ask".
+# Generated-code execution must be enabled explicitly; it never inherits a
+# relaxed policy from the safe offline tools.
+LEGACY_GENERATED_CAD_PERMISSION = "legacy_generated_cad"
+DEFAULT_DENY_PERMISSIONS = frozenset({LEGACY_GENERATED_CAD_PERMISSION})
+
+
+def permission_policy(permissions, key):
+    """Resolve one stored policy; missing keys ask, except default-deny keys."""
+    return permissions.get(key, "deny" if key in DEFAULT_DENY_PERMISSIONS else True)
+
+
 def contained_path(root: Path, path: str, allow_root: bool = False) -> Path:
     """Resolve symlinks/junctions, reject Windows drive/ADS and traversal paths."""
     root = root.resolve()
@@ -129,7 +141,7 @@ class ToolDispatcher:
             raise ServiceError("tool_unavailable", "This tool is not available in text mode.")
         validated = spec.arguments.model_validate(arguments)
         permission = spec.permission or name
-        policy = self.permissions().get(permission, True)
+        policy = permission_policy(self.permissions(), permission)
         if (
             policy == "deny"
             or self.permissions().get(name) == "deny"
@@ -162,7 +174,7 @@ class ToolDispatcher:
             authorize()
         if (
             not self.authenticated(principal)
-            or self.permissions().get(permission) == "deny"
+            or permission_policy(self.permissions(), permission) == "deny"
             or self.permissions().get(name) == "deny"
             or self.permissions().get(spec.alias_for) == "deny"
         ):

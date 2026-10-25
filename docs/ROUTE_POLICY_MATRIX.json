@@ -226,9 +226,9 @@
       "caller": "Authenticated desktop owner renderer",
       "context": "Captured owner/project; voice session bound to origin SID and project",
       "effects": "Retained CAD adapter in captured project cad/legacy folder",
-      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "policy": "Own legacy_generated_cad permission (default deny when absent; generate_cad does not cover it); owner recheck before adapter work",
       "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals; generated code runs only in an owned Job Object child (120s hard per-script deadline, no API keys, cwd/output = project cad/legacy); tree killed and awaited on timeout/cancellation/gaming/shutdown before the creative lock is released",
       "replacement": "WorkspaceService / WorkspaceTransport",
       "status": "migrated-envelope"
     },
@@ -347,9 +347,9 @@
       "caller": "Authenticated desktop owner renderer",
       "context": "Captured owner/project; voice session bound to origin SID and project",
       "effects": "Retained CAD iteration in captured project cad/legacy folder",
-      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
+      "policy": "Own legacy_generated_cad permission (default deny when absent; generate_cad does not cover it); owner recheck before adapter work",
       "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
+      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals; generated code runs only in an owned Job Object child (120s hard per-script deadline, no API keys, cwd/output = project cad/legacy); tree killed and awaited on timeout/cancellation/gaming/shutdown before the creative lock is released",
       "replacement": "WorkspaceService / WorkspaceTransport",
       "status": "migrated-envelope"
     },
@@ -1369,17 +1369,17 @@
     },
     "legacy_generate_cad": {
       "schema": "PromptRequest",
-      "policy": "Shared generate_cad permission; own alias deny also enforced",
+      "policy": "Own legacy_generated_cad permission, default deny when absent; generate_cad does not cover it; own alias deny also enforced",
       "context": "Authenticated desktop owner and immutable project snapshot",
-      "lifetime": "300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "lifetime": "300s cooperative tool deadline; each generated script runs in an owned Job Object child with a 120s hard deadline; tree killed and awaited on timeout/cancellation/gaming/shutdown before the creative lock is released",
       "replacement": "WorkspaceService / WorkspaceTransport",
       "model_visible": false
     },
     "iterate_cad": {
       "schema": "PromptRequest",
-      "policy": "Shared generate_cad permission; own alias deny also enforced",
+      "policy": "Own legacy_generated_cad permission, default deny when absent; generate_cad does not cover it; own alias deny also enforced",
       "context": "Authenticated desktop owner and immutable project snapshot",
-      "lifetime": "300s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
+      "lifetime": "300s cooperative tool deadline; each generated script runs in an owned Job Object child with a 120s hard deadline; tree killed and awaited on timeout/cancellation/gaming/shutdown before the creative lock is released",
       "replacement": "WorkspaceService / WorkspaceTransport",
       "model_visible": false
     },
@@ -1523,7 +1523,7 @@
     },
     "generate_cad_prototype": {
       "schema": "PromptRequest",
-      "policy": "Canonical legacy_generate_cad permission plus source/target alias denial",
+      "policy": "Canonical legacy_generated_cad permission (default deny) plus source/target alias denial",
       "context": "Captured owner/project; trusted voice binding",
       "lifetime": "Inherited target cooperative deadline; caller-owned cancellation",
       "replacement": "ExtendedActions compatibility alias",

@@ -6,6 +6,7 @@ import json
 import os
 import queue
 import subprocess
+import time
 from pathlib import Path
 
 LRESULT = C.c_ssize_t
@@ -299,6 +300,40 @@ class WorkspaceProcess:
         )
         return value.value
 
+    def active_processes(self):
+        """Number of processes still running anywhere in the owned job tree."""
+        if not self.job:
+            return 0
+        info = BasicAccounting()
+        checked(
+            api(
+                kernel,
+                "QueryInformationJobObject",
+                [W.HANDLE, C.c_int, W.LPVOID, W.DWORD, W.LPVOID],
+                W.BOOL,
+            )(self.job, 1, C.byref(info), C.sizeof(info), None)
+        )
+        return info.active
+
+    def terminate(self, timeout=5.0):
+        """Kill the whole job tree and wait until no process in it remains.
+
+        Returns True only after the root and every descendant have exited;
+        the handles are closed either way.
+        """
+        try:
+            if self.job:
+                api(kernel, "TerminateJobObject", [W.HANDLE, W.UINT], W.BOOL)(self.job, 1)
+            deadline = time.monotonic() + timeout
+            while True:
+                if not self.alive() and self.active_processes() == 0:
+                    return True
+                if time.monotonic() >= deadline:
+                    return False
+                time.sleep(0.01)
+        finally:
+            self.close()
+
     def close(self):
         if self.job:
             close_handle(self.job)
@@ -306,6 +341,19 @@ class WorkspaceProcess:
         if self.process:
             close_handle(self.process)
             self.process = None
+
+
+class BasicAccounting(C.Structure):
+    _fields_ = [
+        ("user_time", C.c_longlong),
+        ("kernel_time", C.c_longlong),
+        ("period_user_time", C.c_longlong),
+        ("period_kernel_time", C.c_longlong),
+        ("page_faults", W.DWORD),
+        ("total", W.DWORD),
+        ("active", W.DWORD),
+        ("terminated", W.DWORD),
+    ]
 
 
 class WindowClass(C.Structure):
