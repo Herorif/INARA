@@ -18,6 +18,22 @@
       "decision": "pending"
     },
     {
+      "path": "node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
+      "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
+      "origin": "npm:@fontsource-variable/inter@5.3.0 (Inter variable font, latin subset; Rasmus Andersson / The Inter Project Authors; package license OFL-1.1)",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2",
+      "sha256": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e",
+      "origin": "npm:@fontsource-variable/jetbrains-mono@5.3.0 (JetBrains Mono variable font, latin subset; JetBrains; package license OFL-1.1)",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
       "path": "public/hand_landmarker.task",
       "sha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1",
       "origin": "unverified-local-asset",

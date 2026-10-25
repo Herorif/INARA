@@ -1,14 +1,92 @@
 :root {
-  color-scheme:dark;
-  --deck-bg:#080d14;
-  --deck-panel:#101b28;
-  --deck-raised:#162536;
-  --deck-border:#aac6db17;
-  --deck-text:#eaf4ff;
-  --deck-muted:#a6bdcf;
-  --deck-cyan:#70e0ed;
-  --deck-amber:#ffc670;
-  --deck-radius:16px;
-  --deck-nav:12.25rem;
-  --deck-titlebar:3.5rem
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-canvas: #05080c;
+  --bg-panel: #0a1017;
+  --bg-raised: #0f1720;
+  --bg-overlay: #121b25;
+  --bg-hover: rgba(159,176,191,.06);
+  --bg-selected: rgba(112,224,237,.08);
+
+  /* Lines */
+  --line: #17212c;
+  --line-strong: #243241;
+  --line-accent: rgba(112,224,237,.35);
+
+  /* Text */
+  --text-1: #e6eef5;
+  --text-2: #9fb0bf;
+  --text-3: #74849a;
+  --text-on-accent: #03242b;
+
+  /* Accent (brand cyan) */
+  --accent: #70e0ed;
+  --accent-hover: #8ae8f2;
+  --accent-subtle: rgba(112,224,237,.12);
+
+  /* Status */
+  --ok: #6de2b5;
+  --warn: #ffc670;
+  --danger: #ff8585;
+  --info: var(--accent);
+  --ok-subtle: rgba(109,226,181,.12);
+  --warn-subtle: rgba(255,198,112,.12);
+  --danger-subtle: rgba(255,133,133,.12);
+
+  /* Fonts (bundled locally, see src/shared/ui/fonts.js) */
+  --font-sans: "Inter Variable","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  --font-mono: "JetBrains Mono Variable",Consolas,ui-monospace,monospace;
+
+  /* Type scale */
+  --text-xs: .6875rem;
+  --text-sm: .8125rem;
+  --text-md: .875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --leading-tight: 1.25;
+  --leading-normal: 1.55;
+  --label-tracking: .08em;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Spacing (4px scale) */
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+
+  /* Elevation: dialogs and popovers only */
+  --shadow-overlay: 0 16px 40px rgba(0,0,0,.55);
+
+  /* Layout */
+  --deck-nav: 12.25rem;
+  --deck-titlebar: 3rem;
+
+  /* Back-compat aliases for existing CSS */
+  --deck-bg: var(--bg-canvas);
+  --deck-panel: var(--bg-panel);
+  --deck-raised: var(--bg-raised);
+  --deck-border: var(--line);
+  --deck-text: var(--text-1);
+  --deck-muted: var(--text-2);
+  --deck-cyan: var(--accent);
+  --deck-amber: var(--warn);
+  --deck-radius: var(--radius-md);
+  --text-primary: var(--text-1);
+  --text-muted: var(--text-3);
+  --font-body: var(--font-sans);
 }

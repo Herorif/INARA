@@ -5,9 +5,21 @@
 
 body {
   margin: 0;
-  background-color: #000;
+  background-color: var(--bg-canvas);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
 }
+
+/* Thin dark scrollbars (element rules elsewhere may still narrow or hide them) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border: 2px solid var(--bg-canvas); border-radius: 999px; }
+
+.tnum { font-variant-numeric: tabular-nums; }
 
 /* Custom Scrollbar Hide */
 .scrollbar-hide::-webkit-scrollbar {
@@ -22,11 +34,3 @@ body {
   mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}

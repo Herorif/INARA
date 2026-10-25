@@ -1,0 +1,167 @@
+/* Shared mission-console primitives. Token-based only: no hex literals here. */
+
+/* Labels. `.eyebrow` is the legacy name used across screens; it shares the label exactly. */
+.hud-label,
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Status */
+.status-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+.status-dot--ok { background: var(--ok); }
+.status-dot--warn { background: var(--warn); }
+.status-dot--danger { background: var(--danger); }
+.status-dot--accent { background: var(--accent); }
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 1.375rem;
+  padding: 0 .5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+
+/* Buttons. Flat: no gradients, shadows or glows. */
+.btn {
+  --btn-h: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: var(--btn-h);
+  padding: 0 .875rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.btn--primary { background: var(--accent); color: var(--text-on-accent); }
+.btn--primary:hover { background: var(--accent-hover); }
+.btn--secondary { background: transparent; border-color: var(--line-strong); color: var(--text-1); }
+.btn--secondary:hover { background: var(--bg-hover); }
+.btn--ghost { background: transparent; color: var(--text-2); }
+.btn--ghost:hover { background: var(--bg-hover); color: var(--text-1); }
+.btn--danger { background: transparent; border-color: rgba(255,133,133,.4); color: var(--danger); }
+.btn--danger:hover { background: var(--danger-subtle); }
+.btn--sm { --btn-h: 1.875rem; padding: 0 .625rem; font-size: var(--text-xs); }
+.btn--icon { padding: 0; width: var(--btn-h); min-width: var(--btn-h); }
+@media (pointer: coarse) {
+  .btn,
+  .btn--sm { --btn-h: 2.75rem; }
+}
+
+/* Surfaces */
+.hud-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.hud-frame { position: relative; }
+.hud-frame::before,
+.hud-frame::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 0 solid var(--accent);
+  opacity: .7;
+  pointer-events: none;
+}
+.hud-frame::before { top: -1px; left: -1px; border-top-width: 1px; border-left-width: 1px; }
+.hud-frame::after { right: -1px; bottom: -1px; border-right-width: 1px; border-bottom-width: 1px; }
+
+/* Keyboard hint */
+.kbd {
+  display: inline-block;
+  padding: 0 .3125rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* Tabs */
+.hud-tabs {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+}
+.hud-tab {
+  padding: .5rem .75rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.hud-tab:hover { color: var(--text-1); }
+.hud-tab[aria-selected="true"],
+.hud-tab.is-active {
+  color: var(--text-1);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+/*
+ * Form controls, scoped to the app root (.command-deck) and wrapped in :where() so the rule
+ * weighs exactly one class: component CSS and later Tailwind utilities on legacy panels still win,
+ * while unstyled controls pick up the console palette.
+ */
+.command-deck :where(input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="password"], input[type="url"], input[type="email"], textarea, select) {
+  background: var(--bg-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-1);
+}
+.command-deck :where(input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="password"], input[type="url"], input[type="email"], textarea)::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+.command-deck :where(:is(input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="password"], input[type="url"], input[type="email"], textarea, select):focus) {
+  border-color: var(--accent);
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  text-align: center;
+}
+.empty-state__icon { display: inline-flex; color: var(--text-3); }
+.empty-state__icon svg { width: 20px; height: 20px; }
+.empty-state__title { margin: 0; font-size: var(--text-md); font-weight: 500; color: var(--text-1); }
+.empty-state__body { margin: 0; max-width: 28rem; font-size: var(--text-sm); line-height: var(--leading-normal); color: var(--text-2); }
+.empty-state__action { margin-top: .5rem; }

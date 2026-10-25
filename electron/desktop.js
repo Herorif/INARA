@@ -105,7 +105,7 @@ function openWindow() {
     title: 'INARA · Command deck',
     frame: false,
     show: false,
-    backgroundColor: '#080d18',
+    backgroundColor: '#05080c',
     icon: path.join(root, 'assets/icons/inara.png'),
     webPreferences: {
       nodeIntegration: false,
