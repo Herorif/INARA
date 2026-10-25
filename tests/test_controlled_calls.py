@@ -19,7 +19,7 @@ def setup(application_factory, monkeypatch, tmp_path):
     import calls.testing as module
 
     app = application_factory()
-    app.sessions.accept("owner", {"client_id": str(uuid.uuid4())})
+    app.sessions.accept("owner", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     app.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 16000}
     monkeypatch.setattr("calls.local_voice.ready", lambda: None)
     monkeypatch.setattr(module, "ROOT", tmp_path)
@@ -135,11 +135,13 @@ async def test_non_owner_renderers_cannot_prepare_or_arm(setup, role):
         setup.app.sessions.accept(
             role,
             {
+                "token": "test-session-token",
                 "client_id": str(uuid.uuid4())
                 if role == "foreign"
                 else setup.app.sessions.local_owner,
                 "role": "renderer" if role == "foreign" else role,
             },
+            "test-session-token",
         )
     for event in (
         "call_test_state",
@@ -158,7 +160,7 @@ async def test_review_is_exact_origin_bound_one_use_and_starts_only_structured_o
     setup.app.call_admission.supervisor_factory = lambda: supervisor
     review = await rpc(setup, "call_test_review", {"revision": draft["revision"]})
     assert review["ready"] and review["review_id"]
-    setup.app.sessions.accept("second", {"client_id": setup.app.sessions.local_owner})
+    setup.app.sessions.accept("second", {"token": "test-session-token", "client_id": setup.app.sessions.local_owner}, "test-session-token")
     args = arm_args(draft, review)
     assert (await rpc(setup, "call_test_arm", args, sid="second"))["code"] == "call_test_review"
     assert (await rpc(setup, "call_test_arm", {**args, "confirmation": "yes"}))[

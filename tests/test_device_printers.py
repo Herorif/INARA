@@ -28,7 +28,7 @@ def devices(application_factory):
         ("control", owner, "workspace"),
         ("foreign", str(uuid.uuid4()), "renderer"),
     ):
-        app.sessions.accept(sid, {"client_id": principal, "role": role})
+        app.sessions.accept(sid, {"token": "test-session-token", "client_id": principal, "role": role}, "test-session-token")
     app.compat_service.kasa = SimpleNamespace(
         devices={"10.0.0.25": object()},
         discover_devices=AsyncMock(

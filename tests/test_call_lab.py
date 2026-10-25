@@ -18,7 +18,7 @@ from services.tools import ServiceError
 @pytest.fixture
 def owner_app(application_factory):
     app = application_factory()
-    assert app.sessions.accept("owner", {"client_id": str(uuid.uuid4())})
+    assert app.sessions.accept("owner", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     app.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 16000}
     return app
 
@@ -54,9 +54,9 @@ async def test_metadata_is_owner_only_strict_and_does_not_start_worker(owner_app
     app = owner_app
     app.call_lab.supervisor_factory = lambda: pytest.fail("Metadata must not construct a worker")
     for role in ("resident", "workspace"):
-        app.sessions.accept(role, {"client_id": app.sessions.local_owner, "role": role})
+        app.sessions.accept(role, {"token": "test-session-token", "client_id": app.sessions.local_owner, "role": role}, "test-session-token")
         assert not (await app.call_lab_transport.state(role, {}))["ok"]
-    app.sessions.accept("foreign", {"client_id": str(uuid.uuid4())})
+    app.sessions.accept("foreign", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     assert not (await app.call_lab_transport.state("foreign", {}))["ok"]
     assert not (await app.call_lab_transport.state("missing", {}))["ok"]
     assert not (await app.call_lab_transport.state("owner", {"live": True}))["ok"]
@@ -88,7 +88,7 @@ def test_voice_presence_is_local_and_never_arms_a_call(owner_app, monkeypatch, c
 async def test_stop_is_origin_bound_and_duplicate_check_never_replays(owner_app):
     app = owner_app
     supervisor, identifier = await start_fixture(app)
-    app.sessions.accept("second", {"client_id": app.sessions.local_owner})
+    app.sessions.accept("second", {"token": "test-session-token", "client_id": app.sessions.local_owner}, "test-session-token")
     result = await app.call_lab_transport.stop("second", {"id": str(identifier)})
     assert result["code"] == "call_lab_origin"
     assert app.call_lab.active is not None

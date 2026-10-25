@@ -10,10 +10,12 @@ if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem('inara_client_id', clientId);
 }
+// Production renderers get the launch token only from the preload bridge. The Vite dev
+// value is referenced behind import.meta.env.DEV so builds drop it as dead code.
+const devSessionToken = import.meta.env.DEV ? import.meta.env.VITE_INARA_SESSION_TOKEN : '';
 const socket = io('http://localhost:8000', {
     autoConnect: false,
-    auth: { client_id: clientId, token: window.electronAPI?.sessionToken
-        || import.meta.env.VITE_INARA_SESSION_TOKEN || '' },
+    auth: { client_id: clientId, token: window.electronAPI?.sessionToken || devSessionToken || '' },
 });
 
 // Complete native owner registration before the renderer hydrates owner-only state.

@@ -2,7 +2,7 @@
 
 from services.capability_profiles import model_id
 import asyncio
-import os
+from transport.session_token import current_token
 from services.face_worker import FaceWorker
 
 
@@ -53,7 +53,7 @@ class ConnectionTransport:
         )
 
     async def connect(self, sid, environ, auth=None):
-        if not self.sessions.accept(sid, auth, os.getenv("INARA_SESSION_TOKEN")):
+        if not self.sessions.accept(sid, auth, current_token()):
             return False
         owner = self.sessions.principals[sid]
         native = self.sessions.native_desktop

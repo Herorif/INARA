@@ -31,11 +31,13 @@ class DesktopSessions:
         self.native_desktop = None
         self.local_owner = None
 
-    def accept(self, sid, auth, token=None):
+    def accept(self, sid, auth, token):
+        """Fail closed: no configured token, or a missing/wrong presented token, rejects."""
         auth = auth if isinstance(auth, dict) else {}
-        if token and not hmac.compare_digest(
-            str(auth.get("token", "")).encode("utf-8"), token.encode("utf-8")
-        ):
+        presented = auth.get("token")
+        if not (isinstance(token, str) and token and isinstance(presented, str)):
+            return False
+        if not hmac.compare_digest(presented.encode("utf-8"), token.encode("utf-8")):
             return False
         try:
             principal = str(uuid.UUID(auth["client_id"])) if auth.get("client_id") else sid
@@ -44,6 +46,7 @@ class DesktopSessions:
         native = self.native_desktop
         if native and native.state.identity.owner and principal != native.state.identity.owner:
             return False
+        # Only a holder of this launch's token reaches here; there is no tokenless owner path.
         if self.local_owner is None:
             self.local_owner = principal
         self.principals[sid] = principal

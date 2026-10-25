@@ -160,12 +160,12 @@ async def test_reconnect_restore_duplicate_and_foreign_project_without_replay(ap
         runtime.dispatcher, lambda: provider, store=SessionStore(runtime.database)
     )
     owner = str(uuid.uuid4())
-    runtime.sessions.accept("first", {"client_id": owner})
+    runtime.sessions.accept("first", {"token": "test-session-token", "client_id": owner}, "test-session-token")
     request = ConversationRequest(text="hello")
     payload = request.model_dump(mode="json")
     await runtime.conversation_transport.user_input("first", payload)
     await runtime.disconnect("first")
-    runtime.sessions.accept("second", {"client_id": owner})
+    runtime.sessions.accept("second", {"token": "test-session-token", "client_id": owner}, "test-session-token")
     # Recreate service to exercise the durable ledger, not just its in-memory cache.
     runtime.conversation_transport.service = ConversationService(
         runtime.dispatcher, lambda: provider, store=SessionStore(runtime.database)
@@ -177,7 +177,7 @@ async def test_reconnect_restore_duplicate_and_foreign_project_without_replay(ap
     assert provider.calls == 1
     assert runtime.sio.emit.await_args.args[0] == "conversation_restored"
     assert runtime.sio.emit.await_args.kwargs["room"] == "second"
-    runtime.sessions.accept("intruder", {"client_id": str(uuid.uuid4())})
+    runtime.sessions.accept("intruder", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     await runtime.conversation_transport.resume_conversation(
         "intruder", {"conversation_id": str(request.conversation_id)}
     )

@@ -174,7 +174,7 @@ async def test_model_mode_reserves_larger_profile_and_records_real_model_id(appl
     from calls.fixture import fixture_profile
 
     app = application_factory()
-    app.sessions.accept("owner", {"client_id": str(uuid.uuid4())})
+    app.sessions.accept("owner", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     app.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 16000}
     monkeypatch.setattr("calls.local_voice.ready", lambda: None)
     monkeypatch.setattr("calls.local_model.require_evaluation", lambda: None)

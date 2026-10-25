@@ -67,7 +67,7 @@ async def test_provider_rejects_unsupported_scene_data_and_closes(patch):
 @pytest.fixture
 def app(application_factory):
     value = application_factory()
-    value.sessions.accept("ui", {"client_id": str(uuid.uuid4())})
+    value.sessions.accept("ui", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     value.settings["tool_permissions"]["generate_cad"] = False
     return value
 

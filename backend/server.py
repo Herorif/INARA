@@ -237,5 +237,8 @@ get_system_info = runtime.local_transport.get_system_info
 print_stl = runtime.compat_transport.print_stl
 
 if __name__ == "__main__":
+    # Fail closed: a bare dev start gets a per-launch token in .runtime/ (never printed).
+    from transport.session_token import ensure_session_token
+    ensure_session_token()
     uvicorn_server = uvicorn.Server(uvicorn.Config(app_socketio, host="127.0.0.1", port=8000, loop="asyncio"))
     uvicorn_server.run()

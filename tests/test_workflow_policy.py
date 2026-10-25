@@ -16,7 +16,7 @@ def policy(application_factory):
         ("control", owner, "workspace"),
         ("foreign", str(uuid.uuid4()), "renderer"),
     ]:
-        app.sessions.accept(sid, {"client_id": principal, "role": role})
+        app.sessions.accept(sid, {"token": "test-session-token", "client_id": principal, "role": role}, "test-session-token")
     app.settings["tool_permissions"].update({"generate_cad": False, "create_reminder": False})
     app.cad_transport.planner = AsyncMock(return_value={"shape": "box"})
     return app

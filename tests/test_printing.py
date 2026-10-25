@@ -16,7 +16,7 @@ from pydantic import ValidationError
 def printing(application_factory):
     app = application_factory()
     owner = str(uuid.uuid4())
-    app.sessions.accept("ui", {"client_id": owner})
+    app.sessions.accept("ui", {"token": "test-session-token", "client_id": owner}, "test-session-token")
     root = app.projects.get_current_project_path()
     (root / "cad/source.stl").write_bytes(b"fixture STL bytes; no actual geometry/slicing claim")
     target = SimpleNamespace(

@@ -17,7 +17,7 @@ from services.usage_contracts import UsagePolicy
 @pytest.fixture
 def app(application_factory, monkeypatch):
     value = application_factory()
-    value.sessions.accept("owner", {"client_id": str(uuid.uuid4())})
+    value.sessions.accept("owner", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     value.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 16000}
     monkeypatch.setattr("calls.local_voice.ready", lambda: None)
     return value
@@ -195,7 +195,7 @@ async def test_standalone_cli_refuses_before_reading_profile_or_launching(app, m
 @pytest.mark.parametrize("sid,role", [("foreign", "renderer"), ("resident", "resident"), ("workspace", "workspace")])
 def test_only_current_owner_renderer_can_admit(app, sid, role):
     client = str(uuid.uuid4()) if sid == "foreign" else app.sessions.local_owner
-    app.sessions.accept(sid, {"client_id": client, "role": role})
+    app.sessions.accept(sid, {"token": "test-session-token", "client_id": client, "role": role}, "test-session-token")
     with pytest.raises(ServiceError):
         app.call_admission.start(sid, uuid.uuid4(), fixture_profile(), acceptance_check=lambda _: True)
     assert not app.resources.reservations and not app.usage.active

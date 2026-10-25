@@ -10,6 +10,7 @@ from services.face_worker import FaceWorker
 from services.tools import ServiceError
 
 
+TOKEN = "test-session-token"
 PRIVATE = {
     "settings",
     "printer_list",
@@ -38,7 +39,7 @@ class Worker:
 
 @pytest.fixture
 def connection(application_factory, monkeypatch):
-    monkeypatch.delenv("INARA_SESSION_TOKEN", raising=False)
+    monkeypatch.setenv("INARA_SESSION_TOKEN", TOKEN)
     app = application_factory()
     workers = []
 
@@ -54,13 +55,13 @@ def connection(application_factory, monkeypatch):
 @pytest.mark.asyncio
 async def test_control_resident_and_foreign_connections_receive_no_private_hydration(connection):
     app, owner, _ = connection
-    await app.connection.connect("control", {}, {"client_id": owner, "role": "workspace"})
-    await app.connection.connect("resident", {}, {"client_id": owner, "role": "resident"})
+    await app.connection.connect("control", {}, {"token": TOKEN, "client_id": owner, "role": "workspace"})
+    await app.connection.connect("resident", {}, {"token": TOKEN, "client_id": owner, "role": "resident"})
     assert all(c.args[0] not in PRIVATE for c in app.sio.emit.await_args_list)
     count = app.sio.emit.await_count
-    assert await app.connection.connect("foreign", {}, {"client_id": str(uuid.uuid4())}) is False
+    assert await app.connection.connect("foreign", {}, {"token": TOKEN, "client_id": str(uuid.uuid4())}) is False
     assert app.sio.emit.await_count == count and "foreign" not in app.sessions.principals
-    await app.connection.connect("renderer", {}, {"client_id": owner})
+    await app.connection.connect("renderer", {}, {"token": TOKEN, "client_id": owner})
     assert PRIVATE - {"auth_frame"} <= {
         c.args[0] for c in app.sio.emit.await_args_list if c.kwargs["room"] == "renderer"
     }
@@ -72,10 +73,10 @@ async def test_locked_start_single_worker_unlock_hydrates_only_owner_renderers(c
     app, owner, workers = connection
     app.settings["face_auth_enabled"] = True
     await asyncio.gather(
-        app.connection.connect("one", {}, {"client_id": owner}),
-        app.connection.connect("two", {}, {"client_id": owner}),
+        app.connection.connect("one", {}, {"token": TOKEN, "client_id": owner}),
+        app.connection.connect("two", {}, {"token": TOKEN, "client_id": owner}),
     )
-    await app.connection.connect("control", {}, {"client_id": owner, "role": "workspace"})
+    await app.connection.connect("control", {}, {"token": TOKEN, "client_id": owner, "role": "workspace"})
     assert len(workers) == 1
     await workers[0].entered.wait()
     assert not any(c.args[0] in PRIVATE for c in app.sio.emit.await_args_list)
@@ -96,16 +97,16 @@ async def test_last_renderer_disconnect_cancels_face_even_with_native_or_residen
 ):
     app, owner, workers = connection
     app.settings["face_auth_enabled"] = True
-    await app.connection.connect("one", {}, {"client_id": owner})
+    await app.connection.connect("one", {}, {"token": TOKEN, "client_id": owner})
     await workers[0].entered.wait()
-    await app.connection.connect("two", {}, {"client_id": owner})
-    await app.connection.connect("resident", {}, {"client_id": owner, "role": "resident"})
+    await app.connection.connect("two", {}, {"token": TOKEN, "client_id": owner})
+    await app.connection.connect("resident", {}, {"token": TOKEN, "client_id": owner, "role": "resident"})
     await app.connection.disconnect("one")
     assert not workers[0].closed
     old = workers[0]
     await app.connection.disconnect("two")
     assert old.closed and app.connection.task is None
-    await app.connection.connect("new", {}, {"client_id": owner})
+    await app.connection.connect("new", {}, {"token": TOKEN, "client_id": owner})
     await workers[1].entered.wait()
     app.sio.emit.reset_mock()
     await old.frame("late private frame")
@@ -119,7 +120,7 @@ async def test_last_renderer_disconnect_cancels_face_even_with_native_or_residen
 async def test_resource_stop_and_resume_face_and_disabling_auth_hydrates(connection):
     app, owner, workers = connection
     app.settings["face_auth_enabled"] = True
-    await app.connection.connect("client", {}, {"client_id": owner})
+    await app.connection.connect("client", {}, {"token": TOKEN, "client_id": owner})
     await workers[0].entered.wait()
     app.resources.select("gaming")
     await app.restrict_resources()
@@ -138,7 +139,7 @@ async def test_resource_stop_and_resume_face_and_disabling_auth_hydrates(connect
 @pytest.mark.asyncio
 async def test_setup_rejected_before_persisting_face_enable(connection):
     app, owner, _ = connection
-    await app.connection.connect("client", {}, {"client_id": owner})
+    await app.connection.connect("client", {}, {"token": TOKEN, "client_id": owner})
 
     def missing():
         raise ServiceError("face_setup_required", "Fixture setup missing")
@@ -155,11 +156,11 @@ async def test_native_owner_registration_before_renderer_has_no_private_early_st
     app, owner, _ = connection
     identity = SimpleNamespace(owner=None)
     app.sessions.native_desktop = SimpleNamespace(state=SimpleNamespace(identity=identity))
-    await app.connection.connect("control", {}, {"client_id": owner, "role": "workspace"})
+    await app.connection.connect("control", {}, {"token": TOKEN, "client_id": owner, "role": "workspace"})
     assert not any(c.args[0] in PRIVATE for c in app.sio.emit.await_args_list)
     identity.owner = owner
     app.sessions.attach_native(owner)
-    await app.connection.connect("renderer", {}, {"client_id": owner})
+    await app.connection.connect("renderer", {}, {"token": TOKEN, "client_id": owner})
     assert any(
         c.args[0] == "settings" and c.kwargs["room"] == "renderer"
         for c in app.sio.emit.await_args_list
@@ -186,9 +187,9 @@ async def test_face_failure_is_scoped_sanitized_and_does_not_retry_on_duplicate_
         return Failure()
 
     app.connection.worker_factory = create
-    await app.connection.connect("one", {}, {"client_id": owner})
+    await app.connection.connect("one", {}, {"token": TOKEN, "client_id": owner})
     await app.connection.task
-    await app.connection.connect("two", {}, {"client_id": owner})
+    await app.connection.connect("two", {}, {"token": TOKEN, "client_id": owner})
     assert len(starts) == 1 and not app.connection.authenticated
     errors = [c for c in app.sio.emit.await_args_list if c.args[0] == "error"]
     assert errors and "private path" not in str(errors)

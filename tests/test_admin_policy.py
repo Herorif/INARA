@@ -22,7 +22,7 @@ def admin_runtime(application_factory):
         ("control", owner, "workspace"),
         ("foreign", other, "renderer"),
     ):
-        assert app.sessions.accept(sid, {"client_id": principal, "role": role})
+        assert app.sessions.accept(sid, {"token": "test-session-token", "client_id": principal, "role": role}, "test-session-token")
     app.settings_service.store.save = Mock()
     app.lifecycle.restrict = AsyncMock()
     app.lifecycle.close_app = AsyncMock()
@@ -120,7 +120,7 @@ async def test_settings_success_is_owner_scoped_and_reconnect_restores(admin_run
     change.assert_called_once()
     assert {call.kwargs["room"] for call in app.sio.emit.await_args_list} == {"renderer", "second"}
     app.sessions.remove("renderer")
-    app.sessions.accept("reopened", {"client_id": app.sessions.local_owner})
+    app.sessions.accept("reopened", {"token": "test-session-token", "client_id": app.sessions.local_owner}, "test-session-token")
     app.sio.emit.reset_mock()
     await app.settings_transport.get_settings("reopened")
     assert app.sio.emit.await_args.kwargs["room"] == "reopened"

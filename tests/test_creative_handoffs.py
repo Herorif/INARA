@@ -15,7 +15,7 @@ from tests.test_cad_jobs import finish
 @pytest.fixture
 def prepared(application_factory):
     app = application_factory()
-    app.sessions.accept("ui", {"client_id": str(uuid.uuid4())})
+    app.sessions.accept("ui", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     owner = app.sessions.local_owner
     project = app.projects.get_current_project_path()
     app.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 16000}
@@ -106,9 +106,9 @@ async def test_owner_project_roles_lock_and_strict_source_gate(prepared):
     route = app.sio.handlers["/"]["creative_handoff"]
     args = request(app)
     for role in ("resident", "workspace"):
-        app.sessions.accept(role, {"client_id": app.sessions.local_owner, "role": role})
+        app.sessions.accept(role, {"token": "test-session-token", "client_id": app.sessions.local_owner, "role": role}, "test-session-token")
         assert not (await route(role, args))["ok"]
-    app.sessions.accept("foreign", {"client_id": str(uuid.uuid4())})
+    app.sessions.accept("foreign", {"token": "test-session-token", "client_id": str(uuid.uuid4())}, "test-session-token")
     assert not (await route("foreign", args))["ok"]
     for patch in (
         {"path": "anything"},

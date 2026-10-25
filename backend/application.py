@@ -354,6 +354,14 @@ class Application:
             self.started = False
 
 
+# Defense in depth behind the required session token. Origins the real renderers send:
+# the Vite dev server (native-main/desktop load http://localhost:5173), and the packaged
+# renderer loaded with loadFile(dist/index.html), whose WebSocket upgrade carries
+# "file://" (its polling requests carry no Origin). Requests without Origin (Node/Python
+# control clients) are not origin-checked; "null" (opaque origins) is not accepted.
+RENDERER_ORIGINS = ("http://localhost:5173", "file://")
+
+
 def create_application(
     *,
     settings,
@@ -382,12 +390,7 @@ def create_application(
         if sio is not None
         else socketio.AsyncServer(
             async_mode="asgi",
-            cors_allowed_origins=[
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "file://",
-                "null",
-            ],
+            cors_allowed_origins=list(RENDERER_ORIGINS),
         )
     )
     bus = EventBus()
