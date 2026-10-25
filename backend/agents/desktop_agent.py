@@ -6,8 +6,6 @@ Follows the BaseAgent pattern. Provides 8 LLM-callable tools:
   take_screenshot, search_files, read_clipboard, write_clipboard
 """
 
-import os
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -168,8 +166,13 @@ class DesktopAgent(BaseAgent):
         result = self._registry.launch(name)
         return AgentResult(
             success=result["success"],
+            data={k: result[k] for k in ("command", "suggestions") if k in result},
             message=result["message"],
         )
+
+    def describe_launch(self, name: str) -> str:
+        """The exact command launch_app would run; raises AppResolutionError if unknown."""
+        return self._registry.resolve_target(name).describe()
 
     def _list_running_apps(self) -> AgentResult:
         procs = self._registry.list_running(limit=15)
@@ -198,12 +201,12 @@ class DesktopAgent(BaseAgent):
         try:
             import asyncio
             loop = asyncio.get_event_loop()
-            # Run the blocking Gemini call off the event loop
-            description = await loop.run_in_executor(
+            # Capture once and describe that same image, off the event loop.
+            result = await loop.run_in_executor(
                 None,
                 lambda: self._capture.capture_and_describe(prompt=prompt),
             )
-            b64 = await loop.run_in_executor(None, self._capture.capture_to_base64)
+            b64 = result.image_base64
 
             self._bus.emit_nowait(Event(
                 type=Events.DESKTOP_SCREENSHOT,
@@ -211,10 +214,16 @@ class DesktopAgent(BaseAgent):
                 source=self.name,
             ))
 
+            if not result.success:
+                return AgentResult(
+                    success=False,
+                    data={"image": b64, "error": result.error},
+                    message=result.error or "Screen description failed.",
+                )
             return AgentResult(
                 success=True,
-                data={"description": description, "image": b64},
-                message=description,
+                data={"description": result.description, "image": b64},
+                message=result.description,
             )
         except Exception as e:
             return AgentResult(success=False, message=f"Screenshot failed: {e}")

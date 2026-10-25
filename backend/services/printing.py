@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import time
 
+from devices.printer_protocols import MAX_GCODE, upload_timeout
 from services.device_contracts import PrintRequest, PrintStage
 from services.storage import scope_hash
 from services.tools import ServiceError, ToolSpec, contained_path
@@ -102,6 +103,15 @@ class PrintPlan:
     phase: str = "planned"
 
 
+# Stage limits must exceed the inner protocol timeouts so the protocol, not the
+# dispatcher, reports the outcome. Upload adds headroom for hashing the G-code.
+STAGE_TIMEOUTS = {
+    "slice_stl": 340,
+    "upload_gcode": upload_timeout(MAX_GCODE) + 30,
+    "start_print": 35,
+}
+
+
 class PrintService:
     def __init__(self, database, governor, dispatcher, devices, publish, slicer=None):
         self.database, self.governor, self.dispatcher = database, governor, dispatcher
@@ -122,7 +132,7 @@ class PrintService:
                     f"Internal authorized print stage: {name}.",
                     PrintStage,
                     self.stage(name),
-                    execution_timeout=340 if name == "slice_stl" else 35,
+                    execution_timeout=STAGE_TIMEOUTS[name],
                     model_visible=False,
                 )
             )

@@ -7,6 +7,7 @@ on whatever the user is looking at.
 """
 
 import base64
+from dataclasses import dataclass
 import io
 import os
 from typing import Optional
@@ -18,6 +19,20 @@ _VISION_PROMPT = (
     "error messages, UI elements, or anything noteworthy. "
     "Be concise but accurate. If you see an error or problem, highlight it."
 )
+
+
+@dataclass(frozen=True)
+class ScreenDescription:
+    """One capture plus its vision result; ``image`` is the JPEG that was described."""
+
+    success: bool
+    description: str
+    image: bytes
+    error: Optional[str] = None
+
+    @property
+    def image_base64(self) -> str:
+        return base64.b64encode(self.image).decode("utf-8")
 
 
 class ScreenCapture:
@@ -70,21 +85,28 @@ class ScreenCapture:
         self,
         region: Optional[tuple] = None,
         prompt: Optional[str] = None,
-    ) -> str:
+    ) -> ScreenDescription:
         """
-        Capture the screen and ask Gemini to describe it.
+        Capture the screen once and ask the vision model to describe it.
 
-        Returns the description string. Falls back to a plain error message
-        if the Gemini call fails.
+        Returns a ScreenDescription holding the captured JPEG. ``success`` is
+        False (with ``error`` set) when the key is missing or the model call
+        fails; capture errors propagate to the caller.
         """
+        img_bytes = self.capture_to_bytes(region)
+        return self.describe_bytes(img_bytes, prompt)
+
+    def describe_bytes(self, img_bytes: bytes, prompt: Optional[str] = None) -> ScreenDescription:
+        """Describe an already-captured JPEG with the configured vision model."""
         from dotenv import load_dotenv
+        from services.capability_profiles import model_id
         load_dotenv()
 
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            return "GEMINI_API_KEY not set — cannot analyse screen."
+            error = "GEMINI_API_KEY not set; cannot analyse screen."
+            return ScreenDescription(False, error, img_bytes, error)
 
-        img_bytes = self.capture_to_bytes(region)
         describe_prompt = prompt or _VISION_PROMPT
 
         try:
@@ -93,15 +115,20 @@ class ScreenCapture:
 
             client = genai.Client(api_key=api_key)
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model=model_id("vision"),
                 contents=[
                     types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
                     types.Part(text=describe_prompt),
                 ],
             )
-            return response.text or "No description returned."
         except Exception as e:
-            return f"Screenshot taken but vision analysis failed: {e}"
+            error = f"Screenshot taken but vision analysis failed: {e}"
+            return ScreenDescription(False, error, img_bytes, error)
+        text = (getattr(response, "text", None) or "").strip()
+        if not text:
+            error = "Screenshot taken but the vision model returned no description."
+            return ScreenDescription(False, error, img_bytes, error)
+        return ScreenDescription(True, text, img_bytes)
 
     # -----------------------------------------------------------------------
     # Helpers

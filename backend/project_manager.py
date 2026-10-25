@@ -47,10 +47,15 @@ class ProjectManager:
 
     def switch_project(self, name: str):
         """Switches the active project context."""
-        safe_name = "".join([c for c in name if c.isalnum() or c in (' ', '-', '_')]).strip()
+        raw = name.strip() if isinstance(name, str) else ""
+        safe_name = "".join([c for c in raw if c.isalnum() or c in (' ', '-', '_')]).strip()
+        # An empty name (or ".", "..", or one with no usable characters) would
+        # resolve to the projects root itself; never switch to it.
+        if raw in ("", ".", "..") or not safe_name:
+            return False, "Project name must contain a letter or number."
         project_path = self.projects_dir / safe_name
-        
-        if project_path.exists():
+
+        if project_path.is_dir():
             self.current_project = safe_name
             if self.state_store is not None:
                 with self.state_store.transaction() as db:

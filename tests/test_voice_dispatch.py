@@ -69,7 +69,8 @@ def voice(application_factory):
     fake = SimpleNamespace(
         handle_tool_call=AsyncMock(
             return_value=SimpleNamespace(success=True, message="fixture", data={})
-        )
+        ),
+        describe_launch=lambda name: f"fixture-command {name}",
     )
     app.desktop = app.devices = app.vision = app.scheduler = fake
     app.local_actions.desktop = app.local_actions.devices = app.local_actions.vision = fake

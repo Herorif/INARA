@@ -10,6 +10,14 @@ from devices.printer_models import PrintStatus
 
 MAX_JSON = 262144
 MAX_GCODE = 134217728
+UPLOAD_BASE_TIMEOUT = 30.0
+UPLOAD_MIN_RATE = 1024 * 1024  # Assume at least 1 MiB/s on the printer LAN link.
+UPLOAD_MAX_TIMEOUT = 600.0
+
+
+def upload_timeout(size):
+    """Seconds allowed for uploading ``size`` bytes: 30 s + size at 1 MiB/s, capped at 10 min."""
+    return min(UPLOAD_BASE_TIMEOUT + max(0, size) / UPLOAD_MIN_RATE, UPLOAD_MAX_TIMEOUT)
 
 
 class ProtocolError(RuntimeError):
@@ -158,7 +166,8 @@ class PrinterProtocolClient:
         try:
             base, kind, headers = endpoint(printer)
             path = Path(path)
-            if not path.is_file() or not 0 < path.stat().st_size <= MAX_GCODE:
+            size = path.stat().st_size if path.is_file() else 0
+            if not 0 < size <= MAX_GCODE:
                 return False
             if not re.fullmatch(r"[0-9a-f]{32}\.gcode", path.name):
                 return False
@@ -167,8 +176,9 @@ class PrinterProtocolClient:
                 from aiohttp import FormData
 
                 forms = FormData
-            async with asyncio.timeout(30):
-                async with self.sessions(30) as session:
+            limit = upload_timeout(size)
+            async with asyncio.timeout(limit):
+                async with self.sessions(limit) as session:
                     with path.open("rb") as stream:
                         form = forms()
                         form.add_field("file", stream, filename=path.name)

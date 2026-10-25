@@ -65,6 +65,9 @@ class LocalActions:
                     payload = args.model_dump(exclude_none=True)
                     result = await agent.handle_tool_call(action, payload)
                     if not result.success:
+                        data = getattr(result, "data", None) or {}
+                        if action == "launch_app" and "suggestions" in data:
+                            raise ServiceError("app_not_found", result.message)
                         raise ServiceError(
                             "action_failed",
                             "The local action could not complete. Check capability setup.",
@@ -87,5 +90,18 @@ class LocalActions:
                     model,
                     execute,
                     execution_timeout=30,
+                    review=self.review_launch if name == "launch_app" else None,
                 )
             )
+
+    def resolved_launch(self, name):
+        from desktop.app_registry import AppResolutionError
+
+        try:
+            return self.desktop.describe_launch(name)
+        except AppResolutionError as exc:
+            raise ServiceError("app_not_found", str(exc)) from exc
+
+    def review_launch(self, args, context):
+        # The approval shows exactly what will run, not only the requested name.
+        return {"will_run": self.resolved_launch(args.name)}

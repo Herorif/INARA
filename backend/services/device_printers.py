@@ -71,6 +71,8 @@ class DevicePrinterService:
         snapshot[key] = list(merged.values())
         try:
             self.settings.store.save(snapshot)
+        except ServiceError:
+            raise
         except Exception as exc:
             raise ServiceError(
                 "settings_unavailable",

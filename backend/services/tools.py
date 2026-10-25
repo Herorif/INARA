@@ -61,6 +61,9 @@ class ToolSpec:
     permission: str | None = None
     model_visible: bool = True
     alias_for: str | None = None
+    # Optional (validated, context) -> dict of extra review facts (e.g. the
+    # resolved command) shown with the approval request. May raise ServiceError.
+    review: Callable | None = None
 
 
 def inline_tool_schema(model):
@@ -151,6 +154,14 @@ class ToolDispatcher:
         if force_approval or policy not in (False, "allow_within_scope"):
             if request_approval is None:
                 raise ServiceError("approval_required", "This action requires owner approval.")
+            review_args = approval_arguments(validated.model_dump())
+            if spec.review is not None:
+                review_args = {
+                    **review_args,
+                    **approval_arguments(
+                        spec.review(validated, {**context, "principal": principal})
+                    ),
+                }
             request_id = str(uuid.uuid4())
             future = asyncio.get_running_loop().create_future()
             self.pending[request_id] = (principal, future)
@@ -159,7 +170,7 @@ class ToolDispatcher:
                     {
                         "id": request_id,
                         "tool": name,
-                        "args": approval_arguments(validated.model_dump()),
+                        "args": review_args,
                     }
                 )
                 approved = await asyncio.wait_for(future, self.timeout)

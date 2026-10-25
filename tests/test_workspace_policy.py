@@ -340,7 +340,8 @@ async def test_stopped_voice_approval_cannot_resolve_replacement_session(workspa
 
     workspace.sio.emit = emit
     bridge = old.callbacks["tool_bridge"]
-    task = asyncio.create_task(bridge.call("launch_app", {"name": "fixture"}))
+    # A registered name: unknown apps are rejected before any approval prompt.
+    task = asyncio.create_task(bridge.call("launch_app", {"name": "notepad"}))
     await asyncio.wait_for(requested.wait(), 2)
     await workspace.workspace_transport.stop_audio("client")
     replacement = await audio_start(workspace)

@@ -8,7 +8,6 @@ if sys.platform == 'win32':
 
 import uvicorn
 import os
-import json
 from pathlib import Path
 from dotenv import load_dotenv
 from services.capability_profiles import model_id
@@ -146,21 +145,11 @@ def print_startup_summary():
     print("[SERVER] ========================================")
 
 def load_settings():
-    global SETTINGS
-    if os.path.exists(SETTINGS_FILE):
-        try:
-            with open(SETTINGS_FILE, 'r') as f:
-                loaded = json.load(f)
-                # Merge with defaults to ensure new keys exist
-                # Deep merge for tool_permissions would be better but shallow merge of top keys + tool_permissions check is okay for now
-                for k, v in loaded.items():
-                    if k == "tool_permissions" and isinstance(v, dict):
-                         SETTINGS["tool_permissions"].update(v)
-                    else:
-                        SETTINGS[k] = v
-            print("Loaded local settings.")
-        except Exception as e:
-            print(f"Error loading settings: {e}")
+    # A corrupt file is backed up and saves are blocked until restart (see
+    # services.settings.load_settings_file); the process runs on defaults.
+    from services.settings import load_settings_file
+    if os.path.exists(SETTINGS_FILE) and load_settings_file(SETTINGS_FILE, SETTINGS):
+        print("Loaded local settings.")
 
 
 # Load on startup

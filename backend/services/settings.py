@@ -1,10 +1,14 @@
 """Validated settings updates, independently authorized by the desktop transport."""
 
 import copy
+from datetime import datetime
 import json
+import logging
 import os
 from pathlib import Path
+import shutil
 import tempfile
+import threading
 from typing import Literal
 from pydantic import (
     BaseModel,
@@ -48,6 +52,82 @@ LEGACY_PERMISSION_NAMES = frozenset(
 )
 PermissionValue = StrictBool | Literal["deny", "allow_within_scope"]
 
+logger = logging.getLogger(__name__)
+RECOVERY_ERROR_CODE = "settings_recovery_required"
+_recovery_lock = threading.Lock()
+# Resolved settings paths whose on-disk content failed to load this process.
+# Saves to them stay refused until restart so the user's file is never clobbered.
+_recovery_paths: dict[str, Path | None] = {}
+
+
+def _path_key(path):
+    return os.path.normcase(str(Path(path).resolve()))
+
+
+def recovery_backup(path):
+    """Return (blocked, backup_path) for a settings file in recovery mode."""
+    with _recovery_lock:
+        key = _path_key(path)
+        return key in _recovery_paths, _recovery_paths.get(key)
+
+
+def _backup_corrupt_file(path):
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    base = path.with_name(f"{path.name}.corrupt-{stamp}")
+    candidate, index = base, 1
+    while True:
+        try:
+            # Exclusive create: never overwrite an existing backup.
+            with open(candidate, "xb") as target, open(path, "rb") as source:
+                shutil.copyfileobj(source, target)
+            return candidate
+        except FileExistsError:
+            candidate = base.with_name(f"{base.name}-{index}")
+            index += 1
+
+
+def load_settings_file(path, settings):
+    """Merge a settings file into ``settings`` in place.
+
+    Returns True when the file was loaded (or does not exist). On a read or
+    parse failure the defaults in ``settings`` are left untouched, the bad
+    file is copied to ``settings.json.corrupt-<timestamp>``, and saves to the
+    path are blocked for the rest of the process.
+    """
+    path = Path(path)
+    if not path.exists():
+        return True
+    try:
+        with open(path, "r", encoding="utf-8") as stream:
+            loaded = json.load(stream)
+        if not isinstance(loaded, dict):
+            raise ValueError("settings file must contain a JSON object")
+    except Exception as exc:
+        backup = None
+        try:
+            backup = _backup_corrupt_file(path)
+        except Exception as backup_exc:  # Still block writes; the original stays put.
+            logger.error("Could not back up unreadable settings file %s: %s", path, backup_exc)
+        with _recovery_lock:
+            _recovery_paths[_path_key(path)] = backup
+        logger.warning(
+            "Settings file %s could not be loaded (%s). Running with default settings; "
+            "a copy was saved to %s. Settings changes will NOT be saved until INARA is "
+            "restarted with a repaired settings file.",
+            path, exc, backup or "(backup failed)",
+        )
+        print(
+            f"[SERVER] WARNING: settings file {path} is unreadable ({exc}). Using defaults; "
+            f"backup: {backup or 'failed'}. Settings saves are disabled until restart."
+        )
+        return False
+    for key, value in loaded.items():
+        if key == "tool_permissions" and isinstance(value, dict):
+            settings.setdefault("tool_permissions", {}).update(value)
+        else:
+            settings[key] = value
+    return True
+
 
 class EmptyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -83,6 +163,15 @@ class SettingsStore:
     def save(self, snapshot):
         if self.path is None:
             return  # Explicit in-memory dependency for isolated application roots.
+        blocked, backup = recovery_backup(self.path)
+        if blocked:
+            raise ServiceError(
+                RECOVERY_ERROR_CODE,
+                "Settings file could not be loaded at startup, so changes are not saved "
+                "to protect it. Repair or restore it"
+                + (f" (a copy is at {backup.name})" if backup else "")
+                + " and restart INARA.",
+            )
         temporary = None
         try:
             with tempfile.NamedTemporaryFile(
@@ -123,6 +212,8 @@ class SettingsService:
         candidate.update({key: value for key, value in patch.items() if key != "tool_permissions"})
         try:
             self.store.save(candidate)
+        except ServiceError:
+            raise
         except Exception as exc:
             raise ServiceError(
                 "settings_unavailable",

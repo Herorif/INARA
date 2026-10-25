@@ -45,7 +45,8 @@ def local_runtime(application_factory):
     fake = SimpleNamespace(
         handle_tool_call=AsyncMock(
             return_value=SimpleNamespace(success=True, message="done", data={"value": "result"})
-        )
+        ),
+        describe_launch=lambda name: f"fixture-command {name}",
     )
     app.local_actions.desktop = app.local_actions.devices = app.local_actions.vision = fake
     app.local_actions.vision_loop = SimpleNamespace(list_watches=lambda: [])
