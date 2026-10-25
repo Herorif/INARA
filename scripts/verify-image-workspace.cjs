@@ -1,4 +1,5 @@
 // Actual native renderer with an explicit test-only fixture service.
+require('./qa-capture-retry.cjs');
 const {BrowserWindow}=require('electron');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const pipe=fs.readFileSync(0,'utf8'),bootstrap=JSON.parse(pipe),read=fs.readFileSync;

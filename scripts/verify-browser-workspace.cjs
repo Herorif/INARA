@@ -1,4 +1,5 @@
 // Real hidden renderer; fixture HTML supplied by the QA-only Python runner.
+require('./qa-capture-retry.cjs');
 const {BrowserWindow}=require('electron');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const pipe=fs.readFileSync(0,'utf8'),bootstrap=JSON.parse(pipe),read=fs.readFileSync;

@@ -1,4 +1,5 @@
 // Real hidden workspace integration. Only isolated test projects/downloads are touched.
+require('./qa-capture-retry.cjs');
 const {
   BrowserWindow
 } = require('electron');

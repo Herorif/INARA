@@ -1,4 +1,5 @@
 // Actual hidden native shell. The paired Python harness owns synthetic local fixtures.
+require('./qa-capture-retry.cjs');
 const { BrowserWindow } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');

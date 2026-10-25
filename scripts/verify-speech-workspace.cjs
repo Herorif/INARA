@@ -1,4 +1,5 @@
 // Actual compact renderer; synthetic microphone and explicit server fixtures only.
+require('./qa-capture-retry.cjs');
 const {app,BrowserWindow}=require('electron');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');

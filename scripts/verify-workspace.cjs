@@ -1,4 +1,5 @@
 // Renderer integration check: isolated storage, hidden test window, no camera or API actions.
+require('./qa-capture-retry.cjs');
 const {
   app,
   BrowserWindow

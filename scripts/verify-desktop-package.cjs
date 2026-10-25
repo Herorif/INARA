@@ -1,4 +1,5 @@
 // Native packaged workspace acceptance. External package resolution is disabled.
+require('./qa-capture-retry.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
