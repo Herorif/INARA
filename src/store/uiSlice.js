@@ -1,3 +1,17 @@
+/**
+ * Pending tool approvals, oldest first, keyed by request id. `confirmationRequest`
+ * mirrors the head so existing readers keep working; a second request no longer
+ * replaces the first.
+ */
+export const enqueueApproval = (queue, request) => {
+    if (!request?.id) return queue;
+    const index = queue.findIndex(item => item.id === request.id);
+    if (index === -1) return [...queue, request];
+    return queue.map((item, position) => position === index ? request : item);
+};
+export const removeApproval = (queue, id) => queue.filter(item => item.id !== id);
+const approvalState = queue => ({ confirmationQueue: queue, confirmationRequest: queue[0] || null });
+
 export const createUiSlice = (set, get) => ({
     showQuickAssistant: window.electronAPI?.quickMode === true,
     showSettings: false,
@@ -13,6 +27,7 @@ export const createUiSlice = (set, get) => ({
     showDeviceWindow: false,
     isModularMode: false,
     confirmationRequest: null,
+    confirmationQueue: [],
     currentTime: new Date(),
 
     elementPositions: {
@@ -57,7 +72,12 @@ export const createUiSlice = (set, get) => ({
     setShowPrinterWindow: (val) => set({ showPrinterWindow: val }),
     setShowPhoneWindow: (val) => set({ showPhoneWindow: val }),
     setIsModularMode: (val) => set({ isModularMode: val }),
-    setConfirmationRequest: (val) => set({ confirmationRequest: val }),
+    setConfirmationRequest: (val) => set(state => val
+        ? approvalState(enqueueApproval(state.confirmationQueue, val))
+        : approvalState(state.confirmationRequest ? removeApproval(state.confirmationQueue, state.confirmationRequest.id) : state.confirmationQueue)),
+    enqueueConfirmation: (request) => set(state => approvalState(enqueueApproval(state.confirmationQueue, request))),
+    resolveConfirmation: (id) => set(state => approvalState(removeApproval(state.confirmationQueue, id))),
+    clearConfirmations: () => set(approvalState([])),
     setCurrentTime: (val) => set({ currentTime: val }),
     setActiveDragElement: (val) => set({ activeDragElement: val }),
     setElementPositions: (updater) => {

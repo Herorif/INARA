@@ -15,7 +15,7 @@ export default function FeatureDialog({
     if (event.target === event.currentTarget) onClose();
   }}>
         <section ref={dialog} className={`feature-dialog ${featureHostClass(feature)}`} role="dialog" aria-modal="true" aria-labelledby="feature-title" tabIndex={-1}>
-            <PanelHeader title={labels[feature]} onClose={onClose} />
+            <PanelHeader title={labels[feature]} feature={feature} onClose={onClose} />
             <FeatureContent feature={feature} onClose={onClose} onOpen={onOpen} />
         </section>
     </div>;

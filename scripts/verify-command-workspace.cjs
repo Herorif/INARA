@@ -75,14 +75,15 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     assert.deepEqual(overflow, [], `${label}: ${JSON.stringify(overflow)}`);
   };
   try {
-    await until(() => evaluate(`document.querySelector('.pulse-status strong')?.textContent === 'At your service'`), 'core online');
+    await until(() => evaluate(`document.querySelector('.presence-status')?.textContent === 'STANDING BY' && document.querySelector('.core-chip')?.textContent === 'CORE ONLINE'`), 'core online');
     await evaluate(`window.commandQA = { mediaCalls: 0, enumerateCalls: 0 };
       navigator.mediaDevices.enumerateDevices = async () => { commandQA.enumerateCalls++; return []; };
       navigator.mediaDevices.getUserMedia = async () => { commandQA.mediaCalls++; throw new DOMException('No media in shell verification', 'NotAllowedError'); }; void 0`);
     assert.deepEqual(await evaluate(`[...document.querySelectorAll('nav[aria-label="Main navigation"] button')].map(button => button.getAttribute('aria-label'))`),
       ['Assistant', 'Studio', 'Inbox', 'Tasks', 'Connections']);
     assert.equal(await evaluate(`document.querySelector('.command-deck').dataset.uiContractVersion`), '1');
-    assert.equal(await evaluate(`document.querySelector('.workspace-heading h1').textContent`), 'Your space to think.');
+    assert.equal(await evaluate(`document.querySelector('.workspace-heading h1').textContent`), 'Assistant');
+    assert.equal(await evaluate(`document.querySelectorAll('.core-chip').length`), 1, 'Core status is shown once, in the command bar');
     assert.equal(await evaluate(`[...document.querySelectorAll('button')].filter(button => !button.textContent.trim() && !button.getAttribute('aria-label')).length`), 0);
     const heavyStartup = requests.filter(url => /\/(?:CadWindow|CadStudio|CameraPanel|ImageStudio|tracking\.worker|vision_wasm)|hand_landmarker/.test(url));
     assert.deepEqual(heavyStartup, [], 'Heavy tools must remain absent before explicit selection');
@@ -90,7 +91,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await screenshot('command-assistant-initial-1440.png');
 
     // The command palette must remain usable while a long-running tool owns the canvas.
-    await command('Connections readiness', 'Connections readiness');
+    await command('Connections readiness', 'Connections');
     await until(() => evaluate(`document.querySelectorAll('.connection-state--unverified').length === 2`), 'synthetic readiness');
     assert.equal(await evaluate(`!!document.querySelector('.feature-workspace') && !document.querySelector('.feature-workspace[aria-modal="true"]') && !document.querySelector('.dialog-backdrop')`), true);
     assert.equal(await evaluate(`document.querySelector('.connections-readiness').textContent.includes('10.0.0.2') || document.querySelector('.connections-readiness').textContent.includes('printer.test')`), false);
@@ -102,7 +103,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     key('Tab');
     await sleep(100);
     assert.equal(await evaluate(`!!document.activeElement.closest('.feature-workspace')`), false, 'Tab must leave the docked canvas');
-    await command('Image atelier', 'Image atelier');
+    await command('Image atelier', 'Images');
     await until(() => evaluate(`document.querySelector('.image-availability p')?.textContent.includes('deferred')`), 'image setup state');
     assert.equal(await evaluate(`document.querySelector('.image-generate').disabled`), true);
     assert.equal(await evaluate(`!!document.querySelector('.image-canvas img')`), false);
@@ -188,14 +189,14 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     key('Escape');
     await until(() => evaluate(`!document.querySelector('.feature-dialog')`), 'Preferences dismissal');
 
-    await command('Call bridge lab', 'Call bridge lab');
-    const checkButton = '.call-lab__actions .primary-button';
+    await command('Call bridge lab', 'Call lab');
+    const checkButton = '.call-lab__check .call-lab__actions .primary-button';
     await until(() => evaluate(`!!document.querySelector('${checkButton}') && !document.querySelector('${checkButton}').disabled`), 'call lab readiness');
-    assert.equal(await evaluate(`document.querySelector('.call-lab__badge').textContent.includes('Live answering off')`), true);
+    assert.equal(await evaluate(`document.querySelector('.call-lab__badge').textContent.includes('Unattended answering off')`), true);
     await screenshot('command-call-lab-1440.png');
     await click(checkButton);
     await until(() => evaluate(`!!document.querySelector('.call-lab__state.is-running')`), 'check running');
-    await click('.call-lab__actions button:not(.primary-button)');
+    await click('.call-lab__check .call-lab__actions button:not(.primary-button)');
     await until(() => evaluate(`!document.querySelector('.call-lab__state.is-running') && !document.querySelector('${checkButton}').disabled`), 'check stopped');
     await click(checkButton);
     await until(() => evaluate(`!!document.querySelector('.call-lab__state.is-completed') && !document.querySelector('${checkButton}').disabled`), 'check completed');
@@ -214,7 +215,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await click(checkButton);
     await until(() => evaluate(`!!document.querySelector('.call-lab__state.is-running')`), 'close check running');
     await click('.feature-workspace [aria-label="Close panel"]');
-    await command('Call bridge lab', 'Call bridge lab');
+    await command('Call bridge lab', 'Call lab');
     await until(() => evaluate(`!document.querySelector('.call-lab__state.is-running') && !document.querySelector('${checkButton}').disabled`), 'panel close stopped check');
     await click('.feature-workspace [aria-label="Close panel"]');
     await click('nav [aria-label="Assistant"]');
@@ -236,7 +237,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`document.documentElement.style.fontSize = '200%'; void 0`);
     assert.ok(await evaluate(`parseFloat(getComputedStyle(document.querySelector('.chat-welcome p')).fontSize) >= ${textSize} * 1.9`), 'Root text scaling must enlarge body copy');
     await noOverflow('200% text scaling');
-    assert.equal(await evaluate(`document.querySelector('.brand-sub').getBoundingClientRect().bottom <= document.querySelector('.titlebar').getBoundingClientRect().bottom + 1`), true, 'Scaled brand copy must fit within the titlebar');
+    assert.equal(await evaluate(`(() => { const bar = document.querySelector('.titlebar').getBoundingClientRect(); return [...document.querySelectorAll('.brand-word, .command-trigger, .window-actions')].every(element => { const box = element.getBoundingClientRect(); return box.top >= bar.top - 1 && box.bottom <= bar.bottom + 1 && box.right <= bar.right + 1; }); })()`), true, 'Scaled command bar content must fit within the bar');
     await screenshot('command-text-200.png');
     await evaluate(`document.documentElement.style.fontSize = ''; void 0`);
     assert.equal(await evaluate(`commandQA.mediaCalls`), 0);

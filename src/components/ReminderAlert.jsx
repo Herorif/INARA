@@ -1,9 +1,15 @@
 import React from 'react';
-import { Bell, X, Clock } from 'lucide-react';
+import { X } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
+import HudLabel from '../shared/ui/HudLabel';
 
 const SNOOZE_OPTIONS = [5, 15, 30];
+const alertTime = alert => {
+    const seconds = Number(alert.trigger_at);
+    const date = Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : new Date();
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+};
 
 const ReminderAlert = () => {
     const activeAlert = useStore(s => s.activeAlert);
@@ -19,63 +25,23 @@ const ReminderAlert = () => {
     };
 
     return (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] w-[360px] pointer-events-auto">
-            {/* Outer glow ring */}
-            <div className="absolute inset-0 rounded-2xl border border-amber-400/60 animate-pulse pointer-events-none" />
-
-            <div className="relative backdrop-blur-xl bg-black/90 border border-amber-500/40 rounded-2xl shadow-[0_0_40px_rgba(251,191,36,0.15)] overflow-hidden">
-                {/* Top accent bar */}
-                <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
-
-                <div className="p-4">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                                <Bell size={14} className="text-amber-400" />
-                            </div>
-                            <span className="text-[10px] font-bold tracking-widest text-amber-400">REMINDER</span>
-                        </div>
-                        <button
-                            aria-label="Dismiss reminder"
-                            onClick={handleDismiss}
-                            className="p-1 rounded text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
-                        >
-                            <X size={14} />
-                        </button>
-                    </div>
-
-                    {/* Task text */}
-                    <p className="text-sm text-white font-mono leading-relaxed mb-4 pl-1">
-                        {activeAlert.task}
-                    </p>
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                        <div className="flex gap-1 flex-1">
-                            {SNOOZE_OPTIONS.map(m => (
-                                <button
-                                    key={m}
-                                    onClick={() => handleSnooze(m)}
-                                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-cyan-900/60 bg-cyan-900/20 text-cyan-500 hover:bg-cyan-900/40 hover:border-cyan-500/50 transition-all text-[10px] font-bold tracking-wider"
-                                >
-                                    <Clock size={9} />
-                                    {m}m
-                                </button>
-                            ))}
-                        </div>
-                        <button
-                            onClick={handleDismiss}
-                            className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all text-[10px] font-bold tracking-wider"
-                        >
-                            DONE
-                        </button>
-                    </div>
-                </div>
-
-                <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
+        <section className="reminder-alert hud-panel hud-frame" role="alertdialog" aria-live="assertive" aria-labelledby="reminder-alert-title" aria-describedby="reminder-alert-label">
+            <div className="reminder-alert__top">
+                <HudLabel id="reminder-alert-label" className="reminder-alert__label">{`REMINDER · ${alertTime(activeAlert)}`}</HudLabel>
+                <button type="button" className="btn btn--ghost btn--icon btn--sm reminder-alert__dismiss" aria-label="Dismiss" onClick={handleDismiss}><X size={14} aria-hidden="true" /></button>
             </div>
-        </div>
+            <h2 id="reminder-alert-title" className="reminder-alert__title">{activeAlert.task}</h2>
+            <div className="reminder-alert__actions">
+                <div className="reminder-alert__snooze" role="group" aria-label="Snooze">
+                    {SNOOZE_OPTIONS.map((minutes, index) => (
+                        <button key={minutes} type="button" className="btn btn--secondary btn--sm" aria-label={`Snooze ${minutes} minutes`} onClick={() => handleSnooze(minutes)}>
+                            {index === 0 ? `Snooze ${minutes} min` : `${minutes} min`}
+                        </button>
+                    ))}
+                </div>
+                <button type="button" className="btn btn--primary btn--sm" onClick={handleDismiss}>Done</button>
+            </div>
+        </section>
     );
 };
 

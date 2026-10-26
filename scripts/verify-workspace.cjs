@@ -50,7 +50,7 @@ app.whenReady().then(async () => {
     const initial = await window.webContents.executeJavaScript(`({ title: document.querySelector('h1')?.textContent,
             overflow: document.documentElement.scrollWidth > innerWidth,
             buttons: [...document.querySelectorAll('button')].filter(b => !b.textContent.trim() && !b.getAttribute('aria-label')).length })`);
-    assert.equal(initial.title, 'Your space to think.');
+    assert.equal(initial.title, 'Assistant');
     assert.deepEqual(await evaluate(`[...document.querySelectorAll('nav[aria-label="Main navigation"] button')].map(button=>button.getAttribute('aria-label'))`), ['Assistant','Studio','Inbox','Tasks','Connections']);
     assert.equal(initial.overflow, false);
     assert.equal(await window.webContents.executeJavaScript(`document.querySelector('.command-deck').dataset.uiContractVersion`),'1');
@@ -85,9 +85,9 @@ app.whenReady().then(async () => {
     assert.equal(await window.webContents.executeJavaScript(`!!document.querySelector('[role="dialog"]')`), false);
     // Exercise keyboard command selection and all reframed interiors without running actions.
     const reframed = [
-      ['settings','Preferences'],['Desktop','Desktop controls'],['Smart home','Smart home'],
-      ['Print workshop','Print workshop'],['routine','Routine manager'],['devices','Connected devices'],
-      ['Scene watches','Scene watches'],['Android companion','Android companion','.mobile-companion'],['Web inspector','Web inspector','.web-inspector'],
+      ['settings','Preferences'],['Desktop','Desktop'],['Smart home','Smart home'],
+      ['Print workshop','Print'],['routine','Routines'],['devices','Devices'],
+      ['Android companion','Phone companion','.mobile-companion'],['Web inspector','Web inspector','.web-inspector'],
     ];
     window.setContentSize(390,900); await sleep(200);
     for (const [query,title,panel='.tool-panel'] of reframed) {
@@ -132,7 +132,7 @@ app.whenReady().then(async () => {
     await sleep(100);
     // Match synthetic stream and enumerated source; never enumerate/acquire a real camera here.
     await evaluate(`navigator.mediaDevices.enumerateDevices = async () => [{kind:'videoinput',deviceId:'qa-camera',label:'Synthetic QA camera'}]; void 0`);
-    await window.webContents.executeJavaScript(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('Vision studio')).click()`);
+    await window.webContents.executeJavaScript(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('Vision')).click()`);
     await sleep(300);
     assert.ok(!requests.some(url => /tracker-|tracking.worker-|vision_wasm|hand_landmarker/.test(url)), 'Camera panel loaded tracking before activation');
     // Empty test stream: exercise local model initialization without acquiring a camera.
@@ -150,12 +150,21 @@ app.whenReady().then(async () => {
     assert.match(trackerStatus, /10 FPS/, 'Bundled local model did not initialize');
     await window.webContents.executeJavaScript(`document.querySelector('[aria-label="Close panel"]').click()`);
     await evaluate(`clearInterval(window.qaFrameTimer); void 0`);
+    // Lock screen: face unlock enabled in this isolated profile, offline core (stays locked).
+    window.setContentSize(1440,940);
+    await evaluate(`localStorage.setItem('face_auth_enabled','true'); location.reload(); void 0`);
+    await waitFor(()=>evaluate(`!!document.querySelector('.auth-lock h1')`));
+    assert.equal(await evaluate(`document.querySelector('.auth-lock h1').textContent`), 'Locked');
+    assert.equal(await evaluate(`!document.querySelector('.titlebar') && !document.querySelector('.navigation')`), true, 'Locked deck must not render the workspace');
+    assert.equal(await evaluate(`document.documentElement.scrollWidth>innerWidth`), false, 'Lock screen overflow');
+    fs.writeFileSync(path.join(output, 'lock-screen.png'), (await window.webContents.capturePage()).toPNG());
+    await evaluate(`localStorage.removeItem('face_auth_enabled'); void 0`);
     assert.deepEqual(externalRequests, [], 'All resources must be bundled locally');
     fs.writeFileSync(path.join(output, 'verification.json'), JSON.stringify({
       passed: true, startedAt,
       sizes: ['1440Ã—940', '390Ã—844', '768Ã—900'],
       initial,
-      commandSearchKeyboardAndNinePanels: true, reducedMotion: true,
+      commandSearchKeyboardAndEightPanels: true, reducedMotion: true,
       widths: [390,768,1440,2560], zoom200Percent: true, rootText200Percent: true,
       heavyStartupRequests: 0,
       offlineActionsDisabled: true, rendererNetworkBlocked: true,

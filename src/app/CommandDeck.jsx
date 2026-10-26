@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, AudioLines, Box, Cable, ChevronRight, Command, Gamepad2, History, Inbox, Layers3, ListChecks, Maximize2, MessageSquare, Minus, PanelRight, Power, Search, Settings2, X } from 'lucide-react';
+import { AudioLines, Cable, Gamepad2, History, Inbox, Layers3, ListChecks, Maximize2, MessageSquare, Minus, PanelRight, Power, Search, Settings2, X } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import FeatureDialog from './FeatureDialog';
@@ -11,6 +11,9 @@ import WorkspaceTray from './WorkspaceTray';
 import ReminderAlert from '../components/ReminderAlert';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import PanelState from './PanelState';
+import StatusChip from '../shared/ui/StatusChip';
+import HudLabel from '../shared/ui/HudLabel';
+import Kbd from '../shared/ui/Kbd';
 import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
 import { flags, heavyFeatures } from './features';
 import { clearedFeatures, dialogFeatures, featureWorkspace, workspaceTitles } from './workspaceNavigation';
@@ -23,16 +26,41 @@ const InboxWorkspace = lazy(() => import('./InboxWorkspace'));
 const AuthLock = lazy(() => import('../components/AuthLock'));
 const navigation = [['assistant', MessageSquare, 'Assistant'], ['studio', Layers3, 'Studio'], ['inbox', Inbox, 'Inbox'], ['tasks', ListChecks, 'Tasks'], ['connections', Cable, 'Connections']];
 
+const datePart = (date, part) => new Intl.DateTimeFormat(undefined, { [part]: part === 'day' ? 'numeric' : 'short' }).format(date).replace(/\.$/, '');
+
 function Clock() {
   const [time, setTime] = useState(new Date());
-  useEffect(() => { const timer = setInterval(() => setTime(new Date()), 60000); return () => clearInterval(timer); }, []);
-  return <time className="deck-clock" dateTime={time.toISOString()}>{time.toLocaleTimeString([], { hour:'2-digit',minute:'2-digit' })}<span>{time.toLocaleDateString([], { weekday:'short',day:'numeric',month:'short' })}</span></time>;
+  useEffect(() => {
+    let timer = 0;
+    // Tick on the minute boundary so the displayed minute is never stale.
+    const schedule = () => { timer = setTimeout(() => { setTime(new Date()); schedule(); }, 60000 - (Date.now() % 60000) + 50); };
+    schedule();
+    return () => clearTimeout(timer);
+  }, []);
+  const clock = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return <time className="deck-clock" dateTime={time.toISOString()}>
+    <span className="deck-clock__time">{clock}</span>
+    <HudLabel className="deck-clock__date">{`${datePart(time, 'weekday')} ${datePart(time, 'day')} ${datePart(time, 'month')}`}</HudLabel>
+  </time>;
+}
+
+function CoreChip({ connected }) {
+  return connected
+    ? <StatusChip tone="ok" className="core-chip" title="Core online"><span className="chip-text">CORE ONLINE</span></StatusChip>
+    : <StatusChip tone="danger" className="core-chip" title="Core offline"><span className="chip-text">CORE OFFLINE</span></StatusChip>;
+}
+
+function VoiceChip({ voice, listening }) {
+  if (listening) return <StatusChip tone="accent" className="voice-chip">RECORDING</StatusChip>;
+  return voice ? <StatusChip tone="ok" className="voice-chip">VOICE READY</StatusChip> : <StatusChip className="voice-chip">VOICE OFF</StatusChip>;
 }
 
 export default function CommandDeck() {
   const quick = useStore(state => state.showQuickAssistant);
   const connected = useStore(state => state.backendConnected);
   const processing = useStore(state => state.textProcessing);
+  const voice = useStore(state => state.aiConnected);
+  const listening = useStore(state => state.listeningState === 'active');
   const currentProject = useStore(state => state.currentProject);
   const locked = useStore(state => state.isLockScreenVisible);
   const activeFlag = useStore(state => Object.keys(flags).find(key => !dialogFeatures.has(key) && state[flags[key]]) || null);
@@ -137,18 +165,37 @@ export default function CommandDeck() {
   return <div className={`command-deck ${gaming ? 'gaming-mode' : ''} ${quick ? 'quick-mode' : ''}`} data-resource-state={resource.state} data-ui-contract-version={UI_CONTRACT_VERSION} data-ui-visible={visible && resident.visible !== false}>
     {quick && !locked && <Suspense fallback={<PanelState kind="loading" title="Preparing quick assistant"/>}><QuickAssistant gaming={gaming} onExpand={() => setQuick(false)} onClose={() => window.electronAPI ? window.electronAPI.close() : setQuick(false)}/></Suspense>}
     {!quick && !locked && <><a href="#main-workspace" className="skip-link">Skip to workspace</a>
-      <header className="titlebar"><div className="brand"><span className="brand-symbol"><Command size={19}/></span><span>INARA<span className="brand-sub">PERSONAL INTELLIGENCE</span></span></div><div className="titlebar-center"><span className={`status-dot ${connected ? '' : 'offline'}`}/>{connected ? 'CORE ONLINE' : 'CORE OFFLINE'}<span className="title-divider"/> COMMAND OS</div><div className="window-actions"><button aria-label="Minimize window" onClick={() => window.electronAPI?.minimize()}><Minus size={16}/></button><button aria-label="Maximize window" onClick={() => window.electronAPI?.maximize()}><Maximize2 size={14}/></button><button aria-label="Close to tray" title="Close workspace; INARA stays in the tray" onClick={() => window.electronAPI?.close()}><X size={18}/></button></div></header>
-      <div className="deck-layout"><aside className="navigation"><div className="nav-caption">WORKSPACE</div><nav aria-label="Main navigation">{navigation.map(([key, Icon, label]) => <button type="button" key={key} className={section === key ? 'selected' : ''} aria-label={label} title={label} aria-current={section === key ? 'page' : undefined} onClick={() => navigate(key)}><Icon size={19}/><span>{label}</span>{section === key && <span className="nav-active-mark"/>}</button>)}</nav>
-        <div className="nav-project"><span className="eyebrow">CURRENT PROJECT</span><span><Box size={15}/><strong>{currentProject || 'temp'}</strong></span><small>One context. Room to create.</small><button onClick={() => openFeature('memory')}>View project memory <ArrowUpRight size={12}/></button></div>
-        <div className="nav-bottom"><button aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={18}/><span>Gaming mode</span><span className="toggle-switch"/></button><button aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={18}/><span>Preferences</span></button>{window.electronAPI && <button className="quit-button" aria-label="Quit INARA" onClick={() => window.electronAPI.quit()}><Power size={16}/><span>Quit INARA</span></button>}<div className="resident-note"><span className="status-dot"/>{window.electronAPI ? 'Always within reach' : 'Browser preview'}<small>{resident.hotkeyReady ? 'CTRL + SHIFT + SPACE' : window.electronAPI ? 'REOPEN FROM SYSTEM TRAY' : 'DESKTOP APP / WEB PREVIEW'}</small></div></div>
+      <header className="titlebar">
+        <div className="titlebar-brand brand"><span className="monogram brand-mark" aria-hidden="true">I</span><span className="brand-word">INARA</span></div>
+        <div className="titlebar-main">
+          <button type="button" className="command-trigger btn btn--secondary" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={14} aria-hidden="true"/><span className="command-trigger__text">Find a tool or action</span><Kbd>Ctrl K</Kbd></button>
+        </div>
+        <div className="titlebar-status">
+          <div className="titlebar-chips"><CoreChip connected={connected}/><VoiceChip voice={voice} listening={listening}/></div>
+          <Clock/>
+          <div className="titlebar-actions">
+            <button type="button" className="btn btn--ghost btn--icon" aria-label="Open quick assistant" title="Quick assistant" onClick={() => setQuick(true)}><AudioLines size={16} aria-hidden="true"/></button>
+            <button type="button" className="btn btn--ghost btn--icon inspector-toggle" aria-label="Toggle context inspector" title="Context inspector" aria-expanded={inspector} aria-controls="workspace-inspector" onClick={() => setInspector(value => !value)}><PanelRight size={16} aria-hidden="true"/></button>
+          </div>
+          <span className="titlebar-divider" aria-hidden="true"/>
+          <div className="window-actions">
+            <button type="button" className="btn btn--ghost" aria-label="Minimize window" onClick={() => window.electronAPI?.minimize()}><Minus size={16} aria-hidden="true"/></button>
+            <button type="button" className="btn btn--ghost" aria-label="Maximize window" onClick={() => window.electronAPI?.maximize()}><Maximize2 size={14} aria-hidden="true"/></button>
+            <button type="button" className="btn btn--ghost window-close" aria-label="Close to tray" title="Close workspace; INARA stays in the tray" onClick={() => window.electronAPI?.close()}><X size={16} aria-hidden="true"/></button>
+          </div>
+        </div>
+      </header>
+      <div className="deck-layout"><aside className="navigation"><HudLabel className="nav-caption">WORKSPACE</HudLabel><nav aria-label="Main navigation">{navigation.map(([key, Icon, label]) => <button type="button" key={key} className={section === key ? 'selected' : ''} aria-label={label} title={label} aria-current={section === key ? 'page' : undefined} onClick={() => navigate(key)}><Icon size={16} aria-hidden="true"/><span>{label}</span></button>)}</nav>
+        <div className="nav-project"><HudLabel>PROJECT</HudLabel><strong className="nav-project__name">{currentProject || 'temp'}</strong><button type="button" className="btn btn--ghost btn--sm nav-project__link" onClick={() => openFeature('memory')}>Project memory</button></div>
+        <div className="nav-bottom"><button type="button" aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode</span><span className="toggle-switch" aria-hidden="true"/></button><button type="button" aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={16} aria-hidden="true"/><span>Preferences</span></button>{window.electronAPI && <button type="button" className="quit-button" aria-label="Quit INARA" onClick={() => window.electronAPI.quit()}><Power size={16} aria-hidden="true"/><span>Quit INARA</span></button>}<div className="resident-note"><HudLabel>QUICK ASSISTANT</HudLabel><Kbd>Ctrl Shift Space</Kbd></div></div>
       </aside>
-      <main id="main-workspace" className="workspace" tabIndex={-1} data-page={page}><div className="workspace-top"><div className="breadcrumb"><span>WORKSPACE</span><ChevronRight size={12}/><strong>{navigation.find(([key]) => key === section)?.[2]}</strong></div><button className="command-trigger" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={15}/><span>Find a tool or action</span><kbd>Ctrl K</kbd></button><div className="workspace-top-actions"><button className="icon-button" aria-label="Open quick assistant" title="Quick assistant" onClick={() => setQuick(true)}><AudioLines size={18}/></button><button className="icon-button" aria-label="Toggle context inspector" title="Context inspector" aria-expanded={inspector} aria-controls="workspace-inspector" onClick={() => setInspector(value => !value)}><PanelRight size={18}/></button></div><Clock/></div>
-        {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16}/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
+      <main id="main-workspace" className="workspace" tabIndex={-1} data-page={page}>
+        {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
         <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''}`}>
-          {!activeFeature && <div className="workspace-heading"><div><span className="eyebrow">{page === 'assistant' ? 'INARA / AT YOUR SIDE' : page === 'studio' ? 'THE CREATIVE WORKSPACE' : page === 'inbox' ? 'YOUR SELECTED SIGNALS' : page === 'tasks' ? 'INTENT INTO ACTION' : page === 'activity' ? 'PROJECT HISTORY' : 'CONNECTION SYSTEMS'}</span><h1>{title}</h1><p>{description}</p></div>{page === 'assistant' && <span className="workspace-mode"><span className={`status-dot ${connected ? '' : 'offline'}`}/>{gaming ? 'Gaming' : 'On demand'}</span>}</div>}
-          {(page === 'studio' || page === 'activity') && <div className="studio-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['activity','Artifacts']].map(([key,label]) => <button key={key} aria-pressed={activeFeature === key || page === key} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={13}/>} {label}</button>)}</div>}
+          {!activeFeature && <div className="workspace-heading"><div className="workspace-heading__copy"><h1>{title}</h1>{description && <p>{description}</p>}</div>{page === 'assistant' && <HudLabel className="workspace-heading__meta">{`PROJECT · ${currentProject || 'temp'}`}</HudLabel>}</div>}
+          {(page === 'studio' || page === 'activity') && <div className="studio-tabs hud-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['activity','Artifacts']].map(([key,label]) => { const selected = activeFeature === key || page === key; return <button type="button" key={key} className={`hud-tab ${selected ? 'is-active' : ''}`} aria-pressed={selected} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={14} aria-hidden="true"/>}{label}</button>; })}</div>}
           {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <Conversation onOpen={openFeature} onQuick={() => setQuick(true)}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
-        </div>{inspector && <WorkspaceInspector connected={connected} processing={processing} gaming={gaming} resource={resource} memory={memory} visible={visible && resident.visible !== false} onOpen={openFeature} onClose={() => setInspector(false)}/>}</div>
+        </div>{inspector && <WorkspaceInspector connected={connected} processing={processing} voice={voice} listening={listening} gaming={gaming} resource={resource} memory={memory} onOpen={openFeature} onClose={() => setInspector(false)}/>}</div>
         <WorkspaceTray expanded={tray} onToggle={() => setTray(value => !value)} onOpen={openFeature} gaming={gaming}/>
       </main></div>{activeDialog && <FeatureDialog key={activeDialog} feature={activeDialog} onClose={closeDialog}/>}</>}
     {commands && !quick && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={openFeature} gaming={gaming}/></Suspense>}

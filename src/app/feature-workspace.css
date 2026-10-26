@@ -1,3 +1,4 @@
+/* Docked tool surface inside the workspace canvas. Flat: no shadow (shadows are for overlays). */
 .feature-dialog.feature-workspace {
   position: relative;
   inset: auto;
@@ -10,10 +11,10 @@
   max-height: none;
   margin: 0;
   transform: none;
-  border: 1px solid var(--deck-border);
-  border-radius: 16px;
-  background: var(--deck-panel);
-  box-shadow: 0 12px 40px #00000018;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -23,19 +24,12 @@
 
 .feature-dialog.feature-workspace > .panel-header {
   flex-shrink: 0;
-  padding: 14px 20px;
-}
-
-.feature-dialog.feature-workspace > .panel-header .panel-header-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  padding: .75rem 1rem;
 }
 
 .feature-dialog.feature-workspace > .panel-header h2 {
-  margin: 3px 0 0;
-  font-size: 1rem;
-  letter-spacing: -.02em;
+  margin: .125rem 0 0;
+  font-size: var(--text-lg);
 }
 
 .feature-dialog.feature-workspace > .legacy-panel {
@@ -46,15 +40,11 @@
 
 .feature-dialog.feature-workspace > .panel-state--compact {
   flex-shrink: 0;
-  margin: 12px 16px 0;
+  margin: .75rem 1rem 0;
 }
 
 @media (max-width: 640px) {
-  .feature-dialog.feature-workspace {
-    border-radius: 12px;
-  }
-
   .feature-dialog.feature-workspace > .panel-header {
-    padding: 12px;
+    padding: .75rem;
   }
 }

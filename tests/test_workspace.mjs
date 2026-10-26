@@ -86,3 +86,28 @@ test('legacy actions are not buffered while offline or replayed on reconnect', (
   assert.equal(emitConnected(socket,'get_settings'),true);
   assert.deepEqual(sent,[['get_settings']]);
 });
+
+test('palette uses plain tool names and old names still find them', async () => {
+  const { labels } = await import('../src/app/features.js');
+  assert.equal(labels.calls, 'Call lab');
+  assert.equal(labels.image, 'Images');
+  assert.equal(labels.phone, 'Phone companion');
+  assert.equal(Object.hasOwn(labels, 'vision'), false, 'Scene watches is removed');
+  assert.equal(searchCommands('Image atelier')[0].id, 'image');
+  assert.equal(searchCommands('Reviewed tasks')[0].title, 'Tasks');
+  assert.equal(searchCommands('Android companion')[0].title, 'Phone companion');
+});
+
+test('approval queue keeps every pending request and removes exactly one id', async () => {
+  globalThis.window ??= { innerWidth: 1440, innerHeight: 900 };
+  const { enqueueApproval, removeApproval } = await import('../src/store/uiSlice.js');
+  let queue = enqueueApproval([], { id: 'a', tool: 'write_file' });
+  queue = enqueueApproval(queue, { id: 'b', tool: 'launch_app' });
+  assert.deepEqual(queue.map(item => item.id), ['a', 'b'], 'a second request must not replace the first');
+  queue = enqueueApproval(queue, { id: 'a', tool: 'write_file', args: { path: 'x' } });
+  assert.deepEqual(queue.map(item => item.id), ['a', 'b'], 'a repeated id updates in place');
+  assert.deepEqual(queue[0].args, { path: 'x' });
+  assert.deepEqual(removeApproval(queue, 'b').map(item => item.id), ['a']);
+  assert.deepEqual(removeApproval(queue, 'a').map(item => item.id), ['b']);
+  assert.equal(enqueueApproval(queue, {}), queue, 'requests without an id are ignored');
+});

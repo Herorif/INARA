@@ -20,7 +20,6 @@ const panels = {
   reminder: lazy(() => import('../features/reminders/ReminderPanel')),
   routines: lazy(() => import('../components/ReminderWindow')),
   desktop: lazy(() => import('../components/DesktopWindow')),
-  vision: lazy(() => import('../components/VisionWindow')),
   device: lazy(() => import('../components/DeviceWindow')),
   settings: lazy(() => import('../components/SettingsWindow')),
   camera: lazy(() => import('../features/vision/CameraPanel')),

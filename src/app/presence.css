@@ -1,0 +1,21 @@
+/* Presence ring: flat, token-only. Motion only for live listening/speaking states. */
+.presence { display: inline-flex; align-items: center; gap: .75rem; min-width: 0; }
+.presence-ring { flex-shrink: 0; overflow: visible; }
+.presence-ring__arc { stroke: var(--accent); transform-box: fill-box; transform-origin: center; }
+.presence-ring__dot { fill: var(--accent); transform-box: fill-box; transform-origin: center; }
+.presence[data-presence="listening"] .presence-ring__arc { animation: presence-rotate 4s linear infinite; }
+.presence[data-presence="working"] .presence-ring__dot { opacity: .6; }
+.presence[data-presence="speaking"] .presence-ring__dot { animation: presence-pulse 1.2s ease-in-out infinite alternate; }
+.presence[data-presence="offline"] .presence-ring__arc { stroke: var(--text-3); }
+.presence[data-presence="offline"] .presence-ring__dot { fill: var(--text-3); }
+.presence-label { white-space: nowrap; }
+.presence[data-presence="listening"] .presence-label,
+.presence[data-presence="speaking"] .presence-label { color: var(--accent); }
+@keyframes presence-rotate { to { transform: rotate(360deg); } }
+@keyframes presence-pulse { from { transform: scale(1); } to { transform: scale(1.4); } }
+@media (prefers-reduced-motion: reduce) {
+  .presence-ring__arc,
+  .presence-ring__dot { animation: none !important; }
+}
+.command-deck[data-ui-visible="false"] .presence-ring__arc,
+.command-deck[data-ui-visible="false"] .presence-ring__dot { animation-play-state: paused; }

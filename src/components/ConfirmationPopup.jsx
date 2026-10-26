@@ -2,24 +2,30 @@ import React, { useCallback, useRef } from 'react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
 import { useDialogFocus } from '../app/useDialogFocus';
-import PanelHeader from '../app/PanelHeader';
+import HudLabel from '../shared/ui/HudLabel';
 
+/** Shows the oldest pending approval; answering removes exactly that request id. */
 export default function ConfirmationPopup() {
-  const request = useStore(state => state.confirmationRequest);
+  const request = useStore(state => state.confirmationQueue[0] || null);
+  const pending = useStore(state => state.confirmationQueue.length);
   const dialog = useRef(null);
   const respond = useCallback(confirmed => {
     if (!request) return;
     emitSocket('confirm_tool', { id: request.id, confirmed });
-    useStore.setState({ confirmationRequest: null });
+    useStore.getState().resolveConfirmation(request.id);
   }, [request]);
   const decline = useCallback(() => respond(false), [respond]);
   useDialogFocus(dialog, request ? decline : null);
   if (!request) return null;
-  return <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Approve assistant action" className="tool-confirmation-dialog approval-backdrop">
-    <section className="approval-card"><PanelHeader title="Your permission, first" closeLabel="Decline action" onClose={decline} />
-      <div className="approval-body"><span className="eyebrow">ACTION REQUEST</span><h3>{request.tool?.replaceAll('_', ' ')}</h3><p>Review this action before INARA continues. Declining leaves this request unapproved.</p>
-        {request.project && <p className="approval-project">Project / <strong>{request.project}</strong></p>}
-        <details open><summary>Review details</summary><pre>{JSON.stringify(request.args || {}, null, 2)}</pre></details>
-      </div><footer><button className="voice-button" data-dialog-autofocus onClick={decline}>Deny Request</button><button className="primary-button" onClick={() => respond(true)}>Approve Action</button></footer>
+  const action = request.tool?.replaceAll('_', ' ') || 'Assistant action';
+  return <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="approval-title" aria-describedby="approval-summary" className="tool-confirmation-dialog approval-backdrop">
+    <section className="approval-card" key={request.id}>
+      <div className="approval-body">
+        <div className="approval-top"><HudLabel className="approval-label">APPROVAL NEEDED</HudLabel>{pending > 1 && <HudLabel className="approval-count">{`1 of ${pending}`}</HudLabel>}</div>
+        <h3 id="approval-title">{action}</h3>
+        <p id="approval-summary">INARA continues only after you approve. Denying leaves this action undone.</p>
+        {request.project && <p className="approval-project">Project · <strong>{request.project}</strong></p>}
+        <details open><summary>Details</summary><pre>{JSON.stringify(request.args || {}, null, 2)}</pre></details>
+      </div><footer><button type="button" className="btn btn--secondary" data-dialog-autofocus onClick={decline}>Deny</button><button type="button" className="btn btn--primary" onClick={() => respond(true)}>Approve</button></footer>
     </section></div>;
 }

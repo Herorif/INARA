@@ -1,20 +1,40 @@
 import React from 'react';
-import { ArrowUpRight, Bell, BookOpen, Gauge, ListChecks, ShieldCheck, X, Zap } from 'lucide-react';
+import { X } from 'lucide-react';
 import useStore from '../store';
-import CoreOrb from './CoreOrb';
+import PresenceRing, { presenceLabel } from './PresenceRing';
+import HudLabel from '../shared/ui/HudLabel';
+import Kbd from '../shared/ui/Kbd';
+import EmptyState from '../shared/ui/EmptyState';
 
-export default function WorkspaceInspector({ connected, processing, gaming, resource, memory, visible, onOpen, onClose }) {
+const sameDay = (left, right) => left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
+const clock = date => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+export default function WorkspaceInspector({ connected, processing, voice, listening, gaming, resource, memory, onOpen, onClose }) {
   const reminders = useStore(state => state.reminders);
-  const voice = useStore(state => state.aiConnected);
-  const pending = reminders.filter(item => item.status === 'pending' || item.status === 'snoozed');
+  const now = new Date();
+  const today = reminders
+    .filter(item => (item.status === 'pending' || item.status === 'snoozed') && Number.isFinite(item.trigger_at) && sameDay(new Date(item.trigger_at * 1000), now))
+    .sort((left, right) => left.trigger_at - right.trigger_at);
+  const presence = !connected ? 'offline' : listening ? 'listening' : processing ? 'working' : 'idle';
   return <aside id="workspace-inspector" className="workspace-inspector" aria-label="Workspace context">
-    <div className="inspector-heading"><span className="eyebrow">CONTEXT</span><button className="icon-button" aria-label="Close context inspector" onClick={onClose}><X size={15}/></button></div>
-    <section className="system-card"><CoreOrb active={processing || voice} quiet={gaming || !visible || !(processing || voice)}/><div className="pulse-status"><span className={`status-dot ${connected ? '' : 'offline'}`}/><strong>{connected ? 'At your service' : 'Waiting for connection'}</strong></div>
-      <dl className="system-details"><div><dt>Resource mode</dt><dd>{gaming ? 'Gaming' : resource.state === 'studio' ? 'Studio' : 'Lightweight'}</dd></div><div><dt>Voice session</dt><dd>{voice ? 'Active' : 'Off'}</dd></div><div><dt>Workspace memory</dt><dd>{memory === null ? 'Not measured' : `${Math.round(memory)} MB`}</dd></div></dl><button className="text-button" onClick={() => onOpen('capabilities')}><Zap size={13}/> Capability center / diagnostics <ArrowUpRight size={13}/></button>
+    <div className="inspector-heading"><HudLabel>CONTEXT</HudLabel><button type="button" className="btn btn--ghost btn--icon btn--sm" aria-label="Close context inspector" onClick={onClose}><X size={14} aria-hidden="true"/></button></div>
+    <section className="inspector-panel inspector-presence hud-panel hud-frame" aria-label="Assistant presence">
+      <PresenceRing size={36} state={presence}/>
+      <div className="inspector-presence__copy"><strong className="presence-status hud-label" data-presence={presence}>{presenceLabel(presence)}</strong><span className="inspector-presence__hint"><Kbd>Ctrl Shift Space</Kbd> to talk</span></div>
     </section>
-    <section className="reminders-card"><div className="section-heading"><span className="eyebrow">ON YOUR RADAR</span><Bell size={15}/></div><h2>{pending.length ? `${pending.length} upcoming` : 'A clear horizon'}<span className="heading-dot">.</span></h2>
-      {pending.length ? pending.slice(0,3).map(item => <div className="radar-reminder" key={item.id}><span className="radar-dot"/><div><strong>{item.task}</strong><span>{new Date(item.trigger_at*1000).toLocaleString([], { month:'short',day:'numeric',hour:'2-digit',minute:'2-digit' })}</span></div></div>) : <p>Nothing scheduled. A little more space for your next idea.</p>}<button className="text-button" onClick={() => onOpen('reminder')}>Open reminders <ArrowUpRight size={14}/></button>
+    <section className="inspector-panel hud-panel" aria-labelledby="inspector-system">
+      <HudLabel as="h2" id="inspector-system" className="inspector-panel__title">SYSTEM</HudLabel>
+      <dl className="system-details">
+        <div><dt>Resource mode</dt><dd>{gaming ? 'Gaming' : resource.state === 'studio' ? 'Studio' : 'Lightweight'}</dd></div>
+        <div><dt>Voice</dt><dd>{listening ? 'Recording' : voice ? 'Active' : 'Off'}</dd></div>
+        <div><dt>Workspace memory</dt><dd className="tnum">{memory === null ? 'Not measured' : `${Math.round(memory)} MB`}</dd></div>
+      </dl>
     </section>
-    <div className="quick-launch"><span className="eyebrow">PROJECT TOOLS</span><button onClick={() => onOpen('memory')}><BookOpen size={15}/> Project memory <ArrowUpRight size={13}/></button><button onClick={() => onOpen('usage')}><Gauge size={15}/> Usage & quality <ArrowUpRight size={13}/></button><button onClick={() => onOpen('tasks')}><ListChecks size={15}/> Reviewed tasks <ArrowUpRight size={13}/></button></div><div className="inspector-footer"><ShieldCheck size={13}/><span>Your project. Your permission.</span></div>
+    <section className="inspector-panel hud-panel" aria-labelledby="inspector-today">
+      <HudLabel as="h2" id="inspector-today" className="inspector-panel__title">TODAY</HudLabel>
+      {today.length ? <ul className="today-list">{today.slice(0, 5).map(item => <li key={item.id}><time className="today-list__time" dateTime={new Date(item.trigger_at * 1000).toISOString()}>{clock(new Date(item.trigger_at * 1000))}</time><span>{item.task}</span></li>)}</ul>
+        : <EmptyState className="today-empty" title="No reminders today"/>}
+      <button type="button" className="btn btn--ghost btn--sm today-open" onClick={() => onOpen('reminder')}>Open reminders</button>
+    </section>
   </aside>;
 }

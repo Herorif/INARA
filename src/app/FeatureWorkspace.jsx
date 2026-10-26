@@ -40,7 +40,7 @@ export default function FeatureWorkspace({ feature, onClose, onOpen }) {
     aria-labelledby="workspace-feature-title"
     tabIndex={-1}
   >
-    <PanelHeader title={labels[feature]} titleId="workspace-feature-title" onClose={closeWorkspace} />
+    <PanelHeader title={labels[feature]} feature={feature} titleId="workspace-feature-title" onClose={closeWorkspace} />
     <FeatureContent feature={feature} onClose={closeWorkspace} onOpen={onOpen} />
   </section>;
 }

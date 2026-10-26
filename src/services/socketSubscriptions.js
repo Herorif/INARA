@@ -12,6 +12,9 @@ import { registerRemindersEvents } from './events/reminders';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
 
+/** Matches the core's ToolDispatcher approval timeout; the core rejects later answers. */
+const APPROVAL_TIMEOUT_MS = 60_000;
+
 const getConnectionStatus = ({ backendConnected, aiConnected, aiConnecting, aiUnavailable }) => {
     if (!backendConnected) return 'Backend Disconnected';
     if (aiConnecting) return 'AI Connecting';
@@ -51,7 +54,7 @@ export function initSocketListeners() {
     unsubs.push(onSocket('disconnect', () => {
         useStore.setState({
             status: 'Backend Disconnected',
-            confirmationRequest: null, pendingTextRequest: null,
+            confirmationRequest: null, confirmationQueue: [], pendingTextRequest: null,
             studioHandoff: null,
             activity: s().activity.filter(item => !['approval', 'submitting'].includes(item.state)),
             backendConnected: false,
@@ -153,13 +156,39 @@ export function initSocketListeners() {
     }));
 
     // --- Tool Confirmation ---
+    // Requests queue by id; each one leaves the queue when answered, closed or expired.
+    const approvalTimers = new Map();
+    const forgetApproval = id => { clearTimeout(approvalTimers.get(id)); approvalTimers.delete(id); };
     unsubs.push(onSocket('tool_confirmation_request', (data) => {
-        useStore.setState({ confirmationRequest: data });
+        if (!data?.id) return;
+        forgetApproval(data.id);
+        approvalTimers.set(data.id, setTimeout(() => {
+            approvalTimers.delete(data.id);
+            s().resolveConfirmation(data.id);
+        }, APPROVAL_TIMEOUT_MS));
+        s().enqueueConfirmation(data);
     }));
 
     unsubs.push(onSocket('task_queue_approval_closed', data => {
-        if (s().confirmationRequest?.task_queue?.id === data.id) useStore.setState({ confirmationRequest: null });
+        s().confirmationQueue.filter(item => item.task_queue?.id === data.id).forEach(item => s().resolveConfirmation(item.id));
     }));
+
+    // Other panels dismiss the visible request with `confirmationRequest: null`; treat that as
+    // resolving exactly that id. A project switch drops every request from the old project.
+    const stopApprovalSync = useStore.subscribe((state, previous) => {
+        if (state.currentProject !== previous.currentProject && state.confirmationQueue.length) {
+            useStore.setState({ confirmationQueue: [], confirmationRequest: null });
+            return;
+        }
+        if (!state.confirmationRequest && previous.confirmationRequest && state.confirmationQueue.some(item => item.id === previous.confirmationRequest.id)) {
+            s().resolveConfirmation(previous.confirmationRequest.id);
+            return;
+        }
+        if (state.confirmationQueue !== previous.confirmationQueue) {
+            const live = new Set(state.confirmationQueue.map(item => item.id));
+            [...approvalTimers.keys()].filter(id => !live.has(id)).forEach(forgetApproval);
+        }
+    });
 
     const dependencies = { onSocket, socket, store: useStore, unsubs, deliveredReminderIds, resumeConversation, conversationForProject };
     registerConversationEvents(dependencies);
@@ -169,6 +198,9 @@ export function initSocketListeners() {
 
     // Return cleanup
     return () => {
+        stopApprovalSync();
+        approvalTimers.forEach(timer => clearTimeout(timer));
+        approvalTimers.clear();
         scope.dispose();
     };
 }

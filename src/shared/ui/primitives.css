@@ -165,3 +165,51 @@
 .empty-state__title { margin: 0; font-size: var(--text-md); font-weight: 500; color: var(--text-1); }
 .empty-state__body { margin: 0; max-width: 28rem; font-size: var(--text-sm); line-height: var(--leading-normal); color: var(--text-2); }
 .empty-state__action { margin-top: .5rem; }
+
+/*
+ * Chamfered monogram: the one deliberate HUD signature (brand mark, empty states, lock screen).
+ * Size with --monogram-size; flat, no gradient or glow.
+ */
+.monogram {
+  --monogram-size: 1.5rem;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--monogram-size);
+  height: var(--monogram-size);
+  border: 1px solid var(--line-accent);
+  border-radius: 6px 2px 6px 2px;
+  font-family: var(--font-sans);
+  font-size: calc(var(--monogram-size) * .5);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+  user-select: none;
+}
+.monogram--md { --monogram-size: 2rem; }
+.monogram--lg { --monogram-size: 3rem; border-radius: 10px 4px 10px 4px; }
+
+/* Indeterminate progress hairline (real in-flight work only). Static at 40% under reduced motion. */
+.progress-line {
+  position: relative;
+  display: block;
+  width: 6rem;
+  height: 1px;
+  overflow: hidden;
+  background: var(--line-strong);
+}
+.progress-line::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: var(--accent);
+  animation: progress-line-slide 1.2s var(--ease-out) infinite;
+}
+@keyframes progress-line-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-line::after { animation: none; width: 100%; opacity: .4; }
+}

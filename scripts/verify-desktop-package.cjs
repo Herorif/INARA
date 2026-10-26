@@ -30,7 +30,7 @@ BrowserWindow.prototype.loadFile = async function(...args){
   await load.apply(window,args);
   const evaluate=source=>window.webContents.executeJavaScript(source);
   try{
-    await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+    await until(()=>evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
     assert.equal(bootstrap.dev,false);
     for(const label of ['Assistant','Studio','Inbox','Tasks','Connections']){
       await evaluate(`document.querySelector('nav [aria-label="${label}"]').click()`);
