@@ -19,7 +19,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
  const enable=async()=>{await evaluate(`document.querySelector('.vision-tracking-card .voice-button').click()`);await tracking('running');};
  window.webContents.session.webRequest.onBeforeRequest((details,callback)=>{requests.push(details.url);callback({});});
  try{
-  await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+  await until(()=>evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
   assert.equal(requests.some(url=>/CameraPanel-|tracking.worker-|vision_wasm|hand_landmarker/.test(url)),false);
   await evaluate(`
    window.visionQA={streams:[],workers:[],fixture:false,frames:0,postFrames:0,late:false,denied:false};
@@ -51,8 +51,8 @@ BrowserWindow.prototype.loadFile=async function(...args){
    undefined;
   `);
   await evaluate(`document.querySelectorAll('nav button')[1].click()`);
-  await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.textContent.includes('Vision studio'))`));
-  const open=async()=>{await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Vision studio')).click()`);await phase('idle');};
+  await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.querySelector('.tool-tile__title')?.textContent==='Vision')`));
+  const open=async()=>{await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.querySelector('.tool-tile__title')?.textContent==='Vision').click()`);await phase('idle');};
   await open();
   assert.equal(await evaluate(`visionQA.streams.length`),0);
   assert.equal(requests.some(url=>/tracking.worker-|vision_wasm|hand_landmarker/.test(url)),false);
@@ -64,7 +64,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await enable();
   await until(()=>evaluate(`visionQA.frames>=2 && document.querySelector('.vision-telemetry').textContent.includes('0 / 2')`));
   result.real_worker_model_and_blank_frame_inference=true;
-  await evaluate(`visionQA.fixture=true; const label=document.createElement('div');label.className='qa-fixture-label';label.textContent='SYNTHETIC LANDMARK FIXTURE / NOT A REAL HAND';label.style.cssText='position:absolute;bottom:45px;left:12px;right:12px;padding:7px;background:#2c1c40ee;color:#e1bfff;font:9px monospace;z-index:5;text-align:center';document.querySelector('.vision-preview').append(label);`);
+  await evaluate(`visionQA.fixture=true; const label=document.createElement('div');label.className='qa-fixture-label';label.textContent='SYNTHETIC LANDMARK FIXTURE / NOT A REAL HAND';label.style.cssText='position:absolute;bottom:45px;left:12px;right:12px;padding:7px;background:var(--bg-overlay);color:var(--warn);border:1px solid var(--warn);font:var(--text-xs) var(--font-mono);z-index:5;text-align:center';document.querySelector('.vision-preview').append(label);`);
   await until(()=>evaluate(`document.querySelector('.vision-telemetry').textContent.includes('1 / 2') && document.querySelector('.vision-hand-summary').textContent.includes('96%')`));
   const dimensions=await evaluate(`(()=>{const video=document.querySelector('.vision-feed video'),canvas=document.querySelector('.vision-feed canvas');return {video:[video.videoWidth,video.videoHeight],canvas:[canvas.width,canvas.height],rects:[video.getBoundingClientRect().width,canvas.getBoundingClientRect().width],transform:getComputedStyle(document.querySelector('.vision-feed')).transform};})()`);
   assert.deepEqual(dimensions.video,dimensions.canvas);assert.equal(dimensions.rects[0],dimensions.rects[1]);assert.match(dimensions.transform,/-1/);

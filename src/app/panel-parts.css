@@ -1,0 +1,148 @@
+/* Shared creative-panel parts: PanelState chip, JobStatus, JobLifetime, RevisionHistory, Field. Tokens only. */
+
+/* PanelState */
+.panel-state-copy .panel-state-chip { margin-bottom: var(--space-2); }
+.panel-state--compact .panel-state-copy .panel-state-chip { margin-bottom: var(--space-1); }
+
+/* Field */
+.panel-field { gap: var(--space-2); min-width: 0; }
+.panel-field__label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  color: var(--text-2);
+}
+.panel-field__hint {
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--text-3);
+}
+
+/* JobStatus */
+.job-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--text-3);
+}
+.job-status[data-tone="ok"] .job-status__icon { color: var(--ok); }
+.job-status[data-tone="accent"] .job-status__icon { color: var(--accent); }
+.job-status__icon { display: inline-flex; flex-shrink: 0; }
+.job-status > div { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.job-status strong { font-size: var(--text-sm); font-weight: 500; color: var(--text-1); }
+.job-status > div > span { font-size: var(--text-xs); line-height: var(--leading-normal); color: var(--text-3); overflow-wrap: anywhere; }
+
+/* JobLifetime (scoped to the studios so it wins over legacy capability styles) */
+.cad-studio .job-lifetime,
+.image-studio .job-lifetime {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--text-1);
+}
+.cad-studio .job-lifetime label,
+.image-studio .job-lifetime label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+.cad-studio .job-lifetime input,
+.image-studio .job-lifetime input { margin-top: var(--space-1); accent-color: var(--accent); }
+.cad-studio .job-lifetime small,
+.image-studio .job-lifetime small {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--text-2);
+}
+.job-lifetime__estimate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-3) 0 0;
+}
+.job-lifetime__estimate > div { display: flex; align-items: baseline; gap: var(--space-2); }
+.job-lifetime__estimate dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-1); }
+
+/* RevisionHistory */
+.revision-history {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+.revision-history__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.revision-history__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-2);
+}
+.revision-history__list > button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--text-3);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+.revision-history__list > button:hover { background: var(--bg-hover); }
+.revision-history__list > button.selected {
+  border-color: var(--line-accent);
+  background: var(--bg-selected);
+  color: var(--accent);
+}
+.revision-history__list > button:disabled { opacity: .5; cursor: not-allowed; }
+.revision-history__list > button > svg { flex-shrink: 0; }
+.revision-history__name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  color: var(--text-1);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.revision-history__name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.revision-history__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  font-style: normal;
+}
+.revision-history__state small { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-3); }
+.revision-history__list > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-2);
+}
+.revision-history button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

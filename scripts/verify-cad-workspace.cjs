@@ -49,7 +49,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
         if (state === 'completed') downloads.push(destination);
       });
     });
-    await until(() => evaluate(`document.querySelector('.pulse-status strong')?.textContent === 'At your service'`));
+    await until(() => evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
     await evaluate(`document.querySelectorAll('nav button')[1].click()`);
     await until(() => evaluate(`[...document.querySelectorAll('.feature-card')].some(button => button.textContent.includes('3D studio'))`));
     await evaluate(`[...document.querySelectorAll('.feature-card')].find(button => button.textContent.includes('3D studio')).click()`);
@@ -62,7 +62,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
       await evaluate(`document.querySelector('.cad-build').click()`);
       await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
       if (shape==='box') {
-        await until(()=>evaluate(`document.activeElement?.textContent==='Deny Request'`));
+        await until(()=>evaluate(`document.activeElement?.textContent==='Deny'`));
         window.webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'});window.webContents.sendInputEvent({type:'keyUp',keyCode:'Escape'});
         await until(()=>evaluate(`!document.querySelector('.tool-confirmation-dialog') && document.querySelector('.cad-status strong')?.textContent==='Build stopped'`));
         assert.equal(await evaluate(`!!document.querySelector('.cad-studio')`),true);
@@ -71,7 +71,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
         fs.writeFileSync(path.join(output,'approval-desktop.png'),(await window.webContents.capturePage()).toPNG());
         result.approval_escape_denies_without_closing_parent=true;
       }
-      await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+      await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve').click()`);
 
       const volume = {
         box: '144.00',
@@ -103,7 +103,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     result.glb_imported_with_three = true;
     result.download_formats = ['stl', 'glb', 'json'];
     await evaluate(`document.querySelector('.cad-preview-top button').click()`);
-    assert.match(await evaluate(`document.querySelector('.cad-view-label').textContent`), /WIREFRAME/);
+    assert.match(await evaluate(`document.querySelector('.cad-view-label').textContent`), /wireframe/i);
     window.setContentSize(390, 844);
     await sleep(200);
     assert.equal(await evaluate(`document.documentElement.scrollWidth > innerWidth || document.querySelector('.cad-studio').scrollWidth > document.querySelector('.cad-studio').clientWidth`), false);
@@ -126,7 +126,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await until(() => evaluate(`!document.querySelector('.cad-ai button').disabled`));
     await evaluate(`document.querySelector('.cad-ai button').click()`);
     await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
-    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve').click()`);
     await until(() => evaluate(`document.querySelector('.panel-state--error')?.textContent.includes('not configured yet')`));
     assert.equal(await evaluate(`document.querySelector('.cad-viewport').dataset.modelLoaded`), 'true');
     result.optional_planner_missing_key_preserves_offline_preview = true;
@@ -148,7 +148,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     }
     await evaluate(`document.querySelector('.cad-build').click()`);
     await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
-    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve').click()`);
     await until(() => evaluate(`document.querySelector('.cad-status strong')?.textContent === 'Ready to explore' && document.querySelector('.cad-stats')?.textContent.includes('331.33') && document.querySelector('.cad-viewport')?.dataset.modelLoaded === 'true'`));
     await evaluate(`if(document.querySelector('.cad-preview-top button').getAttribute('aria-pressed') === 'true') document.querySelector('.cad-preview-top button').click(); document.querySelector('.cad-studio').scrollTop=0; document.querySelector('.cad-studio').parentElement.scrollTop=0;`);
     await sleep(400);
@@ -190,7 +190,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`document.querySelector('.cad-ai').open=true;{const input=document.querySelector('.cad-ai textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'R5 FIXTURE MOVE FIRST OBJECT');input.dispatchEvent(new Event('input',{bubbles:true}));}`);
     await evaluate(`document.querySelector('.cad-ai button').click()`);
     await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
-    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve').click()`);
     await until(()=>evaluate(`!!document.querySelector('.proposal-review')`));
     assert.equal(await evaluate(`document.querySelector('[aria-label="position X"]').value`),'0');
     assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),4);
@@ -203,7 +203,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`[...document.querySelectorAll('.cad-workbench > .draft-view-tools button')].find(button=>button.textContent==='Saved revision').click()`);
     await evaluate(`document.querySelector('.cad-build').click()`);
     await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
-    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve').click()`);
     await until(()=>evaluate(`document.querySelector('.cad-status strong')?.textContent==='Ready to explore' && document.querySelectorAll('.cad-history-list button').length===5`));
     await evaluate(`{const select=document.querySelector('[aria-label="Compare saved revision"]');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,select.options[1].value);select.dispatchEvent(new Event('change',{bubbles:true}));}`);
     await until(()=>evaluate(`document.querySelectorAll('.revision-visual-compare .cad-viewport[data-model-loaded="true"]').length===2`));
@@ -233,7 +233,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await evaluate(`{const input=document.querySelector('.cad-ai textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'SCENE BLUEPRINT FIXTURE');input.dispatchEvent(new Event('input',{bubbles:true}));}`);
     await evaluate(`document.querySelector('.cad-ai button').click()`);
     await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
-    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve').click()`);
     await until(()=>evaluate(`document.querySelectorAll('.blueprint-parts article').length===2`));
     assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),5);
     assert.equal(await evaluate(`document.querySelectorAll('.scene-roster button').length`),3);
@@ -250,7 +250,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     assert.equal(await evaluate(`document.querySelectorAll('.cad-history-list button').length`),5);
     await evaluate(`[...document.querySelectorAll('.cad-workbench > .draft-view-tools button')].find(button=>button.textContent==='Saved revision').click();document.querySelector('.cad-build').click()`);
     await until(()=>evaluate(`!!document.querySelector('.tool-confirmation-dialog')`));
-    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve Action').click()`);
+    await evaluate(`[...document.querySelectorAll('.tool-confirmation-dialog button')].find(button=>button.textContent==='Approve').click()`);
     await until(()=>evaluate(`document.querySelector('.cad-status strong')?.textContent==='Ready to explore' && document.querySelectorAll('.cad-history-list button').length===6 && document.querySelector('.cad-viewport')?.dataset.modelLoaded==='true'`));
     result.scene_blueprint={fixture_provider:true,review_preview_and_apply:true,no_build_before_separate_approval:true,offline_scene_built:true,narrow_width:390};
 

@@ -15,9 +15,11 @@ BrowserWindow.prototype.loadFile=async function(...args){
  window.webContents.session.webRequest.onBeforeRequest((details,callback)=>{requests.push(details.url);callback({});});
  window.webContents.session.on('will-download',(_,item)=>{const destination=path.join(output,'exports',path.basename(item.getFilename()));fs.mkdirSync(path.dirname(destination),{recursive:true});item.setSavePath(destination);item.once('done',(_,state)=>{if(state==='completed')downloads.push(destination);});});
  try {
-  await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+  await until(()=>evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
   assert.equal(requests.some(url=>/ImageStudio/.test(url)),false);
-  await evaluate(`[...document.querySelectorAll('button')].find(button=>button.textContent.includes('Capability center / diagnostics')).click()`);
+  await evaluate(`document.querySelector('nav [aria-label="Connections"]').click()`);
+  await until(()=>evaluate(`[...document.querySelectorAll('button')].some(button=>button.textContent.trim()==='All capabilities')`));
+  await evaluate(`[...document.querySelectorAll('button')].find(button=>button.textContent.trim()==='All capabilities').click()`);
   await until(()=>evaluate(`document.querySelectorAll('.capability-card').length===7`));
   assert.equal(await evaluate(`document.querySelector('.capability-telemetry').textContent.includes('Unknown')`),true);
   await screenshot('capabilities-desktop.png');
@@ -29,8 +31,8 @@ BrowserWindow.prototype.loadFile=async function(...args){
   result.capability_center_desktop_mobile_unknown_hardware=true;
 
   await evaluate(`document.querySelectorAll('nav button')[1].click()`);
-  await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.textContent.includes('Image atelier'))`));
-  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Image atelier')).click()`);
+  await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.querySelector('.tool-tile__title')?.textContent==='Images')`));
+  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.querySelector('.tool-tile__title')?.textContent==='Images').click()`);
   await until(()=>evaluate(`!!document.querySelector('.image-studio') && document.querySelector('.image-availability p')?.textContent.includes('deferred')`));
   assert.equal(await evaluate(`document.querySelector('.image-generate').disabled`),true);
   assert.equal(await evaluate(`!!document.querySelector('.image-canvas img')`),false);
@@ -61,7 +63,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await until(()=>evaluate(`!document.querySelector('.command-palette')`));
   assert.equal(await evaluate(`!!document.querySelector('.image-studio')`),true,'Dismissing command search must retain the docked image tool');
   await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
-  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Image atelier')).click()`);
+  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.querySelector('.tool-tile__title')?.textContent==='Images').click()`);
   await until(()=>evaluate(`document.querySelector('.image-availability p')?.textContent.includes('deferred')`));
   result.docked_keyboard_navigation_and_palette_escape=true;
 
@@ -107,7 +109,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
    if(width===390){await screenshot('image-mobile-controls.png');await evaluate(`document.querySelector('.image-workbench').scrollIntoView({block:'start'})`);await screenshot('image-mobile-preview.png');}
   }
   await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
-  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Image atelier')).click()`);
+  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.querySelector('.tool-tile__title')?.textContent==='Images').click()`);
   await until(()=>evaluate(`document.querySelector('.image-canvas img')?.naturalWidth===512 && document.querySelector('.image-result-status').textContent.includes('4322')`));
   result.reopened_without_regeneration=true;
   await setField('.image-director textarea','WAIT FOR CANCELLATION');

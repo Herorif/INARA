@@ -11,7 +11,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
  const window=this;await load.apply(window,args);const evaluate=source=>window.webContents.executeJavaScript(source),result={};
  const screenshot=async name=>{await sleep(200);fs.writeFileSync(path.join(output,name),(await window.webContents.capturePage()).toPNG());};
  try{
-  await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+  await until(()=>evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
   await evaluate(`document.querySelector('[aria-label="Studio"]').click()`);
   await until(()=>evaluate(`[...document.querySelectorAll('button')].some(button=>button.textContent.includes('Web inspector'))`));
   await evaluate(`[...document.querySelectorAll('button')].find(button=>button.textContent.includes('Web inspector')).click()`);

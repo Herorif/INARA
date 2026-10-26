@@ -1,16 +1,17 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import * as THREE from 'three';
 import { blockParts, cadEuler } from './blockout.js';
-const colors = { cyan: '#4fc8cf', amber: '#ed984d', titanium: '#9cabbf', ceramic: '#e0e8ea' };
+import { sceneColors } from '../../shared/design/theme.js';
 
 function Blockout({ objects, selected, onSelect, onMove, disabled }) {
   const root = useRef(), groups = useRef([]);
   const { camera, gl, invalidate, scene } = useThree();
   const callbacks = useRef({ onMove }); callbacks.current = { onMove };
   const [controller, setController] = useState(null);
+  const colors = useMemo(() => sceneColors(), []);
   useEffect(() => {
     const orbit = new OrbitControls(camera, gl.domElement);
     orbit.minDistance = .1;orbit.maxDistance = 15;
@@ -39,15 +40,16 @@ function Blockout({ objects, selected, onSelect, onMove, disabled }) {
     return () => controller.detach();
   }, [controller, selected, objects, disabled, invalidate]);
   return <group ref={root}><group rotation={[-Math.PI / 2,0,0]}>{objects.map((object,index) => <group key={index} ref={value => {groups.current[index]=value;}} position={object.position || [0,0,0]} rotation={new THREE.Euler(...cadEuler(object.rotation || [0,0,0]))} scale={object.scale || [1,1,1]}>
-    {blockParts(object).map((part,partIndex) => <mesh key={partIndex} position={part.center} onPointerDown={event => {event.stopPropagation();if (!disabled) onSelect(index);}}><boxGeometry args={part.size} /><meshStandardMaterial color={colors[object.material] || colors.cyan} roughness={.5} metalness={.25} emissive={index === selected ? '#14474d' : '#000000'} /></mesh>)}
+    {blockParts(object).map((part,partIndex) => <mesh key={partIndex} position={part.center} onPointerDown={event => {event.stopPropagation();if (!disabled) onSelect(index);}}><boxGeometry args={part.size} /><meshStandardMaterial color={colors.materials[object.material] || colors.model} roughness={.5} metalness={.25} emissive={index === selected ? colors.selection : colors.none} emissiveIntensity={index === selected ? colors.selectionIntensity : 1} /></mesh>)}
   </group>)}</group></group>;
 }
 export default function DraftPreview({ recipe, selected, onSelect, onMove, disabled, readOnly = false }) {
   const objects = recipe.shape === 'scene' ? recipe.objects : [recipe];
   const valid = objects?.length > 0 && objects.every(object => blockParts(object).length > 0 && ['position','rotation','scale'].every(key => !object[key] || object[key].every(v => typeof v === 'number' && Number.isFinite(v))));
+  const background = useMemo(() => sceneColors().background, []);
   return <div className="cad-viewport cad-draft-viewport" data-draft-valid={!!valid}>
-    <div className="cad-view-label">{readOnly ? 'PROPOSAL / ORBIT TO INSPECT' : `DRAFT BLOCKOUT / ${recipe.shape === 'scene' ? 'SELECT + TRANSLATE' : 'DIMENSION PREVIEW'}`}</div>
-    {valid ? <Canvas frameloop="demand" dpr={[1,1.5]} camera={{position:[1.9,1.5,2.1],fov:42,near:.001,far:100}}><ambientLight intensity={1.2} /><directionalLight position={[4,7,5]} intensity={2.2} /><Blockout objects={objects} selected={selected} onSelect={onSelect} onMove={onMove} disabled={disabled || recipe.shape !== 'scene'} /></Canvas> : <div className="cad-preview-empty"><strong>Complete valid dimensions to preview</strong></div>}
-    <div className="cad-view-guide">{readOnly ? 'Approximate blockout / apply to edit; build to validate geometry.' : 'Blockout only / build to validate topology. Gizmo: local axes, 1 mm snap.'}</div>
+    <div className="cad-view-label hud-label">{readOnly ? 'Proposal / orbit to inspect' : `Draft blockout / ${recipe.shape === 'scene' ? 'select and move' : 'dimension preview'}`}</div>
+    {valid ? <Canvas frameloop="demand" dpr={[1,1.5]} camera={{position:[1.9,1.5,2.1],fov:42,near:.001,far:100}}><color attach="background" args={[background]} /><ambientLight intensity={1.2} /><directionalLight position={[4,7,5]} intensity={2.2} /><Blockout objects={objects} selected={selected} onSelect={onSelect} onMove={onMove} disabled={disabled || recipe.shape !== 'scene'} /></Canvas> : <div className="cad-preview-empty"><p className="cad-preview-empty__title">Enter valid dimensions to preview</p></div>}
+    <div className="cad-view-guide">{readOnly ? 'Approximate blockout. Apply to edit; build to validate geometry.' : 'Blockout only. Build to validate topology. Gizmo uses local axes with 1 mm snap.'}</div>
   </div>;
 }

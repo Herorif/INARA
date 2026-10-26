@@ -1,14 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { Box, Rotate3D } from 'lucide-react';
+import EmptyState from '../../shared/ui/EmptyState';
 import socket from '../../services/socket';
 import { artifactBytes } from './client';
 import { createCadClient } from '../../transport/cadClient.ts';
 import useStore from '../../store';
 import { loadView, saveView } from './views';
+import { sceneColors } from '../../shared/design/theme.js';
 function Controls({geometry, view, cameraRef}) {
   const {
     camera,
@@ -49,6 +51,7 @@ function Solid({
   const {
     invalidate
   } = useThree();
+  const colors = useMemo(() => sceneColors(), []);
   useEffect(() => {
     let index=0;
     geometry.traverse(object => {
@@ -56,13 +59,15 @@ function Solid({
         object.userData.cadIndex=index++;
         for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
           material.wireframe = wireframe;
-          material.emissive?.set(object.userData.cadIndex === selectedObject ? '#103c43' : '#000000');
+          const highlighted = object.userData.cadIndex === selectedObject;
+          material.emissive?.set(highlighted ? colors.selection : colors.none);
+          if (material.emissive) material.emissiveIntensity = highlighted ? colors.selectionIntensity : 1;
           material.needsUpdate = true;
         }
       }
     });
     invalidate();
-  }, [geometry, wireframe, selectedObject, invalidate]);
+  }, [geometry, wireframe, selectedObject, invalidate, colors]);
   return <primitive object={geometry} dispose={null} onPointerDown={event=>{event.stopPropagation();onSelectObject?.(event.object.userData.cadIndex);}} />;
 }
 function disposeModel(model) {
@@ -123,17 +128,19 @@ export default function ModelPreview({
     };
   }, [job?.request_id, job?.state, connected]);
   const visibleGeometry = loadedFor === job?.request_id && job?.state === 'succeeded' ? geometry : null;
-  return <><div className="draft-view-tools" aria-label="Saved model views">{[['perspective','Fit model'],['selection','Frame selection'],['top','Top'],['front','Front']].map(([kind,title])=><button key={kind} disabled={!visibleGeometry} onClick={()=>setView({kind,selected:selectedObject,nonce:Date.now()})}>{title}</button>)}<button disabled={!visibleGeometry} onClick={()=>{const controls=cameraRef.current;if(controls){savedView.current={position:controls.object.position.toArray(),target:controls.target.toArray()};const stored=saveView(undefined,viewKey,savedView.current);setHasView(true);setViewMessage(stored ? 'View saved for this revision.' : 'View kept for this panel; browser storage unavailable.');}}}>Save view</button><button disabled={!visibleGeometry || !hasView} onClick={()=>setView({kind:'restore',saved:savedView.current,nonce:Date.now()})}>Restore view</button>{viewMessage && <small role="status">{viewMessage}</small>}</div><div className="cad-viewport" data-model-loaded={!!visibleGeometry}>
-    <div className="cad-view-label"><span className="status-dot" /><span>PERSPECTIVE / {wireframe ? 'WIREFRAME' : 'SOLID'}{job?.recipe && ` · ${job.recipe.shape.toUpperCase()}`}</span></div>
+  const colors = useMemo(() => sceneColors(), []);
+  return <><div className="draft-view-tools hud-panel" role="group" aria-label="Saved model views">{[['perspective','Fit model'],['selection','Frame selection'],['top','Top'],['front','Front']].map(([kind,title])=><button type="button" className="btn btn--ghost btn--sm" key={kind} disabled={!visibleGeometry} onClick={()=>setView({kind,selected:selectedObject,nonce:Date.now()})}>{title}</button>)}<span className="draft-view-tools__divider" aria-hidden="true" /><button type="button" className="btn btn--ghost btn--sm" disabled={!visibleGeometry} onClick={()=>{const controls=cameraRef.current;if(controls){savedView.current={position:controls.object.position.toArray(),target:controls.target.toArray()};const stored=saveView(undefined,viewKey,savedView.current);setHasView(true);setViewMessage(stored ? 'View saved for this revision.' : 'View kept for this panel; browser storage unavailable.');}}}>Save view</button><button type="button" className="btn btn--ghost btn--sm" disabled={!visibleGeometry || !hasView} onClick={()=>setView({kind:'restore',saved:savedView.current,nonce:Date.now()})}>Restore view</button>{viewMessage && <small role="status">{viewMessage}</small>}</div><div className="cad-viewport" data-model-loaded={!!visibleGeometry}>
+    <div className="cad-view-label hud-label"><span className={`status-dot ${visibleGeometry ? 'status-dot--ok' : ''}`} aria-hidden="true" /><span>Perspective / {wireframe ? 'wireframe' : 'solid'}{job?.recipe && ` / ${job.recipe.shape}`}</span></div>
     {visibleGeometry ? <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{
       position: [2.8, 2.1, 3],
       fov: 42, near:.001, far:100
     }} gl={{
       antialias: true
     }}>
-      <ambientLight intensity={1.1} /><directionalLight position={[4, 7, 5]} intensity={2.2} /><directionalLight position={[-4, 1, -2]} intensity={.7} color="#4e8fae" />
-      <Solid geometry={visibleGeometry} wireframe={wireframe} selectedObject={selectedObject} onSelectObject={job?.recipe?.engine === 'blender' ? undefined : onSelectObject} /><gridHelper args={[5, 20, '#345565', '#203140']} position={[0, -1.08, 0]} /><Controls geometry={visibleGeometry} view={view} cameraRef={cameraRef} />
-    </Canvas> : <div className="cad-preview-empty"><div className="cad-placeholder"><Box size={58} strokeWidth={.8} /></div><strong>{error ? 'Preview unavailable' : job?.state === 'succeeded' ? 'Preparing your model' : 'Your idea starts here'}</strong><p>{error || 'Choose a shape, set its dimensions and build a new revision.'}</p></div>}
-    <div className="cad-view-guide"><Rotate3D size={14} /> Drag to orbit · Scroll to zoom<span>Z-UP DESIGN / MM</span></div>
+      <color attach="background" args={[colors.background]} />
+      <ambientLight intensity={1.1} /><directionalLight position={[4, 7, 5]} intensity={2.2} /><directionalLight position={[-4, 1, -2]} intensity={.7} color={colors.fillLight} />
+      <Solid geometry={visibleGeometry} wireframe={wireframe} selectedObject={selectedObject} onSelectObject={job?.recipe?.engine === 'blender' ? undefined : onSelectObject} /><gridHelper args={[5, 20, colors.gridMajor, colors.gridMinor]} position={[0, -1.08, 0]} /><Controls geometry={visibleGeometry} view={view} cameraRef={cameraRef} />
+    </Canvas> : <EmptyState className="cad-preview-empty" icon={<Box strokeWidth={1.5} />} title={error ? 'Preview unavailable' : job?.state === 'succeeded' ? 'Loading model' : 'No saved model'} body={error || 'Choose a shape, set its dimensions and build a revision.'} />}
+    <div className="cad-view-guide"><Rotate3D size={14} aria-hidden="true" /> Drag to orbit, scroll to zoom<span className="hud-label">Z-up / mm</span></div>
   </div></>;
 }

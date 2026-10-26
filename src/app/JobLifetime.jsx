@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './capabilities.css';
+import './panel-parts.css';
 export default function JobLifetime({ job, connected, onChange }) {
   const [saving, setSaving] = useState(false);
   if (!job || !['queued', 'running'].includes(job.state)) return null;
@@ -10,7 +10,12 @@ export default function JobLifetime({ job, connected, onChange }) {
       setSaving(true);
       try { await onChange(enabled); } finally { setSaving(false); }
     }} /> Continue this job after closing this panel</label>
-    <small>{job.background ? 'Background continuation enabled.' : 'Closing this panel cancels this job.'} Workspace closure, loss of the last UI connection, or gaming mode stops it.</small>
-    {estimate && <small>Admission estimate: {estimate.cpu} CPU threads / {estimate.ram_mb} MB RAM / {estimate.vram_mb} MB VRAM. One creative worker at a time.</small>}
+    <small>{job.background ? 'Background continuation is on.' : 'Closing this panel cancels this job.'} Closing the workspace, losing the last UI connection or starting gaming mode stops it.</small>
+    {estimate && <dl className="job-lifetime__estimate">
+      <div><dt className="hud-label">CPU</dt><dd>{estimate.cpu} threads</dd></div>
+      <div><dt className="hud-label">RAM</dt><dd>{estimate.ram_mb} MB</dd></div>
+      <div><dt className="hud-label">VRAM</dt><dd>{estimate.vram_mb} MB</dd></div>
+    </dl>}
+    {estimate && <small>Admission estimate. One creative worker runs at a time.</small>}
   </div>;
 }

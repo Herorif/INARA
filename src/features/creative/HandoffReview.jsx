@@ -29,24 +29,24 @@ export default function HandoffReview({destination, project, version, disabled, 
   }, [selection?.id]);
   if (!selection) return null;
   const stale = draft && captured.current !== version.current;
-  return <section className="creative-handoff" aria-label="Creative handoff review">
-    <span className="eyebrow"><Link2 size={14}/> REFERENCE / REVIEW BEFORE APPLYING</span>
-    <h3>A new direction, with a traceable beginning.</h3>
-    <div className="handoff-route"><span>{selection.source_kind === 'cad' ? '3D recipe' : 'Image recipe'}</span><ArrowRight size={17}/><span>{destination === 'cad' ? '3D blueprint brief' : 'Image concept brief'}</span></div>
-    <p>Recipe text only. No image pixels, camera content or AI analysis are included. Applying changes your brief; generation stays a separate action.</p>
-    {error ? <p role="alert">{error}</p> : !draft ? <p role="status">{connected ? 'Checking the saved source…' : 'Connection interrupted. Select the reference again after reconnecting.'}</p> : <>
-      <strong>{draft.source_name}</strong><small>Source revision / {draft.reference.source_request_id}</small>
+  return <section className="creative-handoff hud-panel" aria-label="Creative handoff review">
+    <span className="hud-label"><Link2 size={14} aria-hidden="true"/> Reference / review before applying</span>
+    <h3>Review recipe handoff</h3>
+    <div className="handoff-route"><span>{selection.source_kind === 'cad' ? '3D recipe' : 'Image recipe'}</span><ArrowRight size={16} aria-hidden="true"/><span>{destination === 'cad' ? '3D blueprint brief' : 'Image concept brief'}</span></div>
+    <p>Recipe text only. No image pixels, camera content or model analysis are included. Applying changes your brief; generation stays a separate action.</p>
+    {error ? <p className="handoff-error" role="alert">{error}</p> : !draft ? <p role="status">{connected ? 'Checking the saved source…' : 'Connection interrupted. Select the reference again after reconnecting.'}</p> : <>
+      <strong>{draft.source_name}</strong><small>Source revision / <span className="handoff-id">{draft.reference.source_request_id}</span></small>
       <pre>{draft.prompt}</pre>
-      {stale && <p role="alert">Your draft changed during review. Discard this handoff and select the reference again.</p>}
+      {stale && <p className="handoff-error" role="alert">Your draft changed during review. Discard this handoff and select the reference again.</p>}
     </>}
-    <div className="handoff-actions"><button disabled={!connected || disabled || !draft || !!error || stale} onClick={() => {
+    <div className="handoff-actions"><button type="button" className="btn btn--primary btn--sm" disabled={!connected || disabled || !draft || !!error || stale} onClick={() => {
       if (captured.current !== version.current || useStore.getState().currentProject !== project) return;
       onApply(draft);discard();
-    }}>Apply brief to draft</button><button onClick={discard}>Discard handoff</button></div>
+    }}>Apply brief to draft</button><button type="button" className="btn btn--ghost btn--sm" onClick={discard}>Discard handoff</button></div>
   </section>;
 }
 
 export function ReferenceNotice({reference, onClear, disabled}) {
   if (!reference) return null;
-  return <section className="creative-reference" aria-label="Draft source reference"><Link2 size={16}/><div><strong>Recipe reference attached</strong><small>{reference.source_kind} / {reference.source_request_id}</small><p>This provenance is checked again before planning or building.</p></div><button disabled={disabled} onClick={onClear}>Detach reference</button></section>;
+  return <section className="creative-reference hud-panel" aria-label="Draft source reference"><Link2 size={16} aria-hidden="true"/><div><strong>Recipe reference attached</strong><small>{reference.source_kind} / <span className="handoff-id">{reference.source_request_id}</span></small><p>This provenance is checked again before planning or building.</p></div><button type="button" className="btn btn--secondary btn--sm" disabled={disabled} onClick={onClear}>Detach reference</button></section>;
 }
