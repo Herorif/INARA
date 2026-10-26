@@ -25,6 +25,24 @@ def pytest_configure(config):
     os.environ["INARA_SETTINGS_FILE"] = str(Path(config._inara_test_data.name) / "settings.json")
 
 
+# Opt-in markers (registered in pytest.ini): marker -> environment switch.
+OPT_IN_MARKERS = {
+    "live_api": "INARA_LIVE_API_TESTS",
+    "live_hardware": "INARA_LIVE_HARDWARE_TESTS",
+}
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip paid-API and real-device tests unless their switch is exactly "1"."""
+    for marker, variable in OPT_IN_MARKERS.items():
+        if os.environ.get(variable) == "1":
+            continue
+        skip = pytest.mark.skip(reason=f"{marker} test: set {variable}=1 to run it")
+        for item in items:
+            if marker in item.keywords:
+                item.add_marker(skip)
+
+
 def pytest_unconfigure(config):
     for key, value in config._inara_previous_isolation.items():
         if value is None:

@@ -2,13 +2,12 @@
 Tests for 3D Printer Agent.
 Discovery only - no actual print jobs.
 """
-import os
 import pytest
-import asyncio
 
 # Try to import the agent, skip all tests if dependencies missing
 try:
     from printer_agent import PrinterAgent, PrinterType, Printer
+    from devices.printer_models import PrintStatus
     HAS_PRINTER = True
 except ImportError as e:
     HAS_PRINTER = False
@@ -17,20 +16,74 @@ except ImportError as e:
     PrinterAgent = None
     PrinterType = None
     Printer = None
+    PrintStatus = None
 
-pytestmark = [pytest.mark.skipif(os.getenv("INARA_LIVE_HARDWARE_TESTS") != "1", reason="Real hardware tests require explicit opt-in"), pytest.mark.skipif(not HAS_PRINTER, reason=f"Printer dependencies not installed: {IMPORT_ERROR if not HAS_PRINTER else ''}")]
+pytestmark = pytest.mark.skipif(not HAS_PRINTER, reason=f"Printer dependencies not installed: {IMPORT_ERROR if not HAS_PRINTER else ''}")
 
 
 
+class FakeProtocol:
+    """Stands in for PrinterProtocolClient; fails the first ``failures`` status calls."""
+
+    def __init__(self, failures=0):
+        self.failures = failures
+        self.status_calls = []
+
+    async def status(self, printer):
+        self.status_calls.append(printer.host)
+        if len(self.status_calls) <= self.failures:
+            raise ConnectionError("printer unreachable")
+        return PrintStatus(printer=printer.name, state="printing", progress_percent=42.0,
+                           time_remaining="00:10:00", time_elapsed="00:05:00", filename="cube.gcode")
+
+
+class TestPrinterAgentOffline:
+    """Behaviour with no slicer and a fake protocol: no network, no real printers."""
+
+    @pytest.fixture
+    def agent(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(PrinterAgent, "_detect_slicer_path", lambda self: None)
+        monkeypatch.setattr(PrinterAgent, "_detect_orca_profiles_dir", lambda self: None)
+        agent = PrinterAgent(profiles_dir=str(tmp_path / "profiles"))
+        agent.protocol = FakeProtocol(failures=1)
+        return agent
+
+    def test_new_agent_has_no_printers_and_reports_no_slicer(self, agent, tmp_path):
+        assert agent.printers == {}
+        assert agent.get_printer_list() == []
+        assert (tmp_path / "profiles").is_dir()
+        status = agent.get_slicer_status()
+        assert status["available"] is False
+        assert status["path"] is None
+        assert "unavailable" in status["message"]
+
+    async def test_status_failure_backs_off_then_recovers(self, agent):
+        agent.add_printer_manually(name="Voron", host="192.168.1.50", port=7125,
+                                   printer_type="moonraker")
+        assert agent.should_poll_printer("192.168.1.50") is True
+
+        offline = await agent.get_print_status("Voron")
+        assert offline.state == "offline"
+        assert agent.should_poll_printer("192.168.1.50") is False  # backing off
+
+        online = await agent.get_print_status("192.168.1.50")
+        assert online.state == "printing"
+        assert agent.protocol.status_calls == ["192.168.1.50", "192.168.1.50"]
+        listed = agent.get_printer_list()
+        assert [item["name"] for item in listed] == ["Voron"]
+        assert listed[0]["status"]["progress_percent"] == 42.0
+
+    async def test_unknown_or_unsupported_printers_are_not_queried(self, agent):
+        agent.add_printer_manually(name="Mini", host="192.168.1.60", printer_type="prusalink")
+        assert await agent.get_print_status("Mini") is None
+        assert await agent.get_print_status("no-such-printer") is None
+        assert agent.should_poll_printer("192.168.1.60") is False
+        assert agent.protocol.status_calls == []
+
+
+@pytest.mark.live_hardware
 class TestPrinterAgentInit:
     """Test PrinterAgent initialization."""
-    
-    def test_agent_creation(self):
-        """Test PrinterAgent can be created."""
-        agent = PrinterAgent()
-        assert agent is not None
-        assert hasattr(agent, 'printers')
-        assert hasattr(agent, 'slicer_path')
     
     def test_slicer_detection(self):
         """Test OrcaSlicer/PrusaSlicer detection."""
@@ -53,6 +106,7 @@ class TestPrinterAgentInit:
             print("OrcaSlicer profiles directory not found")
 
 
+@pytest.mark.live_hardware
 class TestPrinterDiscovery:
     """Test printer discovery (mDNS)."""
     
@@ -86,6 +140,7 @@ class TestPrinterDiscovery:
         print(f"Added printer: {printer.name}")
 
 
+@pytest.mark.live_hardware
 class TestPrinterWithSettings:
     """Test with printers from settings.json."""
     
@@ -144,6 +199,7 @@ class TestPrinterWithSettings:
                 assert printer.host == host
 
 
+@pytest.mark.live_hardware
 class TestPrinterStatus:
     """Test printer status queries (requires connected printer)."""
     
@@ -172,6 +228,7 @@ class TestPrinterStatus:
             print(f"Could not get status (printer may be offline): {e}")
 
 
+@pytest.mark.live_hardware
 class TestSlicerProfiles:
     """Test slicer profile detection."""
     
@@ -180,7 +237,7 @@ class TestSlicerProfiles:
         agent = PrinterAgent()
         profiles = agent.get_available_profiles()
         
-        print(f"Found profiles:")
+        print("Found profiles:")
         print(f"  Machines: {len(profiles.get('machines', []))}")
         print(f"  Processes: {len(profiles.get('processes', []))}")
         print(f"  Filaments: {len(profiles.get('filaments', []))}")

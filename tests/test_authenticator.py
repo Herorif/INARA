@@ -1,206 +1,245 @@
 """
 Tests for Face Authentication.
+
+Three groups, each with its own narrow skip:
+- logic tests load ``authenticator`` against fake mediapipe/cv2 (and a stub numpy
+  when numpy is absent), so they run everywhere with no camera, model or network;
+- landmark-math tests need real numpy;
+- real-stack tests need numpy, OpenCV, MediaPipe and the installed face model.
 """
+import asyncio
+import importlib.util
+import sys
+import types
+from pathlib import Path
+
 import pytest
-import os
 
-np = pytest.importorskip("numpy")
+AUTH_SOURCE = Path(__file__).resolve().parent.parent / "backend" / "authenticator.py"
+HAS_NUMPY = importlib.util.find_spec("numpy") is not None
+REAL_STACK_MISSING = [name for name in ("numpy", "cv2", "mediapipe")
+                      if importlib.util.find_spec(name) is None]
+REAL_MODEL_PATH = AUTH_SOURCE.parent / "face_landmarker.task"
 
-# Try to import the authenticator, skip all tests if dependencies missing
-try:
-    from authenticator import FaceAuthenticator
-    HAS_AUTH = True
-except ImportError as e:
-    HAS_AUTH = False
-    IMPORT_ERROR = str(e)
-    FaceAuthenticator = None
-
-pytestmark = pytest.mark.skipif(not HAS_AUTH, reason=f"Auth dependencies not installed: {IMPORT_ERROR if not HAS_AUTH else ''}")
+needs_numpy = pytest.mark.skipif(not HAS_NUMPY, reason="numpy not installed (landmark math needs real arrays)")
 
 
+class FakeCapture:
+    def __init__(self, index, _backend, opened):
+        self.index, self.opened, self.released = index, opened, False
 
-class TestAuthenticatorInit:
-    """Test FaceAuthenticator initialization."""
-    
-    def test_authenticator_creation(self):
-        """Test FaceAuthenticator can be created."""
-        auth = FaceAuthenticator()
-        assert auth is not None
-        print("FaceAuthenticator initialized successfully")
-    
-    def test_authenticator_with_callbacks(self):
-        """Test FaceAuthenticator with callbacks."""
-        statuses = []
-        frames = []
-        
-        async def on_status(is_auth):
-            statuses.append(is_auth)
-        
-        async def on_frame(frame_b64):
-            frames.append(frame_b64)
-        
-        auth = FaceAuthenticator(
-            on_status_change=on_status,
-            on_frame=on_frame
-        )
-        assert auth.on_status_change is not None
-        assert auth.on_frame is not None
+    def isOpened(self):
+        return self.opened
+
+    def read(self):
+        return False, None
+
+    def release(self):
+        self.released = True
 
 
-class TestMediaPipeModel:
-    """Test MediaPipe Face Landmarker model."""
-    
-    def test_model_path_defined(self):
-        """Test that model path is defined."""
-        assert hasattr(FaceAuthenticator, 'MODEL_PATH')
-        print(f"Model path: {FaceAuthenticator.MODEL_PATH}")
-    
-    def test_model_download_url(self):
-        """Test that model URL is defined."""
-        assert hasattr(FaceAuthenticator, 'MODEL_URL')
-        print(f"Model URL: {FaceAuthenticator.MODEL_URL}")
-    
-    def test_ensure_model(self):
-        """Test model download/verification."""
-        auth = FaceAuthenticator()
-        auth._ensure_model()
-        
-        model_path = FaceAuthenticator.MODEL_PATH
-        if os.path.exists(model_path):
-            print(f"Model exists at: {model_path}")
-            print(f"Model size: {os.path.getsize(model_path)} bytes")
-        else:
-            print("Model not downloaded (may require internet)")
+class FakeLandmarker:
+    def __init__(self, faces=()):
+        self.faces = list(faces)
+        self.images = []
+
+    def detect(self, image):
+        self.images.append(image)
+        return types.SimpleNamespace(face_landmarks=self.faces)
 
 
-class TestLandmarkExtraction:
-    """Test face landmark extraction."""
-    
+def fake_modules(created, opened_cameras):
+    """Minimal mediapipe and cv2 surfaces that authenticator.py touches."""
+    mp = types.ModuleType("mediapipe")
+    mp.ImageFormat = types.SimpleNamespace(SRGB="srgb")
+    mp.Image = lambda image_format, data: types.SimpleNamespace(format=image_format, data=data)
+    tasks = types.ModuleType("mediapipe.tasks")
+    python = types.ModuleType("mediapipe.tasks.python")
+    python.BaseOptions = lambda model_asset_path: types.SimpleNamespace(model_asset_path=model_asset_path)
+    vision = types.ModuleType("mediapipe.tasks.python.vision")
+    vision.FaceLandmarkerOptions = lambda **kwargs: types.SimpleNamespace(**kwargs)
+
+    def create_from_options(options):
+        created.append(options)
+        return FakeLandmarker()
+
+    vision.FaceLandmarker = types.SimpleNamespace(create_from_options=create_from_options)
+    mp.tasks, tasks.python, python.vision = tasks, python, vision
+
+    cv2 = types.ModuleType("cv2")
+    cv2.CAP_DSHOW, cv2.CAP_ANY = 700, 0
+    cv2.captures = []
+
+    def video_capture(index, backend):
+        capture = FakeCapture(index, backend, opened=index in opened_cameras)
+        cv2.captures.append(capture)
+        return capture
+
+    cv2.VideoCapture = video_capture
+    modules = {"mediapipe": mp, "mediapipe.tasks": tasks, "mediapipe.tasks.python": python,
+               "mediapipe.tasks.python.vision": vision, "cv2": cv2}
+    if not HAS_NUMPY:
+        modules["numpy"] = types.ModuleType("numpy")  # unused by the logic tests
+    return modules
+
+
+@pytest.fixture
+def fake_auth(monkeypatch, tmp_path):
+    """Load authenticator.py against fakes, with the model path pointed at tmp_path."""
+    created = []
+    modules = fake_modules(created, opened_cameras=set())
+    for name, module in modules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+    spec = importlib.util.spec_from_file_location("authenticator_under_test", AUTH_SOURCE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    model = tmp_path / "face_landmarker.task"
+    model.write_bytes(b"model")
+    monkeypatch.setattr(module.FaceAuthenticator, "MODEL_PATH", str(model))
+
+    def no_download(*_args, **_kwargs):
+        raise AssertionError("tests must never download the face model")
+
+    monkeypatch.setattr(module.urllib.request, "urlretrieve", no_download)
+    module.created_landmarkers, module.cv2 = created, modules["cv2"]
+    return module
+
+
+class TestModelHandling:
+    def test_model_url_is_the_official_https_landmarker(self, fake_auth):
+        url = fake_auth.FaceAuthenticator.MODEL_URL
+        assert url.startswith("https://storage.googleapis.com/mediapipe-models/face_landmarker/")
+        assert url.endswith("/face_landmarker.task")
+
+    def test_default_model_path_is_next_to_the_module(self, monkeypatch):
+        # Load a second copy without the fixture's MODEL_PATH override.
+        for name, module in fake_modules([], set()).items():
+            monkeypatch.setitem(sys.modules, name, module)
+        spec = importlib.util.spec_from_file_location("authenticator_default_path", AUTH_SOURCE)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert Path(module.FaceAuthenticator.MODEL_PATH) == REAL_MODEL_PATH
+
+    def test_refuses_to_start_without_installed_model(self, fake_auth, tmp_path, monkeypatch):
+        monkeypatch.setattr(fake_auth.FaceAuthenticator, "MODEL_PATH", str(tmp_path / "missing.task"))
+        with pytest.raises(RuntimeError, match="Install the face model"):
+            fake_auth.FaceAuthenticator(reference_image_path=str(tmp_path / "ref.jpg"))
+        assert fake_auth.created_landmarkers == []
+
+    def test_installed_model_initializes_landmarker(self, fake_auth, tmp_path):
+        statuses, frames = [], []
+
+        async def on_status(value):
+            statuses.append(value)
+
+        async def on_frame(value):
+            frames.append(value)
+
+        auth = fake_auth.FaceAuthenticator(reference_image_path=str(tmp_path / "ref.jpg"),
+                                           on_status_change=on_status, on_frame=on_frame)
+
+        options, = fake_auth.created_landmarkers
+        assert options.base_options.model_asset_path == fake_auth.FaceAuthenticator.MODEL_PATH
+        assert options.num_faces == 1
+        assert auth.landmarker is not None
+        assert auth.on_status_change is on_status and auth.on_frame is on_frame
+        assert auth.reference_landmarks is None  # reference file absent
+        assert auth.authenticated is False and auth.running is False
+
+
+class TestAuthenticationLoop:
     @pytest.fixture
-    def auth(self):
-        """Create an authenticated FaceAuthenticator."""
-        a = FaceAuthenticator()
-        try:
-            a._init_landmarker()
-        except Exception as e:
-            pytest.skip(f"Could not initialize landmarker: {e}")
-        return a
-    
-    def test_extract_from_blank_image(self, auth):
-        """Test extraction from blank image (should return None)."""
-        # Create a blank image
-        blank_image = np.zeros((480, 640, 3), dtype=np.uint8)
-        
-        landmarks = auth._extract_landmarks(blank_image)
-        
-        # Blank image should have no face
-        assert landmarks is None
-        print("No face detected in blank image (correct)")
-    
-    def test_extract_landmarks_format(self, auth):
-        """Test that landmarks have correct format when detected."""
-        # This would require a real face image
-        # For now, just verify the method exists and is callable
-        assert callable(auth._extract_landmarks)
+    def auth(self, fake_auth, tmp_path):
+        return fake_auth.FaceAuthenticator(reference_image_path=str(tmp_path / "ref.jpg"))
+
+    async def test_loop_without_reference_never_opens_camera(self, auth, fake_auth):
+        await auth.start_authentication_loop()
+        assert auth.running is False
+        assert fake_auth.cv2.captures == []
+
+    async def test_already_authenticated_reports_true_without_camera(self, auth, fake_auth):
+        statuses = []
+
+        async def on_status(value):
+            statuses.append(value)
+
+        auth.on_status_change, auth.authenticated = on_status, True
+        await auth.start_authentication_loop()
+        assert statuses == [True]
+        assert fake_auth.cv2.captures == []
+
+    def test_cv_loop_tries_both_cameras_then_stops(self, auth, fake_auth):
+        auth.running = True
+        auth._run_cv_loop(asyncio.new_event_loop())
+        assert [capture.index for capture in fake_auth.cv2.captures] == [0, 1]
+        assert auth.running is False
+        assert auth.authenticated is False
+
+    def test_stop_clears_running(self, auth):
+        auth.running = True
+        auth.stop()
+        assert auth.running is False
+
+    def test_no_landmarker_means_no_landmarks(self, auth):
+        auth.landmarker = None
+        assert auth._extract_landmarks(object()) is None
+
+    def test_missing_landmarks_never_match(self, auth):
+        assert auth._compare_landmarks(None, None) is False
 
 
-class TestLandmarkComparison:
-    """Test face landmark comparison."""
-    
-    def test_compare_identical_landmarks(self):
-        """Test comparing identical landmarks."""
-        auth = FaceAuthenticator()
-        
-        # Create mock landmarks (468 points * 3 coords = 1404 values)
-        landmarks = np.random.rand(1404).astype(np.float32)
-        
-        result = auth._compare_landmarks(landmarks, landmarks)
-        assert result == True
-        print("Identical landmarks comparison: True (correct)")
-    
-    def test_compare_different_landmarks(self):
-        """Test comparing completely different landmarks."""
-        auth = FaceAuthenticator()
-        
-        landmarks1 = np.random.rand(1404).astype(np.float32)
-        landmarks2 = np.random.rand(1404).astype(np.float32)
-        
-        result = auth._compare_landmarks(landmarks1, landmarks2)
-        # Random vectors should likely be different
-        print(f"Random landmarks comparison: {result}")
-    
-    def test_compare_with_threshold(self):
-        """Test comparison with different thresholds."""
-        auth = FaceAuthenticator()
-        
-        landmarks1 = np.ones(1404, dtype=np.float32)
-        landmarks2 = np.ones(1404, dtype=np.float32) * 0.99  # Very similar
-        
-        # Should pass with high threshold
-        result_high = auth._compare_landmarks(landmarks1, landmarks2, threshold=0.5)
-        print(f"High threshold (0.5) result: {result_high}")
-        
-        # May fail with low threshold
-        result_low = auth._compare_landmarks(landmarks1, landmarks2, threshold=0.001)
-        print(f"Low threshold (0.001) result: {result_low}")
+@needs_numpy
+class TestLandmarkMath:
+    @pytest.fixture
+    def auth(self, fake_auth, tmp_path):
+        return fake_auth.FaceAuthenticator(reference_image_path=str(tmp_path / "ref.jpg"))
+
+    def test_identical_landmarks_match(self, auth):
+        import numpy as np
+        landmarks = np.linspace(0.1, 1.0, 1404, dtype=np.float32)
+        assert bool(auth._compare_landmarks(landmarks, landmarks)) is True
+
+    def test_orthogonal_landmarks_do_not_match(self, auth):
+        import numpy as np
+        a = np.zeros(1404, dtype=np.float32)
+        b = np.zeros(1404, dtype=np.float32)
+        a[0], b[1] = 1.0, 1.0
+        assert not auth._compare_landmarks(a, b)
+
+    def test_zero_vector_never_matches(self, auth):
+        import numpy as np
+        assert auth._compare_landmarks(np.zeros(3), np.ones(3)) is False
+
+    def test_threshold_controls_the_match(self, auth):
+        import numpy as np
+        a = np.array([1.0, 0.0, 0.0])
+        b = np.array([1.0, 0.3, 0.0])  # cosine similarity ~0.958
+        assert auth._compare_landmarks(a, b, threshold=0.1)
+        assert not auth._compare_landmarks(a, b, threshold=0.01)
+
+    def test_extracts_flattened_landmarks_from_detected_face(self, auth):
+        import numpy as np
+        point = types.SimpleNamespace
+        auth.landmarker.faces = [[point(x=0.1, y=0.2, z=0.3), point(x=0.4, y=0.5, z=0.6)]]
+        landmarks = auth._extract_landmarks(np.zeros((4, 4, 3), dtype=np.uint8))
+        assert landmarks.shape == (6,)
+        assert np.allclose(landmarks, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+
+    def test_no_face_detected_returns_none(self, auth):
+        import numpy as np
+        assert auth._extract_landmarks(np.zeros((4, 4, 3), dtype=np.uint8)) is None
 
 
-class TestReferenceImage:
-    """Test reference image handling."""
-    
-    def test_default_reference_path(self):
-        """Test default reference image path."""
-        auth = FaceAuthenticator()
-        # Default is "reference.jpg" in backend directory
-        print(f"Reference path: {auth.reference_image_path}")
-    
-    def test_load_reference(self):
-        """Test loading reference image."""
-        auth = FaceAuthenticator()
-        
-        ref_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            "backend",
-            "reference.jpg"
-        )
-        
-        if os.path.exists(ref_path):
-            auth._load_reference()
-            print("Reference image loaded")
-        else:
-            print("No reference image found (expected in new setup)")
+@pytest.mark.skipif(bool(REAL_STACK_MISSING),
+                    reason=f"face auth stack not installed: missing {', '.join(REAL_STACK_MISSING)}")
+@pytest.mark.skipif(not REAL_MODEL_PATH.exists(),
+                    reason=f"face model not installed at {REAL_MODEL_PATH}")
+class TestRealFaceModel:
+    """Real MediaPipe landmarker on the installed model; no camera, no network."""
 
-
-class TestCameraAccess:
-    """Test camera access functions."""
-    
-    def test_camera_methods_exist(self):
-        """Test that camera-related methods exist."""
-        auth = FaceAuthenticator()
-        
-        assert hasattr(auth, 'start_authentication_loop')
-        assert hasattr(auth, 'stop')
-        assert hasattr(auth, '_run_cv_loop')
-        print("All camera methods exist")
-
-
-class TestDependencies:
-    """Test required dependencies."""
-    
-    def test_mediapipe_import(self):
-        """Test MediaPipe is installed."""
-        try:
-            import mediapipe
-            print(f"MediaPipe version: {mediapipe.__version__}")
-        except ImportError:
-            pytest.skip("MediaPipe not installed")
-    
-    def test_opencv_import(self):
-        """Test OpenCV is installed."""
-        import cv2
-        print(f"OpenCV version: {cv2.__version__}")
-    
-    def test_numpy_import(self):
-        """Test NumPy is installed."""
-        import numpy
-        print(f"NumPy version: {numpy.__version__}")
+    def test_blank_image_has_no_face(self, tmp_path):
+        import numpy as np
+        from authenticator import FaceAuthenticator
+        auth = FaceAuthenticator(reference_image_path=str(tmp_path / "ref.jpg"))
+        assert auth.landmarker is not None
+        assert auth._extract_landmarks(np.zeros((480, 640, 3), dtype=np.uint8)) is None
