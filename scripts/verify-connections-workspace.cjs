@@ -11,7 +11,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
  const window=this;await load.apply(window,args);const evaluate=source=>window.webContents.executeJavaScript(source),result={};
  const screenshot=async name=>{await sleep(200);fs.writeFileSync(path.join(output,name),(await window.webContents.capturePage()).toPNG());};
  try{
-  await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+  await until(()=>evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
   await evaluate(`document.querySelector('[aria-label="Connections"]').click()`);
   await until(()=>evaluate(`document.querySelectorAll('.connection-state--unverified').length===2`));
   assert.equal(await evaluate(`document.querySelector('.connections-readiness').textContent.includes('10.0.0.2')||document.querySelector('.connections-readiness').textContent.includes('printer.test')`),false);
@@ -21,7 +21,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await evaluate(`document.querySelector('[aria-label="Open command palette"]').click()`);
   await until(()=>evaluate(`!!document.querySelector('[aria-label="Search commands"]')`));
   await evaluate(`(()=>{const el=document.querySelector('[aria-label="Search commands"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'Connections readiness');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
-  await until(()=>evaluate(`document.querySelector('.palette-results button strong')?.textContent==='Connections readiness'`));
+  await until(()=>evaluate(`document.querySelector('.palette-results button strong')?.textContent==='Connections'`));
   await evaluate(`document.querySelector('.palette-results button').click()`);await until(()=>evaluate(`!!document.querySelector('.feature-dialog .connections-readiness [data-connection]')`));
   window.setSize(390,900);await sleep(200);
   assert.equal(await evaluate(`document.querySelector('.feature-dialog .connections-readiness').scrollWidth>document.querySelector('.feature-dialog .connections-readiness').clientWidth`),false);

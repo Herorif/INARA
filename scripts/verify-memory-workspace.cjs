@@ -15,7 +15,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
  const open=async()=>{await evaluate(`document.querySelector('[aria-label="Open command palette"]').click()`);await until(()=>evaluate(`!!document.querySelector('[aria-label="Search commands"]')`));await set('Search commands','Project memory');await until(()=>evaluate(`document.querySelector('[role="option"] strong')?.textContent==='Project memory'`));await evaluate(`document.querySelector('[role="option"]').click()`);await until(()=>evaluate(`document.querySelector('.memory-overview')?.textContent.includes('/ 200 notes') && ![...document.querySelectorAll('.project-memory button')].find(button=>button.textContent.trim()==='New memory').disabled`));};
  window.webContents.session.on('will-download',(_,item)=>item.setSavePath(path.join(output,'backup.dpapi')));
  try{
-  await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+  await until(()=>evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
   await open();await button('New memory');
   await set('Memory title','Enclosure clearance');await set('Memory note','Synthetic design: the enclosure needs 42 mm clearance.');await set('Memory source','Synthetic design review');
   assert.equal(await evaluate(`document.querySelector('.memory-editor input[type="checkbox"]').checked`),false);
@@ -35,7 +35,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await button('Restore reviewed notes');await until(()=>evaluate(`document.querySelector('.memory-note')?.textContent.includes('Private note') && !document.querySelector('.memory-recovery')`));
   await button('Edit / archive');assert.equal(await evaluate(`document.querySelector('.memory-editor input[type=checkbox]').checked`),false);await evaluate(`document.querySelector('.memory-editor input[type=checkbox]').click()`);await button('Save reviewed memory');await until(()=>evaluate(`!document.querySelector('.memory-editor')`));
   window.setSize(1440,1000);await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
-  await set('Message INARA','What enclosure clearance should I use?');await evaluate(`document.querySelector('[aria-label="Send message"]').click()`);
+  await set('Message INARA','What enclosure clearance should I use?');await evaluate(`document.querySelector('[aria-label="Send"]').click()`);
   await until(()=>evaluate(`document.querySelector('.memory-citations')?.textContent.includes('Enclosure clearance')`));await screenshot('memory-assistant-sources.png');
   await open();await evaluate(`document.querySelector('.memory-retention summary').click()`);await set('Project memory retention days','1');await button('Apply retention');await until(()=>evaluate(`document.querySelector('.memory-overview').textContent.includes('1 day limit')`));
   await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);

@@ -13,10 +13,10 @@ BrowserWindow.prototype.loadFile=async function(...args){
  const button=text=>evaluate(`[...document.querySelectorAll('.mobile-companion button')].find(button=>button.textContent.includes(${JSON.stringify(text)}))?.click()`);
  window.webContents.session.on('will-download',(_,item)=>item.setSavePath(path.join(output,'invitation.json')));
  try{
-  await until(()=>evaluate(`document.querySelector('.pulse-status strong')?.textContent==='At your service'`));
+  await until(()=>evaluate(`document.querySelector('.core-chip')?.textContent==='CORE ONLINE'`));
   await evaluate(`document.querySelector('[aria-label="Connections"]').click()`);
-  await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.textContent.includes('Android companion'))`));
-  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Android companion')).click()`);
+  await until(()=>evaluate(`[...document.querySelectorAll('.feature-card')].some(button=>button.textContent.includes('Phone companion'))`));
+  await evaluate(`[...document.querySelectorAll('.feature-card')].find(button=>button.textContent.includes('Phone companion')).click()`);
   await until(()=>evaluate(`document.querySelector('.mobile-companion')?.textContent.includes('No device has access.') && ![...document.querySelectorAll('.mobile-companion button')].find(button=>button.textContent.includes('Enable private')).disabled`));
   assert.equal(await evaluate(`document.querySelector('.mobile-card-heading strong').textContent`),'Network access is off');
   await screenshot('mobile-disabled-desktop.png');
