@@ -42,10 +42,6 @@ LEGACY_PERMISSION_NAMES = frozenset(
         "focus_window",
         "search_files",
         "write_clipboard",
-        "describe_camera",
-        "detect_presence",
-        "watch_for",
-        "list_watches",
         "get_device_state",
         "generate_cad_prototype",
     }

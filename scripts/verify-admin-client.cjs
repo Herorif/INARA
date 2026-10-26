@@ -22,7 +22,7 @@ const connect = async role => {
   try {
     const renderer = await connect('renderer'); clients.push(renderer);
     const control = await connect('workspace'); clients.push(control);
-    const privateStartup = ['settings', 'printer_list', 'project_update', 'vision_watches', 'reminder_list', 'reminder_deliveries', 'auth_frame'];
+    const privateStartup = ['settings', 'printer_list', 'project_update', 'reminder_list', 'reminder_deliveries', 'auth_frame'];
     assert.equal(control.qaEvents.some(event => privateStartup.includes(event)), false);
     assert.equal(renderer.qaEvents.includes('settings'), true);
     const snapshots = [];
@@ -48,19 +48,16 @@ const connect = async role => {
       client.once('error', receive); client.emit(event, payload);
     });
     assert.equal((await call(renderer, 'update_tool_permissions', {
-      discover_kasa: 'deny', discover_printers: 'deny', print_stl: 'deny', generate_cad: 'deny', start_audio: 'deny',
-      save_memory: 'deny', upload_memory: 'deny', run_web_agent: 'deny'
+      discover_kasa: 'deny', discover_printers: 'deny', print_stl: 'deny', generate_cad: 'deny',
+      save_memory: 'deny', run_web_agent: 'deny'
     })).ok, true);
     await expectError(renderer, 'discover_kasa', {}, 'permission_denied');
     await expectError(renderer, 'discover_printers', {}, 'permission_denied');
     await expectError(renderer, 'print_stl', { printer: 'not-a-real-printer' }, 'permission_denied');
     await expectError(control, 'discover_kasa', {}, 'authentication_required');
-    await expectError(renderer, 'start_audio', { muted: false }, 'permission_denied');
     await expectError(renderer, 'save_memory', { messages: [{ sender: 'User', text: 'fixture' }] }, 'permission_denied');
-    await expectError(renderer, 'upload_memory', { memory: 'fixture' }, 'permission_denied');
     await expectError(renderer, 'generate_cad', { prompt: 'fixture' }, 'permission_denied');
     await expectError(renderer, 'prompt_web_agent', { prompt: 'fixture' }, 'permission_denied');
-    await expectError(control, 'stop_audio', {}, 'authentication_required');
     await expectError(renderer, 'acknowledge_reminder', { delivery_id: 'malformed' }, 'invalid_arguments');
     await expectError(control, 'get_reminders', {}, 'authentication_required');
     assert.equal((await call(renderer, 'cad_plan', { prompt: 'fixture must never reach a provider' })).code, 'permission_denied');

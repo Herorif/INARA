@@ -59,12 +59,6 @@ DEFAULT_SETTINGS = {
         "search_files": True,
         "read_clipboard": True,
         "write_clipboard": True,
-        # Vision
-        "describe_camera": True,
-        "detect_presence": True,
-        "watch_for": True,
-        "stop_watching": True,
-        "list_watches": True,
         # Devices (unified)
         "list_all_devices": True,
         "control_device": True,
@@ -212,13 +206,7 @@ update_tool_permissions = runtime.settings_transport.update_tool_permissions
 
 
 # Compatible wire names; ownership, validation and lifetime live in the root.
-start_audio = runtime.workspace_transport.start_audio
-stop_audio = runtime.workspace_transport.stop_audio
-pause_audio = runtime.workspace_transport.pause_audio
-resume_audio = runtime.workspace_transport.resume_audio
-video_frame = runtime.workspace_transport.video_frame
 save_memory = runtime.workspace_transport.save_memory
-upload_memory = runtime.workspace_transport.upload_memory
 generate_cad = runtime.workspace_transport.generate_cad
 iterate_cad = runtime.workspace_transport.iterate_cad
 prompt_web_agent = runtime.workspace_transport.prompt_web_agent
@@ -226,7 +214,6 @@ prompt_web_agent = runtime.workspace_transport.prompt_web_agent
 
 # Compatible names; registration and execution are owned by the injected transport.
 control_device = runtime.local_transport.control_device
-stop_watching = runtime.local_transport.stop_watching
 launch_app = runtime.local_transport.launch_app
 take_screenshot = runtime.local_transport.take_screenshot
 read_clipboard = runtime.local_transport.read_clipboard

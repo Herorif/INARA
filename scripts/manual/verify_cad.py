@@ -2,8 +2,8 @@ import asyncio
 import os
 import sys
 
-# Add current directory to path so we can import modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Import backend modules from the repository's backend/ directory.
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend"))
 
 from cad_agent import CadAgent
 

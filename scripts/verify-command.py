@@ -132,7 +132,7 @@ def verify():
             activations.append(True)
             raise AssertionError("Shell navigation must not activate devices, providers or workers")
 
-        for name in ("kasa", "printer", "inara", "desktop", "vision", "devices"):
+        for name in ("kasa", "printer", "desktop", "devices"):
             getattr(app, name).get = forbidden
         app.conversation.provider_factory = forbidden
         app.cad.process_factory = app.images.process_factory = forbidden
@@ -159,7 +159,7 @@ def verify():
         assert error_seen, "Recovery fixture must actually exercise the error path"
         assert not activations
         assert all(getattr(app, name).instance is None for name in (
-            "kasa", "printer", "inara", "desktop", "vision", "devices"
+            "kasa", "printer", "desktop", "devices"
         ))
         assert not app.cad.active and not app.images.active and not app.browser.running
         assert app.speech.turn is None and not app.compat_service.observation.task

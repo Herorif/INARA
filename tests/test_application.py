@@ -222,11 +222,11 @@ async def test_lifetime_restarts_without_duplicate_pollers_or_bus_delivery(appli
         tasks = tuple(runtime.tasks)
         await runtime.start()
         assert tuple(runtime.tasks) == tasks and len(tasks) == 3
-        await runtime.bus.emit(Event(Events.VISION_ALERT, {"message": "local legacy event"}))
+        await runtime.bus.emit(Event(Events.DESKTOP_SCREENSHOT, {"message": "local legacy event"}))
         await runtime.close()
         assert all(task.done() for task in tasks) and not runtime.tasks
         calls = runtime.sio.emit.await_count
-        await runtime.bus.emit(Event(Events.VISION_ALERT, {}))
+        await runtime.bus.emit(Event(Events.DESKTOP_SCREENSHOT, {}))
         assert runtime.sio.emit.await_count == calls
     assert runtime.sio.emit.await_count == 0  # Unstamped events stay internal.
 
@@ -244,7 +244,7 @@ async def test_cleanup_failure_still_stops_other_owners_and_unsubscribes(applica
     runtime.image_transport.close.assert_awaited_once()
     runtime.workspace.close.assert_awaited_once()
     assert not runtime.started and not runtime.tasks and all(task.done() for task in tasks)
-    await runtime.bus.emit(Event(Events.VISION_ALERT, {}))
+    await runtime.bus.emit(Event(Events.DESKTOP_SCREENSHOT, {}))
     runtime.sio.emit.assert_not_called()
 
 
@@ -257,7 +257,7 @@ async def test_failed_start_rolls_back_subscription_and_poller(application_facto
     with pytest.raises(RuntimeError, match="test startup failure"):
         await runtime.start()
     assert not runtime.started and not runtime.tasks
-    await runtime.bus.emit(Event(Events.VISION_ALERT, {}))
+    await runtime.bus.emit(Event(Events.DESKTOP_SCREENSHOT, {}))
     runtime.sio.emit.assert_not_called()
 
 

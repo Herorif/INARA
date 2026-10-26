@@ -375,17 +375,6 @@
       "replacement": "LocalActions / LocalActionTransport",
       "status": "migrated"
     },
-    "pause_audio": {
-      "schema": "EmptyRequest",
-      "caller": "Authenticated desktop owner renderer",
-      "context": "Captured owner/project; voice session bound to origin SID and project",
-      "effects": "pause audio",
-      "policy": "Independent owner safety control",
-      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "status": "migrated-envelope"
-    },
     "print_stl": {
       "schema": "PrintRequest",
       "caller": "Authenticated owner renderer",
@@ -418,17 +407,6 @@
       "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
       "replacement": "LocalActions / LocalActionTransport",
       "status": "migrated"
-    },
-    "resume_audio": {
-      "schema": "EmptyRequest",
-      "caller": "Authenticated desktop owner renderer",
-      "context": "Captured owner/project; voice session bound to origin SID and project",
-      "effects": "resume audio",
-      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
-      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "Quick assistant / SpeechTransport; old AudioLoop fails with voice_migrated",
-      "status": "retired production audio path; compatibility schema retained"
     },
     "resume_conversation": {
       "schema": "ResumeConversation",
@@ -485,39 +463,6 @@
       "replacement": "ReminderTransport / owner-gated scheduler tools",
       "status": "migrated"
     },
-    "start_audio": {
-      "schema": "StartAudio",
-      "caller": "Authenticated desktop owner renderer",
-      "context": "Captured owner/project; voice session bound to origin SID and project",
-      "effects": "start audio",
-      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
-      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "Quick assistant / SpeechTransport; old AudioLoop fails with voice_migrated",
-      "status": "retired production audio path; compatibility schema retained"
-    },
-    "stop_audio": {
-      "schema": "EmptyRequest",
-      "caller": "Authenticated desktop owner renderer",
-      "context": "Captured owner/project; voice session bound to origin SID and project",
-      "effects": "stop audio",
-      "policy": "Independent owner safety control",
-      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "status": "migrated-envelope"
-    },
-    "stop_watching": {
-      "schema": "StopWatching",
-      "caller": "Authenticated renderer direct; authenticated owner via typed tools",
-      "context": "Registry principal and immutable selected-project snapshot",
-      "effects": "stop watching",
-      "policy": "Shared dispatcher per-tool denial/approval; recheck auth/denial after approval",
-      "response": "SID result/error; stamped bus events to owner renderers",
-      "lifetime": "Dispatcher approval deadline; 30s cooperative execution; origin disconnect/app close cancel",
-      "replacement": "LocalActions / LocalActionTransport",
-      "status": "migrated"
-    },
     "take_screenshot": {
       "schema": "Screenshot",
       "caller": "Authenticated renderer direct; authenticated owner via typed tools",
@@ -551,17 +496,6 @@
       "replacement": "SettingsService / SettingsTransport",
       "status": "migrated"
     },
-    "upload_memory": {
-      "schema": "UploadMemory",
-      "caller": "Authenticated desktop owner renderer",
-      "context": "Captured owner/project; voice session bound to origin SID and project",
-      "effects": "Send bounded user context to the current project voice session",
-      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
-      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "status": "migrated-envelope"
-    },
     "user_input": {
       "schema": "ConversationRequest",
       "caller": "Authenticated connected owner; role unrestricted",
@@ -572,17 +506,6 @@
       "lifetime": "Serialized turn/provider deadlines; origin-disconnect and app-close cancellation; provider cleanup",
       "replacement": "ConversationTransport; role policy review remains",
       "status": "existing"
-    },
-    "video_frame": {
-      "schema": "VideoFrame",
-      "caller": "Authenticated desktop owner renderer",
-      "context": "Captured owner/project; voice session bound to origin SID and project",
-      "effects": "Bounded JPEG/PNG frame; <=2 FPS; current voice session only",
-      "policy": "Shared denial/approval with canonical alias; owner recheck before adapter work",
-      "response": "Origin SID status/error; authenticated same-owner renderer callbacks only",
-      "lifetime": "Origin disconnect/resource/close cancellation; bounded approvals and cooperative execution; legacy subprocess isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "status": "migrated-envelope"
     },
     "capability_diagnostics": {
       "schema": "EmptyRequest",
@@ -1267,14 +1190,6 @@
       "replacement": "Current shared tool; declarations consolidated at R2c",
       "model_visible": true
     },
-    "stop_watching": {
-      "schema": "StopWatching",
-      "policy": "Shared permissions[stop_watching]; absent/True requires approval; deny rejects",
-      "context": "Authenticated principal and resolved project",
-      "lifetime": "30s cooperative execution",
-      "replacement": "Current shared tool; declarations consolidated at R2c",
-      "model_visible": true
-    },
     "take_screenshot": {
       "schema": "Screenshot",
       "policy": "Shared permissions[take_screenshot]; absent/True requires approval; deny rejects",
@@ -1379,38 +1294,6 @@
       "replacement": "WorkspaceService / WorkspaceTransport",
       "model_visible": true
     },
-    "upload_memory": {
-      "schema": "UploadMemory",
-      "policy": "Shared upload_memory permission; own alias deny also enforced",
-      "context": "Authenticated desktop owner and immutable project snapshot",
-      "lifetime": "30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "model_visible": true
-    },
-    "start_audio": {
-      "schema": "StartAudio",
-      "policy": "Shared start_audio permission; own alias deny also enforced",
-      "context": "Authenticated desktop owner and immutable project snapshot",
-      "lifetime": "30s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
-      "replacement": "Retired production audio path; migration message; injected legacy bridge policy fixtures retained",
-      "model_visible": false
-    },
-    "resume_audio": {
-      "schema": "EmptyRequest",
-      "policy": "Shared start_audio permission; own alias deny also enforced",
-      "context": "Authenticated desktop owner and immutable project snapshot",
-      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
-      "replacement": "Retired production audio path; migration message; injected legacy bridge policy fixtures retained",
-      "model_visible": false
-    },
-    "video_frame": {
-      "schema": "VideoFrame",
-      "policy": "Shared video_frame permission; own alias deny also enforced",
-      "context": "Authenticated desktop owner and immutable project snapshot",
-      "lifetime": "10s cooperative deadline; owned cancellation; legacy subprocess hard isolation pending",
-      "replacement": "WorkspaceService / WorkspaceTransport",
-      "model_visible": false
-    },
     "legacy_generate_cad": {
       "schema": "PromptRequest",
       "policy": "Own legacy_generated_cad permission, default deny when absent; generate_cad does not cover it; own alias deny also enforced",
@@ -1511,38 +1394,6 @@
     },
     "write_clipboard": {
       "schema": "ClipboardRequest",
-      "policy": "Shared per-tool permission; owner authorization",
-      "context": "Captured owner/project; trusted voice binding where applicable",
-      "lifetime": "30s cooperative deadline; caller-owned cancellation",
-      "replacement": "ExtendedActions / shared dispatcher",
-      "model_visible": true
-    },
-    "describe_camera": {
-      "schema": "CameraQuestion",
-      "policy": "Shared per-tool permission; owner authorization",
-      "context": "Captured owner/project; trusted voice binding where applicable",
-      "lifetime": "30s cooperative deadline; caller-owned cancellation",
-      "replacement": "ExtendedActions / shared dispatcher",
-      "model_visible": true
-    },
-    "detect_presence": {
-      "schema": "NoArguments",
-      "policy": "Shared per-tool permission; owner authorization",
-      "context": "Captured owner/project; trusted voice binding where applicable",
-      "lifetime": "30s cooperative deadline; caller-owned cancellation",
-      "replacement": "ExtendedActions / shared dispatcher",
-      "model_visible": true
-    },
-    "watch_for": {
-      "schema": "WatchRequest",
-      "policy": "Shared per-tool permission; owner authorization",
-      "context": "Captured owner/project; trusted voice binding where applicable",
-      "lifetime": "30s cooperative deadline; caller-owned cancellation",
-      "replacement": "ExtendedActions / shared dispatcher",
-      "model_visible": true
-    },
-    "list_watches": {
-      "schema": "NoArguments",
       "policy": "Shared per-tool permission; owner authorization",
       "context": "Captured owner/project; trusted voice binding where applicable",
       "lifetime": "30s cooperative deadline; caller-owned cancellation",
@@ -1668,18 +1519,6 @@
       "policy": "Shared dispatcher; session authorization before/after approval",
       "status": "migrated"
     },
-    "describe_camera": {
-      "target": "describe_camera",
-      "schema": "CameraQuestion",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "detect_presence": {
-      "target": "detect_presence",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
     "discover_printers": {
       "target": "discover_printers",
       "schema": "NoArguments",
@@ -1770,12 +1609,6 @@
       "policy": "Shared dispatcher; session authorization before/after approval",
       "status": "migrated"
     },
-    "list_watches": {
-      "target": "list_watches",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
     "print_stl": {
       "target": "print_stl",
       "schema": "PrintRequest",
@@ -1818,12 +1651,6 @@
       "policy": "Shared dispatcher; session authorization before/after approval",
       "status": "migrated"
     },
-    "stop_watching": {
-      "target": "stop_watching",
-      "schema": "StopWatching",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
     "switch_project": {
       "target": "switch_project",
       "schema": "ProjectRequest",
@@ -1833,12 +1660,6 @@
     "take_screenshot": {
       "target": "take_screenshot",
       "schema": "Screenshot",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "watch_for": {
-      "target": "watch_for",
-      "schema": "WatchRequest",
       "policy": "Shared dispatcher; session authorization before/after approval",
       "status": "migrated"
     },

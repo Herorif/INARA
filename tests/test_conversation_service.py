@@ -217,7 +217,7 @@ async def test_socket_text_contract_no_audio(monkeypatch, tmp_path, application_
     ) in emitted
     assert emitted[0][1]["state"] == "processing"
     assert emitted[-1][1]["state"] == "idle"
-    assert runtime.inara.instance is None
+    assert "inara" not in sys.modules
 
 
 @pytest.mark.asyncio

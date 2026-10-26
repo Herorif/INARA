@@ -282,8 +282,6 @@ async def test_phone_chat_uses_owner_budget_and_has_no_budget_control_route(usag
     [
         ("take_screenshot", {}),
         ("run_web_agent", {"prompt": "fixture"}),
-        ("describe_camera", {}),
-        ("watch_for", {"description": "fixture"}),
         ("generate_cad_prototype", {"prompt": "fixture"}),
     ],
 )

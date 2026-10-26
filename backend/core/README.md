@@ -1,26 +1,12 @@
-# Archived Core Refactor
+# backend/core
 
-`backend/core/` contains an unfinished backend rewrite that introduced an event bus,
-provider router, and agent abstractions.
+Shared primitives used by the supported desktop runtime (`backend/server.py` ->
+`backend/application.py`):
 
-It is not the supported desktop runtime.
+- `event_bus.py` — the in-process `EventBus` and `Events` names bridged to owner-scoped
+  socket delivery (`transport/delivery.py`).
+- `reminder_store.py` / `durable_reminders.py` — reminder persistence.
 
-The canonical runtime for this repository is:
-
-- `electron/main.js`
-- `backend/server.py`
-
-Why this folder still exists:
-
-- reference for future architectural work
-- source material if the refactor is resumed later
-- not part of the supported `npm run dev` path
-
-If you intentionally want to experiment with the archived refactor, set:
-
-```powershell
-$env:INARA_ALLOW_EXPERIMENTAL_CORE_SERVER="1"
-python backend/core/server.py
-```
-
-Do not treat the `backend/core/` socket contract as the active source of truth for the app.
+The archived experimental rewrite that used to live here (`core/server.py`,
+`core/tool_registry.py`, `core/config.py`) was removed; it was never reachable from the
+supported runtime. See `docs/RETIRED_PATHS.md`; its history is in git.

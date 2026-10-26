@@ -23,14 +23,7 @@ UNMETERED_TOOLS = frozenset(
         "legacy_generate_cad",
         "generate_cad_prototype",
         "iterate_cad",
-        "start_audio",
-        "resume_audio",
-        "upload_memory",
-        "video_frame",
         "take_screenshot",
-        "describe_camera",
-        "detect_presence",
-        "watch_for",
     }
 )
 
@@ -142,15 +135,13 @@ class UsageService:
         extended = getattr(self.app, "extended_actions", None)
         if args.enabled and (
             self.legacy_active
-            or getattr(workspace, "audio", None)
             or getattr(workspace, "requests", None)
             or getattr(local, "running", None)
             or getattr(extended, "running", None)
-            or self.app.vision_loop.list_watches()
         ):
             raise ServiceError(
                 "usage_busy",
-                "Stop legacy media/browser/device tasks and scene watches before enabling caps.",
+                "Stop legacy browser/device tasks before enabling caps.",
             )
         with self.database.transaction() as db:
             key, value = self.load(db, owner)

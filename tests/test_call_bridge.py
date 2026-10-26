@@ -3,17 +3,15 @@
 import asyncio
 from contextlib import asynccontextmanager
 import json
-from unittest.mock import AsyncMock
 from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
 from calls.audio import DedicatedAudio, resolve_endpoints
-from calls.contracts import BridgeProfile, Observation, CALL_INSTRUCTION
+from calls.contracts import BridgeProfile, Observation
 from calls.records import CallRecords
 from calls.session import CallSession
-from calls.voice import LiveVoice
 from services.storage import Database
 from services.tools import ServiceError
 
@@ -350,63 +348,3 @@ def test_restart_uncertain_retention_and_clock_guard(tmp_path):
     now[0] = 1001
     with pytest.raises(ServiceError, match="clock"):
         records.claim("sim", observed())
-
-
-@pytest.mark.asyncio
-async def test_provider_session_has_no_tools_context_or_automatic_retry(monkeypatch):
-    from google import genai
-    from calls import voice as module
-    seen = {}
-    @asynccontextmanager
-    async def connect(**kwargs):
-        seen.update(kwargs)
-        yield SimpleNamespace()
-    close = AsyncMock()
-    client = SimpleNamespace(aio=SimpleNamespace(live=SimpleNamespace(connect=connect), aclose=close))
-    def factory(**kwargs):
-        seen["client_options"] = kwargs
-        return client
-    monkeypatch.setattr(genai, "Client", factory)
-    monkeypatch.setattr(module, "provider_key", lambda: "fixture-key")
-    monkeypatch.setenv("INARA_CALL_MODEL", "explicit-fixture-voice-model")
-    async with module.connect_voice() as voice:
-        assert isinstance(voice, LiveVoice)
-        assert seen["config"].tools is None
-        assert seen["config"].max_output_tokens == 256
-        assert seen["config"].system_instruction == CALL_INSTRUCTION
-        assert seen["model"] == "explicit-fixture-voice-model"
-        assert seen["client_options"]["http_options"]["retry_options"]["attempts"] == 1
-    close.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_live_voice_rejects_tools_and_has_no_dispatcher():
-    async def receive():
-        yield SimpleNamespace(tool_call=SimpleNamespace(function_calls=["read_file"]))
-    voice = LiveVoice(SimpleNamespace(receive=receive))
-    with pytest.raises(ServiceError, match="cannot invoke"):
-        await anext(voice.events())
-    assert not hasattr(voice, "dispatcher")
-    assert "no tools" in CALL_INSTRUCTION and "AI assistant" in CALL_INSTRUCTION
-
-
-@pytest.mark.asyncio
-async def test_live_voice_empty_connection_fails_without_busy_loop():
-    async def receive():
-        if False:
-            yield None
-    with pytest.raises(ServiceError, match="connection stopped"):
-        await anext(LiveVoice(SimpleNamespace(receive=receive)).events())
-
-
-@pytest.mark.asyncio
-async def test_interrupted_provider_packet_never_requeues_its_stale_audio():
-    content = SimpleNamespace(interrupted=True, model_turn=SimpleNamespace(parts=[
-        SimpleNamespace(inline_data=SimpleNamespace(data=b"old speech", mime_type="audio/pcm;rate=24000"))]))
-    async def receive():
-        yield SimpleNamespace(tool_call=None, server_content=content)
-        await asyncio.Event().wait()
-    events = LiveVoice(SimpleNamespace(receive=receive)).events()
-    assert await anext(events) == {"kind": "interrupted"}
-    with pytest.raises(TimeoutError):
-        await asyncio.wait_for(anext(events), 0.01)

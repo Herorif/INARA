@@ -72,7 +72,7 @@ def run(self):
             app = self.runtime.runtime
             assert all(
                 getattr(app, name).instance is None
-                for name in ("inara", "vision", "desktop", "devices", "kasa", "printer")
+                for name in ("desktop", "devices", "kasa", "printer")
             )
             assert not {"torch", "cv2", "mediapipe", "sounddevice", "google.genai"} & set(
                 sys.modules

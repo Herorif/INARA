@@ -55,7 +55,6 @@ const SettingsWindow = ({ onClose }) => {
   const cursorSensitivity = useStore((s) => s.cursorSensitivity);
   const setCursorSensitivity = useStore((s) => s.setCursorSensitivity);
   const isCameraFlipped = useStore((s) => s.isCameraFlipped);
-  const addMessage = useStore((s) => s.addMessage);
 
   const [permissions, setPermissions] = useState({});
   const [faceAuthEnabled, setFaceAuthEnabled] = useState(false);
@@ -89,27 +88,6 @@ const SettingsWindow = ({ onClose }) => {
   const toggleCameraFlip = () => {
     const newVal = !isCameraFlipped;
     emitSocket('update_settings', { camera_flipped: newVal });
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const textContent = event.target.result;
-        if (typeof textContent === 'string' && textContent.length > 0) {
-          emitSocket('upload_memory', { memory: textContent });
-          addMessage('System', 'Uploading memory...');
-        } else {
-          addMessage('System', 'Empty or invalid memory file');
-        }
-      } catch (err) {
-        console.error('Error reading file:', err);
-        addMessage('System', 'Error reading memory file');
-      }
-    };
-    reader.readAsText(file);
   };
 
   return (
@@ -181,13 +159,6 @@ const SettingsWindow = ({ onClose }) => {
                         </div>
           )}
                 </div>
-            </section>
-
-            <section className="flex flex-col gap-2">
-                <h3 className="hud-label">Memory data</h3>
-                <label htmlFor="settings-memory" className="text-sm text-ink-2">Upload memory text (.txt)</label>
-                <input id="settings-memory" type="file" accept=".txt" onChange={handleFileUpload}
-          className="cursor-pointer rounded-md border border-line-strong bg-raised p-2 text-sm text-ink-2 file:mr-3 file:cursor-pointer file:rounded file:border file:border-solid file:border-line-strong file:bg-panel file:px-2.5 file:py-1 file:text-[0.75rem] file:text-ink-1 hover:file:bg-[var(--bg-hover)]" />
             </section>
         </div>);
 

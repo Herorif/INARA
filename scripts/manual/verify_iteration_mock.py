@@ -4,8 +4,8 @@ import sys
 import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 
-# Add current directory to path to import cad_agent
-sys.path.append(os.getcwd())
+# Import cad_agent from the repository's backend/ directory.
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend"))
 
 # Mock dependencies that might be missing or require API keys
 mock_genai = MagicMock()

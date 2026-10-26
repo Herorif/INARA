@@ -54,15 +54,6 @@ class ClipboardRequest(NoArguments):
     text: StrictStr = Field(max_length=200000)
 
 
-class CameraQuestion(NoArguments):
-    question: StrictStr | None = Field(default=None, min_length=1, max_length=2000)
-
-
-class WatchRequest(NoArguments):
-    description: StrictStr = Field(min_length=1, max_length=2000)
-    watch_id: StrictStr | None = Field(default=None, min_length=1, max_length=100)
-
-
 class DeviceRequest(NoArguments):
     device_id: StrictStr = Field(min_length=1, max_length=200)
 
@@ -98,10 +89,6 @@ EXTENDED_MODELS = {
     "list_running_apps": NoArguments,
     "focus_window": LaunchApp,
     "write_clipboard": ClipboardRequest,
-    "describe_camera": CameraQuestion,
-    "detect_presence": NoArguments,
-    "watch_for": WatchRequest,
-    "list_watches": NoArguments,
     "get_device_state": DeviceRequest,
     "get_print_status": PrinterStatusRequest,
 }
@@ -226,9 +213,6 @@ class ExtendedActions:
                     return result.to_dict()
                 if name in ("create_routine", "list_routines"):
                     agent = self.app.scheduler
-                elif name in ("describe_camera", "detect_presence", "watch_for", "list_watches"):
-                    self.app.resources.require_heavy()
-                    agent = self.app.vision
                 elif name == "get_device_state":
                     agent = self.app.devices
                 else:

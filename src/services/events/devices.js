@@ -73,20 +73,6 @@ export function registerDevicesEvents({ onSocket, socket, store: useStore, unsub
         s().updatePrinterStatus(data);
     }));
 
-    // --- Vision ---
-    unsubs.push(onSocket('vision_alert', (data) => {
-        useStore.setState({ showVisionWindow: true });
-        s().addVisionAlert(data);
-    }));
-
-    unsubs.push(onSocket('vision_description', (data) => {
-        if (data.description) useStore.setState({ lastVisionDescription: data.description });
-    }));
-
-    unsubs.push(onSocket('vision_presence', (data) => {
-        useStore.setState({ presenceDetected: data.present });
-    }));
-
     // --- Unified Devices ---
     unsubs.push(onSocket('device_list', (data) => {
         if (data.devices) useStore.setState({ allDevices: data.devices });
@@ -99,10 +85,6 @@ export function registerDevicesEvents({ onSocket, socket, store: useStore, unsub
             else if (data.action === 'turn_off') updates.state = 'off';
             s().updateDeviceState(data.device_id, updates);
         }
-    }));
-
-    unsubs.push(onSocket('vision_watches', (data) => {
-        if (data.watches) useStore.setState({ activeWatches: data.watches });
     }));
 
     // --- Desktop ---

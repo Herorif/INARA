@@ -17,19 +17,6 @@ def test_resource_policy_blocks_heavy_activation_in_resident_and_gaming():
 
 
 @pytest.mark.asyncio
-async def test_gaming_blocks_legacy_camera_before_audio_or_worker_access(application_factory):
-    runtime = application_factory()
-    runtime.sessions.principals["client"] = "owner"
-    runtime.sessions.roles["client"] = "renderer"
-    runtime.sessions.local_owner = "owner"
-    runtime.settings["tool_permissions"]["video_frame"] = False
-    runtime.resources.select("gaming")
-    await runtime.workspace_transport.video_frame("client", {"image": b"\xff\xd8\xfffixture"})
-    assert runtime.sio.emit.call_args.args[1]["code"] == "resource_policy"
-    assert runtime.workspace.audio is None
-
-
-@pytest.mark.asyncio
 async def test_reminder_prefers_renderer_then_resident_on_close(tmp_path, monkeypatch, application_factory):
     runtime = application_factory()
     from core.reminder_store import ReminderStore

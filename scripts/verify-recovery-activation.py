@@ -196,7 +196,7 @@ def run(self):
             assert self.workspace is None
             assert all(
                 getattr(runtime, name).instance is None
-                for name in ("inara", "vision", "desktop", "devices", "kasa", "printer")
+                for name in ("desktop", "devices", "kasa", "printer")
             )
             assert not {"torch", "cv2", "mediapipe", "sounddevice", "google.genai"} & set(
                 sys.modules

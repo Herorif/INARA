@@ -104,14 +104,12 @@ time.sleep(120)
 
 def test_legacy_tools_use_their_own_default_deny_permission():
     import server
-    from core.config import DEFAULT_SETTINGS as CORE_DEFAULTS
 
     assert LEGACY_GENERATED_CAD_PERMISSION == "legacy_generated_cad"
     assert LEGACY_GENERATED_CAD_PERMISSION in DEFAULT_DENY_PERMISSIONS
     for name in ("legacy_generate_cad", "iterate_cad"):
         assert WORKSPACE_TOOLS[name][1] == "legacy_generated_cad"
     assert server.DEFAULT_SETTINGS["tool_permissions"]["legacy_generated_cad"] == "deny"
-    assert CORE_DEFAULTS["tool_permissions"]["legacy_generated_cad"] == "deny"
     assert permission_policy({}, "legacy_generated_cad") == "deny"
     assert permission_policy({}, "generate_cad") is True  # other keys still default to ask
     for name in LEGACY_TOOLS:
@@ -135,8 +133,6 @@ async def test_allowing_safe_generate_cad_does_not_allow_generated_code(
 
 @pytest.mark.asyncio
 async def test_settings_file_without_the_key_resolves_to_deny(application_factory, tmp_path):
-    from core.config import Config
-
     path = tmp_path / "settings.json"
     path.write_text(
         json.dumps(
@@ -148,7 +144,6 @@ async def test_settings_file_without_the_key_resolves_to_deny(application_factor
         ),
         encoding="utf-8",
     )
-    assert Config(path).get("tool_permissions.legacy_generated_cad") == "deny"
     app = owner_app(application_factory, settings=json.loads(path.read_text(encoding="utf-8")))
     app.workspace.cad_factory = lambda **kwargs: pytest.fail("Generated code must not run")
     for name in LEGACY_TOOLS:

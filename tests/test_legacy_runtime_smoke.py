@@ -5,7 +5,6 @@ These tests use only the Python standard library so they can run even when
 pytest is not installed in the active environment.
 """
 import os
-import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -46,25 +45,6 @@ class LegacyRuntimeSmokeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(summary["entrypoint"], "backend/server.py")
         self.assertTrue(summary["ai_status"].startswith("blocked"))
         self.assertIn("placeholder", summary["ai_status"].lower())
-
-    def test_archived_core_server_requires_explicit_override(self):
-        """The archived core server should not be runnable by accident."""
-        env = os.environ.copy()
-        env.pop("INARA_ALLOW_EXPERIMENTAL_CORE_SERVER", None)
-
-        result = subprocess.run(
-            [sys.executable, str(BACKEND_DIR / "core" / "server.py")],
-            capture_output=True,
-            text=True,
-            cwd=BACKEND_DIR.parent,
-            env=env,
-            check=False,
-        )
-
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("archived", result.stdout.lower())
-        self.assertIn("backend/server.py", result.stdout)
-
 
 
 if __name__ == "__main__":

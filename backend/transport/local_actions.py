@@ -84,9 +84,6 @@ class LocalActionTransport:
             await self.sio.emit(
                 "device_control", {"success": True, "message": result["message"]}, room=sid
             )
-        elif name == "stop_watching":
-            await self.sio.emit("vision_watches", {"watches": result["watches"]}, room=sid)
-            await self.sio.emit("status", {"msg": result["message"]}, room=sid)
         # System/device list data keeps its existing agent event contract.
 
     async def stop_sid(self, sid=None):

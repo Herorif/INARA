@@ -48,9 +48,6 @@ class ConnectionTransport:
         await self.sio.emit(
             "reminder_deliveries", self.app.reminders.open_deliveries(owner), room=sid
         )
-        await self.sio.emit(
-            "vision_watches", {"watches": self.app.vision_loop.list_watches()}, room=sid
-        )
 
     async def connect(self, sid, environ, auth=None):
         if not self.sessions.accept(sid, auth, current_token()):

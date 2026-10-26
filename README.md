@@ -110,17 +110,17 @@ You can talk to it and get a response. Ask it to design a gear and it can create
 
 | Feature                  | Description                                                    | Tech                             |
 | ------------------------ | -------------------------------------------------------------- | -------------------------------- |
-| 🗣️ **Real-Time Voice**   | Low-latency conversation with interrupt handling and wake word | Gemini Native Audio              |
+| 🗣️ **Push-to-Talk Voice** | Hold to talk in the Quick assistant; transcribed, reviewed, then sent | Gemini transcription             |
 | 🧊 **Parametric CAD**    | Generate and iterate 3D models from natural language           | `build123d` -> STL               |
 | 🖨️ **3D Print Pipeline** | Auto-slice and send to printers over your network              | OrcaSlicer + Moonraker/OctoPrint |
 | 🖐️ **Gesture Control**   | Minority Report-style window manipulation via hand tracking    | MediaPipe                        |
-| 🌐 **Web Agent**         | Autonomous browser - navigates, clicks, types, reads           | Playwright + Chromium            |
+| 🌐 **Web Inspector**     | Read-only inspection of an explicit HTTPS page                 | Playwright + Chromium            |
 | 🏠 **Smart Home**        | Voice control for TP-Link Kasa + Home Assistant devices        | `python-kasa`, HA REST API       |
 | 👁️ **Face Auth**         | Biometric login - local only, nothing leaves your machine      | MediaPipe Face Landmarks         |
 | 📁 **Project Memory**    | Persistent context across sessions and conversations           | File-based storage               |
 | ⏰ **Reminders**         | Voice-set reminders and recurring routines that fire on cue    | File-backed store                |
 | 🖥️ **Desktop Control**   | Launch apps, take screenshots, search files, read clipboard    | `psutil`, `pyperclip`            |
-| 📷 **Camera Vision**     | Describe scenes, detect presence, watch for conditions         | Gemini Vision                    |
+| 📷 **Vision Studio**     | Local camera preview and hand tracking                         | MediaPipe                        |
 
 ### 🖐️ Gesture Control
 
@@ -149,8 +149,8 @@ INARA's Minority Report interface uses your webcam for hands-free window control
 Current supported runtime:
 
 - Electron launches `backend/server.py`
-- `backend/server.py` owns the active Socket.IO contract used by the React app
-- `backend/core/` is an archived experimental refactor and is not used by `npm run dev`
+- `backend/server.py` is the facade; `backend/application.py` composes the services and transports that own the Socket.IO contract used by the React app
+- `backend/core/` holds the shared event bus and reminder store
 
 ```mermaid
 graph TB
@@ -163,22 +163,21 @@ graph TB
 
     subgraph Backend ["Backend - Python + FastAPI"]
         SERVER[backend/server.py<br/>Canonical Socket.IO Runtime]
-        LIVE[inara.py<br/>Gemini Live Voice Loop]
+        SPEECH[services/speech.py<br/>Push-to-talk Speech]
         CAD[cad_agent.py<br/>CAD Generation]
-        WEB[web_agent.py<br/>Browser Automation]
+        WEB[services/browser.py<br/>Read-only Web Inspector]
         PRINTER[printer_agent.py<br/>3D Printing]
         KASA[kasa_agent.py<br/>Smart Home]
         AUTH[authenticator.py<br/>Face Auth]
         PROJECT[project_manager.py<br/>Project Context]
         SCHED[scheduler_agent.py<br/>Reminders & Routines]
         DESK[desktop_agent.py<br/>Desktop Control]
-        VIS[vision_agent.py<br/>Camera Vision]
         DEV[device_agent.py<br/>Unified Devices]
     end
 
     UI --> SOCKET_C
     SOCKET_C <--> SERVER
-    SERVER --> LIVE
+    SERVER --> SPEECH
     SERVER --> CAD
     SERVER --> WEB
     SERVER --> KASA
@@ -187,13 +186,12 @@ graph TB
     SERVER --> PROJECT
     SERVER --> SCHED
     SERVER --> DESK
-    SERVER --> VIS
     SERVER --> DEV
     CAD -->|STL| THREE
     CAD -->|STL| PRINTER
 ```
 
-The repository still contains an unfinished event-bus rewrite under `backend/core/`, but the supported runtime and active backend contract live in `backend/server.py`.
+Retired and removed paths (the always-on voice loop, legacy voice pipeline and wake word, frame-less camera tools and scene watches, legacy telephony, the archived `backend/core` rewrite) are listed in [docs/RETIRED_PATHS.md](docs/RETIRED_PATHS.md).
 
 ---
 
@@ -289,7 +287,6 @@ Settings live in `backend/settings.json` (auto-created on first run).
 | `tool_permissions.write_file`    | `bool`  | Require confirmation before writing files to disk |
 | `tool_permissions.launch_app`    | `bool`  | Require confirmation before launching applications |
 | `tool_permissions.control_device`| `bool`  | Require confirmation before toggling smart devices |
-| `tool_permissions.watch_for`     | `bool`  | Require confirmation before starting camera watch  |
 | `printers`                       | `array` | Saved printer configurations                      |
 | `kasa_devices`                   | `array` | Saved smart home devices                          |
 | `assistant.brain`                | `string`| `auto` (Claude when an Anthropic key is set), `claude` or `gemini` |
@@ -343,15 +340,15 @@ All processing is local. Nothing is uploaded. Nothing is stored externally.
 ```
 inara/
 ├── backend/
-│   ├── core/                  # Event bus, reminder store, config, tool registry
+│   ├── core/                  # Event bus, reminder store
 │   ├── llm/                   # LLM abstraction (Gemini, Claude, router)
-│   ├── agents/                # Agent modules (CAD, web, printer, kasa, scheduler, desktop, vision, device)
+│   ├── agents/                # Agent modules (scheduler, desktop, device)
 │   ├── desktop/               # System monitor, app registry, screen capture
-│   ├── vision/                # Vision loop (continuous camera watch conditions)
-│   ├── devices/               # Home Assistant bridge
-│   ├── voice/                 # Voice pipeline (STT, TTS, VAD, audio I/O)
-│   ├── inara.py               # Voice integration (Gemini Live API)
-│   ├── server.py              # Canonical Socket.IO runtime
+│   ├── devices/               # Kasa/printer adapters; Home Assistant bridge (not wired yet)
+│   ├── services/              # Application services (conversation, speech, CAD, images, …)
+│   ├── transport/             # Socket.IO transports
+│   ├── application.py         # Composition root
+│   ├── server.py              # Supported entry point and facade
 │   ├── printer_agent.py       # Printer discovery & slicing engine
 │   ├── kasa_agent.py          # Kasa device control engine
 │   ├── cad_agent.py           # CAD generation engine

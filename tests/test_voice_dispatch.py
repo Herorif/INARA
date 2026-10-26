@@ -39,15 +39,16 @@ VALID = {
     "search_files": {"query": "*.txt"},
     "read_clipboard": {},
     "write_clipboard": {"text": "fixture"},
-    "describe_camera": {},
-    "detect_presence": {},
-    "watch_for": {"description": "fixture"},
-    "stop_watching": {"watch_id": "fixture"},
-    "list_watches": {},
     "list_all_devices": {},
     "control_device": {"device_id": "light.fixture", "action": "turn_on"},
     "get_device_state": {"device_id": "light.fixture"},
 }
+
+
+async def stop_voice(app, bridge):
+    """What the retired voice session stop did: unbind, then close the bridge."""
+    app.workspace.binding = None
+    await bridge.close()
 
 
 @pytest.fixture
@@ -61,9 +62,9 @@ def voice(application_factory):
         "sid": "client",
         "project_path": app.projects.get_current_project_path().resolve(),
     }
+    # The bridge is unwired until the new voice service lands; the test owns its binding.
     app.workspace.binding = binding
     bridge = VoiceBridge(app, binding)
-    app.workspace.voice_bridge = bridge
     for name in app.dispatcher.tools:
         app.settings["tool_permissions"][name] = False
     fake = SimpleNamespace(
@@ -72,8 +73,8 @@ def voice(application_factory):
         ),
         describe_launch=lambda name: f"fixture-command {name}",
     )
-    app.desktop = app.devices = app.vision = app.scheduler = fake
-    app.local_actions.desktop = app.local_actions.devices = app.local_actions.vision = fake
+    app.desktop = app.devices = app.scheduler = fake
+    app.local_actions.desktop = app.local_actions.devices = fake
     return app, bridge, fake
 
 
@@ -83,7 +84,7 @@ def test_every_voice_name_is_mapped_and_sdk_accepts_generated_shared_schemas(voi
     app, bridge, _ = voice
     assert set(VALID) == set(VOICE_TARGETS)
     config = types.LiveConnectConfig(tools=[{"function_declarations": bridge.schemas()}])
-    assert len(config.tools[0].function_declarations) == 37
+    assert len(config.tools[0].function_declarations) == 32
     for source, target in VOICE_TARGETS.items():
         assert target in app.dispatcher.tools
         from services.tools import inline_tool_schema
@@ -155,7 +156,7 @@ async def test_voice_approval_is_shared_owner_bound_and_stop_cancels_it(voice):
     payload = app.sio.emit.await_args.args[1]
     assert app.sio.emit.await_args.kwargs["room"] == "client"
     assert not app.dispatcher.resolve("intruder", payload["id"], True)
-    await app.workspace.stop_audio()
+    await stop_voice(app, bridge)
     await asyncio.gather(task, return_exceptions=True)
     assert not app.dispatcher.pending
     assert not app.dispatcher.resolve("owner", payload["id"], True)
@@ -191,7 +192,7 @@ async def test_voice_delayed_agent_event_is_invalid_after_session_stop(voice):
 
     fake.handle_tool_call.side_effect = invoke
     await bridge.call("list_all_devices", {})
-    await app.workspace.stop_audio()
+    await stop_voice(app, bridge)
     app.sio.emit.reset_mock()
     await app.delivery.bridge_legacy(events[0])
     app.sio.emit.assert_not_awaited()
@@ -229,6 +230,6 @@ async def test_voice_print_uuid_review_is_socket_serializable_and_stop_prevents_
     payload = await asyncio.wait_for(captured.get(), 1)
     assert isinstance(payload["args"]["request_id"], str)
     assert app.printer.instance is None
-    await app.workspace.stop_audio()
+    await stop_voice(app, bridge)
     await asyncio.gather(task, return_exceptions=True)
     assert app.printer.instance is None and not app.dispatcher.pending

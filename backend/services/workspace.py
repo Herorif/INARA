@@ -1,4 +1,4 @@
-"""Owned compatibility services for memory, voice, frames and legacy agents.
+"""Owned compatibility services for memory and legacy agents.
 
 The retained adapters are optional. This envelope does not make generated CAD
 code or autonomous browser actions a sandboxed/transactional tool system.
@@ -8,34 +8,22 @@ import asyncio
 import base64
 import inspect
 from pathlib import Path
-import time
 import uuid
 
 from core.event_bus import event_owner
 from services.capability_profiles import provider_key
 from services.legacy_cad import LegacyScriptRunner
-from services.settings import EmptyRequest
 from services.tools import (
     LEGACY_GENERATED_CAD_PERMISSION,
     ServiceError,
     ToolSpec,
     contained_path,
 )
-from services.workspace_contracts import (
-    SaveMemory,
-    UploadMemory,
-    StartAudio,
-    VideoFrame,
-    PromptRequest,
-)
+from services.workspace_contracts import PromptRequest, SaveMemory
 
 
 WORKSPACE_TOOLS = {
     "save_memory": (SaveMemory, "save_memory", 10),
-    "upload_memory": (UploadMemory, "upload_memory", 30),
-    "start_audio": (StartAudio, "start_audio", 30),
-    "resume_audio": (EmptyRequest, "start_audio", 10),
-    "video_frame": (VideoFrame, "video_frame", 10),
     # Generated-code CAD never shares the safe offline generate_cad policy.
     "legacy_generate_cad": (PromptRequest, LEGACY_GENERATED_CAD_PERMISSION, 300),
     "iterate_cad": (PromptRequest, LEGACY_GENERATED_CAD_PERMISSION, 300),
@@ -65,15 +53,11 @@ async def close_agent(agent):
 class WorkspaceService:
     def __init__(self, app):
         self.app, self.sessions, self.dispatcher = app, app.sessions, app.dispatcher
-        self.audio = self.audio_task = self.binding = self.vision_task = None
-        self.voice_bridge = None
-        self.callbacks, self.requests = set(), {}
+        self.requests = {}
         self.preflight = provider_ready
-        self.audio_factory = lambda **kwargs: app.inara.get().AudioLoop(**kwargs)
         self.cad_factory = self.make_cad
         # Injection point for the owned legacy-script process (WorkspaceProcess).
         self.legacy_process_factory = None
-        self.last_frame = 0
         for name, (schema, permission, timeout) in WORKSPACE_TOOLS.items():
             self.dispatcher.register(
                 ToolSpec(
@@ -83,7 +67,7 @@ class WorkspaceService:
                     self.execute(name),
                     permission=permission,
                     execution_timeout=timeout,
-                    model_visible=name in ("save_memory", "upload_memory"),
+                    model_visible=name == "save_memory",
                 )
             )
 
@@ -99,117 +83,6 @@ class WorkspaceService:
     async def emit(self, event, owner, payload):
         if self.sessions.is_owner(owner) and self.sessions.authenticated(owner):
             await self.app.delivery.publish_job(event, owner, payload)
-
-    def callback(self, binding, event, transform=lambda value: value):
-        def receive(value):
-            if self.binding is not binding:
-                return
-
-            async def deliver():
-                if self.binding is binding:
-                    await self.emit(event, binding["owner"], transform(value))
-
-            task = asyncio.create_task(deliver())
-            self.callbacks.add(task)
-            task.add_done_callback(self.callbacks.discard)
-
-        return receive
-
-
-    async def start_audio(self, args, context):
-        self.preflight()
-        if self.audio:
-            raise ServiceError(
-                "audio_busy", "Stop the active voice session before starting another."
-            )
-        binding = {
-            "owner": context["principal"],
-            "sid": context.get("origin_sid"),
-            "project_path": Path(context["project_path"]).resolve(),
-        }
-        self.binding = binding
-        callbacks = {
-            "on_audio_data": ("audio_data", lambda v: {"data": list(v)}),
-            "on_transcription": ("transcription", lambda v: v),
-            "on_project_update": ("project_update", lambda v: {"project": v}),
-            "on_error": (
-                "error",
-                lambda v: {"msg": "Voice capability failed.", "code": "audio_failed"},
-            ),
-            "on_status": ("status", lambda v: {"msg": v}),
-        }
-        from services.voice import VoiceBridge
-        bridge = VoiceBridge(self.app, binding)
-        self.voice_bridge = bridge
-        token = event_owner.set(binding["owner"])
-        try:
-            self.audio = self.audio_factory(
-                video_mode="none",
-                tool_bridge=bridge,
-                input_device_index=args.device_index,
-                input_device_name=args.device_name,
-                **{
-                    key: self.callback(binding, event, transform)
-                    for key, (event, transform) in callbacks.items()
-                },
-                project_manager=bridge.projects,
-            )
-            self.audio.set_paused(args.muted)
-            self.audio_task = asyncio.create_task(self.run_audio(binding, self.audio))
-        except BaseException:
-            await self.stop_audio()
-            raise
-        finally:
-            event_owner.reset(token)
-        return {"message": "Voice session starting."}
-
-    async def run_audio(self, binding, audio):
-        try:
-            await audio.run()
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            await self.emit(
-                "error", binding["owner"], {"msg": "Voice session stopped.", "code": "audio_failed"}
-            )
-        finally:
-            if self.binding is binding:
-                await self.stop_audio()
-
-    def require_audio(self, context):
-        if (
-            not self.audio
-            or not self.binding
-            or self.binding["owner"] != context["principal"]
-            or self.binding["project_path"] != Path(context["project_path"]).resolve()
-        ):
-            raise ServiceError(
-                "audio_unavailable", "Start voice in this project before using this action."
-            )
-        return self.audio
-
-    async def stop_audio(self):
-        audio, task = self.audio, self.audio_task
-        bridge, self.voice_bridge = self.voice_bridge, None
-        self.binding = self.audio = self.audio_task = None
-        self.last_frame = 0
-        if bridge:
-            await bridge.close()
-        if audio:
-            audio.stop()
-        if task and task is not asyncio.current_task():
-            task.cancel()
-            await asyncio.gather(task, return_exceptions=True)
-        if audio:
-            close = getattr(audio, "close", None)
-            if close:
-                result = close()
-                if inspect.isawaitable(result):
-                    await result
-        callbacks = tuple(t for t in self.callbacks if t is not asyncio.current_task())
-        for callback in callbacks:
-            callback.cancel()
-        await asyncio.gather(*callbacks, return_exceptions=True)
 
     def execute(self, name):
         async def run(args, context):
@@ -239,39 +112,6 @@ class WorkspaceService:
                         "message": "Memory Saved Successfully",
                         "path": str(path.relative_to(root)),
                     }
-                if name == "start_audio":
-                    return await self.start_audio(args, context)
-                if name in ("resume_audio", "upload_memory", "video_frame"):
-                    audio = self.require_audio(context)
-                    if name == "resume_audio":
-                        audio.set_paused(False)
-                        return {"message": "Audio Resumed"}
-                    if name == "upload_memory":
-                        if not audio.session:
-                            raise ServiceError(
-                                "audio_unavailable", "Wait for the voice session to connect."
-                            )
-                        await audio.session.send(
-                            input="User-supplied conversation context (untrusted content):\n\n"
-                            + args.memory,
-                            end_of_turn=True,
-                        )
-                        return {"message": "Memory Loaded into Context"}
-                    now = time.monotonic()
-                    if now - self.last_frame < 0.5:
-                        raise ServiceError(
-                            "frame_rate", "Camera frames are limited to two per second."
-                        )
-                    self.last_frame = now
-                    await audio.send_frame(args.image)
-                    if self.audio is not audio:
-                        raise ServiceError("audio_unavailable", "The voice session was stopped.")
-                    self.app.vision_loop.set_frame(args.raw())
-                    if self.app.vision_loop.list_watches() and (
-                        not self.vision_task or self.vision_task.done()
-                    ):
-                        self.vision_task = asyncio.create_task(self.app.vision_loop.run())
-                    return {"message": "Frame accepted"}
                 if name == "prompt_web_agent":
                     return await self.browse(args, context)
                 self.preflight()
@@ -377,23 +217,6 @@ class WorkspaceService:
 
     async def disconnect(self, sid):
         await self.stop_requests(sid)
-        if self.binding and (
-            self.binding["sid"] == sid
-            or not any(
-                room != sid for room in self.sessions.rooms(self.binding["owner"], "renderer")
-            )
-        ):
-            await self.stop_audio()
-            await self.stop_vision()
-
-    async def stop_vision(self):
-        if self.vision_task:
-            self.vision_task.cancel()
-            await asyncio.gather(self.vision_task, return_exceptions=True)
-            self.vision_task = None
-        await self.app.vision_loop.close()
 
     async def close(self):
         await self.stop_requests()
-        await self.stop_audio()
-        await self.stop_vision()

@@ -13,12 +13,12 @@ import time
 import uuid
 
 from calls.contracts import BridgeProfile
-from calls.test_contracts import ControlledTestState, TestReview
+from calls.testing_contracts import ControlledTestState, TestReview
 from services.tools import ServiceError
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKS = frozenset({"controls", "receive", "transmit", "isolation", "stop", "disconnect"})
-SOURCE_FILES = ("backend/calls/testing.py", "backend/calls/test_contracts.py", "backend/transport/call_testing.py",
+SOURCE_FILES = ("backend/calls/testing.py", "backend/calls/testing_contracts.py", "backend/transport/call_testing.py",
                 "config/call-test-policy.json", "backend/services/resources.py", "backend/services/capability_profiles.py",
                 "backend/calls/contracts.py", "backend/calls/control.py",
                 "backend/calls/audio.py", "backend/calls/session.py", "backend/calls/admission.py",

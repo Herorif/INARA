@@ -36,7 +36,7 @@ from services.connections_contracts import ConnectionCard, ConnectionsState  # n
 from calls.lab_contracts import LabReference, LabRun, LabState, LabSegment, LabRecord  # noqa: E402
 from services.handoff_contracts import CreativeReference, HandoffRequest, HandoffDraft  # noqa: E402
 
-from calls.test_contracts import TestPrepare, TestRevision, TestArm, TestStop, TestDraft, TestReview, ControlledTestState  # noqa: E402
+from calls.testing_contracts import TestPrepare, TestRevision, TestArm, TestStop, TestDraft, TestReview, ControlledTestState  # noqa: E402
 
 GROUPS = {
     "callTesting": (TestPrepare, TestRevision, TestArm, TestStop, TestDraft, TestReview, ControlledTestState),

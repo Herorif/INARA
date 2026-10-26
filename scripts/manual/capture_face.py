@@ -41,7 +41,7 @@ def capture_reference_face(output_path="reference.jpg"):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    # Ensure backend directory context
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(script_dir, "reference.jpg")
+    # The face authenticator reads backend/reference.jpg.
+    backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend")
+    save_path = os.path.join(os.path.normpath(backend_dir), "reference.jpg")
     capture_reference_face(save_path)

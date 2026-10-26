@@ -11,39 +11,15 @@ from pydantic import ValidationError
 from core.event_bus import Event, Events, event_owner
 from services.tools import ServiceError
 from services.workspace import WORKSPACE_TOOLS
-from services.workspace_contracts import SaveMemory, StartAudio, VideoFrame
+from services.workspace_contracts import SaveMemory
 
 
 PAYLOADS = {
     "save_memory": {"filename": "session-notes", "messages": [{"sender": "User", "text": "Hello"}]},
-    "upload_memory": {"memory": "private transcript"},
-    "start_audio": {"device_index": None, "device_name": None, "muted": False},
-    "resume_audio": {},
-    "video_frame": {"image": base64.b64encode(b"\xff\xd8\xfffixture").decode()},
     "legacy_generate_cad": {"prompt": "create a box"},
     "iterate_cad": {"prompt": "make it wider"},
     "prompt_web_agent": {"prompt": "look at an example"},
 }
-
-
-class Audio:
-    def __init__(self, **kwargs):
-        self.callbacks = kwargs
-        self.session = SimpleNamespace(send=AsyncMock())
-        self.send_frame = AsyncMock()
-        self.stopped = False
-        self.paused = False
-
-    def stop(self):
-        self.stopped = True
-
-
-    def set_paused(self, value):
-        self.paused = value
-
-
-    async def run(self):
-        await asyncio.Event().wait()
 
 
 @pytest.fixture
@@ -69,7 +45,6 @@ def workspace(application_factory):
     )
     app.sessions.local_owner = "owner"
     app.workspace.preflight = lambda: None
-    app.workspace.audio_factory = Audio
     app.workspace.cad_factory = lambda **kwargs: pytest.fail("Unexpected CAD adapter")
     app.workspace.web_factory = lambda: pytest.fail("Unexpected browser adapter")
     for name, (_, permission, _) in WORKSPACE_TOOLS.items():
@@ -92,7 +67,6 @@ async def test_all_routes_require_authenticated_owner_renderer(workspace, name, 
     await workspace.sio.handlers["/"][wire(name)](sid, PAYLOADS[name])
     assert workspace.sio.emit.await_args.kwargs["room"] == sid
     assert workspace.sio.emit.await_args.args[0] == "error"
-    assert workspace.workspace.audio is None
 
 
 @pytest.mark.asyncio
@@ -125,29 +99,6 @@ def test_memory_filename_contract_rejects_ambiguous_or_escaping_names(filename):
         SaveMemory.model_validate({**PAYLOADS["save_memory"], "filename": filename})
 
 
-@pytest.mark.parametrize(
-    "args", [{"muted": "false"}, {"device_index": True}, {"device_index": -1}, {"device_name": 1}]
-)
-def test_media_contract_does_not_coerce_control_values(args):
-    with pytest.raises(ValidationError):
-        StartAudio.model_validate(args)
-
-
-@pytest.mark.parametrize(
-    "image",
-    [
-        "not base64",
-        base64.b64encode(b"not an image").decode(),
-        b"\xff\xd8\xff" + b"x" * 1000000,
-        [],
-    ],
-    ids=["base64", "signature", "size", "type"],
-)
-def test_frames_are_bounded_and_structurally_typed(image):
-    with pytest.raises(ValidationError):
-        VideoFrame(image=image)
-
-
 @pytest.mark.asyncio
 async def test_memory_is_project_scoped_preserves_existing_and_returns_origin_only(workspace):
     root = workspace.projects.get_current_project_path()
@@ -174,62 +125,6 @@ async def test_disconnect_cancels_pending_redacted_memory_approval_without_expor
     assert not workspace.dispatcher.pending
     assert not list(workspace.projects.get_current_project_path().glob("long_term_memory/*"))
     assert not workspace.dispatcher.resolve("owner", payload["id"], True)
-
-
-async def audio_start(app):
-    await app.workspace_transport.start_audio("client", PAYLOADS["start_audio"])
-    assert app.workspace.audio
-    return app.workspace.audio
-
-
-@pytest.mark.asyncio
-async def test_audio_callbacks_are_owner_session_bound(workspace):
-    audio = await audio_start(workspace)
-    audio.callbacks["on_transcription"]({"sender": "User", "text": "private"})
-    await asyncio.sleep(0)
-    events = [
-        call
-        for call in workspace.sio.emit.await_args_list
-        if call.args[0] == "transcription"
-    ]
-    assert {call.kwargs["room"] for call in events} == {"client", "sibling"}
-    old = audio.callbacks["on_transcription"]
-    await workspace.disconnect("client")
-    assert audio.stopped and not workspace.workspace.audio
-    count = workspace.sio.emit.await_count
-    old({"text": "late private text"})
-    await asyncio.sleep(0)
-    assert workspace.sio.emit.await_count == count
-
-
-@pytest.mark.asyncio
-async def test_frame_upload_memory_and_project_change_cannot_feed_previous_session(workspace):
-    audio = await audio_start(workspace)
-    await workspace.workspace_transport.upload_memory("client", PAYLOADS["upload_memory"])
-    assert "private transcript" in audio.session.send.await_args.kwargs["input"]
-    await workspace.workspace_transport.video_frame("client", PAYLOADS["video_frame"])
-    audio.send_frame.assert_awaited_once()
-    await workspace.workspace_transport.video_frame("client", PAYLOADS["video_frame"])
-    assert workspace.sio.emit.await_args.args[1]["code"] == "frame_rate"
-    workspace.projects.create_project("Second")
-    workspace.projects.switch_project("Second")
-    await workspace.workspace_transport.upload_memory("client", PAYLOADS["upload_memory"])
-    assert workspace.sio.emit.await_args.args[1]["code"] == "audio_unavailable"
-    audio.session.send.assert_awaited_once()
-    await workspace.close()
-
-
-@pytest.mark.asyncio
-async def test_resource_restriction_cancels_voice_and_discards_callbacks(workspace):
-    audio = await audio_start(workspace)
-    client = SimpleNamespace(close=AsyncMock())
-    workspace.vision_loop._client = client
-    workspace.resources.select("gaming")
-    await workspace.restrict_resources()
-    assert audio.stopped and workspace.workspace.binding is None
-    assert workspace.vision_loop._frame is None
-    client.close.assert_awaited_once()
-    assert workspace.vision_loop._client is None
 
 
 @pytest.mark.asyncio
@@ -291,62 +186,8 @@ async def test_unstamped_events_stay_internal_and_voice_events_capture_owner(wor
 
 
 @pytest.mark.asyncio
-async def test_stop_voice_cancels_sibling_media_approval_without_cancelling_other_tools(workspace):
-    await audio_start(workspace)
-    workspace.settings["tool_permissions"]["upload_memory"] = True
-    task = asyncio.create_task(
-        workspace.workspace_transport.upload_memory("sibling", PAYLOADS["upload_memory"])
-    )
-    await asyncio.sleep(0)
-    assert workspace.dispatcher.pending
-    await workspace.workspace_transport.stop_audio("client")
-    await asyncio.gather(task, return_exceptions=True)
-    assert not workspace.dispatcher.pending and workspace.workspace.audio is None
-
-
-@pytest.mark.asyncio
 async def test_retired_browser_model_alias_cannot_revive_execution(workspace):
     with pytest.raises(ServiceError) as error:
         await workspace.dispatcher.dispatch("owner", "run_web_agent", {"prompt": "fixture"}, workspace.sessions.context("client").tools())
     assert error.value.code == "browser_migrated"
     assert not workspace.workspace.requests
-
-
-@pytest.mark.asyncio
-async def test_locked_owner_can_pause_and_stop_but_malformed_stop_preserves_session(workspace):
-    audio = await audio_start(workspace)
-    workspace.settings["face_auth_enabled"] = True
-    await workspace.workspace_transport.pause_audio("client")
-    assert audio.paused
-    await workspace.workspace_transport.stop_audio("client", {"unexpected": True})
-    assert not audio.stopped
-    assert workspace.sio.emit.await_args.args[1]["code"] == "invalid_arguments"
-    await workspace.workspace_transport.stop_audio("client")
-    assert audio.stopped and workspace.workspace.audio is None
-
-@pytest.mark.asyncio
-async def test_stopped_voice_approval_cannot_resolve_replacement_session(workspace):
-    old = await audio_start(workspace)
-    workspace.settings["tool_permissions"]["launch_app"] = True
-    requested = asyncio.Event()
-    captured = {}
-    original_emit = workspace.sio.emit
-
-    async def emit(event, payload, **kwargs):
-        await original_emit(event, payload, **kwargs)
-        if event == "tool_confirmation_request":
-            captured.update(payload)
-            requested.set()
-
-    workspace.sio.emit = emit
-    bridge = old.callbacks["tool_bridge"]
-    # A registered name: unknown apps are rejected before any approval prompt.
-    task = asyncio.create_task(bridge.call("launch_app", {"name": "notepad"}))
-    await asyncio.wait_for(requested.wait(), 2)
-    await workspace.workspace_transport.stop_audio("client")
-    replacement = await audio_start(workspace)
-    assert replacement.callbacks["tool_bridge"] is not bridge
-    assert not workspace.dispatcher.resolve("owner", captured["id"], True)
-    await asyncio.gather(task, return_exceptions=True)
-    assert not workspace.dispatcher.pending
-    await workspace.close()

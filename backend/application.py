@@ -68,7 +68,6 @@ from transport.conversation import ConversationTransport
 from transport.delivery import EventDelivery
 from transport.reminders import ReminderTransport
 from transport.sessions import DesktopSessions
-from vision.vision_loop import VisionLoop
 
 
 class Application:
@@ -154,22 +153,15 @@ class Application:
         self.speech_transport = SpeechTransport(self)
         self.reminder_transport = ReminderTransport(sio, self.dispatcher, reminders, self.sessions)
         # Legacy integrations retain their existing contracts and load only on demand.
-        self.inara = LazyService("inara")
         self.printer = LazyService("printer_agent", "PrinterAgent")
         self.desktop = LazyService("agents.desktop_agent", "DesktopAgent", event_bus=bus)
-        self.vision_loop = VisionLoop(event_bus=bus, interval=5)
-        self.vision = LazyService(
-            "agents.vision_agent", "VisionAgent", event_bus=bus, vision_loop=self.vision_loop
-        )
         self.kasa = LazyService(
             "kasa_agent", "KasaAgent", known_devices=settings.get("kasa_devices")
         )
         self.devices = LazyService(
             "agents.device_agent", "DeviceAgent", event_bus=bus, kasa_agent=self.kasa
         )
-        self.local_actions = LocalActions(
-            self.dispatcher, self.desktop, self.devices, self.vision, self.vision_loop
-        )
+        self.local_actions = LocalActions(self.dispatcher, self.desktop, self.devices)
         self.local_transport = LocalActionTransport(sio, self.dispatcher, self.sessions)
         self.confirmation_transport = ConfirmationTransport(sio, self.dispatcher, self.sessions)
         self.settings_service = SettingsService(
@@ -200,7 +192,10 @@ class Application:
         self.sessions.face_authenticated = lambda: (
             self.connection.authenticated or face_authenticated()
         )
-        self.settings_service.permission_names |= frozenset(self.dispatcher.tools)
+        # Tool names plus the shared permission keys they use (e.g. speech_capture's start_audio).
+        self.settings_service.permission_names |= frozenset(self.dispatcher.tools) | {
+            spec.permission for spec in self.dispatcher.tools.values() if spec.permission
+        }
         self.settings_transport = SettingsTransport(
             sio,
             self.sessions,

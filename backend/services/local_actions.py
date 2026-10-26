@@ -28,10 +28,6 @@ class ControlDevice(NoArguments):
     )
 
 
-class StopWatching(NoArguments):
-    watch_id: StrictStr = Field(min_length=1, max_length=100)
-
-
 ACTION_MODELS = {
     "launch_app": LaunchApp,
     "take_screenshot": Screenshot,
@@ -39,18 +35,12 @@ ACTION_MODELS = {
     "get_system_info": NoArguments,
     "list_all_devices": NoArguments,
     "control_device": ControlDevice,
-    "stop_watching": StopWatching,
 }
 
 
 class LocalActions:
-    def __init__(self, dispatcher, desktop, devices, vision, vision_loop):
-        self.desktop, self.devices, self.vision, self.vision_loop = (
-            desktop,
-            devices,
-            vision,
-            vision_loop,
-        )
+    def __init__(self, dispatcher, desktop, devices):
+        self.desktop, self.devices = desktop, devices
         for name, model in ACTION_MODELS.items():
 
             async def execute(args, context, action=name):
@@ -60,7 +50,7 @@ class LocalActions:
                     agent = (
                         self.devices
                         if action in ("list_all_devices", "control_device")
-                        else (self.vision if action == "stop_watching" else self.desktop)
+                        else self.desktop
                     )
                     payload = args.model_dump(exclude_none=True)
                     result = await agent.handle_tool_call(action, payload)
@@ -72,14 +62,11 @@ class LocalActions:
                             "action_failed",
                             "The local action could not complete. Check capability setup.",
                         )
-                    value = {
+                    return {
                         "success": True,
                         "message": result.message,
                         "data": getattr(result, "data", {}),
                     }
-                    if action == "stop_watching":
-                        value["watches"] = self.vision_loop.list_watches()
-                    return value
                 finally:
                     event_owner.reset(token)
 

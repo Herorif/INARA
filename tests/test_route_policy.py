@@ -20,7 +20,6 @@ VALID = {
     "get_system_info": {},
     "list_all_devices": {},
     "control_device": {"device_id": "light.office", "action": "turn_on"},
-    "stop_watching": {"watch_id": "desk"},
 }
 INVALID = {
     "launch_app": {"name": 2},
@@ -29,7 +28,6 @@ INVALID = {
     "get_system_info": [],
     "list_all_devices": {"unexpected": True},
     "control_device": {"device_id": "x", "action": "set", "brightness": True},
-    "stop_watching": {"watch_id": "x", "principal": "other"},
 }
 
 
@@ -48,8 +46,7 @@ def local_runtime(application_factory):
         ),
         describe_launch=lambda name: f"fixture-command {name}",
     )
-    app.local_actions.desktop = app.local_actions.devices = app.local_actions.vision = fake
-    app.local_actions.vision_loop = SimpleNamespace(list_watches=lambda: [])
+    app.local_actions.desktop = app.local_actions.devices = fake
     app.settings["tool_permissions"].update({name: False for name in VALID})
     return app, fake
 

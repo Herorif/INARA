@@ -17,7 +17,6 @@ PRIVATE = {
     "project_update",
     "reminder_list",
     "reminder_deliveries",
-    "vision_watches",
     "auth_frame",
 }
 

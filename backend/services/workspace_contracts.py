@@ -1,17 +1,7 @@
-"""Bounded contracts for retained desktop memory, media and creative events."""
+"""Bounded contracts for retained desktop memory and creative events."""
 
-import base64
-import binascii
 from pathlib import PureWindowsPath
-from pydantic import (
-    Field,
-    StrictBool,
-    StrictBytes,
-    StrictInt,
-    StrictStr,
-    field_validator,
-    model_validator,
-)
+from pydantic import Field, StrictStr, field_validator, model_validator
 from services.settings import EmptyRequest
 
 
@@ -66,37 +56,3 @@ class SaveMemory(EmptyRequest):
         if sum(len(m.text) + len(m.sender) for m in self.messages) > 200000:
             raise ValueError("Transcript exceeds the memory limit.")
         return self
-
-
-class UploadMemory(EmptyRequest):
-    memory: StrictStr = Field(min_length=1, max_length=200000)
-
-
-class StartAudio(EmptyRequest):
-    device_index: StrictInt | None = Field(default=None, ge=0, le=1024)
-    device_name: StrictStr | None = Field(default=None, max_length=256)
-    muted: StrictBool = False
-
-
-class VideoFrame(EmptyRequest):
-    image: StrictStr | StrictBytes = Field(min_length=1, max_length=1400000)
-
-    @field_validator("image")
-    @classmethod
-    def bounded_image(cls, value):
-        try:
-            raw = base64.b64decode(value, validate=True) if isinstance(value, str) else value
-        except (ValueError, binascii.Error) as exc:
-            raise ValueError("Use a base64 encoded or binary image.") from exc
-        if not 0 < len(raw) <= 1000000 or not raw.startswith(
-            (b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n")
-        ):
-            raise ValueError("Use a bounded JPEG or PNG frame.")
-        return value
-
-    def raw(self):
-        return (
-            base64.b64decode(self.image, validate=True)
-            if isinstance(self.image, str)
-            else self.image
-        )

@@ -1,7 +1,7 @@
 """Owner renderer controlled-test routes; no remote proof upload or policy toggle."""
 
 from pydantic import ValidationError
-from calls.test_contracts import TestPrepare, TestRevision, TestArm, TestStop
+from calls.testing_contracts import TestPrepare, TestRevision, TestArm, TestStop
 from services.settings import EmptyRequest
 from services.tools import ServiceError
 

@@ -157,7 +157,7 @@ def verify():
         assert not app.cad.active and not app.images.active and app.call_lab.active is None
         assert all(
             getattr(app, name).instance is None
-            for name in ("inara", "vision", "desktop", "devices", "kasa", "printer")
+            for name in ("desktop", "devices", "kasa", "printer")
         )
         assert not {"google.genai", "torch", "cv2", "mediapipe", "sounddevice"} & set(sys.modules)
         assert len(launches) == 1

@@ -574,16 +574,11 @@ def genai_recorder(monkeypatch):
     return check
 
 
-@pytest.mark.asyncio
-async def test_vision_paths_use_key_accessor_and_tls(genai_recorder, monkeypatch):
-    from agents.vision_agent import VisionAgent
+def test_screen_vision_uses_key_accessor_and_tls(genai_recorder):
     from desktop.screen_capture import ScreenCapture
 
-    agent = VisionAgent(None, None)
-    await agent.initialize()
-    assert agent._call_gemini_vision(b"jpeg", "Describe") == "A desk."
     assert ScreenCapture().describe_bytes(b"jpeg").description == "A desk."
-    assert len(genai_recorder()) == 2
+    assert len(genai_recorder()) == 1
 
 
 def test_gemini_and_cad_clients_use_key_accessor_and_tls(genai_recorder):
@@ -600,12 +595,9 @@ def test_gemini_and_cad_clients_use_key_accessor_and_tls(genai_recorder):
 
 
 @pytest.mark.asyncio
-async def test_transcription_and_call_voice_use_tls(monkeypatch):
-    from contextlib import asynccontextmanager
-
+async def test_transcription_uses_tls(monkeypatch):
     from google import genai
 
-    import calls.voice as call_voice
     import services.speech_provider as speech
     from services.tls import provider_ssl_context
 
@@ -620,27 +612,19 @@ async def test_transcription_and_call_voice_use_tls(monkeypatch):
     async def aclose():
         pass
 
-    @asynccontextmanager
-    async def connect(**kwargs):
-        yield SimpleNamespace()
-
     def client(**kwargs):
         seen.append(kwargs)
         return SimpleNamespace(aio=SimpleNamespace(
-            models=SimpleNamespace(generate_content_stream=stream),
-            live=SimpleNamespace(connect=connect), aclose=aclose))
+            models=SimpleNamespace(generate_content_stream=stream), aclose=aclose))
 
     monkeypatch.setattr(genai, "Client", client)
     monkeypatch.setenv("GEMINI_API_KEY", "AIza-offline-accessor-key")
-    monkeypatch.setenv("INARA_CALL_MODEL", "fixture-live-model")
 
     async def partial(value):
         pass
 
     assert await speech.transcribe(b"\x00\x00" * 160, partial) == "hello"
-    async with call_voice.connect_voice():
-        pass
-    assert len(seen) == 2
+    assert len(seen) == 1
     for call in seen:
         assert call["api_key"] == "AIza-offline-accessor-key"
         assert call["http_options"]["async_client_args"]["verify"] is provider_ssl_context()
