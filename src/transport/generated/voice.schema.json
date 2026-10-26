@@ -1,0 +1,65 @@
+{
+  "VoiceStart": {
+    "additionalProperties": false,
+    "properties": {
+      "mode": {
+        "enum": [
+          "push_to_talk",
+          "conversation"
+        ],
+        "title": "Mode",
+        "type": "string"
+      },
+      "conversation_id": {
+        "format": "uuid",
+        "title": "Conversation Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "mode",
+      "conversation_id"
+    ],
+    "title": "VoiceStart",
+    "type": "object"
+  },
+  "VoiceReference": {
+    "additionalProperties": false,
+    "properties": {
+      "session_id": {
+        "format": "uuid",
+        "title": "Session Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "session_id"
+    ],
+    "title": "VoiceReference",
+    "type": "object"
+  },
+  "VoiceActivity": {
+    "additionalProperties": false,
+    "properties": {
+      "session_id": {
+        "format": "uuid",
+        "title": "Session Id",
+        "type": "string"
+      },
+      "state": {
+        "enum": [
+          "start",
+          "end"
+        ],
+        "title": "State",
+        "type": "string"
+      }
+    },
+    "required": [
+      "session_id",
+      "state"
+    ],
+    "title": "VoiceActivity",
+    "type": "object"
+  }
+}

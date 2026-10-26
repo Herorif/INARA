@@ -60,11 +60,14 @@ from transport.confirmations import ConfirmationTransport
 from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
 from services.speech import SpeechService, SpeechTransport
+from services.voice import VoiceService, VoiceTransport
 from services.scheduler_tools import register_scheduler_tools
 from services.sessions import SessionStore
 from services.storage import Database
 from services.secrets import SecretStore, activate as activate_secrets
 from transport.secrets import SecretsTransport
+from telephony.service import TelephonyService
+from transport.telephony import CallsTransport
 from services.tools import ToolDispatcher, register_project_tools
 from transport.conversation import ConversationTransport
 from transport.delivery import EventDelivery
@@ -156,6 +159,8 @@ class Application:
         self.mobile_transport = MobileTransport(self)
         self.speech = SpeechService(self)
         self.speech_transport = SpeechTransport(self)
+        self.voice = VoiceService(self)
+        self.voice_transport = VoiceTransport(self)
         self.reminder_transport = ReminderTransport(sio, self.dispatcher, reminders, self.sessions)
         # Legacy integrations retain their existing contracts and load only on demand.
         self.printer = LazyService("printer_agent", "PrinterAgent")
@@ -205,10 +210,14 @@ class Application:
             sio,
             self.sessions,
             self.settings_service,
-            self.connection.settings_changed,
+            self.settings_changed,
             self.connection.validate_settings,
         )
         self.secrets_transport = SecretsTransport(self)
+        # Telephony gateway (docs/CALL_ROUTING.md): its own loopback listener, idle
+        # unless calls.enabled; calls_status reports readiness to the owner.
+        self.telephony = TelephonyService(self)
+        self.calls_transport = CallsTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -261,6 +270,7 @@ class Application:
             self.task_queue.stop_sid(),
             self.browser_transport.stop_sid(),
             self.speech_transport.stop_sid(),
+            self.voice.restrict(),
             self.cad_transport.close(),
             self.image_transport.close(),
             self.local_transport.stop_sid(),
@@ -292,6 +302,7 @@ class Application:
                 ("quality", self.quality.stop_sid),
                 ("mobile", self.mobile_transport.stop_sid),
                 ("speech", self.speech_transport.stop_sid),
+                ("voice", self.voice_transport.stop_sid),
                 ("conversation", self.conversation_transport.stop_sid),
                 ("local_actions", self.local_transport.stop_sid),
                 ("compatibility", self.compat_transport.stop_sid),
@@ -312,6 +323,11 @@ class Application:
         if not self.sessions.rooms(principal):
             await _isolated("conversation_owner", self.conversation.release_owner, principal)
 
+    async def settings_changed(self, patch):
+        await self.connection.settings_changed(patch)
+        if "calls" in patch:
+            await self.telephony.reconcile()
+
     async def start(self):
         if self.started:
             return
@@ -326,6 +342,8 @@ class Application:
         self.tasks.append(
             asyncio.create_task(self.memory.maintain(), name="project-memory-retention")
         )
+        if self.telephony.calls_settings()["enabled"]:
+            await self.telephony.reconcile()  # never raises; failures show in calls_status
         try:
             if self.startup_summary:
                 self.startup_summary()
@@ -347,6 +365,7 @@ class Application:
                 self.mobile.close(),
                 self.conversation_transport.stop_sid(),
                 self.speech_transport.stop_sid(),
+                self.voice_transport.stop_sid(),
                 self.cad_transport.close(),
                 self.image_transport.close(),
                 self.local_transport.stop_sid(),
@@ -357,6 +376,7 @@ class Application:
                 self.workspace_transport.stop_sid(),
                 self.workspace.close(),
                 self.connection.close(),
+                self.telephony.close(),
                 return_exceptions=True,
             )
             for result in results:

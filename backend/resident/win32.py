@@ -108,9 +108,16 @@ class ExtendedLimit(C.Structure):
 
 
 class WorkspaceProcess:
-    """Atomically assign the child to a kill-on-close job, with pipe-only bootstrap."""
+    """Atomically assign the child to a kill-on-close job, with pipe-only bootstrap.
 
-    def __init__(self, executable, entrypoint, bootstrap, cwd):
+    ``arguments`` replaces the default ``executable [-B] entrypoint`` command line
+    and ``environment`` adds variables to the filtered environment (for example
+    a credential that must not appear on the command line). ``bootstrap=None``
+    writes nothing to the child's stdin pipe.
+    """
+
+    def __init__(self, executable, entrypoint, bootstrap, cwd, *, arguments=None,
+                 environment=None):
         self.process = self.job = None
         read, write, null = W.HANDLE(), W.HANDLE(), None
         attributes = None
@@ -181,11 +188,14 @@ class WorkspaceProcess:
             startup.startup.flags = 0x101  # STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW
             startup.startup.stdin, startup.startup.stdout, startup.startup.stderr = read, null, null
             startup.attributes = C.cast(attributes, W.LPVOID)
-            arguments = [str(executable)]
-            if Path(executable).name.lower() in {"python.exe", "pythonw.exe"}:
-                arguments.append("-B")  # Isolated ._pth ignores PYTHONDONTWRITEBYTECODE.
-            arguments.append(str(entrypoint))
-            command = C.create_unicode_buffer(subprocess.list2cmdline(arguments))
+            if arguments is None:
+                arguments = [str(executable)]
+                if Path(executable).name.lower() in {"python.exe", "pythonw.exe"}:
+                    arguments.append("-B")  # Isolated ._pth ignores PYTHONDONTWRITEBYTECODE.
+                arguments.append(str(entrypoint))
+            command = C.create_unicode_buffer(
+                subprocess.list2cmdline([str(item) for item in arguments])
+            )
             allowed = {
                 "systemroot",
                 "systemdrive",
@@ -215,13 +225,15 @@ class WorkspaceProcess:
                 "comspec",
                 "pathext",
             }
+            variables = {key: value for key, value in os.environ.items() if key.lower() in allowed}
+            for key, value in (environment or {}).items():
+                for existing in [name for name in variables if name.casefold() == key.casefold()]:
+                    del variables[existing]
+                variables[key] = value
             environment = C.create_unicode_buffer(
                 "\0".join(
                     f"{key}={value}"
-                    for key, value in sorted(
-                        os.environ.items(), key=lambda item: item[0].casefold()
-                    )
-                    if key.lower() in allowed
+                    for key, value in sorted(variables.items(), key=lambda item: item[0].casefold())
                 )
                 + "\0\0"
             )
@@ -256,20 +268,21 @@ class WorkspaceProcess:
                 )
             )
             self.process, self.pid = information.process, information.pid
-            data = json.dumps(bootstrap).encode()
-            if len(data) > 4096:
-                raise ValueError("Workspace bootstrap exceeds pipe limit")
-            written = W.DWORD()
-            checked(
-                api(
-                    kernel,
-                    "WriteFile",
-                    [W.HANDLE, W.LPCVOID, W.DWORD, C.POINTER(W.DWORD), W.LPVOID],
-                    W.BOOL,
-                )(write, data, len(data), C.byref(written), None)
-            )
-            if written.value != len(data):
-                raise OSError("Workspace bootstrap write was incomplete")
+            if bootstrap is not None:
+                data = json.dumps(bootstrap).encode()
+                if len(data) > 4096:
+                    raise ValueError("Workspace bootstrap exceeds pipe limit")
+                written = W.DWORD()
+                checked(
+                    api(
+                        kernel,
+                        "WriteFile",
+                        [W.HANDLE, W.LPCVOID, W.DWORD, C.POINTER(W.DWORD), W.LPVOID],
+                        W.BOOL,
+                    )(write, data, len(data), C.byref(written), None)
+                )
+                if written.value != len(data):
+                    raise OSError("Workspace bootstrap write was incomplete")
             close_handle(write)
             write = W.HANDLE()
             if api(kernel, "ResumeThread", [W.HANDLE], W.DWORD)(information.thread) == 0xFFFFFFFF:

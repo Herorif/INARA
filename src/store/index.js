@@ -15,6 +15,7 @@ import { createPhoneSlice } from './phoneSlice';
 import { createReminderSlice } from './reminderSlice';
 import { createDesktopSlice } from './desktopSlice';
 import { createSmartHomeSlice } from './smartHomeSlice';
+import { createVoiceSlice } from './voiceSlice';
 
 const useStore = create((...args) => ({
     ...createConnectionSlice(...args),
@@ -32,6 +33,7 @@ const useStore = create((...args) => ({
     ...createReminderSlice(...args),
     ...createDesktopSlice(...args),
     ...createSmartHomeSlice(...args),
+    ...createVoiceSlice(...args),
 }));
 
 export default useStore;

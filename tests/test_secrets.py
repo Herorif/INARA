@@ -114,7 +114,7 @@ def test_format_validation(store, name, value, valid):
 
 def test_unknown_secret_name(store):
     with pytest.raises(secrets.ServiceError) as error:
-        store.set("twilio_auth_token", "x" * 40)
+        store.set("twilio_api_secret", "x" * 40)
     assert error.value.code == "unknown_secret"
 
 
@@ -303,7 +303,8 @@ async def test_owner_set_test_status_clear_never_echo_value(owner_app):
     results = [await handlers[name]("renderer", payload) for name, payload in ROUTES.items()]
     assert all(result["ok"] for result in results)
     status, saved, tested, cleared = results
-    assert [item["configured"] for item in status["secrets"]] == [False, False]
+    assert [item["name"] for item in status["secrets"]][:2] == ["anthropic_api_key", "gemini_api_key"]
+    assert not any(item["configured"] for item in status["secrets"])
     assert saved["secret"]["configured"] and saved["secret"]["hint"] == "wxyz"
     assert tested["secret"]["last_check"]["code"] == "ok" and tested["secret"]["verified_at"]
     assert not cleared["secret"]["configured"]

@@ -16,6 +16,20 @@ INARA uses two providers. Claude is the assistant's brain; Gemini handles audio.
 
 Both are optional: INARA starts without them, and AI features report that a key is missing ("Add an Anthropic or Gemini API key in Setup (AI providers) or Preferences").
 
+## Telephony secrets (calls)
+
+The telephony gateway ([CALL_ROUTING](CALL_ROUTING.md#implementation-status-c1)) keeps its credentials in the same encrypted store, with the same status-only rules. All are optional; INARA starts without them and calls stay off (`calls.enabled` is false by default).
+
+| Value | Format | Used for | Name in INARA | Developer override |
+| --- | --- | --- | --- | --- |
+| Twilio Account SID | `AC` + 32 hex characters | REST calls (basic auth user) and checking that webhooks and Media Streams come from this account | `twilio_account_sid` | `INARA_TWILIO_ACCOUNT_SID` |
+| Twilio Auth Token (primary) | 32 hex characters | REST basic auth password **and** the key Twilio signs every webhook and Media Stream upgrade with (`X-Twilio-Signature`) | `twilio_auth_token` | `INARA_TWILIO_AUTH_TOKEN` |
+| INARA's Twilio number | E.164 Malaysian number, `+60...` | Caller ID for every outbound call (never anything else) and the loop guard | `twilio_phone_number` | `INARA_TWILIO_PHONE_NUMBER` |
+| Owner's mobile number | E.164 | Owner briefings need no grant; every other number does | `owner_phone_number` | `INARA_OWNER_PHONE_NUMBER` |
+| Cloudflare tunnel token | The token from the named tunnel's install command (starts with `ey`) | Running `cloudflared tunnel run`; passed to cloudflared as the `TUNNEL_TOKEN` environment variable, never on its command line | `cloudflare_tunnel_token` | `INARA_CLOUDFLARE_TUNNEL_TOKEN` |
+
+Checks: the Account SID and Auth Token are tested together with one `GET https://api.twilio.com/2010-04-01/Accounts/<sid>.json` (basic auth, 10 second timeout, Windows certificate store); testing one before the other is saved returns `incomplete`. The phone numbers and the tunnel token have no online check (`no_check`); their format is validated when saved. The overrides use `INARA_`-prefixed names so a developer's global `TWILIO_*` variables are never picked up by accident. Set them with `scripts/inara-secrets.py set <name>` (standard input only) or the owner-only `secrets_set` route; there is no Preferences screen for them yet.
+
 ## Which model answers (task router)
 
 `backend/llm/router.py` picks the provider for each request; nothing is decided at startup.

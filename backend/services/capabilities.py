@@ -72,11 +72,12 @@ class CapabilityCenter:
             ),
             (
                 "voice",
-                "Reviewed push-to-talk",
+                "Live voice",
                 provider_installed,
                 key,
-                "Explicit prepare/hold/review/send. Microphone and transcription acceptance deferred.",
-                model_id("speech"),
+                "Hold to talk or hands-free conversation; Dictate keeps reviewed push-to-talk. "
+                "Real microphone, speaker and Live audio acceptance deferred.",
+                model_id("voice"),
             ),
             (
                 "camera",

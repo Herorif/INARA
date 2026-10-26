@@ -15,10 +15,12 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
+    StrictInt,
     StrictStr,
     field_validator,
     model_validator,
 )
+from services.live_config import PREBUILT_VOICES, VOICE_DEFAULTS, VOICE_MODES
 from services.tools import DEFAULT_DENY_PERMISSIONS, ServiceError
 
 # Retained legacy panel/declaration names, until the R2c declaration migration.
@@ -160,14 +162,96 @@ class AssistantSettings(EmptyRequest):
 ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": ""}
 
 
+class VoiceSettings(EmptyRequest):
+    """``voice.*``: the Live prebuilt voice and the default talk mode."""
+
+    name: Literal[PREBUILT_VOICES] | None = None
+    mode: Literal[VOICE_MODES] | None = None
+
+    @field_validator("name", "mode", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a voice setting to update.")
+        return self
+
+
+class QuietHours(EmptyRequest):
+    """Local time window (Asia/Kuala_Lumpur) with no calls to third parties."""
+
+    start: StrictStr = Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")
+    end: StrictStr = Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")
+
+
+class CallsSettings(EmptyRequest):
+    """``calls.*``: the telephony gateway (docs/CALL_ROUTING.md). Off by default."""
+
+    enabled: StrictBool | None = None
+    # The Cloudflare tunnel hostname Twilio calls, e.g. https://calls.example.com.
+    public_base_url: StrictStr | None = Field(
+        default=None,
+        max_length=253,
+        pattern=r"^(|https://[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+)$",
+    )
+    quiet_hours: QuietHours | None = None
+    daily_outbound_cap: StrictInt | None = Field(default=None, ge=0, le=100)
+    number_cooldown_minutes: StrictInt | None = Field(default=None, ge=0, le=10080)
+    when_disabled: Literal["voicemail", "hangup"] | None = None
+
+    @field_validator(
+        "enabled",
+        "public_base_url",
+        "quiet_hours",
+        "daily_outbound_cap",
+        "number_cooldown_minutes",
+        "when_disabled",
+        mode="before",
+    )
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a calls setting to update.")
+        return self
+
+
+CALLS_DEFAULTS = {
+    "enabled": False,
+    "public_base_url": "",
+    "quiet_hours": {"start": "21:00", "end": "09:00"},
+    "daily_outbound_cap": 10,
+    "number_cooldown_minutes": 60,
+    "when_disabled": "voicemail",
+}
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
     camera_flipped: StrictBool | None = None
     assistant: AssistantSettings | None = None
+    voice: VoiceSettings | None = None
+    calls: CallsSettings | None = None
 
     @field_validator(
-        "tool_permissions", "face_auth_enabled", "camera_flipped", "assistant", mode="before"
+        "tool_permissions",
+        "face_auth_enabled",
+        "camera_flipped",
+        "assistant",
+        "voice",
+        "calls",
+        mode="before",
     )
     @classmethod
     def reject_null(cls, value):
@@ -239,18 +323,23 @@ class SettingsService:
             raise ServiceError("invalid_arguments", "Unknown tool permission name.")
         candidate = self.snapshot()
         candidate.setdefault("tool_permissions", {}).update(permissions)
-        if "assistant" in patch:
-            current = candidate.get("assistant")
-            candidate["assistant"] = {
-                **ASSISTANT_DEFAULTS,
-                **(current if isinstance(current, dict) else {}),
-                **patch["assistant"],
-            }
+        for section, defaults in (
+            ("assistant", ASSISTANT_DEFAULTS),
+            ("voice", VOICE_DEFAULTS),
+            ("calls", CALLS_DEFAULTS),
+        ):
+            if section in patch:
+                current = candidate.get(section)
+                candidate[section] = {
+                    **defaults,
+                    **(current if isinstance(current, dict) else {}),
+                    **patch[section],
+                }
         candidate.update(
             {
                 key: value
                 for key, value in patch.items()
-                if key not in ("tool_permissions", "assistant")
+                if key not in ("tool_permissions", "assistant", "voice", "calls")
             }
         )
         try:

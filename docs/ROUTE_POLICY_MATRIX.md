@@ -1,10 +1,10 @@
 # Supported route/policy matrix (R7)
 
-The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) covers **98 desktop socket routes, `/status`, 47 dispatcher tools (33 model-visible) and ten isolated HTTPS mobile routes** and 32 dormant compatibility voice mappings. Production speech uses the common conversation tool catalog. The old always-on voice routes (`start_audio`, `resume_audio`, `pause_audio`, `stop_audio`, `upload_memory`, `video_frame`) and the frame-less camera tools (`describe_camera`, `detect_presence`, `watch_for`, `list_watches`, `stop_watching`) were removed; see [RETIRED_PATHS](RETIRED_PATHS.md). `start_audio` remains only as the permission key shared by push-to-talk `speech_capture`.
+The [machine-readable inventory](ROUTE_POLICY_MATRIX.json) covers **103 desktop socket routes, `/status`, 47 dispatcher tools (33 model-visible) and ten isolated HTTPS mobile routes** and the two Live voice function declarations (`ask_brain`, `end_conversation`). Live voice reaches tools only through `ask_brain`, a normal brain turn on the common conversation tool catalog; reviewed push-to-talk dictation is unchanged. The old always-on voice routes (`start_audio`, `resume_audio`, `pause_audio`, `stop_audio`, `upload_memory`, `video_frame`) and the frame-less camera tools (`describe_camera`, `detect_presence`, `watch_for`, `list_watches`, `stop_watching`) were removed; see [RETIRED_PATHS](RETIRED_PATHS.md). `start_audio` remains only as the permission key shared by push-to-talk `speech_capture`.
 
 ## Policy conventions
 
-Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and `True` or missing policy requests owner approval. Aliases preserve canonical, source and target denials. Dormant compatibility voice mappings retain shared schemas and the dispatcher, with a trusted session guard before and after approval. Voice-generated events retain that guard for delayed delivery. Owner safety controls remain independent of editable permissions.
+Validated `False` / `allow_within_scope` permits an action, `deny` rejects, and `True` or missing policy requests owner approval. Aliases preserve canonical, source and target denials. Live voice hands tool work to the brain, whose dispatcher calls keep their approvals, with the voice session's authorization checked before and after each approval. Owner safety controls remain independent of editable permissions.
 
 The autonomous browser compatibility names are retired. `browser_inspect` is desktop-only and not advertised to the model; `browser_cancel` also cancels pending approvals. [Read-only browser policy and acceptance](BROWSER_INSPECTOR.md).
 
@@ -20,9 +20,10 @@ The autonomous browser compatibility names are retired. `browser_inspect` is des
 | `task_queue_run` | TaskReference | Owner renderer; captured owner/project/SID | Fresh shared-tool approval for every step; recheck scope and denial | Non-replayable attempt; receipt commits before effects | Origin ACK and SID approval prompts | Cooperative 720s total; cancel/disconnect/resource/quit | TaskQueue / TaskQueueTransport; **migrated** |
 | `task_queue_cancel` | TaskReference | Owner renderer; safety stop while locked | Origin-bound active stop; no private hydration | Cancel attempt or discard draft, no rollback | Acknowledgement only | Cancels approvals and future steps; uncertain effects retained | TaskQueue / TaskQueueTransport; **migrated** |
 | `connections_state` | EmptyRequest | Authenticated unlocked owner renderer | Independent owner/role gate | Local dependency/cache counts only; no endpoints/keys/activation/network | Origin ACK; generated ConnectionsState | Request-only, no timer/worker | ConnectionsReadiness / ConnectionsTransport; **migrated** |
+| `calls_status` | EmptyRequest | Authenticated unlocked owner renderer; telephony gateway, tunnel supervisor and `calls.*` settings | Independent owner/role/unlock gate; not a dispatcher tool and not model-visible | Read readiness: kill switch, public URL, telephony secrets configured/verified/source, gateway listening, tunnel state, call agent, active calls, today's third-party call count; never a value | Origin ACK with status only | Request-only snapshot; no network | TelephonyService / CallsTransport; **implemented** |
 | `secrets_status` | EmptyRequest | Authenticated unlocked owner renderer; Profile secret store (documents kind 'secrets'); env override reported as source only | Independent owner/role/unlock gate; not a dispatcher tool and not model-visible | Read configured/source/last-four hint/check results for each registered key; never a value | Origin ACK with status only; values, pydantic details and provider errors are never echoed | Request-only; secrets_test runs one bounded HTTPS request off the event loop | SecretStore / SecretsTransport; **migrated** |
 | `secrets_set` | SecretValue (registered name; bounded string; extra fields forbidden) | Authenticated unlocked owner renderer; Profile secret store (documents kind 'secrets'); env override reported as source only | Independent owner/role/unlock gate; not a dispatcher tool and not model-visible | Validate key format and store it DPAPI-protected in the profile database; returns status, never the value | Origin ACK with status only; values, pydantic details and provider errors are never echoed | Request-only; secrets_test runs one bounded HTTPS request off the event loop | SecretStore / SecretsTransport; **migrated** |
-| `secrets_test` | SecretReference (registered name) | Authenticated unlocked owner renderer; Profile secret store (documents kind 'secrets'); env override reported as source only | Independent owner/role/unlock gate; not a dispatcher tool and not model-visible | One authenticated provider list-models request (10s timeout) with the resolved key; persist the result code | Origin ACK with status only; values, pydantic details and provider errors are never echoed | Request-only; secrets_test runs one bounded HTTPS request off the event loop | SecretStore / SecretsTransport; **migrated** |
+| `secrets_test` | SecretReference (registered name) | Authenticated unlocked owner renderer; Profile secret store (documents kind 'secrets'); env override reported as source only | Independent owner/role/unlock gate; not a dispatcher tool and not model-visible | One authenticated provider request (10s timeout; list models, or the Twilio account using the paired SID and Auth Token; `no_check` for values without an online check) with the resolved key; persist the result code | Origin ACK with status only; values, pydantic details and provider errors are never echoed | Request-only; secrets_test runs one bounded HTTPS request off the event loop | SecretStore / SecretsTransport; **migrated** |
 | `secrets_clear` | SecretReference (registered name) | Authenticated unlocked owner renderer; Profile secret store (documents kind 'secrets'); env override reported as source only | Independent owner/role/unlock gate; not a dispatcher tool and not model-visible | Delete the stored key; an environment override is unaffected | Origin ACK with status only; values, pydantic details and provider errors are never echoed | Request-only; secrets_test runs one bounded HTTPS request off the event loop | SecretStore / SecretsTransport; **migrated** |
 | `add_printer` | AddPrinter | Authenticated owner renderer; Pinned desktop owner and captured project | Shared per-tool denial/approval; owner authorization rechecked before execution | Persist exact configured printer endpoint and protocol; no implicit probe | Scoped result/error events to origin SID | 30s cooperative adapter execution; origin disconnect/app close/resource mode cancellation | DevicePrinterService / CompatibilityTransport; **migrated** |
 | `cad_artifact` | ArtifactRequest | Authenticated renderer; Registry owner and resolved selected project | Shared generation permission on submit; owner/project checks; planner permission review pending | Creative artifact | Scoped ACK/error; job events to owner renderers | Owned service/worker/planner cancellation and deadlines | Existing creative transport; planner policy review in R2b; **existing** |
@@ -75,6 +76,10 @@ The autonomous browser compatibility names are retired. `browser_inspect` is des
 | `speech_finish` | SpeechTurn | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
 | `speech_send` | SpeechSend | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
 | `speech_cancel` | SpeechTurn | Pinned authenticated owner renderer; cancel permitted while locked; Origin SID, turn UUID, captured project and conversation UUID | Shared start_audio permission before capture; owner/project/resource authorization throughout; shared dispatcher for tools | Begin permission review; bounded PCM accumulation; transcription on release; common conversation only after explicit send; cancel releases turn | Origin-only ACK and scoped speech_state | 20s PCM capture, 8 renderer queued frames, 40s transcription, 120s turn; cancel/disconnect/restriction/close cleanup; no replay | SpeechTransport / SpeechService; **migrated** |
+| `voice_start` | VoiceStart | Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked; Origin SID, session UUID, captured owner/project and desktop conversation UUID | Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals | Admit a voice_live usage step and connect one Gemini Live session (push_to_talk: manual activity; conversation: server VAD with barge-in) | Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only | Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored | VoiceTransport / VoiceService (Gemini Live); **migrated** |
+| `voice_audio` | VoiceAudio (binary PCM16 16 kHz mono, 640-3200 bytes) | Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked; Origin SID, session UUID, captured owner/project and desktop conversation UUID | Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals | Relay one microphone frame to Live; no ACK; unknown session, stale seq, or push-to-talk audio outside a hold is dropped; at most 100 frames queued while connecting | Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only | Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored | VoiceTransport / VoiceService (Gemini Live); **migrated** |
+| `voice_activity` | VoiceActivity | Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked; Origin SID, session UUID, captured owner/project and desktop conversation UUID | Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals | Push-to-talk hold start/end as Live activity_start/activity_end | Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only | Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored | VoiceTransport / VoiceService (Gemini Live); **migrated** |
+| `voice_stop` | VoiceReference | Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked; Origin SID, session UUID, captured owner/project and desktop conversation UUID | Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals | End the session: cancel brain work and pending approvals, close Live, record captions, finish the usage receipt | Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only | Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored | VoiceTransport / VoiceService (Gemini Live); **migrated** |
 
 | `mobile_state` | MobileEmpty | Pinned authenticated owner renderer only; Desktop owner; pairing captures selected project; devices bind immutable project scope | Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals | Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation | Origin-only strict ACK; invitation secret never broadcast | Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core | MobileTransport / MobileService; **implemented** |
 | `mobile_listener` | ListenerRequest | Pinned authenticated owner renderer only; Desktop owner; pairing captures selected project; devices bind immutable project scope | Independent owner gate; no desktop token reused for mobile; no mobile tools/approvals | Inspect or explicitly control mobile TLS listener, expiring invitation, owner decision or revocation | Origin-only strict ACK; invitation secret never broadcast | Origin cancellation for controls; invitation 120s; approved grant 30 days; listener off at startup and closes with core | MobileTransport / MobileService; **implemented** |
@@ -86,6 +91,19 @@ The autonomous browser compatibility names are retired. `browser_inspect` is des
 ## HTTP routes
 
 `/status`: local runtime metadata snapshot without privileged actions or private image/state hydration.
+
+## Telephony gateway routes (C1)
+
+`telephony_routes` in the JSON lists the four paths of the separate telephony gateway: a `127.0.0.1` listener (default port 8790, never the core port) that only the Cloudflare named tunnel reaches, started only while `calls.enabled` is true. Every other path or method is 404.
+
+| Path | Method | Authentication | Effects |
+| --- | --- | --- | --- |
+| `/telephony/voice/inbound` | POST | `X-Twilio-Signature` (HMAC-SHA1, Auth Token) over `calls.public_base_url` + exact path/query + sorted form params; AccountSid must match | Loop guard, kill switch (voicemail or hang up), else `<Connect><Stream>` with a single-use 2-minute stream token bound to the CallSid |
+| `/telephony/voice/outbound` | POST | Signature as above plus a single-use ticket bound to INARA's own outbound call record | `<Connect><Stream>` for a call INARA placed |
+| `/telephony/status` | POST | Signature as above | Status of INARA's outbound calls; internal event only |
+| `/telephony/media` | WebSocket | Upgrade signature over the public stream URL (else HTTP 403); `start` must redeem the stream token for its CallSid and direction | Bidirectional Media Stream bridged to the call agent |
+
+Details: [CALL_ROUTING](CALL_ROUTING.md#implementation-status-c1).
 
 ## Shared tools
 
@@ -138,44 +156,14 @@ The autonomous browser compatibility names are retired. `browser_inspect` is des
 
 | `speech_capture` | SpeechBegin | Existing start_audio approval and owner/project recheck | No | Pending approval / bounded turn; origin/resource/core cleanup |
 
-## Dormant compatibility voice mappings
+## Live voice function declarations
 
-These schemas are generated from the target dispatcher contracts. `generate_cad` retains the legacy prompt workflow under the explicit `legacy_generate_cad` target; the typed parametric build tool keeps its existing schema. Filesystem listing/search is project-contained. No implicit Google Search tool or WhatsApp reply function is exposed.
+The Gemini Live session declares only these functions; `services/live_config.py` builds them. The dormant 32-name compatibility catalog (`VoiceBridge`) was removed with the live voice task.
 
-| Voice name | Shared target | Schema |
-| --- | --- | --- |
-| `cancel_reminder` | `cancel_reminder` | ReminderAction |
-| `control_device` | `control_device` | ControlDevice |
-| `control_light` | `control_light` | ControlLight |
-| `create_project` | `create_project` | ProjectRequest |
-| `create_reminder` | `create_reminder` | CreateReminder |
-| `create_routine` | `create_routine` | RoutineRequest |
-| `discover_printers` | `discover_printers` | NoArguments |
-| `focus_window` | `focus_window` | LaunchApp |
-| `generate_cad` | `legacy_generate_cad` | PromptRequest |
-| `generate_cad_prototype` | `generate_cad_prototype` | PromptRequest |
-| `get_device_state` | `get_device_state` | DeviceRequest |
-| `get_print_status` | `get_print_status` | PrinterStatusRequest |
-| `get_system_info` | `get_system_info` | NoArguments |
-| `iterate_cad` | `iterate_cad` | PromptRequest |
-| `launch_app` | `launch_app` | LaunchApp |
-| `list_all_devices` | `list_all_devices` | NoArguments |
-| `list_projects` | `list_projects` | NoArguments |
-| `list_reminders` | `list_reminders` | ListReminders |
-| `list_routines` | `list_routines` | NoArguments |
-| `list_running_apps` | `list_running_apps` | NoArguments |
-| `list_smart_devices` | `list_smart_devices` | NoArguments |
-| `print_stl` | `print_stl` | PrintRequest |
-| `read_clipboard` | `read_clipboard` | NoArguments |
-| `read_directory` | `read_directory` | DirectoryRequest |
-| `read_file` | `read_file` | PathArguments |
-| `run_web_agent` | `run_web_agent` | PromptRequest |
-| `search_files` | `search_files` | SearchRequest |
-| `snooze_reminder` | `snooze_reminder` | SnoozeReminder |
-| `switch_project` | `switch_project` | ProjectRequest |
-| `take_screenshot` | `take_screenshot` | Screenshot |
-| `write_clipboard` | `write_clipboard` | ClipboardRequest |
-| `write_file` | `write_file` | WriteArguments |
+| Live function | Target | Schema | Policy |
+| --- | --- | --- | --- |
+| `ask_brain` | ConversationService.reply (feature voice_brain) | request: string (1-12000 chars) | Normal brain turn in the session's desktop conversation; every tool through the shared ToolDispatcher with unchanged approvals (tool_confirmation_request to the origin SID); session authorization before and after approval |
+| `end_conversation` | VoiceService session end (conversation mode only) | no arguments | Ends only the calling hands-free session after the goodbye turn |
 
 ## Remaining sequence
 

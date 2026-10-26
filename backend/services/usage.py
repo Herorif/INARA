@@ -54,6 +54,41 @@ def usage_counts(response):
     return result or None
 
 
+LIVE_MODALITIES = {"TEXT": "text", "AUDIO": "audio", "IMAGE": "image", "VIDEO": "image"}
+
+
+def live_usage_counts(metadata):
+    """Whitelisted Live ``usage_metadata`` counters, split by modality for pricing."""
+    if metadata is None:
+        return None
+
+    def read(source, name):
+        return source.get(name) if isinstance(source, dict) else getattr(source, name, None)
+
+    def valid(count):
+        return type(count) is int and 0 <= count <= 10_000_000_000
+
+    fields = {
+        "input_tokens": "prompt_token_count",
+        "output_tokens": "response_token_count",
+        "thinking_tokens": "thoughts_token_count",
+        "cached_tokens": "cached_content_token_count",
+        "tool_prompt_tokens": "tool_use_prompt_token_count",
+        "total_tokens": "total_token_count",
+    }
+    result = {target: read(metadata, source) for target, source in fields.items()}
+    result = {key: value for key, value in result.items() if valid(value)}
+    for prefix, source in (("input", "prompt_tokens_details"), ("output", "response_tokens_details")):
+        for item in read(metadata, source) or []:
+            modality = read(item, "modality")
+            modality = str(getattr(modality, "value", modality) or "").upper()
+            kind, count = LIVE_MODALITIES.get(modality), read(item, "token_count")
+            if kind and valid(count):
+                key = f"{prefix}_{kind}_tokens"
+                result[key] = result.get(key, 0) + count
+    return result or None
+
+
 class UsageOperation:
     def __init__(self, service, owner, project, feature, operation):
         self.service, self.owner, self.project = service, owner, project
@@ -365,7 +400,15 @@ class UsageService:
             "records": records,
             "scope": "owner_wide_limits_project_filtered_records",
             "invoice_cost_known": False,
-            "coverage": ["desktop_chat", "phone_chat", "cad_plan", "cad_changes", "transcription"],
+            "coverage": [
+                "desktop_chat",
+                "phone_chat",
+                "cad_plan",
+                "cad_changes",
+                "transcription",
+                "voice_live",
+                "voice_brain",
+            ],
             "unmetered_legacy_blocked_when_enabled": True,
         }
 

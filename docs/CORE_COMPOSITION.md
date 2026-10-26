@@ -82,7 +82,7 @@ The root now owns workspace compatibility services and transports for memory/med
 
 ## R2b5 connection and voice update (19 October 2026)
 
-The root constructs `ExtendedActions`, dispatcher-backed `VoiceBridge`, and `ConnectionTransport`. The facade no longer creates authentication objects or untracked face tasks. Private state is hydrated only to unlocked owner renderers. One fixed face worker owns blocking camera/model work and invalidates callbacks before cleanup. Shared schemas define active live voice declarations and calls; source-specific static helpers await R2c deletion. [Evidence and material limits](VOICE_CONNECTION_POLICY.md).
+The root constructs `ExtendedActions`, the live `VoiceService`/`VoiceTransport` (brain hand-off through ConversationService), and `ConnectionTransport`. The facade no longer creates authentication objects or untracked face tasks. Private state is hydrated only to unlocked owner renderers. One fixed face worker owns blocking camera/model work and invalidates callbacks before cleanup. Shared schemas define active live voice declarations and calls; source-specific static helpers await R2c deletion. [Evidence and material limits](VOICE_CONNECTION_POLICY.md).
 
 ## R2c ownership and reference cleanup
 

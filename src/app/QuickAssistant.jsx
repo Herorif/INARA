@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Mic, Square, Maximize2, Keyboard, X } from 'lucide-react';
+import { ArrowUp, AudioWaveform, Mic, Square, Maximize2, Keyboard, X } from 'lucide-react';
 import useStore from '../store';
 import socket from '../services/socket';
 import { SpeechController } from '../features/speech/controller';
+import { liveVoice, voiceTarget } from '../features/voice';
 import PresenceRing from './PresenceRing';
 import HudLabel from '../shared/ui/HudLabel';
 import './quick-assistant.css';
 const labels = {
   idle: 'Ready when you are',
-  armed: 'Hold to talk when ready',
+  armed: 'Hold to dictate when ready',
   opening: 'Preparing push-to-talk',
   listening: 'Listening while held',
   transcribing: 'Transcribing your voice',
@@ -16,6 +17,14 @@ const labels = {
   thinking: 'Thinking',
   speaking: 'Speaking locally',
   answered: 'Answer ready'
+};
+const liveLabels = {
+  connecting: 'Connecting voice',
+  idle: 'Ready when you are',
+  listening: 'Listening',
+  thinking: 'Thinking',
+  working: 'Working on it',
+  speaking: 'Speaking'
 };
 export default function QuickAssistant({
   onExpand,
@@ -29,7 +38,8 @@ export default function QuickAssistant({
     processing = useStore(s => s.textProcessing),
     restoring = useStore(s => s.conversationRestoring),
     messages = useStore(s => s.messages),
-    deviceId = useStore(s => s.selectedMicId);
+    deviceId = useStore(s => s.selectedMicId),
+    live = useStore(s => s.voice);
   const [voice, setVoice] = useState({
       state: 'idle',
       transcript: '',
@@ -78,10 +88,17 @@ export default function QuickAssistant({
     };
   }, [project, conversationId, deviceId]);
   useEffect(() => {
-    if (gaming || locked) controller.current?.cancel(gaming ? 'Voice pauses in gaming mode. Typed input is available.' : 'Workspace locked.');
+    if (gaming || locked) {
+      controller.current?.cancel(gaming ? 'Voice pauses in gaming mode. Typed input is available.' : 'Workspace locked.');
+      if (liveVoice().active()) liveVoice().stop();
+    }
   }, [gaming, locked]);
   const active = !['idle', 'answered'].includes(voice.state);
-  const presence = !connected ? 'offline' : ['opening', 'listening'].includes(voice.state) ? 'listening' : voice.state === 'speaking' ? 'speaking' : processing || ['transcribing', 'thinking'].includes(voice.state) ? 'working' : 'idle';
+  const dictating = ['armed', 'opening', 'listening'].includes(voice.state);
+  const talking = live.state !== 'off';
+  const hands = live.mode === 'conversation';
+  const presence = !connected ? 'offline' : ['opening', 'listening'].includes(voice.state) || live.state === 'listening' ? 'listening' : voice.state === 'speaking' || live.state === 'speaking' ? 'speaking' : processing || ['transcribing', 'thinking'].includes(voice.state) || ['connecting', 'thinking', 'working'].includes(live.state) ? 'working' : 'idle';
+  const title = processing ? 'Thinking' : active ? labels[voice.state] : talking ? liveLabels[live.state] || labels.idle : labels[voice.state];
   const send = event => {
     event.preventDefault();
     if (!connected || locked || processing || restoring || (active && voice.state !== 'review')) return;
@@ -91,23 +108,31 @@ export default function QuickAssistant({
     }
     if (useStore.getState().sendText(text)) setText('');
   };
+  // Hold to talk runs a live voice turn; after Dictate it records a transcript to review.
   const hold = event => {
     if (event.type === 'keydown' && (event.repeat || ![' ', 'Enter'].includes(event.key))) return;
     event.preventDefault();
-    controller.current.record(deviceId);
+    if (dictating) controller.current.record(deviceId);
+    else liveVoice().holdStart(voiceTarget());
   };
   const release = event => {
     if (event.type === 'keyup' && ![' ', 'Enter'].includes(event.key)) return;
     event.preventDefault();
-    controller.current.release();
+    if (dictating) controller.current.release();
+    else liveVoice().holdEnd();
   };
-  return <section className="quick-assistant" aria-labelledby="quick-title" data-speech-state={voice.state}>
+  const cancelHold = () => {
+    if (dictating) controller.current.cancel();
+    else liveVoice().holdEnd();
+  };
+  return <section className="quick-assistant" aria-labelledby="quick-title" data-speech-state={voice.state} data-voice-state={live.state} data-voice-mode={live.mode || 'none'} data-microphone={live.micOpen ? 'on' : 'off'}>
     <header className="quick-header"><div className="quick-header__brand"><span className="monogram" aria-hidden="true">I</span><HudLabel>QUICK ASSISTANT</HudLabel></div><div className="quick-header__actions"><button type="button" className="btn btn--ghost btn--icon" aria-label="Open full workspace" title="Open full workspace" onClick={onExpand}><Maximize2 size={16} aria-hidden="true" /></button><button type="button" className="btn btn--ghost btn--icon" aria-label="Close quick assistant" onClick={onClose}><X size={16} aria-hidden="true" /></button></div></header>
     <div className="quick-signal"><PresenceRing size={64} state={presence} /></div>
-    <span className="eyebrow quick-status">{project} · {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span><h1 id="quick-title">{processing ? 'Thinking' : labels[voice.state]}</h1>
-    <p className="quick-subtitle">Type anytime. Hold to speak. Your transcript waits for review.</p>
+    <span className="eyebrow quick-status">{project} · {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span><h1 id="quick-title">{title}</h1>
+    <p className="quick-subtitle">Type anytime. Hold to talk, or turn on Conversation to talk hands-free. Dictate to review before sending.</p>
     <div className="quick-log" aria-label="Recent conversation" aria-live="polite">{messages.filter(message => ['You', 'INARA'].includes(message.sender)).slice(-6).map((message, index) => <article key={index} className={message.sender === 'INARA' ? 'assistant' : 'user'}><small className="hud-label">{message.sender === 'INARA' ? 'INARA' : 'YOU'}</small><p>{message.text}</p>{!!message.memory_sources?.length && <small>Project memory: {message.memory_sources.map(source => source.title).join(" / ")}</small>}</article>)}</div>
     {voice.error && <p className="quick-error" role="alert">{voice.error}</p>}
+    {live.error && <p className="quick-error quick-error--voice" role="alert">{live.error}</p>}
     {gaming && <p className="quick-note">Gaming mode: microphone capture is paused.</p>}
     <form onSubmit={send}><label htmlFor="quick-input"><Keyboard size={14} aria-hidden="true" />{voice.state === 'review' ? 'Review and edit the transcript' : 'Your message'}</label><div className="quick-composer"><textarea ref={input} id="quick-input" maxLength={12000} value={voice.state === 'review' ? voice.transcript : text} disabled={processing || ['opening', 'listening', 'transcribing', 'thinking'].includes(voice.state) || locked} placeholder="What can I help with?" onChange={event => voice.state === 'review' ? setVoice(previous => ({
           ...previous,
@@ -118,18 +143,22 @@ export default function QuickAssistant({
             send(event);
           }
         }} /><button type="submit" className="btn btn--primary btn--icon" aria-label="Send quick message" disabled={!connected || locked || processing || restoring || active && voice.state !== 'review' || !(voice.state === 'review' ? voice.transcript : text).trim()}><ArrowUp size={16} aria-hidden="true" /></button></div></form>
-    <div className="quick-voice">{['idle', 'answered'].includes(voice.state) && <button type="button" className="prepare-voice btn btn--secondary" disabled={!connected || gaming || locked || processing || restoring} onClick={() => controller.current.begin({
-        project,
-        conversationId,
-        deviceId
-      })}>Prepare voice</button>}<button type="button" className={`ptt-button btn btn--secondary ${voice.state === 'listening' ? 'holding' : ''}`} disabled={!connected || gaming || locked || processing || restoring || !['armed', 'opening', 'listening'].includes(voice.state)} onPointerDown={event => {
+    <div className="quick-voice"><button type="button" className={`ptt-button btn btn--secondary ${voice.state === 'listening' || (live.micOpen && !hands) ? 'holding' : ''}`} disabled={!connected || gaming || locked || processing || restoring || hands || (active && !dictating)} onPointerDown={event => {
         event.currentTarget.setPointerCapture(event.pointerId);
         hold(event);
-      }} onPointerUp={release} onPointerCancel={() => controller.current.cancel()} onKeyDown={hold} onKeyUp={release}><Mic size={16} aria-hidden="true" />Hold to talk</button><button type="button" className="btn btn--ghost" disabled={!active && !processing} onClick={() => {
+      }} onPointerUp={release} onPointerCancel={cancelHold} onKeyDown={hold} onKeyUp={release}><Mic size={16} aria-hidden="true" />{dictating ? 'Hold to dictate' : 'Hold to talk'}</button><button type="button" className={`conversation-toggle btn btn--secondary ${hands ? 'is-on' : ''}`} aria-pressed={hands} disabled={!connected || gaming || locked || restoring || active} onClick={() => liveVoice().toggleConversation(voiceTarget())}><AudioWaveform size={16} aria-hidden="true" />Conversation</button>{['idle', 'answered'].includes(voice.state) && <button type="button" className="dictate-voice btn btn--ghost" disabled={!connected || gaming || locked || processing || restoring || hands || live.micOpen} onClick={async () => {
+        if (liveVoice().active()) await liveVoice().stop();
+        controller.current.begin({
+          project,
+          conversationId,
+          deviceId
+        });
+      }}>Dictate</button>}<button type="button" className="interrupt-voice btn btn--ghost" disabled={!active && !processing && !talking} onClick={() => {
         controller.current.cancel();
+        if (liveVoice().active()) liveVoice().stop();
         if (processing) socket.emit('cancel_conversation', {});
-      }}><Square size={14} aria-hidden="true" />Interrupt</button></div>
-    <label className="quick-speak"><input type="checkbox" checked={speak} onChange={event => setSpeak(event.target.checked)} />Speak voice answers with an available local voice</label>
-    <footer className="hud-label">MICROPHONE OFF WHEN RELEASED · NO WAKE LISTENING</footer>
+      }}><Square size={14} aria-hidden="true" />Stop speaking</button></div>
+    <label className="quick-speak"><input type="checkbox" checked={speak} onChange={event => setSpeak(event.target.checked)} />Read dictated answers aloud with a local voice</label>
+    <footer className="hud-label">{live.micOpen || voice.state === 'listening' ? `MICROPHONE ON${hands ? ' · CONVERSATION' : ''}` : 'MICROPHONE OFF'} · NO WAKE LISTENING</footer>
   </section>;
 }

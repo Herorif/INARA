@@ -6,8 +6,8 @@ Completed 19 October 2026. This cleanup preserves the supported runtime and exis
 
 | Retired path | Supported replacement |
 | --- | --- |
-| `backend/tools.py` static declarations and `inara.py` duplicate declarations/global config | `VoiceBridge.schemas()` from dispatcher contracts; lazy `services/live_config.py` preserves AUDIO/transcription/Kore configuration |
-| AudioLoop ad-hoc CAD/browser/filesystem helpers and detached task spawning | Session-owned `VoiceBridge.call()` through the shared dispatcher; root-owned workspace/creative adapters |
+| `backend/tools.py` static declarations and `inara.py` duplicate declarations/global config | Live voice declares only `ask_brain`/`end_conversation` (`services/live_config.py`: AUDIO, transcription, Kore, compression, resumption); tools run through the brain's dispatcher catalog |
+| AudioLoop ad-hoc CAD/browser/filesystem helpers and detached task spawning | Live voice `ask_brain` runs a ConversationService turn through the shared dispatcher; root-owned workspace/creative adapters |
 | `services/voice_policy.py`, AudioLoop pending confirmations and workspace public/internal confirmation mapping | Shared ToolDispatcher approval deadlines, owner binding and pre/post authorization; strict `ConfirmationTransport` renderer socket route |
 | AudioLoop injected unused agents, permissions copy and unused creative/device callbacks | Application-owned adapters and event delivery; current settings read by shared dispatch |
 | Facade unused agent/state aliases, settings-permission synchronization and printer activation helpers | Injected application services and transports; printer activation follows the supported compatibility service |
@@ -35,7 +35,7 @@ R3 starts with shared UI/RPC lifecycle and typed/generated contracts, then reusa
 
 ## R6 production voice retirement
 
-`backend/inara.py:AudioLoop` now raises `voice_migrated` before any device/SDK initialization. `backend/voice/pipeline.py:VoicePipeline` aliases that shim; importing the voice namespace no longer imports camera/audio helpers. Former always-on capture, provider receive and playback loops are removed. `services/voice.py` and `services/live_config.py` remain dormant compatibility schema/policy fixtures, and legacy WorkspaceService accepts injected audio fixtures; neither is the production voice entry. Production uses `services/speech.py` plus renderer-owned explicit PTT and local playback. [R6 details](R6_QUICK_ASSISTANT.md).
+`backend/inara.py:AudioLoop` now raises `voice_migrated` before any device/SDK initialization. `backend/voice/pipeline.py:VoicePipeline` aliases that shim; importing the voice namespace no longer imports camera/audio helpers. Former always-on capture, provider receive and playback loops are removed. The dormant `VoiceBridge` catalog was replaced by the Gemini Live voice service (`services/voice.py`, `services/live_config.py`); legacy WorkspaceService accepts injected audio fixtures and is not a voice entry. Production voice is renderer-owned capture/playback relayed by `VoiceService`, with `services/speech.py` kept as reviewed Dictate. [R6 details](R6_QUICK_ASSISTANT.md).
 
 ## Dead-path removal, 26 October 2026
 
@@ -52,4 +52,4 @@ Code that could never work, or that no supported entry point reached, was delete
 | `backend/agents/{auth,cad,kasa,printer,web}_agent.py`, `backend/web_agent.py`, `backend/calls/voice.py`, `src/services/socketEvents.js` | Unreachable duplicates/shims (the root `cad_agent.py`, `kasa_agent.py`, `printer_agent.py` and `calls/local_voice.py` are the used versions); `socketEvents.js` was imported nowhere. |
 | Root `python3` (empty), `check_cuda.py`, `debug_mdns.py`, `debug_printer_connection.py`, `grep_trace.py`, `read_trace.py`, `hand_gesture_test.py`, `test_cad_install.py`, `test_face_rec.py`, `test_imports.py` | Unreferenced one-off diagnostics. |
 
-Moved: `backend/capture_face.py`, `backend/verify_cad.py` and `backend/verify_iteration_mock.py` are manual tools in [`scripts/manual/`](../scripts/manual/README.md). Renamed: `backend/calls/test_contracts.py` to `backend/calls/testing_contracts.py` (a production module). Kept although currently unwired: `services/voice.py` and `services/live_config.py` (replaced by a later voice task; `VoiceBridge` is no longer constructed by the runtime), `backend/llm/*` (in use) and `backend/devices/homeassistant.py` (future Home Assistant integration).
+Moved: `backend/capture_face.py`, `backend/verify_cad.py` and `backend/verify_iteration_mock.py` are manual tools in [`scripts/manual/`](../scripts/manual/README.md). Renamed: `backend/calls/test_contracts.py` to `backend/calls/testing_contracts.py` (a production module). Replaced: `VoiceBridge` (`services/voice.py`) by the live voice service. Kept: `backend/llm/*` (in use) and `backend/devices/homeassistant.py` (future Home Assistant integration).

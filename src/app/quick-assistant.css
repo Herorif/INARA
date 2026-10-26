@@ -22,7 +22,8 @@
 .quick-composer > button { flex: none; }
 .quick-voice { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .quick-voice .ptt-button { flex: 1; touch-action: none; user-select: none; }
-.quick-voice .ptt-button.holding { border-color: var(--accent); background: var(--bg-selected); color: var(--accent); }
+.quick-voice .ptt-button.holding,
+.quick-voice .conversation-toggle.is-on { border-color: var(--accent); background: var(--bg-selected); color: var(--accent); }
 .quick-assistant button:disabled { opacity: .45; cursor: default; }
 .quick-speak { display: flex; align-items: flex-start; gap: .5rem; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-normal); }
 .quick-speak input { accent-color: var(--accent); }

@@ -101,6 +101,13 @@ class SessionStore:
                 ),
             )
 
+    def update(self, key, owner, project, change):
+        """Replace history with ``change(history)`` in one transaction, without a request
+        ledger entry (live voice captions are text the owner already heard)."""
+        with self.database.transaction() as db:
+            history = self._load(db, key, owner, project) or []
+            self._save(db, key, owner, project, change(history)[-20:])
+
     def migrate_history(self, key, owner, project, source):
         """Import legacy project chat once, without mutating or executing its content."""
         if not source.exists():

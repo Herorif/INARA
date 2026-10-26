@@ -255,11 +255,13 @@ def test_matrix_covers_registered_routes_and_shared_tools():
                 "status",
             )
         )
-    from services.voice import VOICE_TARGETS
-    assert set(matrix["voice_declarations"]) == set(VOICE_TARGETS)
-    for source, target in VOICE_TARGETS.items():
-        assert matrix["voice_declarations"][source]["target"] == target
-        assert matrix["voice_declarations"][source]["schema"] == server.dispatcher.tools[target].arguments.__name__
+    from services.live_config import declarations
+
+    # Live voice declares only the brain hand-off and the hands-free goodbye.
+    live = {item["name"] for item in declarations("conversation")}
+    assert set(matrix["voice_declarations"]) == live == {"ask_brain", "end_conversation"}
+    for item in matrix["voice_declarations"].values():
+        assert all(item.get(key) for key in ("target", "schema", "policy", "status"))
     assert set(ACTION_MODELS).issubset(matrix["shared_tools"])
 
 

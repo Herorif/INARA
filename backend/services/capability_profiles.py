@@ -10,9 +10,9 @@ RAM_HEADROOM_MB = 1024
 MODEL_DEFAULTS = {
     "speech": ("INARA_TRANSCRIPTION_MODEL", None),
     "text": ("INARA_TEXT_MODEL", "gemini-3.8-flash"),
-    # Preview id: the provider lists its earliest shutdown as 17 Nov 2026
-    # (docs/PROJECT_REVIEW.md). Replace it in the live-voice task.
-    "voice": ("INARA_VOICE_MODEL", "models/gemini-2.5-flash-native-audio-preview-12-2025"),
+    # Live API voice: Google's stable default Live model (the model id in
+    # https://ai.google.dev/gemini-api/docs/live-api/get-started-sdk, checked 26 Oct 2026).
+    "voice": ("INARA_VOICE_MODEL", "gemini-3.8-live"),
     # gemini-2.0-flash and gemini-3-pro-preview are shut down, and Google's model list
     # (https://ai.google.dev/gemini-api/docs/models, checked 26 Oct 2026) has no stable
     # Pro model, so vision and legacy CAD follow the text model.

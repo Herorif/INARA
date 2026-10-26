@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, BookOpen, Mic, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, AudioWaveform, BookOpen, Mic, Plus } from 'lucide-react';
 import useStore from '../store';
 import HudLabel from '../shared/ui/HudLabel';
+import { liveVoice, voiceTarget } from '../features/voice';
 import './conversation.css';
 
 const starters = [
@@ -20,7 +21,7 @@ export const shortTime = value => {
 };
 const speaker = sender => sender === 'You' ? 'YOU' : sender === 'System' ? 'SYSTEM' : 'INARA';
 
-export default function Conversation({ onQuick } = {}) {
+export default function Conversation() {
   const messages = useStore(state => state.messages);
   const processing = useStore(state => state.textProcessing);
   const restoring = useStore(state => state.conversationRestoring);
@@ -29,12 +30,15 @@ export default function Conversation({ onQuick } = {}) {
   const project = useStore(state => state.currentProject);
   const conversationId = useStore(state => state.conversationId);
   const newChat = useStore(state => state.startNewConversation);
+  const voice = useStore(state => state.voice);
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const composing = useRef(false);
   const followTail = useRef(true);
   const [showLatest, setShowLatest] = useState(false);
   const disabled = !connected || processing || restoring;
+  const hands = voice.mode === 'conversation';
+  const holdKey = event => event.type !== 'keydown' && event.type !== 'keyup' || ([' ', 'Enter'].includes(event.key) && !event.repeat);
   const projectLabel = project || 'temp';
   const state = !connected ? 'offline' : restoring ? 'restoring' : processing ? 'processing' : 'connected';
   // There is no stored session title; the first question names the session.
@@ -190,13 +194,19 @@ export default function Conversation({ onQuick } = {}) {
             }}
           />
           <div className="conversation-compose-actions">
-            {onQuick && <button type="button" className="conversation-quick btn btn--ghost btn--icon" onClick={onQuick} disabled={disabled} aria-label="Open quick assistant" title="Open quick assistant"><Mic size={16} aria-hidden="true" /></button>}
+            <button type="button" className={`conversation-voice btn btn--ghost btn--icon ${hands ? 'is-on' : ''}`} aria-pressed={hands} disabled={disabled} aria-label="Conversation mode" title="Conversation: talk hands-free" onClick={() => liveVoice().toggleConversation(voiceTarget())}><AudioWaveform size={16} aria-hidden="true" /></button>
+            <button type="button" className={`conversation-talk btn btn--ghost btn--icon ${voice.micOpen && !hands ? 'holding' : ''}`} disabled={disabled || hands} aria-label="Hold to talk" title="Hold to talk"
+              onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault(); liveVoice().holdStart(voiceTarget()); }}
+              onPointerUp={event => { event.preventDefault(); liveVoice().holdEnd(); }}
+              onPointerCancel={() => liveVoice().holdEnd()}
+              onKeyDown={event => { if (!holdKey(event)) return; event.preventDefault(); liveVoice().holdStart(voiceTarget()); }}
+              onKeyUp={event => { if (!holdKey(event)) return; event.preventDefault(); liveVoice().holdEnd(); }}><Mic size={16} aria-hidden="true" /></button>
             <button className="send-button btn btn--primary btn--icon" type="submit" aria-label="Send" disabled={disabled || !input.trim()}><ArrowUp size={16} aria-hidden="true" /></button>
           </div>
         </div>
         <div className="composer-foot" id="conversation-input-help">
           <HudLabel>{`PROJECT · ${projectLabel}`}</HudLabel>
-          <HudLabel className="composer-foot__keys">ENTER TO SEND · SHIFT+ENTER FOR NEW LINE</HudLabel>
+          {voice.micOpen ? <HudLabel className="composer-foot__mic">{hands ? 'MICROPHONE ON · CONVERSATION' : 'MICROPHONE ON'}</HudLabel> : <HudLabel className="composer-foot__keys">ENTER TO SEND · SHIFT+ENTER FOR NEW LINE · HOLD MIC TO TALK</HudLabel>}
         </div>
       </form>
     </section>

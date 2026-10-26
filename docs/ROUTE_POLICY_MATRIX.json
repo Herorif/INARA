@@ -936,6 +936,17 @@
       "replacement": "ConnectionsReadiness / ConnectionsTransport",
       "status": "migrated"
     },
+    "calls_status": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Telephony gateway, tunnel supervisor and calls.* settings; telephony secrets reported as configured/verified/source only",
+      "effects": "Read readiness: kill switch, public URL, secrets present/verified, gateway listening, tunnel state, agent, active calls, today's third-party call count; never a value",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK with status only; secret values and pydantic details are never echoed",
+      "lifetime": "Request-only snapshot; no network",
+      "replacement": "TelephonyService / CallsTransport",
+      "status": "implemented"
+    },
     "secrets_status": {
       "schema": "EmptyRequest",
       "caller": "Authenticated unlocked owner renderer",
@@ -962,7 +973,7 @@
       "schema": "SecretReference (registered name)",
       "caller": "Authenticated unlocked owner renderer",
       "context": "Profile secret store (documents kind 'secrets'); env override reported as source only",
-      "effects": "One authenticated provider list-models request (10s timeout) with the resolved key; persist the result code",
+      "effects": "One authenticated provider request (10s timeout; list models, or the Twilio account using the paired SID and Auth Token; no_check for values without an online check) with the resolved key; persist the result code",
       "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
       "response": "Origin ACK with status only; values, pydantic details and provider errors are never echoed",
       "lifetime": "Request-only; secrets_test runs one bounded HTTPS request off the event loop",
@@ -1078,6 +1089,50 @@
       "lifetime": "Review 60s/one use; backend physical proof <=600s; one call only; scope/resource/expiry changes stop; no automatic replay",
       "replacement": "CallTestingTransport / ControlledCalls / CallAdmission",
       "status": "source implemented; real policy/enrollment/phone/physical acceptance remain deferred"
+    },
+    "voice_start": {
+      "schema": "VoiceStart",
+      "caller": "Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked",
+      "context": "Origin SID, session UUID, captured owner/project and desktop conversation UUID",
+      "effects": "Admit a voice_live usage step and connect one Gemini Live session (push_to_talk: manual activity; conversation: server VAD with barge-in)",
+      "policy": "Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals",
+      "response": "Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only",
+      "lifetime": "Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored",
+      "replacement": "VoiceTransport / VoiceService (Gemini Live)",
+      "status": "migrated"
+    },
+    "voice_audio": {
+      "schema": "VoiceAudio (binary PCM16 16 kHz mono, 640-3200 bytes)",
+      "caller": "Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked",
+      "context": "Origin SID, session UUID, captured owner/project and desktop conversation UUID",
+      "effects": "Relay one microphone frame to Live; no ACK; unknown session, stale seq, or push-to-talk audio outside a hold is dropped; at most 100 frames queued while connecting",
+      "policy": "Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals",
+      "response": "Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only",
+      "lifetime": "Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored",
+      "replacement": "VoiceTransport / VoiceService (Gemini Live)",
+      "status": "migrated"
+    },
+    "voice_activity": {
+      "schema": "VoiceActivity",
+      "caller": "Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked",
+      "context": "Origin SID, session UUID, captured owner/project and desktop conversation UUID",
+      "effects": "Push-to-talk hold start/end as Live activity_start/activity_end",
+      "policy": "Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals",
+      "response": "Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only",
+      "lifetime": "Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored",
+      "replacement": "VoiceTransport / VoiceService (Gemini Live)",
+      "status": "migrated"
+    },
+    "voice_stop": {
+      "schema": "VoiceReference",
+      "caller": "Pinned authenticated owner renderer; one live voice session per owner; stop permitted while locked",
+      "context": "Origin SID, session UUID, captured owner/project and desktop conversation UUID",
+      "effects": "End the session: cancel brain work and pending approvals, close Live, record captions, finish the usage receipt",
+      "policy": "Shared start_audio permission (deny refuses and stops); owner/project/lock/resource authorization at start, on every activity and each second; brain tools only through ask_brain -> ConversationService -> ToolDispatcher approvals",
+      "response": "Origin-only ACK; voice_state, voice_audio_out (PCM16 24 kHz), voice_interrupted and voice_caption to the owning renderer SID only",
+      "lifetime": "Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored",
+      "replacement": "VoiceTransport / VoiceService (Gemini Live)",
+      "status": "migrated"
     }
   },
   "http_routes": {
@@ -1483,196 +1538,16 @@
     }
   },
   "voice_declarations": {
-    "cancel_reminder": {
-      "target": "cancel_reminder",
-      "schema": "ReminderAction",
-      "policy": "Shared dispatcher; session authorization before/after approval",
+    "ask_brain": {
+      "target": "ConversationService.reply (feature voice_brain)",
+      "schema": "request: string (1-12000 chars)",
+      "policy": "Normal brain turn in the session's desktop conversation; every tool through the shared ToolDispatcher with unchanged approvals (tool_confirmation_request to the origin SID); session authorization before and after approval",
       "status": "migrated"
     },
-    "control_device": {
-      "target": "control_device",
-      "schema": "ControlDevice",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "control_light": {
-      "target": "control_light",
-      "schema": "ControlLight",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "create_project": {
-      "target": "create_project",
-      "schema": "ProjectRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "create_reminder": {
-      "target": "create_reminder",
-      "schema": "CreateReminder",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "create_routine": {
-      "target": "create_routine",
-      "schema": "RoutineRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "discover_printers": {
-      "target": "discover_printers",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "focus_window": {
-      "target": "focus_window",
-      "schema": "LaunchApp",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "generate_cad": {
-      "target": "legacy_generate_cad",
-      "schema": "PromptRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "generate_cad_prototype": {
-      "target": "generate_cad_prototype",
-      "schema": "PromptRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "get_device_state": {
-      "target": "get_device_state",
-      "schema": "DeviceRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "get_print_status": {
-      "target": "get_print_status",
-      "schema": "PrinterStatusRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "get_system_info": {
-      "target": "get_system_info",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "iterate_cad": {
-      "target": "iterate_cad",
-      "schema": "PromptRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "launch_app": {
-      "target": "launch_app",
-      "schema": "LaunchApp",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "list_all_devices": {
-      "target": "list_all_devices",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "list_projects": {
-      "target": "list_projects",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "list_reminders": {
-      "target": "list_reminders",
-      "schema": "ListReminders",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "list_routines": {
-      "target": "list_routines",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "list_running_apps": {
-      "target": "list_running_apps",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "list_smart_devices": {
-      "target": "list_smart_devices",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "print_stl": {
-      "target": "print_stl",
-      "schema": "PrintRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "read_clipboard": {
-      "target": "read_clipboard",
-      "schema": "NoArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "read_directory": {
-      "target": "read_directory",
-      "schema": "DirectoryRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "read_file": {
-      "target": "read_file",
-      "schema": "PathArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "run_web_agent": {
-      "target": "run_web_agent",
-      "schema": "PromptRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "search_files": {
-      "target": "search_files",
-      "schema": "SearchRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "snooze_reminder": {
-      "target": "snooze_reminder",
-      "schema": "SnoozeReminder",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "switch_project": {
-      "target": "switch_project",
-      "schema": "ProjectRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "take_screenshot": {
-      "target": "take_screenshot",
-      "schema": "Screenshot",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "write_clipboard": {
-      "target": "write_clipboard",
-      "schema": "ClipboardRequest",
-      "policy": "Shared dispatcher; session authorization before/after approval",
-      "status": "migrated"
-    },
-    "write_file": {
-      "target": "write_file",
-      "schema": "WriteArguments",
-      "policy": "Shared dispatcher; session authorization before/after approval",
+    "end_conversation": {
+      "target": "VoiceService session end (conversation mode only)",
+      "schema": "no arguments",
+      "policy": "Ends only the calling hands-free session after the goodbye turn",
       "status": "migrated"
     }
   },
@@ -1748,6 +1623,28 @@
       "authentication": "Dedicated TLS listener, device P-256 signature over exact payload/path/IDs/time; 30s timestamp window and durable replay ledger",
       "grant": "calls:read (separate explicit pairing opt-in)",
       "effects": "Explicit read of one bounded finished protected transcript; excludes lab fixtures, active/expired records and all call/reply actions"
+    }
+  },
+  "telephony_routes": {
+    "/telephony/voice/inbound": {
+      "method": "POST",
+      "authentication": "Separate 127.0.0.1 gateway (default port 8790, never the core port) reached only through the Cloudflare named tunnel; X-Twilio-Signature (HMAC-SHA1 with the Twilio Auth Token) over calls.public_base_url + exact path and query + sorted form params, constant-time; AccountSid must match; 403 otherwise",
+      "effects": "Loop guard first (INARA's own number or withheld caller forwarded from the owner -> <Reject/> and internal owner_unreachable event); kill switch / no call agent -> voicemail or hang up per calls.when_disabled; otherwise <Connect><Stream> with a 2-minute single-use stream token bound to the CallSid"
+    },
+    "/telephony/voice/outbound": {
+      "method": "POST",
+      "authentication": "Separate 127.0.0.1 gateway (default port 8790, never the core port) reached only through the Cloudflare named tunnel; X-Twilio-Signature (HMAC-SHA1 with the Twilio Auth Token) over calls.public_base_url + exact path and query + sorted form params, constant-time; AccountSid must match; 403 otherwise; plus a single-use 2-minute ticket in the query bound to INARA's own outbound call record (To/From/CallSid rechecked)",
+      "effects": "<Connect><Stream> for a call INARA placed (owner, or a third party under a consumed one-use grant); hang up when calls are off"
+    },
+    "/telephony/status": {
+      "method": "POST",
+      "authentication": "Separate 127.0.0.1 gateway (default port 8790, never the core port) reached only through the Cloudflare named tunnel; X-Twilio-Signature (HMAC-SHA1 with the Twilio Auth Token) over calls.public_base_url + exact path and query + sorted form params, constant-time; AccountSid must match; 403 otherwise",
+      "effects": "Record call status for INARA's outbound calls and emit an internal telephony.call_status event; 204"
+    },
+    "/telephony/media": {
+      "method": "WebSocket",
+      "authentication": "Upgrade X-Twilio-Signature over the public wss:// (or https://) stream URL with no params, else HTTP 403; start message must carry the configured AccountSid and redeem the single-use stream token for its CallSid and direction",
+      "effects": "Bidirectional Twilio Media Stream (mu-law 8 kHz) bridged to CallAudioSession for the call agent; ends the call when the agent hangs up"
     }
   }
 }

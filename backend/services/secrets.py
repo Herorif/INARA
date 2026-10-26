@@ -7,6 +7,7 @@ non-placeholder environment variable overrides the store for development.
 Adding a secret is one ``SecretSpec`` entry in ``REGISTRY``.
 """
 
+import base64
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import os
@@ -35,7 +36,10 @@ PLACEHOLDERS = frozenset(
     }
 )
 
-CHECK_CODES = ("ok", "invalid_key", "rate_limited", "network_error", "tls_error", "unexpected")
+CHECK_CODES = (
+    "ok", "invalid_key", "rate_limited", "network_error", "tls_error", "unexpected",
+    "incomplete", "no_check",
+)
 CHECK_MESSAGES = {
     "ok": "{provider} accepted this key.",
     "invalid_key": "This key was rejected by {provider}.",
@@ -46,6 +50,8 @@ CHECK_MESSAGES = {
         "A proxy or antivirus may be intercepting HTTPS."
     ),
     "unexpected": "{provider} gave an unexpected answer. Try again later.",
+    "incomplete": "Save the other {provider} account details first, then test again.",
+    "no_check": "There is no online check for this value; INARA checks it when it is used.",
 }
 
 
@@ -84,6 +90,26 @@ def _gemini_request(value):
         "https://generativelanguage.googleapis.com/v1beta/models",
         {"x-goog-api-key": value},
     )
+
+
+TWILIO_API = "https://api.twilio.com/2010-04-01"
+
+
+def _twilio_account_request(account_sid, auth_token):
+    """Fetch the account itself: the cheapest authenticated Twilio request."""
+    credentials = base64.b64encode(f"{account_sid}:{auth_token}".encode()).decode("ascii")
+    return (
+        f"{TWILIO_API}/Accounts/{account_sid}.json",
+        {"Authorization": f"Basic {credentials}"},
+    )
+
+
+def _twilio_sid_request(value, auth_token):
+    return _twilio_account_request(value, auth_token)
+
+
+def _twilio_token_request(value, account_sid):
+    return _twilio_account_request(account_sid, value)
 
 
 def classify_response(status, body=""):
@@ -127,7 +153,9 @@ class SecretSpec:
     env: str
     pattern: str
     format_message: str
-    request: Optional[Callable[[str], tuple]] = None
+    request: Optional[Callable[..., tuple]] = None
+    # Other secrets the check request needs, passed after the value (e.g. SID + token).
+    companions: tuple = ()
 
     def valid(self, value):
         return (
@@ -158,6 +186,52 @@ REGISTRY = {
             pattern=r"AIza[A-Za-z0-9_\-]{30,60}",
             format_message="Gemini keys start with AIza and are about 39 characters. Copy the whole key from Google AI Studio.",
             request=_gemini_request,
+        ),
+        # Telephony (docs/CALL_ROUTING.md). The Auth Token authenticates REST calls
+        # and is the key Twilio signs webhooks with.
+        SecretSpec(
+            name="twilio_account_sid",
+            label="Twilio Account SID",
+            provider="Twilio",
+            env="INARA_TWILIO_ACCOUNT_SID",
+            pattern=r"AC[0-9a-f]{32}",
+            format_message="Twilio Account SIDs start with AC followed by 32 hex characters. Copy it from the Twilio Console.",
+            request=_twilio_sid_request,
+            companions=("twilio_auth_token",),
+        ),
+        SecretSpec(
+            name="twilio_auth_token",
+            label="Twilio Auth Token",
+            provider="Twilio",
+            env="INARA_TWILIO_AUTH_TOKEN",
+            pattern=r"[0-9a-f]{32}",
+            format_message="Twilio Auth Tokens are 32 hex characters. Copy the primary token from the Twilio Console.",
+            request=_twilio_token_request,
+            companions=("twilio_account_sid",),
+        ),
+        SecretSpec(
+            name="twilio_phone_number",
+            label="INARA's Twilio number",
+            provider="Twilio",
+            env="INARA_TWILIO_PHONE_NUMBER",
+            pattern=r"\+60[1-9][0-9]{7,9}",
+            format_message="Use INARA's Malaysian Twilio number in international format, for example +60312345678.",
+        ),
+        SecretSpec(
+            name="owner_phone_number",
+            label="Owner's mobile number",
+            provider="Twilio",
+            env="INARA_OWNER_PHONE_NUMBER",
+            pattern=r"\+[1-9][0-9]{7,14}",
+            format_message="Use the owner's mobile number in international format, for example +60123456789.",
+        ),
+        SecretSpec(
+            name="cloudflare_tunnel_token",
+            label="Cloudflare tunnel token",
+            provider="Cloudflare",
+            env="INARA_CLOUDFLARE_TUNNEL_TOKEN",
+            pattern=r"[A-Za-z0-9+/_\-]{80,500}={0,2}",
+            format_message="Paste only the token from the tunnel's install command (a long string starting with ey), not the whole command.",
         ),
     )
 }
@@ -268,10 +342,13 @@ class SecretStore:
     def check_value(self, name, value):
         """One cheap authenticated request; returns {ok, code, at}. Never logs the key."""
         spec = spec_for(name)
+        companions = tuple(self.get(other) for other in spec.companions)
         if spec.request is None:
-            code = "unexpected"
+            code = "no_check"
+        elif None in companions:
+            code = "incomplete"
         else:
-            url, headers = spec.request(value)
+            url, headers = spec.request(value, *companions)
             try:
                 status, body = self.send(url, headers, TEST_TIMEOUT)
                 code = classify_response(status, body or "")

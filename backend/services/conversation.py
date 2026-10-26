@@ -105,6 +105,20 @@ def trim_history(history):
     ]
 
 
+def merge_turns(history, entries):
+    """Append text turns, joining a turn onto a same-role plain text turn so roles keep
+    alternating. Entries carrying provider blocks (``claude``) are never edited."""
+    merged = list(history)
+    for entry in entries:
+        role, content = entry["role"], entry["content"]
+        last = merged[-1] if merged else None
+        if last and last.get("role") == role and set(last) <= {"role", "content"}:
+            merged[-1] = {"role": role, "content": f"{last['content']}\n{content}"}
+        else:
+            merged.append({"role": role, "content": content})
+    return merged
+
+
 def turn_context(project, memory_attached, now=None):
     """Volatile per-turn facts, sent as a mid-conversation system message."""
     moment = (now or datetime.now)().astimezone()
@@ -211,6 +225,45 @@ class ConversationService:
                     del self.conversations[key]
                     return
         raise ServiceError("conversation_limit", "Restart or start fewer conversations.")
+
+    async def append_turns(self, owner, conversation_id, project, entries):
+        """Record already-spoken text turns (live voice captions) in a conversation.
+
+        No provider runs and no request receipt is written; the conversation lock orders
+        the write after any brain turn in progress."""
+        entries = [
+            {"role": item["role"], "content": item["content"].strip()[:12_000]}
+            for item in entries
+            if item.get("role") in ("user", "assistant")
+            and isinstance(item.get("content"), str)
+            and item["content"].strip()
+        ]
+        if not entries:
+            return
+        key = str(conversation_id)
+        conversation = self.conversations.get(key)
+        if conversation is None:
+            if len(self.conversations) >= CONVERSATION_LIMIT:
+                self._evict_idle()
+            conversation = Conversation(owner, str(project.resolve()))
+            self.conversations[key] = conversation
+        else:
+            self.conversations.move_to_end(key)
+        if conversation.owner != owner or conversation.project != str(project.resolve()):
+            raise ServiceError("conversation_scope", "Start a new conversation for this project.")
+        conversation.active += 1
+        try:
+            async with conversation.lock:
+
+                def change(history):
+                    return trim_history(merge_turns(history, entries))
+
+                if self.store is not None:
+                    self.store.update(key, owner, conversation.project, change)
+                else:
+                    conversation.history = change(conversation.history)
+        finally:
+            conversation.active -= 1
 
     def release_owner(self, owner):
         # Preserve history on socket reconnect; ownership is the stable desktop client ID.

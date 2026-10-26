@@ -166,6 +166,10 @@
 .conversation-workspace .composer textarea:focus-visible { outline: none; }
 .conversation-workspace .composer textarea::placeholder { color: var(--text-3); opacity: 1; }
 .conversation-workspace .conversation-compose-actions { display: flex; align-items: center; gap: .25rem; }
+.conversation-workspace .conversation-talk { touch-action: none; user-select: none; }
+.conversation-workspace .conversation-talk.holding,
+.conversation-workspace .conversation-voice.is-on { background: var(--bg-selected); color: var(--accent); }
+.conversation-workspace .composer-foot__mic { color: var(--accent); }
 .conversation-workspace .send-button:disabled { opacity: .4; }
 .conversation-workspace .composer-foot {
   display: flex;
@@ -182,6 +186,5 @@
   .conversation-workspace .conversation-scroll { padding: 1.25rem 1rem; height: 24rem; }
   .conversation-workspace .composer { padding: .5rem .75rem .75rem; }
   .conversation-workspace .composer textarea { font-size: var(--text-lg); }
-  .conversation-workspace .conversation-quick { display: none; }
   .conversation-workspace .composer-foot__keys { display: none; }
 }

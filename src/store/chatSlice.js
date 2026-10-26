@@ -37,7 +37,8 @@ export const createChatSlice = (set, get) => ({
         set(state => {
             const prev = state.messages;
             const lastMsg = prev[prev.length - 1];
-            if (lastMsg && lastMsg.sender === sender) {
+            // Live voice captions stay separate messages; only streamed text joins up.
+            if (lastMsg && lastMsg.sender === sender && !lastMsg.captionKey) {
                 return {
                     messages: [
                         ...prev.slice(0, -1),
@@ -48,6 +49,21 @@ export const createChatSlice = (set, get) => ({
             return {
                 messages: [...prev, { sender, text, time: new Date().toLocaleTimeString(), memory_sources }]
             };
+        });
+    },
+
+    /** Live voice caption: one message per utterance, updated as the caption streams. */
+    voiceCaption: ({ key, role, text, final }) => {
+        if (typeof key !== 'string' || typeof text !== 'string' || !text.trim()) return;
+        const sender = role === 'user' ? 'You' : 'INARA';
+        set(state => {
+            const index = state.messages.findIndex(message => message.captionKey === key);
+            if (index === -1) {
+                return { messages: [...state.messages, { sender, text, time: new Date().toLocaleTimeString(), memory_sources: [], captionKey: key, final }] };
+            }
+            const messages = [...state.messages];
+            messages[index] = { ...messages[index], text, final };
+            return { messages };
         });
     },
 

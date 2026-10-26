@@ -1,4 +1,5 @@
-"""Native Quick assistant verification: synthetic microphone, injected transcription/provider; no physical audio."""
+"""Native Quick assistant verification: synthetic microphone, injected transcription/provider and the
+inert fixture Live provider (services/voice_fixture.py); no physical audio, network or model."""
 
 import ctypes as C
 from ctypes import wintypes as W
@@ -139,9 +140,23 @@ def verify():
 
         app.speech.transcriber = transcribe
         app.conversation.provider_factory = Provider
+        from services.voice_fixture import FixtureLive, INARA_CAPTION, USER_CAPTION
+
+        voice_events = []
+        relay = app.voice.emit
+
+        async def record_voice(session, event, payload):
+            voice_events.append(event if event != "voice_state" else f"voice_state:{payload['state']}")
+            await relay(session, event, payload)
+
+        app.voice.emit = record_voice
         host.tray.post(lambda: host.open_workspace(quick=True))
         until(lambda: (output / "unconfigured-checked.json").exists())
         app.speech.preflight = lambda: None
+        # Explicit fixture selection: scripted captions and a soft tone, no Live connection.
+        live = FixtureLive(chunks=40, pace=0.1)
+        app.voice.connector = live
+        app.voice.preflight = lambda: None
         (output / "fixture-enabled.json").write_text("{}")
         until(lambda: (output / "focus-requested.json").exists())
         host.tray.post(lambda: host.action("quick"))
@@ -152,6 +167,24 @@ def verify():
         assert not {"torch", "diffusers", "cv2", "mediapipe"} & set(sys.modules)
         result["model_modules_in_resident"] = False
         assert app.speech.turn is None and not app.speech_transport.pending
+        assert not app.voice.sessions and live.sessions and all(item.closed for item in live.sessions)
+        sent = [kind for item in live.sessions for kind in item.sent]
+        assert {"activity_start", "audio", "activity_end"} <= set(sent), sent
+        assert "voice_interrupted" in voice_events and "voice_audio_out" in voice_events, voice_events
+        project = app.projects.get_current_project_path().resolve()
+        history = [
+            item["content"]
+            for key in list(app.conversation.conversations)
+            for item in app.conversation.restore(app.sessions.local_owner, key, project)
+        ]
+        assert USER_CAPTION in history and INARA_CAPTION in history, history
+        result["live_voice_fixture"] = {
+            "connections": len(live.sessions),
+            "client_messages": {kind: sent.count(kind) for kind in set(sent)},
+            "core_events": {kind: voice_events.count(kind) for kind in set(voice_events)},
+            "captions_in_shared_history": True,
+            "network_or_model_used": False,
+        }
         result["workspace_and_speech_released"] = True
         result["resident_after_worker_and_workspace_exit"] = [sample()]
         for _ in range(5):

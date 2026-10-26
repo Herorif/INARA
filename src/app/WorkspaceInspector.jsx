@@ -2,6 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import useStore from '../store';
 import PresenceRing, { presenceLabel } from './PresenceRing';
+import { voiceChip, voicePresence } from '../features/voice/status.js';
 import HudLabel from '../shared/ui/HudLabel';
 import Kbd from '../shared/ui/Kbd';
 import EmptyState from '../shared/ui/EmptyState';
@@ -9,13 +10,13 @@ import EmptyState from '../shared/ui/EmptyState';
 const sameDay = (left, right) => left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
 const clock = date => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
-export default function WorkspaceInspector({ connected, processing, voice, listening, gaming, resource, memory, onOpen, onClose }) {
+export default function WorkspaceInspector({ connected, processing, voice, gaming, resource, memory, onOpen, onClose }) {
   const reminders = useStore(state => state.reminders);
   const now = new Date();
   const today = reminders
     .filter(item => (item.status === 'pending' || item.status === 'snoozed') && Number.isFinite(item.trigger_at) && sameDay(new Date(item.trigger_at * 1000), now))
     .sort((left, right) => left.trigger_at - right.trigger_at);
-  const presence = !connected ? 'offline' : listening ? 'listening' : processing ? 'working' : 'idle';
+  const presence = voicePresence({ connected, processing, voice });
   return <aside id="workspace-inspector" className="workspace-inspector" aria-label="Workspace context">
     <div className="inspector-heading"><HudLabel>CONTEXT</HudLabel><button type="button" className="btn btn--ghost btn--icon btn--sm" aria-label="Close context inspector" onClick={onClose}><X size={14} aria-hidden="true"/></button></div>
     <section className="inspector-panel inspector-presence hud-panel hud-frame" aria-label="Assistant presence">
@@ -26,7 +27,7 @@ export default function WorkspaceInspector({ connected, processing, voice, liste
       <HudLabel as="h2" id="inspector-system" className="inspector-panel__title">SYSTEM</HudLabel>
       <dl className="system-details">
         <div><dt>Resource mode</dt><dd>{gaming ? 'Gaming' : resource.state === 'studio' ? 'Studio' : 'Lightweight'}</dd></div>
-        <div><dt>Voice</dt><dd>{listening ? 'Recording' : voice ? 'Active' : 'Off'}</dd></div>
+        <div><dt>Voice</dt><dd>{{ OFF: 'Off', READY: 'Ready', LISTENING: 'Listening', SPEAKING: 'Speaking' }[voiceChip({ connected, gaming, voice })]}</dd></div>
         <div><dt>Workspace memory</dt><dd className="tnum">{memory === null ? 'Not measured' : `${Math.round(memory)} MB`}</dd></div>
       </dl>
     </section>

@@ -16,6 +16,7 @@ import HudLabel from '../shared/ui/HudLabel';
 import Kbd from '../shared/ui/Kbd';
 import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
 import { flags, heavyFeatures } from './features';
+import { voiceChip } from '../features/voice/status.js';
 import { clearedFeatures, dialogFeatures, featureWorkspace, workspaceTitles } from './workspaceNavigation';
 import './workspace.css';
 
@@ -50,17 +51,17 @@ function CoreChip({ connected }) {
     : <StatusChip tone="danger" className="core-chip" title="Core offline"><span className="chip-text">CORE OFFLINE</span></StatusChip>;
 }
 
-function VoiceChip({ voice, listening }) {
-  if (listening) return <StatusChip tone="accent" className="voice-chip">RECORDING</StatusChip>;
-  return voice ? <StatusChip tone="ok" className="voice-chip">VOICE READY</StatusChip> : <StatusChip className="voice-chip">VOICE OFF</StatusChip>;
+function VoiceChip({ connected, gaming, voice }) {
+  const label = voiceChip({ connected, gaming, voice });
+  const tone = { OFF: 'idle', READY: 'ok', LISTENING: 'accent', SPEAKING: 'accent' }[label];
+  return <StatusChip tone={tone} className="voice-chip" data-voice={label.toLowerCase()}>{`VOICE ${label}`}</StatusChip>;
 }
 
 export default function CommandDeck() {
   const quick = useStore(state => state.showQuickAssistant);
   const connected = useStore(state => state.backendConnected);
   const processing = useStore(state => state.textProcessing);
-  const voice = useStore(state => state.aiConnected);
-  const listening = useStore(state => state.listeningState === 'active');
+  const voice = useStore(state => state.voice);
   const currentProject = useStore(state => state.currentProject);
   const locked = useStore(state => state.isLockScreenVisible);
   const activeFlag = useStore(state => Object.keys(flags).find(key => !dialogFeatures.has(key) && state[flags[key]]) || null);
@@ -171,7 +172,7 @@ export default function CommandDeck() {
           <button type="button" className="command-trigger btn btn--secondary" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={14} aria-hidden="true"/><span className="command-trigger__text">Find a tool or action</span><Kbd>Ctrl K</Kbd></button>
         </div>
         <div className="titlebar-status">
-          <div className="titlebar-chips"><CoreChip connected={connected}/><VoiceChip voice={voice} listening={listening}/></div>
+          <div className="titlebar-chips"><CoreChip connected={connected}/><VoiceChip connected={connected} gaming={gaming} voice={voice}/></div>
           <Clock/>
           <div className="titlebar-actions">
             <button type="button" className="btn btn--ghost btn--icon" aria-label="Open quick assistant" title="Quick assistant" onClick={() => setQuick(true)}><AudioLines size={16} aria-hidden="true"/></button>
@@ -194,8 +195,8 @@ export default function CommandDeck() {
         <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''}`}>
           {!activeFeature && <div className="workspace-heading"><div className="workspace-heading__copy"><h1>{title}</h1>{description && <p>{description}</p>}</div>{page === 'assistant' && <HudLabel className="workspace-heading__meta">{`PROJECT · ${currentProject || 'temp'}`}</HudLabel>}</div>}
           {(page === 'studio' || page === 'activity') && <div className="studio-tabs hud-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['activity','Artifacts']].map(([key,label]) => { const selected = activeFeature === key || page === key; return <button type="button" key={key} className={`hud-tab ${selected ? 'is-active' : ''}`} aria-pressed={selected} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={14} aria-hidden="true"/>}{label}</button>; })}</div>}
-          {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <Conversation onOpen={openFeature} onQuick={() => setQuick(true)}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
-        </div>{inspector && <WorkspaceInspector connected={connected} processing={processing} voice={voice} listening={listening} gaming={gaming} resource={resource} memory={memory} onOpen={openFeature} onClose={() => setInspector(false)}/>}</div>
+          {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <Conversation onOpen={openFeature}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
+        </div>{inspector && <WorkspaceInspector connected={connected} processing={processing} voice={voice} gaming={gaming} resource={resource} memory={memory} onOpen={openFeature} onClose={() => setInspector(false)}/>}</div>
         <WorkspaceTray expanded={tray} onToggle={() => setTray(value => !value)} onOpen={openFeature} gaming={gaming}/>
       </main></div>{activeDialog && <FeatureDialog key={activeDialog} feature={activeDialog} onClose={closeDialog}/>}</>}
     {commands && !quick && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={openFeature} gaming={gaming}/></Suspense>}
