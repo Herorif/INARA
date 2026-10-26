@@ -69,8 +69,12 @@ class ConnectionTransport:
             await self.sio.emit("status", {"msg": "Connected to INARA Backend"}, room=sid)
             if self.sessions.roles[sid] != "renderer":
                 return
+            capabilities = getattr(self.app, "capabilities", None)
+            brain = capabilities.brain() if capabilities else None
             await self.sio.emit(
-                "text_ready", {"model": model_id("text")}, room=sid
+                "text_ready",
+                {"model": brain["model"] if brain else model_id("text"), "brain": brain},
+                room=sid,
             )
             await self.sio.emit("resource_state", self.app.resources.snapshot(), room=sid)
             await self.sio.emit(

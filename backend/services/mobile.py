@@ -7,7 +7,7 @@ import secrets
 import time
 import uuid
 from pathlib import Path
-from services.conversation import ConversationRequest, ConversationService
+from services.conversation import PHONE_LIMITS, ConversationRequest, ConversationService
 from services.mobile_identity import MobileIdentities, decode_key, verify
 from services.sessions import SessionStore
 from services.tools import ServiceError, ToolDispatcher
@@ -26,12 +26,15 @@ class MobileService:
         from calls.mobile_receipts import MobileCallReceipts
         self.call_receipts = MobileCallReceipts(self)
         # Deliberately empty dispatcher. Phone chat cannot invoke even read-file tools.
+        # Same task router as desktop chat (Claude brain, Gemini fallback), at low effort.
         self.chat = ConversationService(
             ToolDispatcher(lambda: {}),
             timeout=30,
             store=SessionStore(app.database),
             usage=app.usage,
-            instructions="You are INARA in a tool-free phone conversation. You cannot inspect files, control the laptop, approve actions, or read desktop conversations. Explain those limits when relevant. WhatsApp drafting and sending are unavailable.",
+            settings=lambda: app.settings,
+            effort="low",
+            instructions_suffix=PHONE_LIMITS,
         )
         from services.mobile_listener import MobileListener
 

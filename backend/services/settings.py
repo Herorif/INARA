@@ -133,12 +133,46 @@ class EmptyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class AssistantSettings(EmptyRequest):
+    """``assistant.*``: which AI is the brain, and how INARA addresses the owner."""
+
+    brain: Literal["auto", "claude", "gemini"] | None = None
+    # Printable text only: the name is placed in the system prompt.
+    owner_name: StrictStr | None = Field(
+        default=None, max_length=80, pattern=r"^[^\x00-\x1f\x7f<>{}\[\]]*$"
+    )
+
+    @field_validator("brain", "owner_name", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @field_validator("owner_name")
+    @classmethod
+    def trim(cls, value):
+        return " ".join(value.split())
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose an assistant setting to update.")
+        return self
+
+
+ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": ""}
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
     camera_flipped: StrictBool | None = None
+    assistant: AssistantSettings | None = None
 
-    @field_validator("tool_permissions", "face_auth_enabled", "camera_flipped", mode="before")
+    @field_validator(
+        "tool_permissions", "face_auth_enabled", "camera_flipped", "assistant", mode="before"
+    )
     @classmethod
     def reject_null(cls, value):
         if value is None:
@@ -209,7 +243,20 @@ class SettingsService:
             raise ServiceError("invalid_arguments", "Unknown tool permission name.")
         candidate = self.snapshot()
         candidate.setdefault("tool_permissions", {}).update(permissions)
-        candidate.update({key: value for key, value in patch.items() if key != "tool_permissions"})
+        if "assistant" in patch:
+            current = candidate.get("assistant")
+            candidate["assistant"] = {
+                **ASSISTANT_DEFAULTS,
+                **(current if isinstance(current, dict) else {}),
+                **patch["assistant"],
+            }
+        candidate.update(
+            {
+                key: value
+                for key, value in patch.items()
+                if key not in ("tool_permissions", "assistant")
+            }
+        )
         try:
             self.store.save(candidate)
         except ServiceError:

@@ -245,7 +245,15 @@ class FakeModels:
 def patch_genai(monkeypatch, models):
     from google import genai
 
-    monkeypatch.setattr(genai, "Client", lambda api_key: SimpleNamespace(models=models))
+    from services.tls import provider_ssl_context
+
+    def client(api_key, http_options):
+        # Key comes from the accessor; HTTPS verifies against the provider TLS context.
+        assert api_key == "test-key"
+        assert http_options["client_args"]["verify"] is provider_ssl_context()
+        return SimpleNamespace(models=models)
+
+    monkeypatch.setattr(genai, "Client", client)
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setenv("INARA_VISION_MODEL", "profile-vision-model")
 

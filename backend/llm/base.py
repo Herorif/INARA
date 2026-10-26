@@ -56,6 +56,10 @@ class LLMResponse:
     is_partial: bool = False
     # Audio data (for voice-capable providers)
     audio_data: Optional[bytes] = None
+    # Claude: the assistant turn's content blocks exactly as returned (thinking
+    # blocks and signatures included), to be replayed unchanged.
+    content_blocks: Optional[list[dict[str, Any]]] = None
+    stop_reason: Optional[str] = None
 
 
 class BaseLLMProvider(ABC):

@@ -292,10 +292,19 @@ Settings live in `backend/settings.json` (auto-created on first run).
 | `tool_permissions.watch_for`     | `bool`  | Require confirmation before starting camera watch  |
 | `printers`                       | `array` | Saved printer configurations                      |
 | `kasa_devices`                   | `array` | Saved smart home devices                          |
+| `assistant.brain`                | `string`| `auto` (Claude when an Anthropic key is set), `claude` or `gemini` |
+| `assistant.owner_name`           | `string`| Optional name INARA uses for you, sparingly        |
 
 ### 🔑 API Keys
 
-INARA uses an Anthropic key (Claude) and a Gemini key (voice and transcription).
+INARA's brain is Claude: Claude Sonnet 5.5 answers chat, plans and uses tools,
+and Claude Haiku 5.5 handles fast summaries and classification. Gemini handles
+transcription (and, later, live voice). Without an Anthropic key the assistant
+falls back to the Gemini text model; `assistant.brain` (`auto`, `claude` or
+`gemini`) in settings overrides the choice, and the capability center shows the
+active model. Usage receipts record Claude token and cache counts with a
+list-price estimate.
+
 Keys are not kept in a `.env` file: they are stored encrypted with Windows DPAPI
 in INARA's profile database. Add them in Setup's **AI providers** step, with
 `scripts/bootstrap.ps1 -ConfigureKeys`, or with `scripts/inara-secrets.py`.

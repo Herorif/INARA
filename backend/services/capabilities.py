@@ -4,6 +4,7 @@ import importlib.util
 import importlib.metadata
 import time
 from pydantic import ValidationError
+from llm.router import TaskRouter
 from services.capability_profiles import WORKER_PROFILES, model_id, provider_key
 from services.cad import blender_executable
 from services.image_config import image_backend
@@ -21,11 +22,20 @@ class CapabilityCenter:
         hardware = governor.inspect_hardware()
         image = image_backend()
         key = bool(provider_key())
+        brain = self.brain()
         try:
             importlib.metadata.version("google-genai")
             provider_installed = True
         except importlib.metadata.PackageNotFoundError:
             provider_installed = False
+        if brain["provider"] == "claude":
+            try:
+                importlib.metadata.version("anthropic")
+                brain_installed = True
+            except importlib.metadata.PackageNotFoundError:
+                brain_installed = False
+        else:
+            brain_installed = provider_installed
         image_installed = all(
             importlib.util.find_spec(name) is not None
             for name in ("torch", "diffusers", "transformers", "safetensors", "PIL")
@@ -44,10 +54,13 @@ class CapabilityCenter:
             (
                 "text",
                 "AI conversation & blueprints",
-                provider_installed,
-                key,
-                "Set GEMINI_API_KEY when ready. Model availability is unverified.",
-                model_id("text"),
+                brain_installed,
+                brain["configured"],
+                f"AI model: {brain['label']}."
+                if brain["configured"]
+                else "Add an Anthropic API key (Claude) or a Gemini API key in Setup "
+                "(AI providers) to enable AI conversation.",
+                brain["model"],
             ),
             (
                 "image_cpu",
@@ -135,6 +148,7 @@ class CapabilityCenter:
             )
         return {
             "checked_at": time.time(),
+            "brain": brain,
             "hardware": hardware,
             "resources": governor.snapshot(),
             "capabilities": cards,
@@ -144,6 +158,12 @@ class CapabilityCenter:
                 "manual": "No automatic installation or resource escalation",
             },
         }
+
+    def brain(self):
+        """Active AI brain (``AI model: Claude Sonnet 5.5``); content-free, no network."""
+        conversation = getattr(self.app, "conversation", None)
+        router = getattr(conversation, "router", None) or TaskRouter(lambda: self.app.settings)
+        return router.status()
 
     async def diagnostics(self, sid, data=None):
         try:

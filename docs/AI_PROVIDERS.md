@@ -1,13 +1,65 @@
-# AI provider keys
+# AI providers
 
-INARA uses two providers:
+INARA uses two providers. Claude is the assistant's brain; Gemini handles audio.
+
+| Work | Model | Provider | Notes |
+| --- | --- | --- | --- |
+| Chat, planning and tool use (desktop chat, quick assistant, reviewed voice input, phone chat) | Claude Sonnet 5.5 (`claude-sonnet-5-5`) | Anthropic | Gemini text model when no Anthropic key is configured |
+| Fast summaries and classification (`fast` / `summary` routes; call summaries later) | Claude Haiku 5.5 (`claude-haiku-5-5`) | Anthropic | Gemini text model when no Anthropic key is configured |
+| Transcription of reviewed push-to-talk | Gemini (`INARA_TRANSCRIPTION_MODEL`, else the text model) | Google | Always Gemini |
+| Live voice (later), vision and legacy CAD | Gemini | Google | Vision and legacy CAD follow the text model |
 
 | Key | Used for | Where to get it | Name in INARA |
 | --- | --- | --- | --- |
-| Anthropic API key (starts with `sk-ant-`) | Claude, the assistant | [Anthropic Console](https://console.anthropic.com/) | `anthropic_api_key` |
-| Gemini API key (starts with `AIza`, about 39 characters) | Voice and transcription | [Google AI Studio](https://aistudio.google.com/app/apikey) | `gemini_api_key` |
+| Anthropic API key (starts with `sk-ant-`) | Claude, the assistant's brain | [Anthropic Console](https://console.anthropic.com/) | `anthropic_api_key` |
+| Gemini API key (starts with `AIza`, about 39 characters) | Transcription and voice; the assistant when no Anthropic key is set | [Google AI Studio](https://aistudio.google.com/app/apikey) | `gemini_api_key` |
 
-Both are optional: INARA starts without them, and AI features report that a key is missing.
+Both are optional: INARA starts without them, and AI features report that a key is missing ("Add an Anthropic or Gemini API key in Setup (AI providers) or Preferences").
+
+## Which model answers (task router)
+
+`backend/llm/router.py` picks the provider for each request; nothing is decided at startup.
+
+- `chat` uses Claude Sonnet 5.5 when an Anthropic key is configured, otherwise the Gemini text model (`INARA_TEXT_MODEL`, default `gemini-3.8-flash`).
+- `fast` and `summary` use Claude Haiku 5.5 when an Anthropic key is configured, otherwise the Gemini text model.
+- `transcription` always uses Gemini.
+
+Settings (`settings.json`, validated by `SettingsPatch`):
+
+| Setting | Values | Effect |
+| --- | --- | --- |
+| `assistant.brain` | `auto` (default), `claude`, `gemini` | `auto` follows the rules above. `claude` without an Anthropic key is a configuration error (`provider_not_configured`), never a silent switch to Gemini. `gemini` always uses Gemini. |
+| `assistant.owner_name` | Up to 80 printable characters, default empty | Adds "The owner's name is ...; use it sparingly." to the system prompt. |
+
+Environment overrides: `INARA_BRAIN_MODEL` (default `claude-sonnet-5-5`) and `INARA_FAST_MODEL` (default `claude-haiku-5-5`).
+
+The capability center reports the active brain (`brain` in `capability_diagnostics`, and the text card's model and "AI model: Claude Sonnet 5.5" reason); the `text_ready` socket event carries the same `brain` object.
+
+## How INARA calls Claude
+
+- One stable system prompt (the INARA persona) for both providers, with no timestamps. Volatile facts (local time, project name, and the memory-is-untrusted note when project memory is attached) go in a mid-conversation `{"role": "system"}` message right after that turn's user message.
+- Adaptive thinking with `output_config.effort`: `medium` for the desktop assistant (desktop chat, quick assistant and reviewed voice share one conversation), `low` for phone chat and Haiku routes. Effort never changes within a conversation. No `temperature`, `top_p` or `top_k`; `tool_choice` stays at its `auto` default.
+- Tools come from the existing dispatcher schemas, sorted by name, with `eager_input_streaming`. Every tool input is validated by the dispatcher; invalid input, a disabled tool or a declined approval goes back to Claude as a `tool_result` with `is_error: true`. All results of one assistant turn return in one user message.
+- Each assistant turn is stored verbatim, including thinking blocks and signatures, and replayed unchanged; history is append-only. Requests send beta `thinking-binding-controls-2026-08-01` with `block_binding.prefix_mismatch_behavior: "drop_block"`, so an unavoidable edit (history trimmed after 10 turns, a changed tool list) drops old reasoning instead of failing. The desktop and phone only ever receive the text of each turn.
+- Sonnet requests opt into server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). Haiku 5.5 has no server-side fallback, so its requests do not send it. A refusal shows a plain message; the category is not shown.
+- Top-level automatic prompt caching (`cache_control: {"type": "ephemeral"}`), streaming with the SDK's stream helper and `max_tokens` 32000 (lower when a usage cap is enabled). The SDK's default retries (2) stay on.
+- Errors: rejected key (`provider_key_invalid`), rate limited (`provider_rate_limited`, with the retry-after time), provider unavailable including overloaded (`provider_unavailable`), network or TLS (`provider_network`), timeout (`provider_timeout`), refusal (`provider_refused`), anything else `provider_failed`. Keys and prompts are never logged.
+
+## Costs
+
+Every Claude request has a usage receipt (Usage center) with `input_tokens`, `output_tokens`, `cache_creation_input_tokens` and `cache_read_input_tokens`, and a list-price estimate `estimated_cost_microusd`. Estimates are not invoices. Prices live in one table, `backend/llm/pricing.py`:
+
+| Model | Input | Output | Cache write (5 min) | Cache read |
+| --- | --- | --- | --- | --- |
+| Claude Sonnet 5.5 | $2.00 | $10.00 | $2.50 | $0.20 |
+| Claude Haiku 5.5, prompts up to 100K tokens | $0.10 | $0.50 | $0.125 | $0.01 |
+| Claude Haiku 5.5, prompts over 100K tokens | $0.50 | $2.50 | $0.625 | $0.05 |
+
+Prices are US dollars per million tokens. When a refused Sonnet request is rescued by the server-side fallback, the receipt sums every attempt (`usage.iterations`) and records `fallback_attempts`.
+
+## Fallback to Gemini
+
+With no Anthropic key (and `assistant.brain` at `auto`), chat, phone chat and fast work use the Gemini text model with the same persona. Gemini keeps text-only history; signed tool content stays within the request. Turns from either provider share one history, so the brain can change between turns.
 
 ## Where keys are stored
 

@@ -11,6 +11,7 @@ import math
 from pathlib import Path
 import time
 import uuid
+from llm.pricing import estimate_microusd
 from services.storage import scope_hash
 from services.tools import ServiceError
 
@@ -39,6 +40,10 @@ def usage_counts(response):
     raw = getattr(response, "raw", response)
     value = getattr(raw, "usage_metadata", None)
     if value is None:
+        if getattr(raw, "usage", None) is not None and getattr(raw, "content", None) is not None:
+            from llm.claude import usage_counts as claude_counts
+
+            return claude_counts(raw)
         return None
     fields = {
         "input_tokens": "prompt_token_count",
@@ -249,7 +254,10 @@ class UsageService:
                 value = self.database.get(db, ticket["kind"], ticket["id"])
                 if value and value["state"] == "reserved":
                     value.update(
-                        state=state, tokens=counts, duration_seconds=round(max(0, duration), 3)
+                        state=state,
+                        tokens=counts,
+                        duration_seconds=round(max(0, duration), 3),
+                        estimated_cost_microusd=estimate_microusd(value["model"], counts),
                     )
                     self.database.put(db, ticket["kind"], ticket["id"], value)
         finally:
@@ -338,6 +346,8 @@ class UsageService:
                     "duration_seconds",
                 )
             }
+            # List-price estimate (llm/pricing.py); never an invoice amount.
+            public["estimated_cost_microusd"] = item.get("estimated_cost_microusd")
             public["request_id"] = item.get("request_id")
             public["provider_step"] = item.get("provider_step")
             if public["state"] == "reserved" and item["id"] not in self.active:

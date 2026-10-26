@@ -9,7 +9,6 @@ on whatever the user is looking at.
 import base64
 from dataclasses import dataclass
 import io
-import os
 from typing import Optional
 
 
@@ -98,13 +97,14 @@ class ScreenCapture:
 
     def describe_bytes(self, img_bytes: bytes, prompt: Optional[str] = None) -> ScreenDescription:
         """Describe an already-captured JPEG with the configured vision model."""
-        from dotenv import load_dotenv
-        from services.capability_profiles import model_id
-        load_dotenv()
+        from services.capability_profiles import model_id, provider_key
 
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = provider_key()
         if not api_key:
-            error = "GEMINI_API_KEY not set; cannot analyse screen."
+            error = (
+                "No Gemini API key is saved (Setup > AI providers, or GEMINI_API_KEY); "
+                "cannot analyse screen."
+            )
             return ScreenDescription(False, error, img_bytes, error)
 
         describe_prompt = prompt or _VISION_PROMPT
@@ -113,7 +113,9 @@ class ScreenCapture:
             from google import genai
             from google.genai import types
 
-            client = genai.Client(api_key=api_key)
+            from services.tls import genai_http_options
+
+            client = genai.Client(api_key=api_key, http_options=genai_http_options())
             response = client.models.generate_content(
                 model=model_id("vision"),
                 contents=[

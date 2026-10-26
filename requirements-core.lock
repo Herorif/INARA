@@ -1,6 +1,7 @@
 # Resolved on Windows with Python 3.12.10 for INARA milestone 1.
 annotated-doc==0.0.5
 annotated-types==0.8.0
+anthropic==2.3.0
 anyio==4.15.1
 bidict==0.24.1
 certifi==2026.7.22
@@ -10,13 +11,17 @@ click==8.5.0
 colorama==0.4.6
 cryptography==50.0.2
 distro==1.9.0
+docstring_parser==0.18.0
 fastapi==0.143.0
 google-auth==2.62.0
 google-genai==2.30.0
 h11==0.16.0
 httpcore==1.0.9
+httpcore2==2.16.0
 httpx==0.28.1
+httpx2==2.16.0
 idna==3.20
+jiter==0.18.0
 opentelemetry-api==1.45.1
 packaging==26.3
 pyasn1==0.6.4

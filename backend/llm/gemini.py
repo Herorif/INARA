@@ -5,10 +5,7 @@ Wraps the Google GenAI SDK behind the BaseLLMProvider interface.
 Also implements BaseVoiceProvider for Gemini Native Audio (Live API).
 """
 
-import os
 from typing import AsyncIterator, Optional
-
-from dotenv import load_dotenv
 
 from .base import (
     BaseLLMProvider,
@@ -20,7 +17,13 @@ from .base import (
     ToolResult,
 )
 
-load_dotenv()
+
+def _key(api_key):
+    if api_key:
+        return api_key
+    from services.capability_profiles import provider_key
+
+    return provider_key()
 
 
 def _messages_to_gemini_contents(messages: list[Message]) -> list:
@@ -92,7 +95,7 @@ class GeminiProvider(BaseLLMProvider):
         api_key: Optional[str] = None,
         model: str = "gemini-3.8-flash",
     ):
-        self._api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self._api_key = _key(api_key)
         self._model = model
         self.__client = None
 
@@ -100,7 +103,13 @@ class GeminiProvider(BaseLLMProvider):
     def _client(self):
         if self.__client is None:
             from google import genai
-            self.__client = genai.Client(api_key=self._api_key, http_options={"retry_options": {"attempts": 1}})
+
+            from services.tls import genai_http_options
+
+            self.__client = genai.Client(
+                api_key=self._api_key,
+                http_options=genai_http_options(retry_options={"attempts": 1}),
+            )
         return self.__client
 
     @property
@@ -232,10 +241,12 @@ class GeminiVoiceProvider(BaseVoiceProvider):
     ):
         from google import genai
 
-        self._api_key = api_key or os.getenv("GEMINI_API_KEY")
+        from services.tls import genai_http_options
+
+        self._api_key = _key(api_key)
         self._model = model
         self._client = genai.Client(
-            http_options={"api_version": "v1beta"},
+            http_options=genai_http_options(api_version="v1beta"),
             api_key=self._api_key,
         )
         self._session = None

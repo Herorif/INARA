@@ -1,18 +1,19 @@
-from services.capability_profiles import model_id
+from services.capability_profiles import model_id, provider_key
+from services.tls import genai_http_options
 import os
 from datetime import datetime
 from google import genai
 from google.genai import types
-from dotenv import load_dotenv
 from typing import Optional
 from services.legacy_cad import LegacyScriptRunner
 from services.tools import ServiceError
 
-load_dotenv()
 
 class CadAgent:
     def __init__(self, on_thought=None, on_status=None, client=None, runner=None):
-        self.client = client or genai.Client(http_options={"api_version": "v1beta"}, api_key=os.getenv("GEMINI_API_KEY"))
+        self.client = client or genai.Client(
+            http_options=genai_http_options(api_version="v1beta"), api_key=provider_key()
+        )
         # Generated code only ever runs in an owned, hard-deadline child process.
         self.runner = runner or LegacyScriptRunner()
         # Using Gemini 2.5 Pro for thinking/streaming support

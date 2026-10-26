@@ -139,7 +139,11 @@ class Application:
         self.memory = ProjectMemory(self)
         self.memory_transport = MemoryTransport(self)
         self.conversation = ConversationService(
-            self.dispatcher, store=SessionStore(database), memory=self.memory, usage=self.usage
+            self.dispatcher,
+            store=SessionStore(database),
+            memory=self.memory,
+            usage=self.usage,
+            settings=lambda: self.settings,
         )
         self.conversation_transport = ConversationTransport(
             sio, self.conversation, self.dispatcher, self.sessions

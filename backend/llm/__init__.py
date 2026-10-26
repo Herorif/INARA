@@ -1,6 +1,6 @@
 from .base import BaseLLMProvider, LLMResponse, ToolCall, ToolResult, Message, MessageRole
 from .tools import Tool, ToolParameter, ToolParameterType, ToolRegistry
-from .router import LLMRouter
+from .router import LLMRouter, TaskRouter
 
 __all__ = [
     "BaseLLMProvider",
@@ -14,4 +14,5 @@ __all__ = [
     "ToolParameterType",
     "ToolRegistry",
     "LLMRouter",
+    "TaskRouter",
 ]

@@ -11,11 +11,9 @@ stop_watching       Remove a watch condition
 list_watches        List active watch conditions
 """
 
-from services.capability_profiles import model_id
+from services.capability_profiles import model_id, provider_key
 import asyncio
-import base64
 import logging
-import os
 from typing import Any, Optional
 
 from agents.base import AgentResult, BaseAgent
@@ -102,7 +100,7 @@ class VisionAgent(BaseAgent):
         ]
 
     async def initialize(self):
-        self._api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        self._api_key = provider_key()
 
     async def handle_tool_call(self, tool_name: str, args: dict[str, Any], **context) -> AgentResult:
         if tool_name == "describe_camera":
@@ -214,9 +212,11 @@ class VisionAgent(BaseAgent):
 
         api_key = self._api_key
         if not api_key:
-            raise RuntimeError("No GOOGLE_API_KEY / GEMINI_API_KEY set")
+            raise RuntimeError("No Gemini API key is saved")
 
-        client = genai.Client(api_key=api_key)
+        from services.tls import genai_http_options
+
+        client = genai.Client(api_key=api_key, http_options=genai_http_options())
         response = client.models.generate_content(
             model=self._model,
             contents=[

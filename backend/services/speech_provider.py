@@ -47,8 +47,11 @@ async def transcribe(pcm, partial):
     counts = None
     started = time.monotonic()
     try:
+        from services.tls import genai_http_options
+
         client = genai.Client(
-            api_key=provider_key(), http_options={"retry_options": {"attempts": 1}}
+            api_key=provider_key(),
+            http_options=genai_http_options(retry_options={"attempts": 1}),
         )
         text = ""
         async for chunk in await client.aio.models.generate_content_stream(

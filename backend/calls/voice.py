@@ -64,7 +64,10 @@ async def connect_voice():
     model = ready()
     from google import genai
     from google.genai import types
-    client = genai.Client(api_key=provider_key(), http_options={"retry_options": {"attempts": 1}})
+    from services.tls import genai_http_options
+    client = genai.Client(
+        api_key=provider_key(), http_options=genai_http_options(retry_options={"attempts": 1})
+    )
     try:
         config = types.LiveConnectConfig(
             response_modalities=["AUDIO"], system_instruction=CALL_INSTRUCTION,

@@ -37,8 +37,13 @@ class SessionStore:
         )
 
     def restore(self, key, owner, project):
+        """Display history only: provider blocks (thinking, tool results) stay private."""
         with self.database.transaction() as db:
-            return self._load(db, key, owner, project) or []
+            history = self._load(db, key, owner, project) or []
+        return [
+            {name: item[name] for name in ("role", "content", "memory_sources") if name in item}
+            for item in history
+        ]
 
     def claim(self, key, owner, project, request_id, text):
         with self.database.transaction() as db:

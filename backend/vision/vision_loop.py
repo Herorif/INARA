@@ -6,11 +6,10 @@ watch conditions against it on a configurable interval. When a watch
 condition is met, fires a VISION_ALERT event on the event bus.
 """
 
-from services.capability_profiles import model_id
+from services.capability_profiles import model_id, provider_key
 import asyncio
 import inspect
 import logging
-import os
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -102,12 +101,17 @@ class VisionLoop:
         """Main loop — polls active watches every self._interval seconds."""
         self._stop_event.clear()
         logger.info("[VisionLoop] Started")
-        self._api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        self._api_key = provider_key()
         # Create the Gemini client once for all watch evaluations
         if self._api_key:
             try:
                 from google import genai
-                self._client = genai.Client(api_key=self._api_key)
+
+                from services.tls import genai_http_options
+
+                self._client = genai.Client(
+                    api_key=self._api_key, http_options=genai_http_options()
+                )
             except Exception as e:
                 logger.warning(f"[VisionLoop] Failed to create Gemini client: {e}")
                 self._client = None
