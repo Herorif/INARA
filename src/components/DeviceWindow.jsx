@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Cpu, Power, RefreshCw, Lightbulb, Thermometer, Volume2, Tv, ToggleLeft } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
+import StatusChip from '../shared/ui/StatusChip';
+import EmptyState from '../shared/ui/EmptyState';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -16,23 +18,6 @@ const DOMAIN_ICONS = {
   kasa: Lightbulb
 };
 
-const DOMAIN_COLORS = {
-  light: 'text-yellow-400 border-yellow-900/40',
-  switch: 'text-cyan-400 border-cyan-900/40',
-  input_boolean: 'text-cyan-400 border-cyan-900/40',
-  climate: 'text-orange-400 border-orange-900/40',
-  media_player: 'text-purple-400 border-purple-900/40',
-  fan: 'text-blue-400 border-blue-900/40',
-  kasa: 'text-yellow-400 border-yellow-900/40',
-  default: 'text-cyan-400 border-cyan-900/40'
-};
-
-const SOURCE_BADGE = {
-  kasa: 'bg-yellow-500/10 text-yellow-600 border-yellow-900/40',
-  home_assistant: 'bg-blue-500/10 text-blue-600 border-blue-900/40',
-  default: 'bg-cyan-500/10 text-cyan-700 border-cyan-900/40'
-};
-
 const isOn = (device) => {
   const s = (device.state || '').toLowerCase();
   return s === 'on' || s === 'true' || s === 'playing';
@@ -45,8 +30,6 @@ const DeviceRow = ({ device }) => {
   const on = isOn(device);
   const domain = device.domain || device.type || 'default';
   const Icon = DOMAIN_ICONS[domain] || Cpu;
-  const colorClass = DOMAIN_COLORS[domain] || DOMAIN_COLORS.default;
-  const badgeClass = SOURCE_BADGE[device.source] || SOURCE_BADGE.default;
 
   const handleToggle = () => {
     emitSocket('control_device', {
@@ -56,30 +39,27 @@ const DeviceRow = ({ device }) => {
   };
 
   return (
-    <div className="flex items-center gap-2 px-2 py-2 rounded-lg border border-transparent hover:border-white/5 hover:bg-white/3 transition-all group">
-            <div className={`p-1.5 rounded-lg border ${colorClass} bg-black/30`}>
-                <Icon size={12} />
+    <div className="flex items-center gap-3 rounded-md border border-transparent px-2 py-2 transition-colors hover:border-line hover:bg-[var(--bg-hover)]">
+            <div className="rounded-md border border-line bg-raised p-1.5 text-ink-2">
+                <Icon size={14} aria-hidden="true" />
             </div>
-            <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-cyan-200 font-mono truncate">{device.name}</div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className={`text-[8px] font-bold px-1 py-0.5 rounded border ${badgeClass}`}>
+            <div className="min-w-0 flex-1">
+                <div className="truncate text-sm text-ink-1">{device.name}</div>
+                <div className="mt-1 flex items-center gap-1.5">
+                    <span className="rounded border border-line px-1 font-mono text-[0.6875rem] text-ink-3">
                         {device.source === 'home_assistant' ? 'HA' : (device.source || 'N/A').toUpperCase()}
                     </span>
-                    <span className={`text-[9px] font-mono ${on ? 'text-green-400' : 'text-gray-600'}`}>
-                        {device.state || 'unknown'}
-                    </span>
+                    <StatusChip tone={on ? 'ok' : 'idle'}>{device.state || 'unknown'}</StatusChip>
                 </div>
             </div>
             <button
+        type="button"
         onClick={handleToggle}
-        className={`p-1.5 rounded-lg border transition-all ${
-        on ?
-        'border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/20' :
-        'border-gray-700 bg-gray-900/40 text-gray-600 hover:border-cyan-700 hover:text-cyan-600'}`
-        } aria-label="Toggle power">
+        aria-pressed={on}
+        className={`btn btn--secondary btn--sm btn--icon ${on ? '!text-ok' : ''}`}
+        aria-label={`Power ${device.name}`}>
 
-                <Power size={12} />
+                <Power size={14} aria-hidden="true" />
             </button>
         </div>);
 
@@ -95,7 +75,9 @@ const DeviceWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElemen
 
   const handleRefresh = () => emitSocket('list_all_devices', {});
 
-  const FILTERS = ['all', 'light', 'switch', 'climate', 'media'];
+  const FILTERS = [
+  { id: 'all', label: 'All' }, { id: 'light', label: 'Lights' }, { id: 'switch', label: 'Switches' },
+  { id: 'climate', label: 'Climate' }, { id: 'media', label: 'Media' }];
 
   const filtered = allDevices.filter((d) => {
     if (filter === 'all') return true;
@@ -109,104 +91,74 @@ const DeviceWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElemen
     <div
       id="device" className="tool-panel tool-panel--device">
 
+            {/* Status and refresh */}
+            <div className="flex items-center justify-between gap-2">
+                {allDevices.length > 0 ?
+        <StatusChip tone="idle">{onCount}/{allDevices.length} on</StatusChip> :
+        <span />}
+                <button
+          type="button"
+          onClick={handleRefresh}
+          className="btn btn--ghost btn--sm btn--icon"
+          title="Refresh device list" aria-label="Refresh device list">
 
-
-
-
-
-
-
-
-
-
-
-            {/* Header */}
-            <div
-        data-drag-handle
-        className="h-9 bg-gray-900/80 border-b border-yellow-400/20 flex items-center justify-between px-3 cursor-grab active:cursor-grabbing shrink-0">
-
-                <div className="flex items-center gap-2">
-                    <Cpu size={12} className="text-yellow-400" />
-                    <span className="text-xs font-bold tracking-widest text-yellow-400/70">DEVICES</span>
-                    {allDevices.length > 0 &&
-          <span className="px-1.5 py-0.5 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 text-[9px] font-bold">
-                            {onCount}/{allDevices.length} ON
-                        </span>
-          }
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-            onClick={handleRefresh}
-            className="text-cyan-800 hover:text-cyan-400 transition-colors p-1 rounded"
-            title="Refresh device list" aria-label="Refresh device list">
-
-                        <RefreshCw size={11} />
-                    </button>
-
-
-
-
-
-
-                </div>
+                    <RefreshCw size={14} aria-hidden="true" />
+                </button>
             </div>
 
-            <div className="flex-1 flex flex-col gap-2 py-2 overflow-hidden">
-                {/* Filter pills */}
-                <div className="flex gap-1 px-3 overflow-x-auto scrollbar-none">
-                    {FILTERS.map((f) =>
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-widest transition-all
-                                ${filter === f ?
-            'bg-yellow-400/20 border border-yellow-400/40 text-yellow-400' :
-            'border border-transparent text-cyan-800 hover:text-cyan-500'}`}>
+            {/* Filters */}
+            <div className="flex gap-1 overflow-x-auto" role="group" aria-label="Filter devices">
+                {FILTERS.map((f) =>
+        <button
+          type="button"
+          key={f.id}
+          onClick={() => setFilter(f.id)}
+          aria-pressed={filter === f.id}
+          className={`btn btn--sm shrink-0 ${filter === f.id ?
+          '!border-[color:var(--line-accent)] bg-[var(--accent-subtle)] text-accent' :
+          'btn--ghost'}`}>
 
-                            {f.toUpperCase()}
-                        </button>
-          )}
-                </div>
+                        {f.label}
+                    </button>
+        )}
+            </div>
 
-                <div className="flex-1 overflow-y-auto px-3 space-y-0.5">
-                    {filtered.length === 0 ?
-          <div className="flex flex-col items-center justify-center py-10 gap-2">
-                            <Cpu size={24} className="text-cyan-900" />
-                            <span className="text-[10px] text-cyan-900 tracking-widest">
-                                {allDevices.length === 0 ? 'ASK INARA TO LIST DEVICES' : 'NO DEVICES IN THIS CATEGORY'}
-                            </span>
-                            {allDevices.length === 0 &&
-            <button
-              onClick={handleRefresh}
-              className="mt-1 px-3 py-1.5 rounded-lg border border-yellow-400/30 bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 transition-all text-[10px] font-bold tracking-widest">
+            <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+                {filtered.length === 0 ?
+        <EmptyState
+          className="py-10"
+          icon={<Cpu />}
+          title={allDevices.length === 0 ? 'No devices listed' : 'No devices in this category'}
+          body={allDevices.length === 0 ? 'Ask INARA to list devices, or discover them now.' : null}
+          action={allDevices.length === 0 &&
+          <button type="button" onClick={handleRefresh} className="btn btn--secondary btn--sm">
+                                Discover devices
+                            </button>
+          } /> :
 
-                                    DISCOVER DEVICES
-                                </button>
-            }
-                        </div> :
-
-          filtered.map((d) => <DeviceRow key={d.id} device={d} />)
-          }
-                </div>
-
-                {/* Quick commands */}
-                {allDevices.length > 0 &&
-        <div className="px-3 pt-1 border-t border-cyan-900/20 flex gap-2">
-                        <button
-            onClick={() => useStore.getState().sendText('Turn off all lights')}
-            className="flex-1 py-1.5 rounded-lg border border-cyan-900/40 bg-black/20 hover:bg-red-900/20 hover:border-red-900/40 text-[9px] text-cyan-700 hover:text-red-400 font-bold tracking-widest transition-all">
-
-                            ALL OFF
-                        </button>
-                        <button
-            onClick={() => useStore.getState().sendText('Turn on all lights')}
-            className="flex-1 py-1.5 rounded-lg border border-cyan-900/40 bg-black/20 hover:bg-yellow-900/20 hover:border-yellow-900/40 text-[9px] text-cyan-700 hover:text-yellow-400 font-bold tracking-widest transition-all">
-
-                            ALL ON
-                        </button>
-                    </div>
+        filtered.map((d) => <DeviceRow key={d.id} device={d} />)
         }
             </div>
+
+            {/* Quick commands */}
+            {allDevices.length > 0 &&
+      <div className="flex gap-2 border-t border-line pt-3">
+                    <button
+          type="button"
+          onClick={() => useStore.getState().sendText('Turn off all lights')}
+          className="btn btn--secondary btn--sm flex-1">
+
+                        All lights off
+                    </button>
+                    <button
+          type="button"
+          onClick={() => useStore.getState().sendText('Turn on all lights')}
+          className="btn btn--secondary btn--sm flex-1">
+
+                        All lights on
+                    </button>
+                </div>
+      }
         </div>);
 
 };

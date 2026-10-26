@@ -1,24 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
+import { PERMISSION_OPTIONS, permissionOption, permissionValue } from './toolPermissions';
 
 const TOOLS = [
 { id: 'generate_cad', label: 'Generate CAD' },
-{ id: 'run_web_agent', label: 'Web Agent' },
-{ id: 'create_directory', label: 'Create Folder' },
-{ id: 'write_file', label: 'Write File' },
-{ id: 'read_directory', label: 'Read Directory' },
-{ id: 'read_file', label: 'Read File' },
-{ id: 'create_project', label: 'Create Project' },
-{ id: 'switch_project', label: 'Switch Project' },
-{ id: 'list_projects', label: 'List Projects' },
-{ id: 'list_smart_devices', label: 'List Devices' },
-{ id: 'control_light', label: 'Control Light' },
-{ id: 'discover_printers', label: 'Discover Printers' },
-{ id: 'print_stl', label: 'Print 3D Model' },
+{ id: 'legacy_generated_cad', label: 'AI-written CAD code (legacy)', warning: 'Runs code written by the AI on this PC. Keep on Never unless you need it.' },
+{ id: 'run_web_agent', label: 'Web agent' },
+{ id: 'create_directory', label: 'Create folder' },
+{ id: 'write_file', label: 'Write file' },
+{ id: 'read_directory', label: 'Read directory' },
+{ id: 'read_file', label: 'Read file' },
+{ id: 'create_project', label: 'Create project' },
+{ id: 'switch_project', label: 'Switch project' },
+{ id: 'list_projects', label: 'List projects' },
+{ id: 'list_smart_devices', label: 'List devices' },
+{ id: 'control_light', label: 'Control light' },
+{ id: 'discover_printers', label: 'Discover printers' },
+{ id: 'print_stl', label: 'Print 3D model' },
 { id: 'iterate_cad', label: 'Iterate CAD' }];
 
+const ROW = 'flex items-center justify-between gap-3 rounded-md border border-line bg-raised px-3 py-2 text-sm text-ink-1';
+const SELECT = 'w-full rounded-md border border-line-strong bg-raised px-2 py-2 text-sm text-ink-1';
+
+const Switch = ({ checked, label, onClick }) =>
+<button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onClick}
+className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-150 ${checked ? 'border-transparent bg-accent' : 'border-line-strong bg-panel'}`}>
+    <span aria-hidden="true" className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ${checked ? 'translate-x-4 bg-[var(--text-on-accent)]' : 'translate-x-0 bg-ink-2'}`} />
+</button>;
+
+const PermissionControl = ({ tool, option, onChange }) =>
+<div role="radiogroup" aria-label={`${tool.label} permission`} className="inline-flex shrink-0 rounded-md border border-line-strong bg-panel p-0.5">
+    {PERMISSION_OPTIONS.map((entry) =>
+  <label key={entry.id} className="relative cursor-pointer">
+            <input type="radio" className="peer sr-only" name={`permission-${tool.id}`} value={entry.id}
+    checked={option === entry.id} onChange={() => onChange(tool.id, entry.id)} />
+            <span className="flex min-h-[1.75rem] items-center rounded px-2.5 text-[0.6875rem] text-ink-2 transition-colors hover:text-ink-1 peer-checked:bg-[var(--accent-subtle)] peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-[color:var(--accent)] [@media(pointer:coarse)]:min-h-[2.75rem]">
+                {entry.label}
+            </span>
+        </label>
+  )}
+</div>;
 
 const SettingsWindow = ({ onClose }) => {
   const micDevices = useStore((s) => s.micDevices);
@@ -53,9 +75,10 @@ const SettingsWindow = ({ onClose }) => {
     return () => socket.off('settings', handleSettings);
   }, []);
 
-  const togglePermission = (toolId) => {
-    const currentVal = permissions[toolId] !== false;
-    emitSocket('update_settings', { tool_permissions: { [toolId]: !currentVal } });
+  // The control always shows the stored policy; it moves once the core echoes the saved settings.
+  const setPermission = (toolId, option) => {
+    if (permissionOption(permissions, toolId) === option) return;
+    emitSocket('update_settings', { tool_permissions: { [toolId]: permissionValue(option) } });
   };
 
   const toggleFaceAuth = () => {
@@ -91,101 +114,81 @@ const SettingsWindow = ({ onClose }) => {
 
   return (
     <div className="tool-panel tool-panel--settings">
-            <div className="flex justify-between items-center mb-4 border-b border-cyan-900/50 pb-2">
-                <h2 className="text-cyan-400 font-bold text-sm uppercase tracking-wider">Settings</h2>
-
-
-
-            </div>
-
-            <div className="mb-6">
-                <h3 className="text-cyan-400 font-bold mb-3 text-xs uppercase tracking-wider opacity-80">Security</h3>
-                <div className="flex items-center justify-between text-xs bg-gray-900/50 p-2 rounded border border-cyan-900/30">
-                    <span className="text-cyan-100/80">Face Authentication</span>
-                    <button role="switch" aria-checked={faceAuthEnabled} aria-label="Face authentication" onClick={toggleFaceAuth}
-          className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${faceAuthEnabled ? 'bg-cyan-500/80' : 'bg-gray-700'}`}>
-                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${faceAuthEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </button>
+            <section className="flex flex-col gap-2">
+                <h3 className="hud-label">Security</h3>
+                <div className={ROW}>
+                    <span>Face authentication</span>
+                    <Switch checked={faceAuthEnabled} label="Face authentication" onClick={toggleFaceAuth} />
                 </div>
-            </div>
+            </section>
 
-            <div className="mb-4">
-                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Microphone</h3>
-                <select aria-label="Microphone" value={selectedMicId} onChange={(e) => setSelectedMicId(e.target.value)}
-        className="w-full bg-gray-900 border border-cyan-800 rounded p-2 text-xs text-cyan-100 focus:border-cyan-400 outline-none">
+            <section className="flex flex-col gap-2">
+                <label htmlFor="settings-microphone" className="hud-label">Microphone</label>
+                <select id="settings-microphone" value={selectedMicId} onChange={(e) => setSelectedMicId(e.target.value)} className={SELECT}>
                     {micDevices.map((device, i) =>
           <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${i + 1}`}</option>
           )}
                 </select>
-            </div>
+            </section>
 
-            <div className="mb-4">
-                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Speaker</h3>
-                <select aria-label="Speaker" value={selectedSpeakerId} onChange={(e) => setSelectedSpeakerId(e.target.value)}
-        className="w-full bg-gray-900 border border-cyan-800 rounded p-2 text-xs text-cyan-100 focus:border-cyan-400 outline-none">
+            <section className="flex flex-col gap-2">
+                <label htmlFor="settings-speaker" className="hud-label">Speaker</label>
+                <select id="settings-speaker" value={selectedSpeakerId} onChange={(e) => setSelectedSpeakerId(e.target.value)} className={SELECT}>
                     {speakerDevices.map((device, i) =>
           <option key={device.deviceId} value={device.deviceId}>{device.label || `Speaker ${i + 1}`}</option>
           )}
                 </select>
-            </div>
+            </section>
 
-            <div className="mb-6">
-                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Webcam</h3>
-                <select aria-label="Webcam" value={selectedWebcamId} onChange={(e) => setSelectedWebcamId(e.target.value)}
-        className="w-full bg-gray-900 border border-cyan-800 rounded p-2 text-xs text-cyan-100 focus:border-cyan-400 outline-none">
+            <section className="flex flex-col gap-2">
+                <label htmlFor="settings-webcam" className="hud-label">Webcam</label>
+                <select id="settings-webcam" value={selectedWebcamId} onChange={(e) => setSelectedWebcamId(e.target.value)} className={SELECT}>
                     {webcamDevices.map((device, i) =>
           <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${i + 1}`}</option>
           )}
                 </select>
-            </div>
+            </section>
 
-            <div className="mb-6">
-                <div className="flex justify-between mb-2">
-                    <h3 className="text-cyan-400 font-bold text-xs uppercase tracking-wider opacity-80">Cursor Sensitivity</h3>
-                    <span className="text-xs text-cyan-500">{cursorSensitivity}x</span>
+            <section className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <label htmlFor="settings-cursor" className="hud-label">Cursor sensitivity</label>
+                    <span className="font-mono text-[0.6875rem] text-ink-2">{cursorSensitivity}x</span>
                 </div>
-                <input aria-label="Cursor sensitivity" type="range" min="1.0" max="5.0" step="0.1" value={cursorSensitivity}
+                <input id="settings-cursor" type="range" min="1.0" max="5.0" step="0.1" value={cursorSensitivity}
         onChange={(e) => setCursorSensitivity(parseFloat(e.target.value))}
-        className="w-full accent-cyan-400 cursor-pointer h-1 bg-gray-800 rounded-lg appearance-none" />
-            </div>
+        className="w-full cursor-pointer accent-accent" />
+            </section>
 
-            <div className="mb-6">
-                <h3 className="text-cyan-400 font-bold mb-3 text-xs uppercase tracking-wider opacity-80">Gesture Control</h3>
-                <div className="flex items-center justify-between text-xs bg-gray-900/50 p-2 rounded border border-cyan-900/30">
-                    <span className="text-cyan-100/80">Flip Camera Horizontal</span>
-                    <button role="switch" aria-checked={isCameraFlipped} aria-label="Mirror camera" onClick={toggleCameraFlip}
-          className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${isCameraFlipped ? 'bg-cyan-500/80' : 'bg-gray-700'}`}>
-                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${isCameraFlipped ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </button>
+            <section className="flex flex-col gap-2">
+                <h3 className="hud-label">Gesture control</h3>
+                <div className={ROW}>
+                    <span>Mirror camera horizontally</span>
+                    <Switch checked={isCameraFlipped} label="Mirror camera" onClick={toggleCameraFlip} />
                 </div>
-            </div>
+            </section>
 
-            <div className="mb-6">
-                <h3 className="text-cyan-400 font-bold mb-3 text-xs uppercase tracking-wider opacity-80">Tool Confirmations</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                    {TOOLS.map((tool) => {
-            const isRequired = permissions[tool.id] !== false;
-            return (
-              <div key={tool.id} className="flex items-center justify-between text-xs bg-gray-900/50 p-2 rounded border border-cyan-900/30">
-                                <span className="text-cyan-100/80">{tool.label}</span>
-                                <button role="switch" aria-checked={isRequired} aria-label={`Ask before ${tool.label}`} onClick={() => togglePermission(tool.id)}
-                className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${isRequired ? 'bg-cyan-500/80' : 'bg-gray-700'}`}>
-                                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${isRequired ? 'translate-x-4' : 'translate-x-0'}`} />
-                                </button>
-                            </div>);
-
-          })}
-                </div>
-            </div>
-
-            <div>
-                <h3 className="text-cyan-400 font-bold mb-2 text-xs uppercase tracking-wider opacity-80">Memory Data</h3>
+            <section className="flex flex-col gap-2">
+                <h3 className="hud-label">Tool permissions</h3>
+                <p className="text-[0.75rem] leading-relaxed text-ink-2">Never blocks the tool. Ask first shows a confirmation each time. Allow runs it without asking.</p>
                 <div className="flex flex-col gap-2">
-                    <label className="text-[10px] text-cyan-500/60 uppercase">Upload Memory Text</label>
-                    <input type="file" accept=".txt" onChange={handleFileUpload}
-          className="text-xs text-cyan-100 bg-gray-900 border border-cyan-800 rounded p-2 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-cyan-900 file:text-cyan-400 hover:file:bg-cyan-800 cursor-pointer" />
+                    {TOOLS.map((tool) =>
+          <div key={tool.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-md border border-line bg-raised px-3 py-2">
+                            <div className="min-w-0 flex-1 basis-40">
+                                <div className="text-sm text-ink-1">{tool.label}</div>
+                                {tool.warning && <p className="mt-0.5 text-[0.75rem] leading-snug text-ink-2">{tool.warning}</p>}
+                            </div>
+                            <PermissionControl tool={tool} option={permissionOption(permissions, tool.id)} onChange={setPermission} />
+                        </div>
+          )}
                 </div>
-            </div>
+            </section>
+
+            <section className="flex flex-col gap-2">
+                <h3 className="hud-label">Memory data</h3>
+                <label htmlFor="settings-memory" className="text-sm text-ink-2">Upload memory text (.txt)</label>
+                <input id="settings-memory" type="file" accept=".txt" onChange={handleFileUpload}
+          className="cursor-pointer rounded-md border border-line-strong bg-raised p-2 text-sm text-ink-2 file:mr-3 file:cursor-pointer file:rounded file:border file:border-solid file:border-line-strong file:bg-panel file:px-2.5 file:py-1 file:text-[0.75rem] file:text-ink-1 hover:file:bg-[var(--bg-hover)]" />
+            </section>
         </div>);
 
 };

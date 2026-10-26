@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { Bell, Clock, Repeat, Trash2, ChevronRight, BellOff, ToggleLeft, ToggleRight } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
+import StatusChip from '../shared/ui/StatusChip';
+import EmptyState from '../shared/ui/EmptyState';
+
+// Row actions stay hidden until hover, but always appear for keyboard focus and touch.
+const REVEAL = 'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(pointer:coarse)]:opacity-100';
+const ROW = 'group rounded-md border border-line px-3 py-2.5 transition-colors hover:border-line-strong hover:bg-[var(--bg-hover)]';
+const META = 'text-[0.6875rem] text-ink-3';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -26,8 +33,8 @@ const recurringLabel = (r) => {
 
 const triggerLabel = (t) => {
   const map = {
-    'greeting:good_morning': 'Good Morning',
-    'greeting:im_home': "I'm Home",
+    'greeting:good_morning': 'Good morning',
+    'greeting:im_home': "I'm home",
     'greeting:goodnight': 'Goodnight',
     'greeting:leaving': 'Leaving',
     'manual': 'Manual'
@@ -55,19 +62,19 @@ const ReminderRow = ({ reminder }) => {
   const isOverdue = reminder.trigger_at && reminder.trigger_at * 1000 < Date.now();
 
   return (
-    <div className="px-3 py-2.5 rounded-lg border border-white/5 hover:border-cyan-500/20 hover:bg-white/5 transition-all group">
+    <div className={ROW}>
             <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2 min-w-0">
-                    <Bell size={12} className={`shrink-0 mt-0.5 ${isOverdue ? 'text-red-400' : 'text-cyan-500'}`} />
+                <div className="flex min-w-0 items-start gap-2">
+                    <Bell size={14} aria-hidden="true" className={`mt-0.5 shrink-0 ${isOverdue ? 'text-danger' : 'text-ink-3'}`} />
                     <div className="min-w-0">
-                        <p className="text-xs text-cyan-200 leading-snug truncate">{reminder.task}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`text-[10px] font-mono ${isOverdue ? 'text-red-400' : 'text-cyan-700'}`}>
+                        <p className="truncate text-sm leading-snug text-ink-1">{reminder.task}</p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                            <span className={`font-mono text-[0.6875rem] ${isOverdue ? 'text-danger' : 'text-ink-3'}`}>
                                 {formatTriggerAt(reminder.trigger_at)}
                             </span>
                             {reminder.recurring &&
-              <span className="flex items-center gap-0.5 text-[9px] text-purple-500">
-                                    <Repeat size={8} />
+              <span className={`flex items-center gap-1 ${META}`}>
+                                    <Repeat size={11} aria-hidden="true" />
                                     {recurringLabel(reminder.recurring)}
                                 </span>
               }
@@ -75,31 +82,36 @@ const ReminderRow = ({ reminder }) => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <div className={`flex shrink-0 items-center gap-1 ${REVEAL}`}>
                     <button
+            type="button"
             onClick={() => setSnoozeOpen((v) => !v)}
-            className="p-1 rounded text-cyan-700 hover:text-cyan-400 hover:bg-cyan-900/30 transition-colors"
-            title="Snooze" aria-label="Snooze">
+            className="btn btn--ghost btn--sm btn--icon"
+            aria-expanded={snoozeOpen}
+            title="Snooze" aria-label={`Snooze ${reminder.task}`}>
 
-                        <Clock size={11} />
+                        <Clock size={14} aria-hidden="true" />
                     </button>
                     <button
+            type="button"
             onClick={handleCancel}
-            className="p-1 rounded text-cyan-700 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            title="Cancel" aria-label="Cancel">
+            className="btn btn--ghost btn--sm btn--icon hover:!text-danger"
+            title="Cancel" aria-label={`Cancel ${reminder.task}`}>
 
-                        <Trash2 size={11} />
+                        <Trash2 size={14} aria-hidden="true" />
                     </button>
                 </div>
             </div>
 
             {snoozeOpen &&
-      <div className="flex gap-1 mt-2 pl-5">
+      <div className="mt-2 flex gap-1 pl-6">
                     {[5, 15, 30, 60].map((m) =>
         <button
+          type="button"
           key={m}
           onClick={() => handleSnooze(m)}
-          className="flex-1 py-1 rounded text-[9px] font-bold text-cyan-500 border border-cyan-900/50 bg-cyan-900/20 hover:bg-cyan-900/40 transition-colors">
+          aria-label={`Snooze ${m} minutes`}
+          className="btn btn--secondary btn--sm flex-1 font-mono">
 
                             {m}m
                         </button>
@@ -120,41 +132,47 @@ const RoutineRow = ({ routine }) => {
   };
 
   return (
-    <div className="px-3 py-2.5 rounded-lg border border-white/5 hover:border-cyan-500/20 hover:bg-white/5 transition-all group">
+    <div className={ROW}>
             <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                    <Repeat size={12} className={routine.enabled ? 'text-purple-400 shrink-0' : 'text-gray-600 shrink-0'} />
+                <div className="flex min-w-0 items-center gap-2">
+                    <Repeat size={14} aria-hidden="true" className={routine.enabled ? 'shrink-0 text-ink-2' : 'shrink-0 text-ink-3'} />
                     <div className="min-w-0">
-                        <p className="text-xs text-cyan-200 truncate">{routine.name}</p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                            <span className="text-[9px] text-cyan-800 font-mono">{triggerLabel(routine.trigger)}</span>
-                            <span className="text-[9px] text-cyan-900">•</span>
-                            <span className="text-[9px] text-cyan-800">{routine.actions?.length || 0} actions</span>
+                        <p className="truncate text-sm text-ink-1">{routine.name}</p>
+                        <div className={`mt-0.5 flex items-center gap-1 ${META}`}>
+                            <span>{triggerLabel(routine.trigger)}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>{routine.actions?.length || 0} actions</span>
+                            <span aria-hidden="true">·</span>
+                            <span>{routine.enabled ? 'On' : 'Off'}</span>
                         </div>
                     </div>
                 </div>
                 <button
+          type="button"
           onClick={handleToggle}
-          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-700 hover:text-cyan-400"
+          role="switch"
+          aria-checked={!!routine.enabled}
+          aria-label={`Routine ${routine.name}`}
+          className={`btn btn--ghost btn--sm btn--icon shrink-0 ${REVEAL}`}
           title={routine.enabled ? 'Disable' : 'Enable'}>
 
                     {routine.enabled ?
-          <ToggleRight size={18} className="text-purple-400" /> :
-          <ToggleLeft size={18} className="text-gray-600" />
+          <ToggleRight size={18} aria-hidden="true" className="text-accent" /> :
+          <ToggleLeft size={18} aria-hidden="true" className="text-ink-3" />
           }
                 </button>
             </div>
 
             {routine.actions && routine.actions.length > 0 &&
-      <div className="mt-1.5 pl-5 space-y-0.5">
+      <div className="mt-1.5 space-y-0.5 pl-6">
                     {routine.actions.slice(0, 3).map((action, i) =>
-        <div key={i} className="flex items-center gap-1.5 text-[9px] text-cyan-800">
-                            <ChevronRight size={8} className="shrink-0" />
+        <div key={i} className={`flex items-center gap-1.5 ${META}`}>
+                            <ChevronRight size={11} aria-hidden="true" className="shrink-0" />
                             <span className="truncate">{action}</span>
                         </div>
         )}
                     {routine.actions.length > 3 &&
-        <div className="text-[9px] text-cyan-900 pl-3">+{routine.actions.length - 3} more</div>
+        <div className={`pl-4 ${META}`}>+{routine.actions.length - 3} more</div>
         }
                 </div>
       }
@@ -165,6 +183,8 @@ const RoutineRow = ({ routine }) => {
 // ---------------------------------------------------------------------------
 // ReminderWindow
 // ---------------------------------------------------------------------------
+const TABS = [{ id: 'reminders', label: 'Reminders' }, { id: 'routines', label: 'Routines' }];
+
 const ReminderWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement }) => {
   const [tab, setTab] = useState('reminders');
   const [input, setInput] = useState('');
@@ -185,111 +205,63 @@ const ReminderWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElem
     <div
       id="reminder" className="tool-panel tool-panel--reminder">
 
+            {/* Quick-ask bar */}
+            <div className="flex gap-2">
+                <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+          placeholder='e.g. "Remind me at 3pm to call the dentist"'
+          className="min-w-0 flex-1 px-3 text-sm"
+          aria-label="Ask INARA for a reminder or routine" />
 
+                <button
+          type="button"
+          onClick={handleAsk}
+          disabled={!input.trim()}
+          className="btn btn--primary disabled:cursor-not-allowed disabled:opacity-40">
 
-
-
-
-
-
-
-
-
-
-            {/* Header */}
-            <div
-        data-drag-handle
-        className="h-9 bg-gray-900/80 border-b border-amber-500/20 flex items-center justify-between px-3 cursor-grab active:cursor-grabbing shrink-0">
-
-                <div className="flex items-center gap-2">
-                    <Bell size={12} className="text-amber-400" />
-                    <span className="text-xs font-bold tracking-widest text-amber-400/70">REMINDERS</span>
-                    {overdueCount > 0 &&
-          <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-                            {overdueCount}
-                        </span>
-          }
-                </div>
-
-
-
-
-
-
+                    Ask
+                </button>
             </div>
 
-            <div className="flex flex-col gap-2 py-2 flex-1 overflow-hidden">
-                {/* Quick-ask bar */}
-                <div className="mx-3 flex gap-2">
-                    <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-            placeholder='e.g. "Remind me at 3pm to call the dentist"'
-            className="flex-1 bg-black/40 border border-cyan-900/50 rounded-lg px-3 py-2 text-[11px] text-cyan-200 placeholder-cyan-900 focus:outline-none focus:border-cyan-500/50 font-mono" aria-label='e.g. "Remind me at 3pm to call the dentist"' />
+            {overdueCount > 0 &&
+      <div><StatusChip tone="danger">{overdueCount} overdue</StatusChip></div>
+      }
 
-                    <button
-            onClick={handleAsk}
-            disabled={!input.trim()}
-            className={`px-3 rounded-lg text-[10px] font-bold tracking-wider transition-all
-                            ${input.trim() ?
-            'bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30' :
-            'bg-gray-900/40 border border-gray-800 text-gray-700 cursor-not-allowed'}`}>
+            {/* Tabs */}
+            <div className="hud-tabs" role="group" aria-label="Reminders and routines">
+                {TABS.map((t) =>
+        <button
+          type="button"
+          key={t.id}
+            aria-pressed={tab === t.id}
+          onClick={() => setTab(t.id)}
+          className={`hud-tab flex-1 text-sm ${tab === t.id ? 'is-active' : ''}`}>
 
-                        ASK
+                        {t.label}
                     </button>
-                </div>
+        )}
+            </div>
 
-                {/* Tabs */}
-                <div className="flex gap-1 px-3">
-                    {['reminders', 'routines'].map((t) =>
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold tracking-widest transition-all relative
-                                ${tab === t ?
-            'bg-amber-500/20 border border-amber-500/40 text-amber-400' :
-            'border border-transparent text-cyan-700 hover:text-cyan-500'}`}>
+            {/* Content */}
+            <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto">
+                {tab === 'reminders' && (
+        pendingReminders.length === 0 ?
+        <EmptyState className="py-10" icon={<BellOff />} title="No reminders" body="Ask INARA to set a reminder for you." /> :
 
-                            {t.toUpperCase()}
-                            {t === 'reminders' && overdueCount > 0 &&
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
-                                    {overdueCount}
-                                </span>
-            }
-                        </button>
-          )}
-                </div>
+        pendingReminders.
+        sort((a, b) => a.trigger_at - b.trigger_at).
+        map((r) => <ReminderRow key={r.id} reminder={r} />))
+        }
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto px-1 space-y-1">
-                    {tab === 'reminders' && (
-          pendingReminders.length === 0 ?
+                {tab === 'routines' && (
+        routines.length === 0 ?
+        <EmptyState className="py-10" icon={<Repeat />} title="No routines" body="Ask INARA to create a routine for you." /> :
 
-          <div className="flex flex-col items-center justify-center py-10 gap-2">
-                                    <BellOff size={24} className="text-cyan-900" />
-                                    <span className="text-cyan-800 text-xs tracking-widest">NO REMINDERS</span>
-                                    <span className="text-cyan-900 text-[10px] text-center px-6">Ask INARA to set a reminder for you</span>
-                                </div> :
-
-          pendingReminders.
-          sort((a, b) => a.trigger_at - b.trigger_at).
-          map((r) => <ReminderRow key={r.id} reminder={r} />))
-          }
-
-                    {tab === 'routines' && (
-          routines.length === 0 ?
-
-          <div className="flex flex-col items-center justify-center py-10 gap-2">
-                                    <Repeat size={24} className="text-cyan-900" />
-                                    <span className="text-cyan-800 text-xs tracking-widest">NO ROUTINES</span>
-                                    <span className="text-cyan-900 text-[10px] text-center px-6">Ask INARA to create a routine for you</span>
-                                </div> :
-
-          routines.map((r) => <RoutineRow key={r.name} routine={r} />))
-          }
-                </div>
+        routines.map((r) => <RoutineRow key={r.name} routine={r} />))
+        }
             </div>
         </div>);
 

@@ -63,10 +63,6 @@
 .tool-panel > div:first-child { flex-shrink: 0; cursor: default; }
 .tool-panel button { min-height: 32px; }
 .tool-panel input, .tool-panel textarea, .tool-panel select { min-width: 0; min-height: 36px; border-radius: var(--radius-md); }
-.tool-panel [class*="text-[9px]"], .tool-panel [class*="text-[10px]"] { font-size: 0.6875rem; line-height: 1.6; }
-.tool-panel [class*="text-[11px]"] { font-size: 0.75rem; line-height: 1.6; }
-.tool-panel [class*="text-cyan-900"], .tool-panel [class*="text-cyan-800"] { color: var(--text-3); }
-.tool-panel [class*="text-cyan-700"], .tool-panel [class*="text-cyan-600"] { color: var(--text-2); }
 .tool-panel button:focus-visible, .tool-panel input:focus-visible, .tool-panel textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media(max-width: 540px) { .tool-panel { padding: 15px; } }
 @media(prefers-reduced-motion: reduce) { .tool-panel *, .activity-center *, .command-palette * { animation: none !important; transition: none !important; } }

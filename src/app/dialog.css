@@ -52,18 +52,6 @@
   position:relative;
   overflow:auto
 }
-.legacy-panel>div {
-  position:relative!important;
-  inset:auto!important;
-  left:auto!important;
-  top:auto!important;
-  transform:none!important;
-  width:100%!important;
-  height:100%!important;
-  max-width:none!important;
-  border-radius:0!important;
-  box-shadow:none!important
-}
 .legacy-panel>div>div {
   max-width:100%
 }

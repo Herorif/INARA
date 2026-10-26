@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Power, Sun, Palette } from 'lucide-react';
+import { RefreshCw, Power, Sun, Palette, Lightbulb } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
+import StatusChip from '../shared/ui/StatusChip';
+import EmptyState from '../shared/ui/EmptyState';
+
+// The hue slider's spectrum is the control's content (it shows which color each position sets).
+const HUE_TRACK = 'linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)';
 
 const KasaWindow = ({
   position,
@@ -56,100 +61,92 @@ const KasaWindow = ({
     <div
       id="kasa" className="tool-panel tool-panel--kasa">
 
-
-
-
-
-
-
-
-
-
-
-
-
-            <div data-drag-handle className="flex items-center justify-between pb-2 border-b border-white/10 mb-2 cursor-grab active:cursor-grabbing">
-                <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${devices.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
-                    <h3 className="font-bold text-cyan-400 tracking-wider text-sm">SMART CONTROL</h3>
-                </div>
-
-
-
+            <div className="flex items-center justify-between gap-2">
+                <StatusChip tone="idle">
+                    {devices.length > 0 ? `${devices.length} observed` : 'No devices'}
+                </StatusChip>
+                {devices.length > 0 &&
+        <button type="button" onClick={handleDiscover} className="btn btn--ghost btn--sm btn--icon" title="Rescan" aria-label="Rescan for lights">
+                        <RefreshCw size={14} aria-hidden="true" />
+                    </button>
+        }
             </div>
 
-            <div className="flex-1 overflow-y-auto max-h-[400px] scrollbar-hide">
+            <div className="flex flex-1 flex-col gap-3">
                 {devices.length === 0 && !isThinking &&
-        <div className="flex flex-col items-center justify-center p-8 text-center opacity-50">
-                        <p className="text-xs mb-4">No observed devices. Discovery starts only when you request it.</p>
-                        <button onClick={handleDiscover} className="flex items-center gap-2 px-4 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/20 hover:border-cyan-500 transition-all text-xs font-mono text-cyan-300">
-                            <RefreshCw size={14} /> DISCOVER LIGHTS
-                        </button>
-                    </div>
+        <EmptyState
+          className="py-8"
+          icon={<Lightbulb />}
+          title="No observed devices"
+          body="Discovery starts only when you request it."
+          action={
+          <button type="button" onClick={handleDiscover} className="btn btn--secondary btn--sm">
+                                <RefreshCw size={14} aria-hidden="true" /> Discover lights
+                            </button>
+          } />
+
         }
 
                 {isThinking &&
-        <div className="flex flex-col items-center justify-center p-8 gap-3">
-                        <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs text-cyan-400 animate-pulse">Scanning Network...</span>
+        <div className="flex flex-col items-center justify-center gap-3 p-8" role="status">
+                        <RefreshCw size={20} aria-hidden="true" className="animate-spin text-ink-2" />
+                        <span className="text-sm text-ink-2">Scanning network…</span>
                     </div>
         }
 
                 {devices.map((dev) =>
-        <div key={dev.ip} className="mb-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:border-cyan-500/30 transition-all">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex flex-col">
-                                <span className="font-bold text-sm text-white">{dev.alias}</span>
-                                <span className="text-[10px] text-white/40 font-mono">{dev.ip}{dev.online === false ? ' / OFFLINE OR UNVERIFIED' : ' / CACHED OBSERVATION'}</span>
+        <article key={dev.ip} className="rounded-md border border-line bg-raised p-3 transition-colors hover:border-line-strong">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 flex-col gap-1">
+                                <span className="truncate text-sm font-medium text-ink-1">{dev.alias}</span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="font-mono text-[0.6875rem] text-ink-3">{dev.ip}</span>
+                                    {dev.online === false ?
+                <StatusChip tone="warn">Offline or unverified</StatusChip> :
+                <StatusChip tone="idle">Cached observation</StatusChip>
+                }
+                                </div>
                             </div>
                             <button
+              type="button"
               onClick={() => handleToggle(dev.ip, dev.is_on)}
               disabled={loadingDevices[dev.ip] || dev.online === false}
-              className={`p-2 rounded-full transition-all ${dev.is_on ?
-              'bg-green-500/20 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' :
-              'bg-white/5 text-gray-500 hover:text-white'}
-                                    ${loadingDevices[dev.ip] ? 'opacity-50 cursor-not-allowed' : ''}
-                                `}>
+              aria-pressed={!!dev.is_on}
+              aria-label={`Power ${dev.alias}`}
+              className={`btn btn--secondary btn--icon shrink-0 disabled:cursor-not-allowed disabled:opacity-50 ${dev.is_on ? '!border-[color:var(--ok)] !text-ok' : ''}`}>
 
                                 {loadingDevices[dev.ip] ?
-              <div className="w-[18px] h-[18px] border-2 border-current border-t-transparent rounded-full animate-spin" /> :
-
-              <Power size={18} />
+              <RefreshCw size={16} aria-hidden="true" className="animate-spin" /> :
+              <Power size={16} aria-hidden="true" />
               }
                             </button>
                         </div>
 
                         {dev.has_brightness && dev.is_on &&
-          <div className="flex items-center gap-2 mt-2">
-                                <Sun size={14} className="text-yellow-500/70" />
+          <div className="mt-3 flex items-center gap-2">
+                                <Sun size={14} aria-hidden="true" className="shrink-0 text-ink-3" />
                                 <input type="range" min="0" max="100" defaultValue={dev.brightness || 100}
             onChange={(e) => handleBrightness(dev.ip, e.target.value)}
-            className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400" />
+            aria-label={`${dev.alias} brightness`}
+            className="w-full cursor-pointer accent-accent" />
 
                             </div>
           }
 
                         {dev.has_color && dev.is_on &&
-          <div className="flex items-center gap-2 mt-2">
-                                <Palette size={14} className="text-purple-500/70" />
+          <div className="mt-3 flex items-center gap-2">
+                                <Palette size={14} aria-hidden="true" className="shrink-0 text-ink-3" />
                                 <input type="range" min="0" max="360" defaultValue={dev.hsv && dev.hsv.h || 0}
             onChange={(e) => handleColor(dev.ip, e.target.value)}
-            className="w-full h-1 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
-            style={{ background: 'linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)' }} />
+            aria-label={`${dev.alias} color`}
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[color:var(--bg-canvas)] [&::-webkit-slider-thumb]:bg-ink-1"
+            style={{ background: HUE_TRACK }} />
 
                             </div>
           }
-                    </div>
+                    </article>
         )}
             </div>
-
-            {devices.length > 0 &&
-      <div className="pt-2 border-t border-white/10 mt-2 flex justify-end">
-                    <button onClick={handleDiscover} className="p-1 text-white/30 hover:text-cyan-400 transition-colors" title="Rescan" aria-label="Rescan">
-                        <RefreshCw size={14} />
-                    </button>
-                </div>
-      }
         </div>);
 
 };

@@ -3,14 +3,28 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Center, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import { Printer } from 'lucide-react';
+import { Printer, X } from 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
+import StatusChip from '../shared/ui/StatusChip';
+
+// Viewer controls stay out of the way until hover, but always appear for keyboard focus and touch.
+const REVEAL = 'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(pointer:coarse)]:opacity-100';
+const SCRIM = 'bg-[color-mix(in_srgb,var(--bg-canvas)_85%,transparent)]';
+
+const canvasBackground = () => {
+    try {
+        return getComputedStyle(document.documentElement).getPropertyValue('--bg-canvas').trim() || '#05080c';
+    } catch {
+        return '#05080c';
+    }
+};
 
 const GeometryModel = ({ geometry }) => {
     return (
         <mesh geometry={geometry} castShadow receiveShadow>
-            <meshStandardMaterial color="#06b6d4" roughness={0.3} metalness={0.8} />
+            {/* Low metalness: with no environment map a metallic surface renders almost black. */}
+            <meshStandardMaterial color="#06b6d4" roughness={0.45} metalness={0.15} />
         </mesh>
     );
 };
@@ -38,6 +52,8 @@ const CadWindow = ({ onClose }) => {
     const [prompt, setPrompt] = useState('');
     const [isSending, setIsSending] = useState(false);
     const thoughtsEndRef = useRef(null);
+    const sendingTimer = useRef(null);
+    const background = useMemo(canvasBackground, []);
 
     useEffect(() => {
         if (data) console.log('CadWindow Data:', data.format);
@@ -46,6 +62,9 @@ const CadWindow = ({ onClose }) => {
     useEffect(() => {
         if (thoughtsEndRef.current) thoughtsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }, [thoughts]);
+
+    // Never set state after unmount.
+    useEffect(() => () => clearTimeout(sendingTimer.current), []);
 
     const geometry = useMemo(() => {
         if (!data || data.format !== 'stl' || !data.data) return null;
@@ -69,7 +88,8 @@ const CadWindow = ({ onClose }) => {
         setIsSending(true);
         emitSocket('generate_cad', { prompt });
         setPrompt('');
-        setTimeout(() => setIsSending(false), 2000);
+        clearTimeout(sendingTimer.current);
+        sendingTimer.current = setTimeout(() => setIsSending(false), 2000);
     };
 
     const handleIterate = () => {
@@ -82,29 +102,34 @@ const CadWindow = ({ onClose }) => {
     };
 
     return (
-        <div className="w-full h-full relative group bg-gray-900 rounded-lg overflow-hidden border border-cyan-500/30">
-            <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={onClose} className="bg-red-500/20 hover:bg-red-500/50 text-red-500 p-1 rounded">X</button>
+        <div className="group relative h-full w-full overflow-hidden rounded-md border border-line bg-canvas">
+            <div className={`absolute right-2 top-2 z-10 ${REVEAL}`}>
+                <button type="button" onClick={onClose} aria-label="Close previous design" title="Close"
+                    className="btn btn--secondary btn--sm btn--icon !bg-panel">
+                    <X size={14} aria-hidden="true" />
+                </button>
             </div>
 
-            <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                <button onClick={() => setIsIterating(true)}
-                    className="bg-cyan-500/20 hover:bg-cyan-500/50 text-cyan-400 text-xs px-2 py-1 rounded border border-cyan-500/30 backdrop-blur-sm">
-                    ITERATE
+            <div className={`absolute left-2 top-2 z-10 flex gap-2 ${REVEAL}`}>
+                <button type="button" onClick={() => setIsIterating(true)}
+                    className="btn btn--secondary btn--sm !bg-panel">
+                    Iterate
                 </button>
-                <button onClick={() => useStore.setState({ showPrinterWindow: true })}
-                    className="bg-green-500/20 hover:bg-green-500/50 text-green-400 text-xs px-2 py-1 rounded border border-green-500/30 backdrop-blur-sm flex items-center gap-1">
-                    <Printer size={12} /> PRINT
+                <button type="button" onClick={() => useStore.setState({ showPrinterWindow: true })}
+                    className="btn btn--secondary btn--sm !bg-panel">
+                    <Printer size={12} aria-hidden="true" /> Print
                 </button>
             </div>
 
             {(isIterating || (!data && data?.format !== 'loading')) && (
-                <div className={`absolute inset-0 z-20 ${!data ? 'bg-gray-900' : 'bg-black/80'} flex items-center justify-center p-4`}>
-                    <div className="bg-gray-800 border border-cyan-500/50 rounded p-4 w-full max-w-sm pointer-events-auto shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                        <h4 className="text-cyan-400 text-sm mb-2 font-mono">{!data ? 'New Design' : 'Refine Design'}</h4>
-                        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)}
+                <div className={`absolute inset-0 z-20 ${!data ? 'bg-canvas' : SCRIM} flex items-center justify-center p-4`}>
+                    <div className="pointer-events-auto w-full max-w-sm rounded-md border border-line-strong bg-overlay p-4">
+                        <h4 className="mb-2 text-sm font-medium text-ink-1">
+                            <label htmlFor="cad-legacy-prompt">{!data ? 'New design' : 'Refine design'}</label>
+                        </h4>
+                        <textarea id="cad-legacy-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)}
                             placeholder={!data ? 'Describe what you want to create...' : 'e.g., Make the wheels bigger...'}
-                            className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-sm mb-3 focus:outline-none focus:border-cyan-500 h-24 resize-none"
+                            className="mb-3 h-24 w-full resize-none p-2 text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[color:var(--accent)]"
                             autoFocus
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -114,9 +139,9 @@ const CadWindow = ({ onClose }) => {
                             }}
                         />
                         <div className="flex justify-end gap-2">
-                            {data && <button onClick={() => setIsIterating(false)} className="text-gray-400 text-xs hover:text-white px-2 py-1">Cancel</button>}
-                            <button onClick={!data ? handleGenerate : handleIterate} disabled={isSending}
-                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1 rounded">
+                            {data && <button type="button" onClick={() => setIsIterating(false)} className="btn btn--ghost btn--sm">Cancel</button>}
+                            <button type="button" onClick={!data ? handleGenerate : handleIterate} disabled={isSending}
+                                className="btn btn--primary btn--sm disabled:cursor-not-allowed disabled:opacity-60">
                                 {isSending ? 'Generating...' : (!data ? 'Generate' : 'Update')}
                             </button>
                         </div>
@@ -125,40 +150,44 @@ const CadWindow = ({ onClose }) => {
             )}
 
             <Canvas shadows camera={{ position: [4, 4, 4], fov: 45 }}>
-                <color attach="background" args={['#101010']} />
-                <Stage environment="city" intensity={0.5}>
+                <color attach="background" args={[background]} />
+                {/* Local lights only: a drei environment preset would download an HDR from a remote CDN. */}
+                <ambientLight intensity={0.5} />
+                <directionalLight position={[5, 8, 5]} intensity={1.2} />
+                <directionalLight position={[-6, 3, -4]} intensity={0.4} />
+                <Stage environment={null} intensity={0.5}>
                     {data?.format === 'loading' ? <LoadingCube /> : geometry && <Center><GeometryModel geometry={geometry} /></Center>}
                 </Stage>
                 <OrbitControls autoRotate={!isIterating} autoRotateSpeed={1} makeDefault />
             </Canvas>
 
             {data?.format === 'loading' && (
-                <div className="absolute inset-y-0 right-0 w-2/5 p-4 bg-black/70 backdrop-blur-sm border-l border-green-500/30 overflow-hidden flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-green-400 text-xs font-mono tracking-widest uppercase flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            Designer Thinking...
+                <div className={`absolute inset-y-0 right-0 flex w-2/5 flex-col overflow-hidden border-l border-line p-4 ${SCRIM}`} aria-live="polite">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                        <h4 className="hud-label flex items-center gap-2">
+                            <span className="status-dot status-dot--accent" aria-hidden="true"></span>
+                            Designer thinking…
                         </h4>
                         {retryInfo.attempt && (
-                            <span className={`text-xs font-mono px-2 py-0.5 rounded ${retryInfo.error ? 'bg-yellow-500/20 text-yellow-400' : 'bg-cyan-500/20 text-cyan-400'}`}>
+                            <StatusChip tone={retryInfo.error ? 'warn' : 'accent'}>
                                 Attempt {retryInfo.attempt}/{retryInfo.maxAttempts || 3}
-                            </span>
+                            </StatusChip>
                         )}
                     </div>
                     {retryInfo.error && (
-                        <div className="mb-2 p-2 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-xs font-mono">
-                            <span className="text-red-500 font-bold">Warning:</span> {retryInfo.error}
+                        <div className="mb-2 rounded border border-[color:var(--danger)] bg-[var(--danger-subtle)] p-2 text-[0.75rem] text-ink-1">
+                            <span className="font-medium text-danger">Warning:</span> <span className="font-mono">{retryInfo.error}</span>
                         </div>
                     )}
-                    <div className="flex-1 overflow-y-auto text-green-400/80 text-xs font-mono whitespace-pre-wrap leading-relaxed scrollbar-thin scrollbar-thumb-green-500/30">
+                    <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-[0.75rem] leading-relaxed text-ink-2">
                         {thoughts}
                         <div ref={thoughtsEndRef} />
                     </div>
                 </div>
             )}
 
-            <div className="absolute bottom-2 left-2 text-[10px] text-cyan-500/50 font-mono tracking-widest pointer-events-none">
-                CAD_ENGINE_V2: {data?.format?.toUpperCase() || 'READY'}
+            <div className="hud-label pointer-events-none absolute bottom-2 left-2">
+                CAD engine v2 · {data?.format || 'ready'}
             </div>
         </div>
     );

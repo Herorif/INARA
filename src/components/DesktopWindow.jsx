@@ -1,37 +1,36 @@
 import React, { useState } from 'react';
 import {
   Monitor, HardDrive, Battery, BatteryCharging,
-  Search, Clipboard, ClipboardPaste, Camera, Zap,
+  Search, Clipboard, ClipboardPaste, Camera, RefreshCw,
   Terminal, Code, Music, MessageSquare, Globe } from
 'lucide-react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
+import EmptyState from '../shared/ui/EmptyState';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 const pct = (v) => `${Math.round(v ?? 0)}%`;
 
-const UsageBar = ({ label, percent, color = 'cyan' }) => {
-  const colorMap = {
-    cyan: 'bg-cyan-500',
-    green: 'bg-green-500',
-    purple: 'bg-purple-500',
-    amber: 'bg-amber-500',
-    red: 'bg-red-500'
-  };
-  const barColor = percent > 90 ? colorMap.red : percent > 70 ? colorMap.amber : colorMap[color];
+const usageState = (percent) => percent > 90 ? 'danger' : percent > 70 ? 'warn' : null;
+const STATE_TEXT = { danger: 'text-danger', warn: 'text-warn' };
+const STATE_FILL = { danger: 'bg-danger', warn: 'bg-warn' };
+const STATE_LABEL = { danger: 'Critical', warn: 'High' };
+
+const UsageBar = ({ label, percent }) => {
+  const state = usageState(percent);
   return (
     <div className="space-y-1">
-            <div className="flex justify-between text-[10px] font-mono">
-                <span className="text-cyan-600">{label}</span>
-                <span className={percent > 90 ? 'text-red-400' : percent > 70 ? 'text-amber-400' : 'text-cyan-400'}>
-                    {pct(percent)}
+            <div className="flex justify-between gap-2 text-[0.75rem]">
+                <span className="text-ink-2">{label}</span>
+                <span className={`shrink-0 font-mono ${state ? STATE_TEXT[state] : 'text-ink-1'}`}>
+                    {pct(percent)}{state && ` · ${STATE_LABEL[state]}`}
                 </span>
             </div>
-            <div className="h-1.5 bg-gray-900 rounded-full overflow-hidden">
+            <div className="h-1 overflow-hidden rounded-sm bg-[var(--line)]">
                 <div
-          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          className={`h-full transition-all duration-500 ${state ? STATE_FILL[state] : 'bg-accent'}`}
           style={{ width: `${Math.min(100, percent ?? 0)}%` }} />
 
             </div>
@@ -58,11 +57,12 @@ const AppButton = ({ app }) => {
   };
   return (
     <button
+      type="button"
       onClick={handleLaunch}
-      className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-cyan-900/40 bg-black/30 hover:bg-cyan-900/20 hover:border-cyan-500/40 transition-all group active:scale-95">
+      className="group flex flex-col items-center gap-1.5 rounded-md border border-line bg-raised p-3 transition-colors hover:border-line-strong hover:bg-[var(--bg-hover)]">
 
-            <Icon size={20} className="text-cyan-600 group-hover:text-cyan-400 transition-colors" />
-            <span className="text-[9px] text-cyan-700 group-hover:text-cyan-500 font-bold tracking-wider">{app.label}</span>
+            <Icon size={20} aria-hidden="true" className="text-ink-2 transition-colors group-hover:text-ink-1" />
+            <span className="text-[0.75rem] text-ink-2 group-hover:text-ink-1">{app.label}</span>
         </button>);
 
 };
@@ -72,56 +72,49 @@ const AppButton = ({ app }) => {
 // ---------------------------------------------------------------------------
 const StatsPanel = ({ info }) => {
   if (!info) {
-    return (
-      <div className="flex flex-col items-center justify-center py-6 gap-2">
-                <Monitor size={24} className="text-cyan-900" />
-                <span className="text-cyan-800 text-[10px] tracking-widest">ASK INARA FOR SYSTEM INFO</span>
-            </div>);
-
+    return <EmptyState className="py-6" icon={<Monitor />} title="No system info yet" body="Ask INARA for system info, or refresh." />;
   }
 
   const { cpu, memory, disk = [], battery } = info;
+  const lowBattery = battery && battery.percent < 20;
 
   return (
     <div className="space-y-3">
             {cpu &&
       <UsageBar
         label={`CPU — ${cpu.cores ?? '?'} cores${cpu.freq_mhz ? ` @ ${cpu.freq_mhz} MHz` : ''}`}
-        percent={cpu.percent}
-        color="cyan" />
+        percent={cpu.percent} />
 
       }
             {memory &&
       <UsageBar
         label={`RAM — ${memory.used_gb ?? '?'} / ${memory.total_gb ?? '?'} GB`}
-        percent={memory.percent}
-        color="purple" />
+        percent={memory.percent} />
 
       }
             {disk.slice(0, 2).map((d) =>
       <UsageBar
         key={d.mount}
         label={`Disk ${d.mount} — ${d.used_gb} / ${d.total_gb} GB`}
-        percent={d.percent}
-        color="green" />
+        percent={d.percent} />
 
       )}
             {battery &&
-      <div className="flex items-center justify-between text-[10px] font-mono pt-1 border-t border-cyan-900/30">
-                    <div className="flex items-center gap-1.5 text-cyan-600">
+      <div className="flex items-center justify-between border-t border-line pt-2 text-[0.75rem]">
+                    <div className="flex items-center gap-1.5 text-ink-2">
                         {battery.plugged_in ?
-          <BatteryCharging size={12} className="text-green-400" /> :
-          <Battery size={12} className={battery.percent < 20 ? 'text-red-400' : 'text-cyan-400'} />
+          <BatteryCharging size={14} aria-hidden="true" className="text-ok" /> :
+          <Battery size={14} aria-hidden="true" className={lowBattery ? 'text-danger' : 'text-ink-2'} />
           }
                         <span>Battery</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className={battery.percent < 20 ? 'text-red-400' : 'text-cyan-400'}>
-                            {battery.percent}%
+                        <span className={`font-mono ${lowBattery ? 'text-danger' : 'text-ink-1'}`}>
+                            {battery.percent}%{lowBattery && ' · Low'}
                         </span>
-                        {battery.plugged_in && <span className="text-green-500">charging</span>}
+                        {battery.plugged_in && <span className="text-ok">Charging</span>}
                         {!battery.plugged_in && battery.time_left_min &&
-          <span className="text-cyan-700">~{battery.time_left_min}m left</span>
+          <span className="text-ink-3">~{battery.time_left_min}m left</span>
           }
                     </div>
                 </div>
@@ -135,17 +128,17 @@ const StatsPanel = ({ info }) => {
 // ---------------------------------------------------------------------------
 const ProcessList = ({ processes }) => {
   if (!processes || processes.length === 0) {
-    return <div className="text-[10px] text-cyan-900 text-center py-4">No process data</div>;
+    return <div className="py-4 text-center text-[0.75rem] text-ink-3">No process data</div>;
   }
   return (
     <div className="space-y-0.5">
             {processes.slice(0, 8).map((p) =>
-      <div key={p.pid} className="flex items-center justify-between px-2 py-1 rounded hover:bg-white/5 transition-colors">
-                    <span className="text-[10px] text-cyan-300 font-mono truncate flex-1 mr-2">{p.name}</span>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[9px] text-cyan-700 font-mono w-14 text-right">{p.memory_mb} MB</span>
+      <div key={p.pid} className="flex items-center justify-between rounded px-2 py-1 transition-colors hover:bg-[var(--bg-hover)]">
+                    <span className="mr-2 flex-1 truncate font-mono text-[0.75rem] text-ink-1">{p.name}</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                        <span className="w-16 text-right font-mono text-[0.6875rem] text-ink-3">{p.memory_mb} MB</span>
                         {p.cpu_percent > 0 &&
-          <span className="text-[9px] text-amber-600 font-mono w-10 text-right">{p.cpu_percent.toFixed(1)}%</span>
+          <span className="w-12 text-right font-mono text-[0.6875rem] text-ink-2">{p.cpu_percent.toFixed(1)}%</span>
           }
                     </div>
                 </div>
@@ -157,6 +150,8 @@ const ProcessList = ({ processes }) => {
 // ---------------------------------------------------------------------------
 // DesktopWindow
 // ---------------------------------------------------------------------------
+const TABS = [{ id: 'stats', label: 'Stats' }, { id: 'apps', label: 'Apps' }, { id: 'tools', label: 'Tools' }];
+
 const DesktopWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement }) => {
   const [tab, setTab] = useState('stats');
   const [searchQuery, setSearchQuery] = useState('');
@@ -176,182 +171,149 @@ const DesktopWindow = ({ position, onClose, onMouseDown, zIndex, activeDragEleme
   const handleScreenshot = () => emitSocket('take_screenshot', {});
   const handleRefreshStats = () => emitSocket('get_system_info', {});
 
-  const TABS = ['stats', 'apps', 'tools'];
-
   return (
     <div
       id="desktop" className="tool-panel tool-panel--desktop">
 
-
-
-
-
-
-
-
-
-
-
-
-            {/* Header */}
-            <div
-        data-drag-handle
-        className="h-9 bg-gray-900/80 border-b border-cyan-500/20 flex items-center justify-between px-3 cursor-grab active:cursor-grabbing shrink-0">
-
-                <div className="flex items-center gap-2">
-                    <Monitor size={12} className="text-cyan-500" />
-                    <span className="text-xs font-bold tracking-widest text-cyan-500/70">DESKTOP</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-            onClick={handleRefreshStats}
-            className="text-cyan-800 hover:text-cyan-400 transition-colors p-1 rounded"
-            title="Refresh system info" aria-label="Refresh system info">
-
-                        <Zap size={11} />
-                    </button>
-
-
-
-
-
-
-                </div>
-            </div>
-
-            <div className="flex-1 flex flex-col gap-2 py-2 overflow-hidden">
-                {/* Tabs */}
-                <div className="flex gap-1 px-3">
+            {/* Tabs and refresh */}
+            <div className="flex items-center gap-2">
+                <div className="hud-tabs flex-1" role="group" aria-label="Desktop controls">
                     {TABS.map((t) =>
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold tracking-widest transition-all
-                                ${tab === t ?
-            'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400' :
-            'border border-transparent text-cyan-700 hover:text-cyan-500'}`}>
+            type="button"
+            key={t.id}
+            aria-pressed={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`hud-tab flex-1 text-sm ${tab === t.id ? 'is-active' : ''}`}>
 
-                            {t.toUpperCase()}
+                            {t.label}
                         </button>
           )}
                 </div>
+                <button
+          type="button"
+          onClick={handleRefreshStats}
+          className="btn btn--ghost btn--sm btn--icon"
+          title="Refresh system info" aria-label="Refresh system info">
 
-                <div className="flex-1 overflow-y-auto px-3 space-y-3">
+                    <RefreshCw size={14} aria-hidden="true" />
+                </button>
+            </div>
 
-                    {/* STATS TAB */}
-                    {tab === 'stats' &&
-          <>
-                            <StatsPanel info={systemInfo} />
-                            {runningApps.length > 0 &&
-            <div>
-                                    <div className="text-[9px] text-cyan-800 tracking-widest mb-1 font-bold">PROCESSES</div>
-                                    <ProcessList processes={runningApps} />
-                                </div>
+            <div className="flex flex-1 flex-col gap-4 overflow-y-auto">
+
+                {/* STATS TAB */}
+                {tab === 'stats' &&
+        <>
+                        <StatsPanel info={systemInfo} />
+                        {runningApps.length > 0 &&
+          <section className="flex flex-col gap-2">
+                                <h3 className="hud-label">Processes</h3>
+                                <ProcessList processes={runningApps} />
+                            </section>
+          }
+                    </>
+        }
+
+                {/* APPS TAB */}
+                {tab === 'apps' &&
+        <>
+                        <div className="grid grid-cols-3 gap-2">
+                            {QUICK_APPS.map((app) => <AppButton key={app.name} app={app} />)}
+                        </div>
+                        <section className="flex flex-col gap-2 border-t border-line pt-3">
+                            <label htmlFor="desktop-launch" className="hud-label">Launch any app</label>
+                            <input
+              id="desktop-launch"
+              type="text"
+              placeholder='App name (e.g. "notepad")'
+              className="w-full px-3 text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                  handleAsk(`Launch ${e.target.value.trim()}`);
+                  e.target.value = '';
+                }
+              }} />
+
+                        </section>
+                    </>
+        }
+
+                {/* TOOLS TAB */}
+                {tab === 'tools' &&
+        <div className="flex flex-col gap-4">
+                        {/* Screenshot */}
+                        <section className="flex flex-col gap-2">
+                            <h3 className="hud-label">Screen capture</h3>
+                            {lastScreenshot ?
+            <figure className="m-0 overflow-hidden rounded-md border border-line">
+                                    <img
+                src={`data:image/jpeg;base64,${lastScreenshot}`}
+                alt="Last screenshot"
+                className="w-full object-cover"
+                style={{ maxHeight: 140 }} />
+
+                                    <figcaption className="border-t border-line bg-raised px-2 py-1 text-[0.75rem] text-ink-2">Last capture</figcaption>
+                                </figure> :
+
+            <EmptyState className="rounded-md border border-dashed border-line-strong py-5" icon={<Camera />} title="No capture yet" />
             }
-                        </>
-          }
+                            <button
+              type="button"
+              onClick={handleScreenshot}
+              className="btn btn--secondary w-full">
 
-                    {/* APPS TAB */}
-                    {tab === 'apps' &&
-          <>
-                            <div className="grid grid-cols-3 gap-2">
-                                {QUICK_APPS.map((app) => <AppButton key={app.name} app={app} />)}
-                            </div>
-                            <div className="pt-1 border-t border-cyan-900/30">
-                                <div className="text-[9px] text-cyan-800 tracking-widest mb-2 font-bold">LAUNCH ANY APP</div>
-                                <div className="flex gap-2">
-                                    <input
-                  type="text"
-                  placeholder='App name (e.g. "notepad")'
-                  className="flex-1 bg-black/40 border border-cyan-900/50 rounded-lg px-3 py-2 text-[11px] text-cyan-200 placeholder-cyan-900 focus:outline-none focus:border-cyan-500/50 font-mono"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
-                      handleAsk(`Launch ${e.target.value.trim()}`);
-                      e.target.value = '';
-                    }
-                  }} aria-label='App name (e.g. "notepad")' />
+                                <Camera size={14} aria-hidden="true" /> Capture screen
+                            </button>
+                        </section>
 
-                                </div>
-                            </div>
-                        </>
-          }
+                        {/* File search */}
+                        <section className="flex flex-col gap-2 border-t border-line pt-3">
+                            <label htmlFor="desktop-file-search" className="hud-label">File search</label>
+                            <div className="flex gap-2">
+                                <input
+                id="desktop-file-search"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder='e.g. "resume.docx" or "*.pdf"'
+                className="min-w-0 flex-1 px-3 text-sm" />
 
-                    {/* TOOLS TAB */}
-                    {tab === 'tools' &&
-          <div className="space-y-3">
-                            {/* Screenshot */}
-                            <div>
-                                <div className="text-[9px] text-cyan-800 tracking-widest mb-2 font-bold">SCREEN VISION</div>
-                                {lastScreenshot ?
-              <div className="relative rounded-lg overflow-hidden border border-cyan-900/40 mb-2">
-                                        <img
-                  src={`data:image/jpeg;base64,${lastScreenshot}`}
-                  alt="Last screenshot"
-                  className="w-full object-cover"
-                  style={{ maxHeight: 140 }} />
-
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                        <span className="absolute bottom-1.5 left-2 text-[9px] text-cyan-400 font-bold tracking-wider">LAST CAPTURE</span>
-                                    </div> :
-
-              <div className="flex flex-col items-center justify-center py-5 border border-dashed border-cyan-900/40 rounded-lg mb-2 gap-1">
-                                        <Camera size={20} className="text-cyan-900" />
-                                        <span className="text-[9px] text-cyan-900 tracking-widest">NO CAPTURE YET</span>
-                                    </div>
-              }
                                 <button
-                onClick={handleScreenshot}
-                className="w-full py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-all text-[10px] font-bold tracking-widest flex items-center justify-center gap-2">
+                type="button"
+                onClick={handleSearch}
+                disabled={!searchQuery.trim()}
+                aria-label="Search files"
+                className="btn btn--secondary btn--icon disabled:cursor-not-allowed disabled:opacity-40">
 
-                                    <Camera size={12} /> CAPTURE SCREEN
+                                    <Search size={14} aria-hidden="true" />
                                 </button>
                             </div>
+                        </section>
 
-                            {/* File search */}
-                            <div className="border-t border-cyan-900/30 pt-3">
-                                <div className="text-[9px] text-cyan-800 tracking-widest mb-2 font-bold">FILE SEARCH</div>
-                                <div className="flex gap-2">
-                                    <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder='e.g. "resume.docx" or "*.pdf"'
-                  className="flex-1 bg-black/40 border border-cyan-900/50 rounded-lg px-3 py-2 text-[11px] text-cyan-200 placeholder-cyan-900 focus:outline-none focus:border-cyan-500/50 font-mono" aria-label='e.g. "resume.docx" or "*.pdf"' />
+                        {/* Clipboard */}
+                        <section className="flex flex-col gap-2 border-t border-line pt-3">
+                            <h3 className="hud-label">Clipboard</h3>
+                            <div className="flex gap-2">
+                                <button
+                type="button"
+                onClick={() => handleAsk('Read my clipboard')}
+                className="btn btn--secondary flex-1">
 
-                                    <button
-                  onClick={handleSearch}
-                  disabled={!searchQuery.trim()}
-                  className={`px-3 rounded-lg transition-all ${searchQuery.trim() ?
-                  'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30' :
-                  'bg-gray-900/40 border border-gray-800 text-gray-700 cursor-not-allowed'}`}>
+                                    <Clipboard size={14} aria-hidden="true" /> Read
+                                </button>
+                                <button
+                type="button"
+                onClick={() => handleAsk('What did I last copy to clipboard?')}
+                className="btn btn--secondary flex-1">
 
-                                        <Search size={14} />
-                                    </button>
-                                </div>
+                                    <ClipboardPaste size={14} aria-hidden="true" /> Paste to INARA
+                                </button>
                             </div>
-
-                            {/* Clipboard */}
-                            <div className="border-t border-cyan-900/30 pt-3">
-                                <div className="text-[9px] text-cyan-800 tracking-widest mb-2 font-bold">CLIPBOARD</div>
-                                <div className="flex gap-2">
-                                    <button
-                  onClick={() => handleAsk('Read my clipboard')}
-                  className="flex-1 py-2 rounded-lg border border-cyan-900/40 bg-black/30 hover:bg-cyan-900/20 transition-all text-[10px] text-cyan-600 hover:text-cyan-400 flex items-center justify-center gap-1.5 font-bold tracking-wider">
-
-                                        <Clipboard size={11} /> READ
-                                    </button>
-                                    <button
-                  onClick={() => handleAsk('What did I last copy to clipboard?')}
-                  className="flex-1 py-2 rounded-lg border border-cyan-900/40 bg-black/30 hover:bg-cyan-900/20 transition-all text-[10px] text-cyan-600 hover:text-cyan-400 flex items-center justify-center gap-1.5 font-bold tracking-wider">
-
-                                        <ClipboardPaste size={11} /> PASTE TO INARA
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-          }
-                </div>
+                        </section>
+                    </div>
+        }
             </div>
         </div>);
 
