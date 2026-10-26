@@ -31,9 +31,11 @@ Step 5, 24 October 2026: [controlled one-call software workflow](CONTROLLED_CALL
 
 ## Standing exclusions and phone requirements
 
-- Keep the owner's existing SIM and personal WhatsApp numbers/accounts. INARA speaking with incoming callers and taking a message remains the intended outcome.
-- WhatsApp reply drafting/sending, acknowledgements and notification actions remain excluded until specifically requested. Gate: `whatsapp-actions`.
-- Outgoing calls, call forwarding and WhatsApp Business migration have not been selected. Do not substitute them for the requested personal-account behavior or enable them automatically.
+- **Owner decision, 25 Oct 2026** (replaces the earlier exclusions below; history kept): SIM calls come first. The owner keeps the existing SIM number, which callers still dial; the carrier conditionally forwards busy / no-answer / unreachable calls to a Twilio Malaysian local number that INARA answers. WhatsApp calls come later through a separate WhatsApp Business Cloud API number with the official Calling API, never the personal account. The desktop bridge (Phone Link over Bluetooth, WhatsApp Desktop automation, virtual audio cables) is parked as a possible local-only mode, not the main path. Voice: Gemini Live, built-in female voice (Kore default); brain: Claude Sonnet 5.5 (Haiku 5.5 for fast summaries), Gemini for live voice and transcription. See [call routing](CALL_ROUTING.md). Gate: `sim-call-routing`.
+- Earlier record: keep the owner's existing SIM and personal WhatsApp numbers/accounts. INARA speaking with incoming callers and taking a message remains the intended outcome. (SIM number is still kept; the personal WhatsApp account is not used for calls.)
+- WhatsApp reply drafting/sending, acknowledgements and notification actions remain excluded until specifically requested; the 25 Oct 2026 decision keeps WhatsApp text replies and outgoing WhatsApp actions excluded. Gate: `whatsapp-actions`.
+- Earlier record (superseded 25 Oct 2026): outgoing calls, call forwarding and WhatsApp Business migration had not been selected.
+- **Owner decision, 25 Oct 2026:** carrier call forwarding to the Twilio number is selected; a separate WhatsApp Business Cloud API number is selected for later. Outgoing calls are allowed with approvals: INARA may call the owner automatically (owner briefings); any call to another number (callbacks, reservations) needs the owner's explicit one-use approval each time, and INARA always says it is an AI assistant at the start of a call. Nothing is enabled automatically; setup and test calls remain owner-run.
 - Do not configure devices, enable collection, silently download SDKs/models, adopt real profiles or migrate private data as an incidental implementation step.
 
 ## Pending acceptance and backlog (not completed or automatically authorized)
