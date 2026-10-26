@@ -36,15 +36,17 @@ function Set-Busy([bool]$value) {
     foreach ($taskName in @('RootPath','PackagePath','BackupPath','PreparedProfile','BrowseRoot','NewRoot','BrowsePackage','OpenBackup','SaveBackup','CheckRoot','Versions','OpenWorkspace','CancelReview')) { $script:ui[$taskName].IsEnabled = !$value }
     foreach ($taskName in $script:actionButtons) { $script:ui[$taskName].IsEnabled = !$value }
     $script:ui.ConfirmReview.IsEnabled = !$value -and $null -ne $script:reviewToken -and (!$script:eraseRequired -or $script:ui.EraseConfirmation.Text -ceq 'ERASE INARA DATA')
+    if ($script:ui.ProvidersPage.Visibility -eq 'Visible') { Update-ProvidersPage }
 }
 function Set-Page([string]$name) {
-    foreach ($taskName in @('HomePage','RecoveryPage','RemovePage')) { $script:ui[$taskName].Visibility = $(if ($taskName -eq $name) {'Visible'} else {'Collapsed'}) }
-    $script:ui.PageTitle.Text = switch ($name) {'RecoveryPage' {'Keep a way back.'} 'RemovePage' {'Leave on your terms.'} default {'A home for INARA.'}}
-    $script:ui.PageDescription.Text = switch ($name) {'RecoveryPage' {'Protect your work. Review the path before switching.'} 'RemovePage' {'Software and personal data are separate decisions.'} default {'Install locally. Choose your version. Keep your work.'}}
-    foreach ($taskName in @('NavHome','NavRecovery','NavRemove')) {$script:ui[$taskName].Background='#152837'; $script:ui[$taskName].BorderBrush='#2B485B'}
-    $taskNav = switch ($name) {'RecoveryPage' {'NavRecovery'} 'RemovePage' {'NavRemove'} default {'NavHome'}}
+    foreach ($taskName in @('HomePage','RecoveryPage','RemovePage','ProvidersPage')) { $script:ui[$taskName].Visibility = $(if ($taskName -eq $name) {'Visible'} else {'Collapsed'}) }
+    $script:ui.PageTitle.Text = switch ($name) {'RecoveryPage' {'Keep a way back.'} 'RemovePage' {'Leave on your terms.'} 'ProvidersPage' {'AI providers'} default {'A home for INARA.'}}
+    $script:ui.PageDescription.Text = switch ($name) {'RecoveryPage' {'Protect your work. Review the path before switching.'} 'RemovePage' {'Software and personal data are separate decisions.'} 'ProvidersPage' {'Add the API keys for Claude and Gemini. You can skip this and add them later.'} default {'Install locally. Choose your version. Keep your work.'}}
+    foreach ($taskName in @('NavHome','NavRecovery','NavRemove','NavProviders')) {$script:ui[$taskName].Background='#152837'; $script:ui[$taskName].BorderBrush='#2B485B'}
+    $taskNav = switch ($name) {'RecoveryPage' {'NavRecovery'} 'RemovePage' {'NavRemove'} 'ProvidersPage' {'NavProviders'} default {'NavHome'}}
     $script:ui[$taskNav].Background='#145963'; $script:ui[$taskNav].BorderBrush='#43BDBB'
     Reset-Review
+    if ($name -eq 'ProvidersPage') { Update-ProvidersPage }
 }
 function Set-SetupStatus($value) {
     $script:lastStatus = $value
@@ -96,6 +98,7 @@ function Show-SetupReview($value) {
     $script:ui.CancelReview.Focus() | Out-Null
 }
 function Send-Control($value) {
+    if ($script:secretBusy) { $script:ui.StatusText.Text = 'Wait for the key check to finish.'; return }
     if ($script:busy -or !$script:worker -or $script:worker.HasExited) { return }
     $script:currentOp = $value.op
     Set-Busy $true
@@ -143,6 +146,133 @@ $script:ui.EraseConfirmation.Add_TextChanged({$script:ui.ConfirmReview.IsEnabled
 foreach ($taskName in @('RootPath','PackagePath','BackupPath','PreparedProfile')) { $script:ui[$taskName].Add_TextChanged({Reset-Review; if ($this -eq $script:ui.RootPath) {$script:lastStatus=$null; $script:ui.StatusText.Text='Folder changed. Check it before choosing an installed version.'}}) }
 $script:ui.Versions.Add_SelectionChanged({Reset-Review})
 $script:ui.OpenWorkspace.Add_Checked({Reset-Review}); $script:ui.OpenWorkspace.Add_Unchecked({Reset-Review})
+# AI provider keys: the selected version's own bundled Python runs scripts/inara-secrets.py.
+# Keys travel only on that child's stdin; they are never placed in arguments, logs or status text.
+$script:secretBusy = $false; $script:secretJob = $null; $script:secretQueue = New-Object Collections.Queue; $script:secretTimer = $null
+$script:secretFields = @{
+    anthropic_api_key = @{box='AnthropicKey'; result='AnthropicResult'}
+    gemini_api_key = @{box='GeminiKey'; result='GeminiResult'}
+}
+function Get-SecretTool {
+    $root = $script:ui.RootPath.Text.Trim().TrimEnd('\','/')
+    $none = 'Install and select a version first (Installation page, then Check). You can also add keys after installing, from Preferences inside INARA.'
+    if (!$script:lastStatus -or !$script:lastStatus.exists -or !$script:lastStatus.selected) { return @{ok=$false; reason=$none} }
+    $slot = [string]$script:lastStatus.selected
+    if ($slot -notmatch '^[a-f0-9]{64}$' -or !$root -or $root.Contains('"')) { return @{ok=$false; reason=$none} }
+    $version = Join-Path $root ('versions\' + $slot)
+    $tool = @{ok=$true; root=$root; slot=$slot; version=$version; python=(Join-Path $version 'runtime\python\python.exe'); script=(Join-Path $version 'scripts\inara-secrets.py')}
+    $old = 'This installed version cannot store keys yet. Install a newer version, or add keys later from Preferences inside INARA.'
+    try {
+        $pilot = Join-Path $version 'desktop-pilot.json'
+        if (!(Test-Path -LiteralPath $tool.script -PathType Leaf) -or !(Test-Path -LiteralPath $tool.python -PathType Leaf) -or (Get-Item -LiteralPath $pilot).Length -gt 4194304) { return @{ok=$false; reason=$old} }
+        # Same drift check Setup applies to its own bootstrap files.
+        $versionManifest = Get-Content -LiteralPath $pilot -Raw | ConvertFrom-Json
+        foreach ($entry in @(@('runtime/python/python.exe',$tool.python),@('scripts/inara-secrets.py',$tool.script))) {
+            $record = @($versionManifest.files | Where-Object {$_.path -ceq $entry[0]})
+            if ($record.Count -ne 1 -or (Get-FileHash -LiteralPath $entry[1] -Algorithm SHA256).Hash.ToLowerInvariant() -cne $record[0].sha256) { return @{ok=$false; reason='The installed version changed since installation. Check it on the Installation page before adding keys.'} }
+        }
+    } catch { return @{ok=$false; reason=$old} }
+    return $tool
+}
+function Update-ProviderControls([bool]$available = $true) {
+    $enabled = $available -and !$script:busy -and !$script:secretBusy
+    foreach ($taskName in @('AnthropicKey','GeminiKey','TestAnthropic','TestGemini','SaveKeys')) { $script:ui[$taskName].IsEnabled = $enabled }
+    $script:ui.SkipKeys.IsEnabled = !$script:secretBusy
+}
+function Update-ProvidersPage {
+    $tool = Get-SecretTool
+    $script:ui.ProvidersUnavailable.Visibility = $(if ($tool.ok) {'Collapsed'} else {'Visible'})
+    $script:ui.ProvidersUnavailableText.Text = $(if ($tool.ok) {''} else {$tool.reason})
+    Update-ProviderControls $tool.ok
+}
+function Set-SecretResult([string]$name, [string]$text, [bool]$good) {
+    $target = $script:ui[$script:secretFields[$name].result]
+    $target.Text = $text
+    $target.Foreground = $(if ($good) {'#6DE5DE'} else {'#F0A5AF'})
+}
+function Start-SecretQueue {
+    if ($script:secretBusy -or $script:secretQueue.Count -eq 0) { return }
+    $tool = Get-SecretTool
+    if (!$tool.ok) { $script:secretQueue.Clear(); $script:ui.StatusText.Text = $tool.reason; Update-ProvidersPage; return }
+    $job = $script:secretQueue.Dequeue()
+    $script:secretBusy = $true; $script:ui.Progress.Visibility = 'Visible'; Update-ProviderControls $true
+    $script:ui.StatusText.Text = 'Checking the key with its provider. This can take a few seconds.'
+    $start = New-Object Diagnostics.ProcessStartInfo
+    $start.FileName = $tool.python
+    # Fixed arguments only: the root is a checked local path and the slot a 64-hex id.
+    $start.Arguments = '-I -B -X utf8 "' + $tool.script + '" --installation-root "' + $tool.root + '" --slot ' + $tool.slot + ' ' + $job.command + ' ' + $job.name + ' ' + $job.flag
+    $start.UseShellExecute=$false; $start.CreateNoWindow=$true; $start.RedirectStandardInput=$true; $start.RedirectStandardOutput=$true; $start.RedirectStandardError=$true
+    $start.WorkingDirectory = $tool.version
+    foreach ($variable in @('ELECTRON_RUN_AS_NODE','INARA_DEV_SERVER','INARA_DATA_DIR','GEMINI_API_KEY','ANTHROPIC_API_KEY','PYTHONPATH','PYTHONHOME')) { $start.EnvironmentVariables.Remove($variable) }
+    try {
+        $process = [Diagnostics.Process]::Start($start)
+        $raw = [Text.Encoding]::UTF8.GetBytes($job.value + "`n")
+        $job.value = $null
+        $process.StandardInput.BaseStream.Write($raw,0,$raw.Length)
+        [Array]::Clear($raw,0,$raw.Length)
+        $process.StandardInput.Close()
+    } catch {
+        $job.value = $null
+        $script:secretBusy = $false; $script:ui.Progress.Visibility = 'Collapsed'; Update-ProvidersPage
+        Set-SecretResult $job.name 'The key tool could not start. Your keys were not changed.' $false
+        return
+    }
+    $script:secretJob = @{process=$process; job=$job; out=$process.StandardOutput.ReadToEndAsync(); err=$process.StandardError.ReadToEndAsync(); started=[DateTime]::UtcNow}
+    if (!$script:secretTimer) {
+        $script:secretTimer = New-Object Windows.Threading.DispatcherTimer
+        $script:secretTimer.Interval = [TimeSpan]::FromMilliseconds(150)
+        $script:secretTimer.Add_Tick({ Complete-SecretJob })
+    }
+    $script:secretTimer.Start()
+}
+function Complete-SecretJob {
+    $active = $script:secretJob
+    if (!$active) { $script:secretTimer.Stop(); return }
+    if (!$active.process.HasExited) {
+        if (([DateTime]::UtcNow - $active.started).TotalSeconds -lt 60) { return }
+        try { $active.process.Kill() } catch {}
+        $active.process.WaitForExit(2000) | Out-Null
+    }
+    $script:secretJob = $null; $script:secretTimer.Stop()
+    $job = $active.job
+    $reply = $null
+    try { $text = $active.out.GetAwaiter().GetResult(); if ($text) { $reply = ($text.Trim() -split "`n")[-1] | ConvertFrom-Json } } catch { $reply = $null }
+    if (!$reply) {
+        Set-SecretResult $job.name 'The key tool stopped unexpectedly. Your keys were not changed.' $false
+    } else {
+        Set-SecretResult $job.name ([string]$reply.message) ([bool]$reply.ok)
+        if ($reply.saved) { $script:ui[$script:secretFields[$job.name].box].Clear() }
+    }
+    $active.process.Dispose()
+    $script:secretBusy = $false
+    if ($script:secretQueue.Count) { Start-SecretQueue; return }
+    $script:ui.Progress.Visibility = 'Collapsed'
+    $script:ui.StatusText.Text = 'Key check finished.'
+    Update-ProvidersPage
+}
+function Request-Secret([string]$name, [string]$command) {
+    if ($script:busy -or $script:secretBusy) { return $false }
+    $value = $script:ui[$script:secretFields[$name].box].Password
+    if (!$value -or !$value.Trim()) { if ($command -eq 'test') { Set-SecretResult $name 'Enter a key to test.' $false }; return $false }
+    $script:secretQueue.Enqueue(@{name=$name; command=$command; flag=$(if ($command -eq 'test') {'--stdin'} else {'--verify'}); value=$value})
+    $script:ui[$script:secretFields[$name].result].Text = ''
+    return $true
+}
+$script:ui.NavProviders.Add_Click({Set-Page 'ProvidersPage'})
+$script:ui.TestAnthropic.Add_Click({Request-Secret 'anthropic_api_key' 'test' | Out-Null; Start-SecretQueue})
+$script:ui.TestGemini.Add_Click({Request-Secret 'gemini_api_key' 'test' | Out-Null; Start-SecretQueue})
+$script:ui.SaveKeys.Add_Click({
+    if ($script:busy -or $script:secretBusy) { return }
+    $queued = @(foreach ($taskName in @('anthropic_api_key','gemini_api_key')) { Request-Secret $taskName 'set' }) -contains $true
+    if (!$queued) { $script:ui.StatusText.Text = 'Enter at least one key, or choose Skip for now.'; return }
+    Start-SecretQueue
+})
+$script:ui.SkipKeys.Add_Click({
+    if ($script:secretBusy) { return }
+    $script:ui.AnthropicKey.Clear(); $script:ui.GeminiKey.Clear()
+    Set-Page 'HomePage'
+    $script:ui.StatusText.Text = 'No keys were saved. You can add them later from Preferences inside INARA.'
+})
 Set-Page 'HomePage'
 $script:ui.PackagePath.Text = $script:controlRoot
 $script:ui.RootPath.Text = if ($InstallationRoot) {$InstallationRoot} else {Join-Path $env:LOCALAPPDATA 'INARA\Pilot'}
@@ -181,7 +311,7 @@ $script:timer.Add_Tick({
 })
 $script:timer.Start()
 $script:window.Add_Closing({ param($sender,$eventArgs)
-    if ($script:busy -and $script:currentOp -ne 'boot') {$eventArgs.Cancel=$true; $script:ui.StatusText.Text='An operation is running. Wait for its result before closing.'; return}
+    if (($script:busy -and $script:currentOp -ne 'boot') -or $script:secretBusy) {$eventArgs.Cancel=$true; $script:ui.StatusText.Text='An operation is running. Wait for its result before closing.'; return}
     $script:timer.Stop()
     if ($script:worker -and !$script:worker.HasExited) {$script:worker.StandardInput.Close(); if (!$script:worker.WaitForExit(500)) {$script:worker.Kill()}}
 })

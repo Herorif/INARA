@@ -41,13 +41,14 @@ def worker_profile(namespace, recipe, fixture=False):
 
 
 def provider_key():
-    value = os.getenv("GEMINI_API_KEY", "").strip()
-    if value.lower() in {
-        "",
-        "your_api_key_here",
-        "your_gemini_key",
-        "your_gemini_api_key_here",
-        "changeme",
-    }:
-        return None
-    return value
+    """Gemini key: non-placeholder GEMINI_API_KEY override, else the encrypted store."""
+    from services.secrets import resolve
+
+    return resolve("gemini_api_key")
+
+
+def anthropic_key():
+    """Anthropic key: non-placeholder ANTHROPIC_API_KEY override, else the encrypted store."""
+    from services.secrets import resolve
+
+    return resolve("anthropic_api_key")

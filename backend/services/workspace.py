@@ -7,12 +7,12 @@ code or autonomous browser actions a sandboxed/transactional tool system.
 import asyncio
 import base64
 import inspect
-import os
 from pathlib import Path
 import time
 import uuid
 
 from core.event_bus import event_owner
+from services.capability_profiles import provider_key
 from services.legacy_cad import LegacyScriptRunner
 from services.settings import EmptyRequest
 from services.tools import (
@@ -44,10 +44,10 @@ WORKSPACE_TOOLS = {
 
 
 def provider_ready():
-    key = (os.getenv("GEMINI_API_KEY") or "").strip()
-    if not key or key.lower() in {"changeme", "your_api_key_here", "your_gemini_api_key_here"}:
+    if not provider_key():
         raise ServiceError(
-            "provider_not_configured", "AI is not configured yet. Update GEMINI_API_KEY."
+            "provider_not_configured",
+            "AI is not configured yet. Add a Gemini API key in Setup or Preferences.",
         )
 
 

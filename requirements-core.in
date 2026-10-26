@@ -7,3 +7,5 @@ google-genai>=1.50,<3
 python-dotenv>=1,<2
 pydantic>=2.9,<3
 tzdata>=2026.5,<2027
+# Verify HTTPS against the Windows certificate store (proxies/antivirus roots).
+truststore>=0.10,<1

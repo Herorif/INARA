@@ -331,3 +331,29 @@ def test_rollback_refuses_owner_change_without_switching(prepared_source):
     with pytest.raises(ValueError):
         service.rollback(slot)
     assert service.manager.data(service.manager.load(), slot).name == pid
+
+
+def test_stored_provider_keys_carry_into_recovery_and_malformed_ones_reject(profile):  # noqa: F811
+    from services.secrets import SecretStore
+
+    recovery, slot, data, archive, protector = profile
+    seed(data, protector)
+    database = Database(data / "database", protection=protector)
+    key = "AIzaSy" + "Q" * 33
+    SecretStore(database, environ={}).set("gemini_api_key", key)
+    recovery.backup(slot, archive)
+    service = activation.Activation(recovery.manager, protector)
+    pid = uuid.uuid4().hex
+    preview = service.preview(slot, archive, pid)
+    service.prepare(slot, archive, pid, preview["review_sha256"])
+    service.activate(slot, pid, preview["review_sha256"])
+    recovered = service.manager.data(service.manager.load(), slot)
+    assert recovered != data
+    restored = Database(recovered / "database", protection=protector)
+    assert SecretStore(restored, environ={}).get("gemini_api_key") == key
+    # The recovered profile is now current; a malformed secret record must refuse review.
+    with restored.transaction() as db:
+        restored.put(db, "secrets", "gemini_api_key", {"value": key, "unexpected": True})
+    recovery.backup(slot, archive.with_name("second.inara"))
+    with pytest.raises(Exception):
+        service.preview(slot, archive.with_name("second.inara"), uuid.uuid4().hex)

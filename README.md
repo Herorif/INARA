@@ -220,8 +220,8 @@ playwright install chromium
 # Frontend
 npm install
 
-# API keys
-echo "GEMINI_API_KEY=your_key_here" > .env
+# API keys (stored encrypted, read from stdin; see docs/AI_PROVIDERS.md)
+.venv\Scripts\python.exe scripts\inara-secrets.py set gemini_api_key --verify
 ```
 
 ### 🚀 Run
@@ -286,15 +286,12 @@ Settings live in `backend/settings.json` (auto-created on first run).
 
 ### 🔑 API Keys
 
-Create a `.env` file in the project root:
-
-```env
-GEMINI_API_KEY=your_gemini_key
-ANTHROPIC_API_KEY=your_claude_key
-# Optional — only needed if using Home Assistant integration
-HA_URL=http://homeassistant.local:8123
-HA_TOKEN=your_long_lived_access_token
-```
+INARA uses an Anthropic key (Claude) and a Gemini key (voice and transcription).
+Keys are not kept in a `.env` file: they are stored encrypted with Windows DPAPI
+in INARA's profile database. Add them in Setup's **AI providers** step, with
+`scripts/bootstrap.ps1 -ConfigureKeys`, or with `scripts/inara-secrets.py`.
+See [AI providers](docs/AI_PROVIDERS.md) for details and the developer
+environment-variable override.
 
 - Gemini key -> [Google AI Studio](https://aistudio.google.com/app/apikey)
 - Claude key -> [Anthropic Console](https://console.anthropic.com/)
@@ -349,7 +346,7 @@ inara/
 ├── electron/                  # Electron main process
 │   └── main.js                # Window & IPC setup
 ├── tests/                     # Test suite
-├── .env                       # API keys (create this)
+├── .env                       # Optional developer overrides (keys live in the encrypted store)
 ├── requirements.txt           # Python dependencies
 ├── package.json               # Node.js dependencies
 └── README.md
@@ -361,7 +358,7 @@ inara/
 
 | Aspect                 | Implementation                                  |
 | ---------------------- | ----------------------------------------------- |
-| **API Keys**           | Stored in `.env`, excluded from version control |
+| **API Keys**           | Encrypted with Windows DPAPI in the profile database ([AI providers](docs/AI_PROVIDERS.md)) |
 | **Face Data**          | Processed locally, never transmitted            |
 | **Tool Confirmations** | Write/CAD/Web actions can require user approval |
 | **Project Data**       | Everything stays on your machine                |

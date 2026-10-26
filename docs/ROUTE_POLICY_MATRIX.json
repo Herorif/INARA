@@ -1013,6 +1013,50 @@
       "replacement": "ConnectionsReadiness / ConnectionsTransport",
       "status": "migrated"
     },
+    "secrets_status": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Profile secret store (documents kind 'secrets'); env override reported as source only",
+      "effects": "Read configured/source/last-four hint/check results for each registered key; never a value",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK with status only; values, pydantic details and provider errors are never echoed",
+      "lifetime": "Request-only; secrets_test runs one bounded HTTPS request off the event loop",
+      "replacement": "SecretStore / SecretsTransport",
+      "status": "migrated"
+    },
+    "secrets_set": {
+      "schema": "SecretValue (registered name; bounded string; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Profile secret store (documents kind 'secrets'); env override reported as source only",
+      "effects": "Validate key format and store it DPAPI-protected in the profile database; returns status, never the value",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK with status only; values, pydantic details and provider errors are never echoed",
+      "lifetime": "Request-only; secrets_test runs one bounded HTTPS request off the event loop",
+      "replacement": "SecretStore / SecretsTransport",
+      "status": "migrated"
+    },
+    "secrets_test": {
+      "schema": "SecretReference (registered name)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Profile secret store (documents kind 'secrets'); env override reported as source only",
+      "effects": "One authenticated provider list-models request (10s timeout) with the resolved key; persist the result code",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK with status only; values, pydantic details and provider errors are never echoed",
+      "lifetime": "Request-only; secrets_test runs one bounded HTTPS request off the event loop",
+      "replacement": "SecretStore / SecretsTransport",
+      "status": "migrated"
+    },
+    "secrets_clear": {
+      "schema": "SecretReference (registered name)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Profile secret store (documents kind 'secrets'); env override reported as source only",
+      "effects": "Delete the stored key; an environment override is unaffected",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK with status only; values, pydantic details and provider errors are never echoed",
+      "lifetime": "Request-only; secrets_test runs one bounded HTTPS request off the event loop",
+      "replacement": "SecretStore / SecretsTransport",
+      "status": "migrated"
+    },
     "call_lab_state": {
       "schema": "EmptyRequest",
       "caller": "Authenticated owner renderer",

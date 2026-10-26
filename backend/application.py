@@ -61,6 +61,8 @@ from services.speech import SpeechService, SpeechTransport
 from services.scheduler_tools import register_scheduler_tools
 from services.sessions import SessionStore
 from services.storage import Database
+from services.secrets import SecretStore, activate as activate_secrets
+from transport.secrets import SecretsTransport
 from services.tools import ToolDispatcher, register_project_tools
 from transport.conversation import ConversationTransport
 from transport.delivery import EventDelivery
@@ -91,6 +93,10 @@ class Application:
         self.sio, self.database, self.projects, self.settings = sio, database, projects, settings
         self.reminders, self.bus, self.resources = reminders, bus, resources
         self.startup_summary = startup_summary
+        # Provider keys live in this profile's protected database; module-level
+        # resolvers (capability_profiles.provider_key) read the active store.
+        self.secrets = SecretStore(database)
+        activate_secrets(self.secrets)
         self.sessions = DesktopSessions(projects, settings, face_authenticated)
         self.scheduler = SchedulerAgent(event_bus=bus, reminder_store=reminders)
         self.dispatcher = ToolDispatcher(
@@ -198,6 +204,7 @@ class Application:
             self.connection.settings_changed,
             self.connection.validate_settings,
         )
+        self.secrets_transport = SecretsTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,

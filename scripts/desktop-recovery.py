@@ -160,6 +160,15 @@ def rebind(files, manifest, manager, destination, protector):
                             raise ValueError("Creative artifact failed integrity")
                 target_kind = namespace + backup.digest((owner + ":" + target).encode())
                 counts["creative_jobs"] += 1
+            elif kind == "secrets":
+                # Owner API keys are profile-wide (not owner/project scoped); carry unchanged.
+                if (
+                    not re.fullmatch(r"[a-z0-9_]{1,64}", key)
+                    or not isinstance(value, dict)
+                    or not set(value) <= {"value", "updated_at", "verified_at", "last_check"}
+                    or not isinstance(value.get("value"), str)
+                ):
+                    raise ValueError("Unsupported stored secret record")
             else:
                 raise ValueError(
                     "Unsupported persisted record type; preserve the detached recovery"

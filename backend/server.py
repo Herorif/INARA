@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from services.capability_profiles import model_id
+from services import secrets as provider_secrets
 
 
 # Ensure we can import inara
@@ -75,24 +76,22 @@ DEFAULT_SETTINGS = {
 }
 
 SETTINGS = {**DEFAULT_SETTINGS, "tool_permissions": dict(DEFAULT_SETTINGS["tool_permissions"])}
-AI_KEY_PLACEHOLDERS = {
-    "your_api_key_here",
-    "your_gemini_api_key_here",
-    "changeme",
-}
 
 
 def get_gemini_api_key():
-    return (os.getenv("GEMINI_API_KEY") or "").strip()
+    return provider_secrets.resolve("gemini_api_key") or ""
 
 
 def get_ai_preflight_error():
-    api_key = get_gemini_api_key()
-    if not api_key:
-        return "GEMINI_API_KEY is not set. Update your .env file."
-    if api_key.lower() in AI_KEY_PLACEHOLDERS:
+    if get_gemini_api_key():
+        return None
+    if provider_secrets.environment_placeholder("gemini_api_key"):
         return "GEMINI_API_KEY is still using the placeholder value in .env."
-    return None
+    return "No Gemini API key is saved. Add one in Setup or with scripts/inara-secrets.py."
+
+
+def get_anthropic_status():
+    return "configured" if provider_secrets.resolve("anthropic_api_key") else "not configured"
 
 
 def get_runtime_summary():
@@ -139,6 +138,7 @@ def print_startup_summary():
     print(f"[SERVER] Active Runtime : {summary['runtime']}")
     print(f"[SERVER] Entrypoint     : {summary['entrypoint']}")
     print(f"[SERVER] Gemini API     : {summary['ai_status']}")
+    print(f"[SERVER] Anthropic API  : {get_anthropic_status()}")
     print(f"[SERVER] Face Auth      : {summary['face_auth_status']}")
     print(f"[SERVER] Slicer         : {summary['slicer_status']} ({summary['slicer_message']})")
     print(f"[SERVER] Saved Printers : {summary['saved_printers']}")

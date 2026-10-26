@@ -27,6 +27,7 @@ def source(tmp_path):
         "scripts/desktop-backup.py",
         "scripts/desktop-recovery.py",
         "scripts/desktop-control.py",
+        "scripts/inara-secrets.py",
         "scripts/setup-ui.ps1",
         "INARA Setup.cmd",
         "INARA Setup.ps1",

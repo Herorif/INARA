@@ -163,6 +163,7 @@ def stage(destination, bundle, root=ROOT, runtime_directory=None):
             "desktop-backup.py",
             "desktop-recovery.py",
             "desktop-control.py",
+            "inara-secrets.py",
             "renderer-provenance.py",
             "setup-ui.ps1",
             "pilot-start.ps1",
