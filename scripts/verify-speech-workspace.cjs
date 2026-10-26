@@ -18,7 +18,8 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await click('.prepare-voice');await phase('armed');
   await evaluate(`document.querySelector('.ptt-button').focus()`);
   window.webContents.sendInputEvent({type:'keyDown',keyCode:'Space'});
-  await phase('listening');await sleep(300);
+  // The first captured frame arrives ~0.5-0.65 s after "listening"; hold long enough to record it.
+  await phase('listening');await sleep(1500);
  };
  try{
   await until(()=>evaluate(`document.querySelector('.quick-assistant .eyebrow')?.textContent.includes('CORE CONNECTED') && !document.querySelector('.prepare-voice')?.disabled`));
