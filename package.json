@@ -4,9 +4,9 @@
   "description": "INARA - General-Purpose AI Agent Platform",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env INARA_DEV_SERVER=1 node scripts/launch-native.cjs\"",
+    "dev": "concurrently -k \"node --experimental-require-module node_modules/vite/bin/vite.js\" \"wait-on tcp:5173 && cross-env INARA_DEV_SERVER=1 node scripts/launch-native.cjs\"",
     "backend:dev": "python backend/server.py",
-    "build": "vite build",
+    "build": "node --experimental-require-module node_modules/vite/bin/vite.js build",
     "start": "node scripts/launch-native.cjs",
     "start:legacy": "electron .",
     "check:types": "node node_modules/typescript/lib/tsc.js -p tsconfig.ui.json",
@@ -37,15 +37,17 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.17",
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
-    "electron": "44.7.0",
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "electron": "44.9.3",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "5.0.4",
-    "vite": "^5.1.0",
-    "wait-on": "^7.2.0"
+    "vite": "^7.3.7",
+    "wait-on": "^9.5.1"
   }
 }

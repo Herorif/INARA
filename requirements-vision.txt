@@ -1,0 +1,20 @@
+# Optional face verification worker (backend/authenticator.py via workers/face_worker.py).
+# cv2 comes from opencv-contrib-python, which MediaPipe requires; do not also install
+# opencv-python (two packages would provide the same cv2 module).
+# Pinned on Windows with Python 3.13 against requirements-core.lock; install with
+#   .\.venv\Scripts\python.exe -m pip install -r requirements-vision.txt
+-r requirements-core.lock
+mediapipe==1.1.1
+opencv-contrib-python==5.0.0.93
+numpy==2.5.4
+# Resolved dependencies
+absl-py==2.5.1
+contourpy==1.4.0
+cycler==0.12.1
+flatbuffers==25.12.19
+fonttools==4.67.0
+kiwisolver==1.5.1
+matplotlib==3.11.2
+pillow==13.0.0
+pyparsing==3.3.3
+sounddevice==0.5.6

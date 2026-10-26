@@ -52,8 +52,10 @@ py -3.12 -m venv .venv
 
 The backend starts without an API key; AI requests return a clear configuration
 error until a valid key is supplied. Set `INARA_TEXT_MODEL` to select the text
-model. Voice and other legacy integrations still require their optional packages
-from `requirements.txt`; their modernization remains scheduled in the architecture.
+model. Optional integrations install from pinned extras on top of the core lock:
+`requirements-devices.txt` (Kasa, printers, Home Assistant, desktop tools),
+`requirements-vision.txt` (face verification) and `requirements-cad.txt` (legacy
+build123d CAD); `requirements.txt` now lists these files and installs the core only.
 The new JARVIS command deck includes command, Studio and connection views. Closing
 its window leaves INARA in the system tray; Ctrl+Shift+Space reopens it, and Quit
 INARA ends the resident. Local reminders can be created without an AI key.
@@ -217,12 +219,8 @@ source .venv/bin/activate
 # Windows:
 .venv\Scripts\activate
 
-# macOS only - required for PyAudio
-# brew install portaudio
-
-# Dependencies
-pip install -r requirements.txt
-playwright install chromium
+# Dependencies (exact pins; add -r requirements-devices.txt / -vision.txt / -cad.txt as needed)
+pip install -r requirements-core.lock
 
 # Frontend
 npm install
@@ -356,13 +354,13 @@ inara/
 │   └── project_manager.py     # Project context management
 ├── src/                       # React frontend
 │   ├── App.jsx                # Main application shell
-│   ├── store/                 # Zustand slices (chat, cad, kasa, reminders, desktop, vision, devices…)
+│   ├── store/                 # Zustand slices (chat, cad, kasa, reminders, desktop, devices…)
 │   └── components/            # UI components (windows, visualizer, tools panel…)
 ├── electron/                  # Electron main process
 │   └── main.js                # Window & IPC setup
 ├── tests/                     # Test suite
 ├── .env                       # Optional developer overrides (keys live in the encrypted store)
-├── requirements.txt           # Python dependencies
+├── requirements-*.lock/.txt   # Python dependency locks and optional extras
 ├── package.json               # Node.js dependencies
 └── README.md
 ```

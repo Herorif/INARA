@@ -9,5 +9,9 @@ google-genai>=1.50,<3
 python-dotenv>=1,<2
 pydantic>=2.9,<3
 tzdata>=2026.5,<2027
+# Desktop pairing identity and TLS (services/mobile_identity.py, mobile_listener.py).
+cryptography==50.0.2
+# Natural-language reminder times (agents/scheduler_agent.py); without it only "in N unit" parses.
+dateparser==1.4.3
 # Verify HTTPS against the Windows certificate store (proxies/antivirus roots).
 truststore>=0.10,<1

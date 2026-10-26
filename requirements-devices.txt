@@ -1,0 +1,24 @@
+# Optional device and desktop tools the assistant can call: Kasa smart plugs, printer
+# discovery (mDNS) and OctoPrint/Moonraker/Home Assistant HTTP, app/process listing,
+# clipboard and screen capture. They load only when a tool runs; the core starts without them.
+# Pinned on Windows with Python 3.13 against requirements-core.lock; install with
+#   .\.venv\Scripts\python.exe -m pip install -r requirements-devices.txt
+-r requirements-core.lock
+python-kasa==0.12.0
+zeroconf==0.151.5
+aiohttp==3.14.5
+psutil==7.2.2
+pyperclip==1.11.0
+pillow==13.0.0
+pywin32==312 ; sys_platform == "win32"
+# Resolved dependencies
+aiohappyeyeballs==2.7.1
+aiosignal==1.4.0
+asyncclick==8.4.2.1
+attrs==26.1.0
+frozenlist==1.8.0
+ifaddr==0.2.0
+mashumaro==3.23
+multidict==7.2.1
+propcache==0.5.4
+yarl==1.25.1
