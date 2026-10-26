@@ -6,6 +6,9 @@ from pydantic import Field, RootModel, StrictBool, ValidationError
 from services.resources import ResourceRequest
 from services.settings import EmptyRequest
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class ControlAction(EmptyRequest):
@@ -78,6 +81,7 @@ class LifecycleTransport:
         except (ServiceError, ValidationError) as exc:
             return await self.error(sid, exc)
         except Exception:
+            logger.exception("Lifecycle request failed")
             return await self.error(
                 sid,
                 ServiceError(
@@ -110,6 +114,7 @@ class LifecycleTransport:
                 sid, ServiceError("desktop_rejected", "Desktop action rejected.")
             )
         except Exception:
+            logger.exception("Lifecycle request failed")
             return await self.error(
                 sid, ServiceError("desktop_failed", "Desktop control could not complete.")
             )
@@ -126,6 +131,7 @@ class LifecycleTransport:
         except (ServiceError, ValidationError) as exc:
             return await self.error(sid, exc)
         except Exception:
+            logger.exception("Lifecycle request failed")
             return await self.error(
                 sid,
                 ServiceError("shutdown_failed", "Shutdown could not finish. Retry from the tray."),

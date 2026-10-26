@@ -165,6 +165,7 @@ class CallAdmission:
             )
         except asyncio.CancelledError:
             code = "owner_stopped"
+            raise  # The finally below records the stop; cancellation still propagates.
         except Exception as exc:
             code = exc.code if isinstance(exc, ServiceError) else "call_session_failed"
         finally:
@@ -182,6 +183,10 @@ class CallAdmission:
         run["stop"].set()
         try:
             await asyncio.wait_for(asyncio.shield(run["task"]), 7)
+        except asyncio.CancelledError:
+            # The drive task ended cancelled and recorded it; only our own cancel propagates.
+            if not run["task"].cancelled() or asyncio.current_task().cancelling():
+                raise
         except TimeoutError:
             run["task"].cancel()
             await asyncio.gather(run["task"], return_exceptions=True)

@@ -4,6 +4,9 @@ from services.capability_profiles import model_id
 import asyncio
 from transport.session_token import current_token
 from services.face_worker import FaceWorker
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class ConnectionTransport:
@@ -129,6 +132,7 @@ class ConnectionTransport:
         except asyncio.CancelledError:
             raise
         except Exception:
+            logger.exception("Face verification worker failed")
             if self.active(generation) and not self.authenticated:
                 for sid in self.renderers():
                     await self.sio.emit(

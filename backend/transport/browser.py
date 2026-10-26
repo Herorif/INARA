@@ -2,8 +2,12 @@
 
 import asyncio
 from pydantic import ValidationError
+from services.cancellation import acknowledge_stop, request_stop
 from services.settings import EmptyRequest
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class BrowserTransport:
@@ -34,6 +38,8 @@ class BrowserTransport:
                 )
                 return {"ok": True, **result}
             except asyncio.CancelledError:
+                if not acknowledge_stop():
+                    raise  # Shutdown or an outer cancel: never swallow it.
                 return {
                     "ok": False,
                     "code": "browser_cancelled",
@@ -48,6 +54,7 @@ class BrowserTransport:
                     else "Use one public HTTPS URL.",
                 }
             except Exception:
+                logger.exception("Browser inspection request %s failed", name)
                 return {
                     "ok": False,
                     "code": "browser_failed",
@@ -65,6 +72,6 @@ class BrowserTransport:
             if task is not asyncio.current_task() and (sid is None or sid == origin)
         ]
         for task in tasks:
-            task.cancel()
+            request_stop(task)
         await asyncio.gather(*tasks, return_exceptions=True)
         await self.app.browser.stop_sid(sid)

@@ -11,6 +11,23 @@ import time
 import uuid
 
 from resident.state import Identity, State
+from services.log import get_logger
+
+logger = get_logger(__name__)
+
+
+def _log_failure(label):
+    def done(future):
+        if future.cancelled():
+            return
+        error = future.exception()
+        if error is not None:
+            logger.error(
+                "Resident core call %s failed", label,
+                exc_info=(type(error), error, error.__traceback__),
+            )
+
+    return done
 
 
 class NativeHost:
@@ -45,6 +62,12 @@ class NativeHost:
         )
         self.state.hotkey = getattr(self.tray, "hotkey", False)
 
+    def _submit(self, coroutine, label):
+        """Run ``coroutine`` on the core loop from the tray thread; failures are logged."""
+        future = asyncio.run_coroutine_threadsafe(coroutine, self.loop)
+        future.add_done_callback(_log_failure(label))
+        return future
+
     def start_core(self):
         if self.thread and self.thread.is_alive():
             return
@@ -66,6 +89,9 @@ class NativeHost:
             self.publish()
             return
         self.runtime = server
+        from services.log import configure_logging
+
+        configure_logging()
         for sig in (signal.SIGINT, signal.SIGTERM):
             signal.signal(sig, lambda *_: self.tray.post(lambda: self.action("quit")))
         self.thread = threading.Thread(target=self._core, daemon=True, name="INARA core")
@@ -200,7 +226,7 @@ class NativeHost:
                 if owner == self.state.identity.owner and sid != "native-resident":
                     await self.runtime.sio.emit("resident_state", self.state.snapshot(), room=sid)
 
-        asyncio.run_coroutine_threadsafe(announce(), self.loop)
+        self._submit(announce(), "announce resident state")
 
     def open_workspace(self, quick=False):
         self.pending_quick = quick
@@ -223,7 +249,7 @@ class NativeHost:
                                 "workspace_focus", {"quick": quick}, room=sid
                             )
 
-                asyncio.run_coroutine_threadsafe(focus(), self.loop)
+                self._submit(focus(), "focus workspace")
             return
         from resident.layout import workspace_executable
         try:
@@ -322,7 +348,7 @@ class NativeHost:
                 for sid in old_rooms:
                     await self.runtime.sio.disconnect(sid)
 
-            asyncio.run_coroutine_threadsafe(disconnect(), self.loop)
+            self._submit(disconnect(), "disconnect stale workspace")
         self.publish()
 
     def action(self, action):

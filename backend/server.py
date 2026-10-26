@@ -224,6 +224,8 @@ get_system_info = runtime.local_transport.get_system_info
 print_stl = runtime.compat_transport.print_stl
 
 if __name__ == "__main__":
+    from services.log import configure_logging
+    configure_logging()
     # Fail closed: a bare dev start gets a per-launch token in .runtime/ (never printed).
     from transport.session_token import ensure_session_token
     ensure_session_token()

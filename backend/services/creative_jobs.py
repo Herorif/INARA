@@ -14,6 +14,9 @@ from services.capability_profiles import worker_profile
 from services.revisions import recipe_fingerprint
 from services.storage import scope_hash, StorageError
 from services.tools import ServiceError, contained_path
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class JobRequest(BaseModel):
@@ -137,7 +140,8 @@ class CreativeJobService:
             try:
                 await self.on_update(owner, self.public(value))
             except Exception:
-                pass  # Transport loss does not erase the committed result.
+                # Transport loss does not erase the committed result.
+                logger.warning("Creative job update could not be delivered", exc_info=True)
 
     def list(self, owner, project):
         with self.database.connection() as db:
@@ -368,6 +372,7 @@ class CreativeJobService:
             value.update(
                 state="cancelled", phase="cancelled", error="Build stopped with the workspace/core."
             )
+            raise  # The finally below records the stop; cancellation still propagates.
         except ServiceError as exc:
             value.update(
                 state="cancelled"
@@ -425,7 +430,7 @@ class CreativeJobService:
                 try:
                     staging.rmdir()
                 except OSError:
-                    pass
+                    logger.debug("Creative staging directory kept (not empty or locked)")
             try:
                 self.save(owner, project, value)
             except StorageError:
@@ -459,7 +464,13 @@ class CreativeJobService:
         running = self.active.get((self.kind(owner, project), key))
         if running and running["owner"] == owner and running["project"] == Path(project).resolve():
             running["cancel"].set()
-            await running["task"]
+            try:
+                await running["task"]
+            except asyncio.CancelledError:
+                # The job itself was cancelled (shutdown) and has recorded that; only
+                # a cancellation of this caller propagates.
+                if not running["task"].cancelled() or asyncio.current_task().cancelling():
+                    raise
         return self.public(self.load(owner, project, key))
 
     async def set_background(self, owner, project, request_id, enabled):

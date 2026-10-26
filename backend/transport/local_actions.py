@@ -4,6 +4,9 @@ import asyncio
 from pydantic import ValidationError
 from services.local_actions import ACTION_MODELS
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class LocalActionTransport:
@@ -47,6 +50,7 @@ class LocalActionTransport:
                     },
                 )
             except Exception:
+                logger.exception("Local action %s failed", name)
                 await self.emit_error(
                     name,
                     sid,

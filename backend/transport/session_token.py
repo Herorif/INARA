@@ -42,7 +42,7 @@ def _remove_if_unchanged(path, token):
         if Path(path).read_text(encoding="ascii") == token:
             Path(path).unlink()
     except OSError:
-        pass
+        pass  # Expected at exit: the dev token file is already gone or replaced.
 
 
 def ensure_session_token(path=DEV_TOKEN_FILE, environ=None, report=print, cleanup=True):

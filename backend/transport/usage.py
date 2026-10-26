@@ -2,11 +2,14 @@
 
 import asyncio
 from pydantic import ValidationError
+from services.cancellation import acknowledge_stop
 from services.settings import EmptyRequest
 from services.usage_contracts import UsagePolicy
-from services.quality import QualityService
 from services.storage import StorageError
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class UsageTransport:
@@ -19,8 +22,7 @@ class UsageTransport:
     }
 
     def __init__(self, app):
-        self.app = app
-        app.quality = QualityService(app)
+        self.app = app  # app.quality is constructed by the application root.
         for name, model in self.models.items():
             app.sio.on(name, handler=self.handler(name, model))
 
@@ -46,6 +48,8 @@ class UsageTransport:
                     result = self.app.quality.snapshot(owner, project)
                 return {"ok": True, **result}
             except asyncio.CancelledError:
+                if not acknowledge_stop():
+                    raise  # Shutdown or an outer cancel: never swallow it.
                 return {
                     "ok": False,
                     "code": "quality_cancelled",
@@ -60,6 +64,7 @@ class UsageTransport:
                     else "Budget or report could not be validated/unlocked. Existing records are preserved.",
                 }
             except Exception:
+                logger.exception("Usage request %s failed", name)
                 return {
                     "ok": False,
                     "code": "usage_failed",

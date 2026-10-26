@@ -6,6 +6,7 @@ import json
 import time
 from services.storage import scope_hash
 from services.tools import ServiceError, contained_path
+from services.cancellation import request_stop
 
 KIND = "desktop_tasks_v1"
 TERMINAL = {"completed", "stopped", "interrupted"}
@@ -235,7 +236,7 @@ class TaskQueue:
                 raise ServiceError(
                     "task_origin", "Stop the active task from its originating workspace."
                 )
-            active[0].cancel()
+            request_stop(active[0])
             await asyncio.gather(active[0], return_exceptions=True)
             return
 
@@ -254,5 +255,5 @@ class TaskQueue:
             if task is not asyncio.current_task() and (sid is None or origin == sid)
         ]
         for task in tasks:
-            task.cancel()
+            request_stop(task)
         await asyncio.gather(*tasks, return_exceptions=True)

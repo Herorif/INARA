@@ -19,6 +19,9 @@ from services.mobile_contracts import (
 )
 from services.tools import ServiceError
 from services.notifications import NotificationBatch
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 OPERATIONS = {
     "call_receipts": MobileEmpty,
@@ -139,6 +142,7 @@ class MobileAPI:
                     status_code=400,
                 )
             except Exception:
+                logger.exception("Mobile API request failed")
                 return JSONResponse(
                     {
                         "ok": False,

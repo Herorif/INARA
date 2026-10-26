@@ -12,6 +12,9 @@ from services.memory_contracts import (
 )
 from services.storage import StorageError
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class MemoryTransport:
@@ -60,6 +63,7 @@ class MemoryTransport:
                     else "Memory could not be validated or unlocked. Existing data is preserved.",
                 }
             except Exception:
+                logger.exception("Project memory request %s failed", name)
                 return {
                     "ok": False,
                     "code": "memory_failed",

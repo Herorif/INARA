@@ -10,6 +10,9 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine
 
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 event_owner = ContextVar("event_owner", default=None)
 event_guard = ContextVar("event_guard", default=None)
@@ -36,6 +39,9 @@ class EventBus:
     def __init__(self):
         self._handlers: dict[str, list[EventHandler]] = {}
         self._global_handlers: list[EventHandler] = []
+        # Strong references: the loop keeps only weak ones, so an unreferenced
+        # fire-and-forget emit could be garbage-collected mid-flight.
+        self._tasks: set[asyncio.Task] = set()
 
     def on(self, event_type: str, handler: EventHandler):
         """Subscribe to a specific event type."""
@@ -58,26 +64,72 @@ class EventBus:
             self._handlers[event_type] = [h for h in self._handlers[event_type] if h != handler]
 
     async def emit(self, event: Event):
-        """Publish an event to all subscribers."""
+        """Publish an event to all subscribers; one failing handler never stops the rest."""
         handlers = list(self._global_handlers)
         if event.type in self._handlers:
             handlers.extend(self._handlers[event.type])
 
         # Run all handlers concurrently
         if handlers:
-            await asyncio.gather(
+            results = await asyncio.gather(
                 *(h(event) for h in handlers),
                 return_exceptions=True,
             )
+            for handler, result in zip(handlers, results):
+                if isinstance(result, asyncio.CancelledError):
+                    continue  # A handler stopped by its owner is not a delivery failure.
+                if isinstance(result, BaseException):
+                    logger.error(
+                        "Event %s handler %s failed",
+                        event.type,
+                        _handler_name(handler),
+                        exc_info=(type(result), result, result.__traceback__),
+                    )
 
     def emit_nowait(self, event: Event):
         """Fire-and-forget emit (schedules on the running loop)."""
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(self.emit(event))
         except RuntimeError:
-            # No running loop  - silently drop
-            pass
+            logger.debug("Event %s dropped: no running loop", event.type)
+            return
+        task = loop.create_task(self.emit(event), name=f"event:{event.type}")
+        self._tasks.add(task)
+        task.add_done_callback(self._finished)
+
+    def _finished(self, task):
+        self._tasks.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            error = task.exception()
+            logger.error(
+                "Background emit %s failed",
+                task.get_name(),
+                exc_info=(type(error), error, error.__traceback__),
+            )
+
+    @property
+    def pending(self):
+        return frozenset(self._tasks)
+
+    async def drain(self, timeout=2.0):
+        """Let in-flight background emits finish, then cancel any that outlast ``timeout``."""
+        tasks = {task for task in self._tasks if task is not asyncio.current_task()}
+        if not tasks:
+            return
+        _, late = await asyncio.wait(tasks, timeout=timeout)
+        for task in late:
+            task.cancel()
+        if late:
+            logger.warning("Cancelled %d background event deliveries at shutdown", len(late))
+            await asyncio.gather(*late, return_exceptions=True)
+
+
+def _handler_name(handler):
+    owner = getattr(handler, "__self__", None)
+    name = getattr(handler, "__qualname__", None) or type(handler).__name__
+    if owner is not None and "." not in name:
+        name = f"{type(owner).__name__}.{name}"
+    return name
 
 
 # Well-known event types used across INARA

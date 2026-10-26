@@ -30,7 +30,7 @@ def public_url(value):
     try:
         ipaddress.ip_address(host)
     except ValueError:
-        pass
+        pass  # Expected: a hostname, not an IP literal.
     else:
         raise ValueError("IP literals are not supported.")
     return urlunsplit(("https", host, parts.path or "/", parts.query, ""))

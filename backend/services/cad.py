@@ -20,6 +20,9 @@ from services.revisions import RevisionParent
 from services.handoff_contracts import CreativeReference
 from services.usage import metered_generate
 from services.tools import ServiceError, ToolSpec
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class SolidRecipe(BaseModel):
@@ -253,7 +256,7 @@ async def _plan_blueprint(prompt, model, provider_factory):
             try:
                 await asyncio.wait_for(provider.close(), 5)
             except Exception:
-                pass
+                logger.warning("AI provider client did not close cleanly", exc_info=True)
 
 
 def register_cad_tools(dispatcher, service):

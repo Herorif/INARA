@@ -11,6 +11,9 @@ from services.mobile_contracts import (
 )
 from services.tools import ServiceError
 from services.notifications import NotificationPolicy
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class MobileTransport:
@@ -85,6 +88,7 @@ class MobileTransport:
                     else "Invalid companion request.",
                 }
             except Exception:
+                logger.exception("Mobile request %s failed", name)
                 return {
                     "ok": False,
                     "code": "mobile_failed",

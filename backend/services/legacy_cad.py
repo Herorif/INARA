@@ -15,6 +15,9 @@ import sys
 import time
 
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 # Hard wall-clock limit for one generated script run (per attempt).
 LEGACY_CAD_SCRIPT_TIMEOUT_SECONDS = 120
@@ -59,7 +62,7 @@ class LegacyScriptRunner:
             try:
                 process.close()
             except Exception:
-                pass
+                logger.warning("Legacy CAD process tree could not be closed", exc_info=True)
             return False
 
     def stopped_state(self):
@@ -130,10 +133,10 @@ class LegacyScriptRunner:
                 with error_path.open("rb") as stream:
                     text = stream.read(ERROR_LIMIT).decode("utf-8", "replace")
         except OSError:
-            pass
+            logger.debug("Legacy CAD error output could not be read", exc_info=True)
         finally:
             try:
                 error_path.unlink(missing_ok=True)
             except OSError:
-                pass
+                logger.debug("Legacy CAD error output could not be removed", exc_info=True)
         return exit_code, text

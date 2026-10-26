@@ -25,6 +25,8 @@ from services.mobile import MobileService
 from transport.mobile import MobileTransport
 from services.conversation import ConversationService
 from services.project_memory import ProjectMemory
+from services.quality import QualityService
+from services.log import get_logger
 from services.usage import UsageService
 from transport.usage import UsageTransport
 from services.browser import BrowserService
@@ -69,6 +71,7 @@ from transport.delivery import EventDelivery
 from transport.reminders import ReminderTransport
 from transport.sessions import DesktopSessions
 
+logger = get_logger(__name__)
 
 class Application:
     def __init__(
@@ -121,6 +124,8 @@ class Application:
         self.handoffs = CreativeHandoffs(self)
         self.handoff_transport = HandoffTransport(self)
         self.cad.reference_validator = self.images.reference_validator = self.handoffs.validate
+        # Owned here (not by its transport): disconnect/close stop it directly.
+        self.quality = QualityService(self)
         self.usage_transport = UsageTransport(self)
         self.browser = BrowserService(self)
         self.browser_transport = BrowserTransport(self)
@@ -275,30 +280,37 @@ class Application:
         return self.sessions.context(sid, renderer=True).tools()
 
     async def disconnect(self, sid):
-        self.call_testing.invalidate(sid)
-        await self.call_admission.stop_sid(sid)
-        await self.call_lab.stop_sid(sid)
-        await self.task_queue.stop_sid(sid)
-        await self.browser_transport.stop_sid(sid)
-        await self.quality.stop_sid(sid)
-        await self.mobile_transport.stop_sid(sid)
-        await self.speech_transport.stop_sid(sid)
-        await self.conversation_transport.stop_sid(sid)
-        await self.local_transport.stop_sid(sid)
-        await self.compat_transport.stop_sid(sid)
-        await self.reminder_transport.stop_sid(sid)
-        await self.workspace_transport.stop_sid(sid)
-        await self.workspace.disconnect(sid)
-        principal, role = self.sessions.remove(sid)
-        await self.connection.detached()
+        """Release everything the socket owned; each cleanup is isolated so one failure
+        never leaves a dead session registered or skips the cleanups after it."""
+        try:
+            await _isolated("call_testing", self.call_testing.invalidate, sid)
+            for name, cleanup in (
+                ("call_admission", self.call_admission.stop_sid),
+                ("call_lab", self.call_lab.stop_sid),
+                ("task_queue", self.task_queue.stop_sid),
+                ("browser", self.browser_transport.stop_sid),
+                ("quality", self.quality.stop_sid),
+                ("mobile", self.mobile_transport.stop_sid),
+                ("speech", self.speech_transport.stop_sid),
+                ("conversation", self.conversation_transport.stop_sid),
+                ("local_actions", self.local_transport.stop_sid),
+                ("compatibility", self.compat_transport.stop_sid),
+                ("reminders", self.reminder_transport.stop_sid),
+                ("workspace_transport", self.workspace_transport.stop_sid),
+                ("workspace", self.workspace.disconnect),
+            ):
+                await _isolated(name, cleanup, sid)
+        finally:
+            principal, role = self.sessions.remove(sid)
+        await _isolated("connection", self.connection.detached)
         if role == "renderer" and not self.sessions.rooms(principal, "renderer"):
             if self.sessions.is_owner(principal):
-                await self.compat_service.close()
-            await self.cad_transport.stop_owner(principal)
-            await self.image_transport.stop_owner(principal)
+                await _isolated("compat_service", self.compat_service.close)
+            await _isolated("cad", self.cad_transport.stop_owner, principal)
+            await _isolated("images", self.image_transport.stop_owner, principal)
         # Preserve another connected channel's approval; history stays durable.
         if not self.sessions.rooms(principal):
-            self.conversation.release_owner(principal)
+            await _isolated("conversation_owner", self.conversation.release_owner, principal)
 
     async def start(self):
         if self.started:
@@ -352,12 +364,26 @@ class Application:
                     raise result
         finally:
             self.bus.off_all(self.delivery.bridge_legacy)
+            try:
+                await self.bus.drain()
+            except Exception:
+                logger.exception("Background event deliveries could not drain at shutdown")
             tasks = tuple(self.tasks)
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
             self.tasks.clear()
             self.started = False
+
+
+async def _isolated(name, cleanup, *args):
+    """Run one cleanup step; log and continue on failure (cancellation still propagates)."""
+    try:
+        result = cleanup(*args)
+        if asyncio.iscoroutine(result) or isinstance(result, asyncio.Future):
+            await result
+    except Exception:
+        logger.exception("Disconnect cleanup %s failed", name)
 
 
 # Defense in depth behind the required session token. Origins the real renderers send:

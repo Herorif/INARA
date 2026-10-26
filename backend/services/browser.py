@@ -9,6 +9,7 @@ import tempfile
 import time
 from services.browser_contracts import BrowserInspect, BrowserReport
 from services.tools import ServiceError, ToolSpec
+from services.cancellation import request_stop
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -98,5 +99,5 @@ class BrowserService:
             if task is not asyncio.current_task() and (sid is None or origin == sid)
         ]
         for task in tasks:
-            task.cancel()
+            request_stop(task)
         await asyncio.gather(*tasks, return_exceptions=True)

@@ -7,6 +7,9 @@ from services.capability_profiles import RAM_HEADROOM_MB, WORKER_PROFILES
 from typing import Literal
 from pydantic import BaseModel, ConfigDict
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class ResourceRequest(BaseModel):
@@ -202,5 +205,5 @@ def probe_hardware():
                 ram_available_mb=memory.available // 1048576, ram_total_mb=memory.total // 1048576
             )
     except (ImportError, OSError):
-        pass
+        logger.debug("Memory probe unavailable; reporting without RAM figures", exc_info=True)
     return result

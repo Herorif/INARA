@@ -11,6 +11,7 @@ import time
 from services.quality_suite import CASE_IDS, SUITE_VERSION
 from services.storage import scope_hash
 from services.tools import ServiceError
+from services.cancellation import request_stop
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -124,5 +125,5 @@ class QualityService:
             if task is not asyncio.current_task() and (sid is None or origin == sid)
         ]
         for task in tasks:
-            task.cancel()
+            request_stop(task)
         await asyncio.gather(*tasks, return_exceptions=True)

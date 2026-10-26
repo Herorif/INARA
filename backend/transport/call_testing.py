@@ -4,6 +4,9 @@ from pydantic import ValidationError
 from calls.testing_contracts import TestPrepare, TestRevision, TestArm, TestStop
 from services.settings import EmptyRequest
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class CallTestingTransport:
@@ -31,5 +34,6 @@ class CallTestingTransport:
                 return {"ok": False, "code": exc.code if isinstance(exc, ServiceError) else "invalid_arguments",
                         "message": str(exc) if isinstance(exc, ServiceError) else "Use the current controlled-test fields. Imported proof or live-mode flags are not accepted."}
             except Exception:
+                logger.exception("Controlled call test request failed")
                 return {"ok": False, "code": "call_test_unavailable", "message": "The controlled-test workflow could not complete. Refresh; never replay an uncertain arm request."}
         return handle

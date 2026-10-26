@@ -4,6 +4,9 @@ from pydantic import ValidationError
 from calls.lab_contracts import LabReference
 from services.settings import EmptyRequest
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class CallLabTransport:
@@ -26,6 +29,7 @@ class CallLabTransport:
             return {"ok": False, "code": exc.code if isinstance(exc, ServiceError) else "invalid_arguments",
                     "message": str(exc) if isinstance(exc, ServiceError) else "Use the current bridge check request fields."}
         except Exception:
+            logger.exception("Call check request failed")
             return {"ok": False, "code": "call_lab_unavailable", "message": "The local call check is unavailable. No live answering was enabled."}
 
     async def state(self, sid, data=None):

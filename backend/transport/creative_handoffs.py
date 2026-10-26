@@ -3,6 +3,9 @@
 from pydantic import ValidationError
 from services.handoff_contracts import HandoffRequest
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class HandoffTransport:
@@ -24,6 +27,7 @@ class HandoffTransport:
                 else "Select a saved source and destination studio.",
             }
         except Exception:
+            logger.exception("Creative handoff request failed")
             return {
                 "ok": False,
                 "code": "handoff_unavailable",

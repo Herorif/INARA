@@ -35,7 +35,7 @@ class PageText(HTMLParser):
                 if len(target) <= 2048 and target not in self.links:
                     self.links.append(target)
             except (ValueError, UnicodeError):
-                pass
+                pass  # Expected: malformed page links are skipped, never followed.
 
     def handle_endtag(self, tag):
         if self.hidden:

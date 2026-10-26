@@ -131,6 +131,7 @@ class CallLab:
             )
         except asyncio.CancelledError:
             code = "call_lab_stopped"
+            raise  # The finally below records the stop; cancellation still propagates.
         except Exception as exc:
             code = exc.code if isinstance(exc, ServiceError) else "call_lab_failed"
         finally:
@@ -166,6 +167,10 @@ class CallLab:
         task = run["task"]
         try:
             await asyncio.wait_for(asyncio.shield(task), 7)
+        except asyncio.CancelledError:
+            # The check task ended cancelled and recorded it; only our own cancel propagates.
+            if not task.cancelled() or asyncio.current_task().cancelling():
+                raise
         except TimeoutError:
             task.cancel()
             await asyncio.gather(task, return_exceptions=True)

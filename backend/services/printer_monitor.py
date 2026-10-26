@@ -1,6 +1,9 @@
 """On-demand, owner-bound printer observation, separate from setup and control."""
 
 import asyncio
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class PrinterMonitor:
@@ -23,8 +26,9 @@ class PrinterMonitor:
                             status = await printer.get_print_status(host)
                         if status and self.authorized(owner):
                             await self.publish("print_status_update", owner, status.to_dict())
-                    except Exception:
-                        pass  # Adapter owns bounded backoff; never disclose raw network errors.
+                    except Exception as exc:
+                        # Adapter owns bounded backoff; never disclose raw network errors.
+                        logger.debug("Printer status poll failed (%s)", type(exc).__name__)
             await asyncio.sleep(2)
 
     async def close(self):

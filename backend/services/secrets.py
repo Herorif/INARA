@@ -113,7 +113,7 @@ def classify_exception(exc):
         if isinstance(exc, httpx.TransportError):
             return "network_error"
     except ImportError:
-        pass
+        pass  # Expected: httpx is optional; fall through to the generic classes.
     if isinstance(exc, (OSError, TimeoutError)):
         return "network_error"
     return "unexpected"

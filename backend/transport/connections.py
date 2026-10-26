@@ -3,6 +3,9 @@
 from pydantic import ValidationError
 from services.settings import EmptyRequest
 from services.tools import ServiceError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class ConnectionsTransport:
@@ -22,6 +25,7 @@ class ConnectionsTransport:
                 "message": "Use the authenticated owner workspace to inspect connection readiness.",
             }
         except Exception:
+            logger.exception("Connections readiness request failed")
             return {
                 "ok": False,
                 "code": "connections_unavailable",

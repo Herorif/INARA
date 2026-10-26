@@ -15,6 +15,9 @@ from services.cad import Recipe, SceneObject, SolidRecipe, ScenePresentation
 from services.usage import metered_generate
 from services.tools import ServiceError
 from services.handoff_contracts import CreativeReference
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class RevisionReference(BaseModel):
@@ -140,4 +143,4 @@ async def propose_changes(prompt, base, provider_factory=None):
             try:
                 await asyncio.wait_for(provider.close(), 5)
             except Exception:
-                pass
+                logger.warning("AI provider client did not close cleanly", exc_info=True)

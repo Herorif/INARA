@@ -2,6 +2,9 @@
 
 import asyncio
 from core.event_bus import Events
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 LEGACY_EVENTS = {
@@ -70,5 +73,5 @@ class EventDelivery:
             try:
                 await self.deliver_reminders_once()
             except Exception:
-                print("[SERVER] Reminder delivery failed; retained for retry.")
+                logger.exception("Reminder delivery failed; retained for retry")
             await asyncio.sleep(10)

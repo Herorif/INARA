@@ -2,10 +2,14 @@
 
 import asyncio
 from pydantic import ValidationError
+from services.cancellation import acknowledge_stop
 from services.settings import EmptyRequest
 from services.task_queue_contracts import TaskCreate, TaskReference
 from services.tools import ServiceError
 from services.storage import StorageError
+from services.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class TaskQueueTransport:
@@ -48,6 +52,8 @@ class TaskQueueTransport:
                     return {"ok": True}  # Safety stop never hydrates private receipts while locked.
                 return {"ok": True, **self.app.task_queue.state(owner, project)}
             except asyncio.CancelledError:
+                if not acknowledge_stop():
+                    raise  # Shutdown or an outer cancel: never swallow it.
                 return {
                     "ok": False,
                     "code": "task_cancelled",
@@ -62,6 +68,7 @@ class TaskQueueTransport:
                     else "Task data could not be validated or unlocked. Existing receipts are preserved.",
                 }
             except Exception:
+                logger.exception("Task queue request %s failed", name)
                 return {
                     "ok": False,
                     "code": "task_failed",
