@@ -5,12 +5,14 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { io } = require('socket.io-client');
 const { bindCaptureLifecycle } = require('./capture-lifecycle.cjs');
+const security = require('./security.cjs');
 const root = path.resolve(__dirname, '..');
 const bootstrap = JSON.parse(fs.readFileSync(0, 'utf8'));
 if (!/^[a-f0-9]{64}$/.test(bootstrap.token) || !path.isAbsolute(bootstrap.profile)) throw Error('Invalid native bootstrap');
 app.setPath('userData', bootstrap.profile);
 let window, control, state = bootstrap.state, closing = false;
-const trusted = event => window && !window.isDestroyed() && event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame;
+const appPage = { dev: !!bootstrap.dev, indexUrl: pathToFileURL(path.join(root, 'dist/index.html')).href };
+const trusted = event => security.trustedSender(event, window, appPage);
 const quickMode = value => { if (!window || window.isDestroyed()) return; if(window.isMaximized())window.unmaximize(); window.setSize(value ? 520 : 1440, value ? 740 : 940); window.webContents.send('quick-assistant', !!value); };
 const publish = value => {
   state = value;
@@ -24,7 +26,7 @@ const rpc = data => new Promise((resolve, reject) => {
   });
 });
 async function register(id) {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
+  if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
   if (bootstrap.clientId && bootstrap.clientId !== id) return false;
   if (!control) {
     bootstrap.clientId = id;
@@ -48,6 +50,7 @@ app.whenReady().then(async () => {
     icon: path.join(root, 'assets/icons/inara.png'),
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: !bootstrap.hide, offscreen: !!bootstrap.hide, preload: path.join(__dirname, 'preload.js') } });
   bindCaptureLifecycle(window, powerMonitor);
+  security.installPermissionHandlers(window.webContents.session, () => window, appPage);
   ipcMain.on('desktop-bootstrap', event => { event.returnValue = trusted(event) ? { token: bootstrap.token, clientId: bootstrap.clientId, quick: bootstrap.quick } : {}; });
   ipcMain.on('quick-mode', (event, value) => { if (trusted(event) && typeof value === 'boolean') quickMode(value); });
   ipcMain.on('window-minimize', event => { if (trusted(event)) window.minimize(); });
@@ -56,26 +59,20 @@ app.whenReady().then(async () => {
   ipcMain.on('app-quit', event => { if (trusted(event)) rpc({ action: 'quit' }).catch(() => {}); });
   ipcMain.handle('resident-register', (event, id) => trusted(event) ? register(id) : false);
   ipcMain.handle('resident-status', event => trusted(event) ? state : null);
-  ipcMain.handle('resident-gaming', (event, gaming) => trusted(event) ? rpc({ action: 'gaming', gaming }) : null);
+  ipcMain.handle('resident-gaming', (event, gaming) => trusted(event) && typeof gaming === 'boolean' ? rpc({ action: 'gaming', gaming }) : null);
   ipcMain.handle('resident-metrics', event => trusted(event) ? {
     electronMemoryMB: app.getAppMetrics().reduce((sum, metric) => sum + (metric.memory?.workingSetSize || 0), 0) / 1024,
     electronPIDs: app.getAppMetrics().map(metric => metric.pid), host: 'native-windows'
   } : null);
-  ipcMain.handle('open-external', (event, url) => {
-    if (!trusted(event) || typeof url !== 'string') return;
-    try { if (['http:', 'https:'].includes(new URL(url).protocol)) return shell.openExternal(url); } catch { /* invalid URL */ }
-  });
+  ipcMain.handle('open-external', (event, url) => { if (trusted(event)) return security.openExternal(shell, url); });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  window.webContents.on('will-navigate', (event, url) => {
-    const allowed = bootstrap.dev ? new URL(url).origin === 'http://localhost:5173' : url.split(/[?#]/)[0] === pathToFileURL(path.join(root, 'dist/index.html')).href;
-    if (!allowed) event.preventDefault();
-  });
+  window.webContents.on('will-navigate', (event, url) => { if (!security.isAppUrl(url, appPage)) event.preventDefault(); });
   window.on('close', event => {
     if (closing) return;
     event.preventDefault(); closing = true;
     rpc({ action: 'close' }).catch(() => {}).finally(() => { control?.disconnect(); window.destroy(); app.quit(); });
   });
-  if (bootstrap.dev) await window.loadURL('http://localhost:5173');
+  if (bootstrap.dev) await window.loadURL(security.DEV_ORIGIN);
   else await window.loadFile(path.join(root, 'dist/index.html'));
   if (!bootstrap.hide) window.show();
   publish(state);

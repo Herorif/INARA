@@ -26,15 +26,54 @@ const devSessionToken = () => ({
     },
 })
 
+// Production only: a strict CSP for the built file:// renderer. `npm run dev` keeps Vite's
+// inline HMR client and has no CSP. The core socket is http/ws://localhost:8000 (src/services/socket.js).
+// frame-ancestors is omitted: Chromium ignores it in a <meta> policy and logs a console error.
+// No 'wasm-unsafe-eval': MediaPipe's WASM compiles only inside the file:// tracking worker, which
+// does not inherit this document policy; the document itself never compiles WASM.
+const CONTENT_SECURITY_POLICY = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "worker-src 'self' blob:",
+    "style-src 'self'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    "connect-src 'self' http://localhost:8000 ws://localhost:8000",
+    "media-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+].join('; ')
+const contentSecurityPolicy = () => ({
+    name: 'inara-content-security-policy',
+    apply: 'build',
+    transformIndexHtml: {
+        order: 'post',
+        handler(html) {
+            // Scripts and styles must be external 'self' files (the <html> background attribute is
+            // parsed before the meta exists, so it is not subject to the policy).
+            if (/<script(?![^>]*\ssrc=)[^>]*>|<style[\s>]/i.test(html)) throw Error('Inline <script>/<style> in index.html would need a weaker CSP')
+            const charset = /<meta charset="UTF-8" \/>/i
+            if (!charset.test(html) || /Content-Security-Policy/i.test(html)) throw Error('Cannot place the Content-Security-Policy meta')
+            return html.replace(charset, match => `${match}\n    <meta http-equiv="Content-Security-Policy" content="${CONTENT_SECURITY_POLICY}" />`)
+        },
+    },
+})
+
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
-    plugins: [renderer.plugin, react(), devSessionToken()],
+    plugins: [renderer.plugin, react(), devSessionToken(), contentSecurityPolicy()],
     worker: { plugins: () => [renderer.workerPlugin()] },
     base: './', // Important for Electron
     define: {
         [TOKEN]: JSON.stringify(command === 'serve'
             ? process.env.VITE_INARA_SESSION_TOKEN || readDevToken()
             : ''),
+    },
+    build: {
+        // Keep small scripts (the speech AudioWorklet) as 'self' files: a data: URL would be
+        // blocked by script-src 'self'. Other assets keep Vite's default inlining.
+        assetsInlineLimit: file => (/\.[cm]?js$/i.test(file) ? false : undefined),
     },
     server: {
         port: 5173,

@@ -9,9 +9,11 @@ const {
   globalShortcut,
   Notification,
   shell,
-  powerMonitor
+  powerMonitor,
+  session
 } = require('electron');
 const { bindCaptureLifecycle } = require('./capture-lifecycle.cjs');
+const security = require('./security.cjs');
 const path = require('path');
 const {
   spawn
@@ -36,6 +38,7 @@ const root = path.join(__dirname, '..');
 const token = process.env.INARA_SESSION_TOKEN || randomBytes(32).toString('hex');
 const instanceId = randomUUID();
 const dev = process.env.INARA_DEV_SERVER === '1';
+const appPage = { dev, indexUrl: pathToFileURL(path.join(root, 'dist/index.html')).href };
 let mainWindow,
   backend,
   tray,
@@ -120,13 +123,12 @@ function openWindow() {
     action: 'deny'
   }));
   window.webContents.on('will-navigate', (event, url) => {
-    const allowed = dev ? url.startsWith('http://localhost:5173/') : url.split(/[?#]/)[0] === pathToFileURL(path.join(root, 'dist/index.html')).href;
-    if (!allowed) event.preventDefault();
+    if (!security.isAppUrl(url, appPage)) event.preventDefault();
   });
   window.on('closed', () => {
     if (mainWindow === window) mainWindow = null;
   });
-  const load = dev ? window.loadURL('http://localhost:5173') : window.loadFile(path.join(root, 'dist/index.html'));
+  const load = dev ? window.loadURL(security.DEV_ORIGIN) : window.loadFile(path.join(root, 'dist/index.html'));
   load.then(() => {
     if (!window.isDestroyed()) {
       window.show();
@@ -300,7 +302,7 @@ async function startBackend() {
     booting = false;
   }
 }
-const trusted = event => mainWindow && event.sender === mainWindow.webContents;
+const trusted = event => security.trustedSender(event, mainWindow, appPage);
 if (ownsInstance) app.whenReady().then(() => {
   preferencesPath = path.join(app.getPath('userData'), 'resident-identity.json');
   try {
@@ -310,6 +312,7 @@ if (ownsInstance) app.whenReady().then(() => {
     identity = null;
   }
   if (identity) controller.mode(identity.gaming);
+  security.installPermissionHandlers(session.defaultSession, () => mainWindow, appPage);
   tray = new Tray(nativeImage.createFromPath(path.join(root, 'assets/icons/inara.png')));
   tray.on('click', () => controller.open());
   tray.on('balloon-click', () => controller.open());
@@ -331,7 +334,7 @@ if (ownsInstance) app.whenReady().then(() => {
     if (trusted(event)) quit();
   });
   ipcMain.handle('resident-register', (event, id) => {
-    if (!trusted(event) || !/^[0-9a-f-]{36}$/i.test(id)) return false;
+    if (!trusted(event) || typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) return false;
     if (!identity) {
       identity = {
         id,
@@ -355,10 +358,7 @@ if (ownsInstance) app.whenReady().then(() => {
     electronPIDs: app.getAppMetrics().map(metric => metric.pid)
   } : null);
   ipcMain.handle('open-external', (event, url) => {
-    if (!trusted(event) || typeof url !== 'string') return;
-    try {
-      if (['https:', 'http:'].includes(new URL(url).protocol)) return shell.openExternal(url);
-    } catch {/* invalid URL */}
+    if (trusted(event)) return security.openExternal(shell, url);
   });
   publish(controller.state);
   controller.open();
