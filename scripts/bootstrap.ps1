@@ -3,7 +3,26 @@ $ErrorActionPreference = 'Stop'
 $projectDirectory = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectDirectory
 if (-not (Test-Path -LiteralPath '.venv\Scripts\python.exe')) {
-    python -m venv .venv
+    # Packaging and part of the runtime tests are pinned to Python 3.12; prefer it through the launcher.
+    $pythonExe = 'python'
+    $pythonArgs = @()
+    if (Get-Command py.exe -ErrorAction SilentlyContinue) {
+        $launcherHas312 = $false
+        try {
+            $null = & py.exe -3.12 -c 'import sys' 2>&1
+            $launcherHas312 = ($LASTEXITCODE -eq 0)
+        } catch { $launcherHas312 = $false }
+        if ($launcherHas312) { $pythonExe = 'py.exe'; $pythonArgs = @('-3.12') }
+    }
+    try {
+        $pythonVersion = (& $pythonExe @pythonArgs -c 'import sys; print(*sys.version_info[:2], sep=chr(46))' | Select-Object -Last 1)
+    } catch { $pythonVersion = $null }
+    if (-not $pythonVersion -or $LASTEXITCODE -ne 0) { throw 'Python was not found. Install Python 3.12, then run this script again.' }
+    if ($pythonVersion -ne '3.12') {
+        Write-Warning ("Python $pythonVersion found, but INARA is built and tested on Python 3.12. " +
+            '3.13 works for development, but packaging and some runtime tests expect 3.12. Install Python 3.12 for the supported setup.')
+    }
+    & $pythonExe @pythonArgs -m venv .venv
     if ($LASTEXITCODE -ne 0) { throw 'Python environment creation failed' }
 }
 $lock = if ($Dev) { 'requirements-dev.lock' } else { 'requirements-core.lock' }
@@ -30,6 +49,14 @@ if ($portableNode) { $env:Path = $portableNode.FullName + ';' + $env:Path }
 if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) {
     throw 'Install Node.js 24 LTS, then run this script again. The backend environment is ready.'
 }
+$nodeVersion = [version]((node --version).TrimStart('v'))
+if ($nodeVersion -lt [version]'22.12.0') {
+    throw "Node.js $nodeVersion is too old: Electron's installer needs Node.js 22.12 or newer. Install Node.js 24 LTS, then run this script again. The backend environment is ready."
+}
+$nodeNeedsFlags = $nodeVersion -lt [version]'22.18.0'
+if ($nodeNeedsFlags) {
+    Write-Warning "Node.js $nodeVersion works, but the client tests need extra flags below 22.18 (npm run test:client passes them). Node.js 24 LTS is recommended."
+}
 if ($Registry) {
     npm.cmd ci --registry=$Registry --replace-registry-host=always
 } else {
@@ -37,7 +64,11 @@ if ($Registry) {
 }
 if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed' }
 if (-not (Test-Path -LiteralPath 'node_modules/electron/dist/electron.exe')) {
-    node node_modules/electron/install.js
+    if ($nodeNeedsFlags) {
+        node --experimental-require-module node_modules/electron/install.js
+    } else {
+        node node_modules/electron/install.js
+    }
     if ($LASTEXITCODE -ne 0) { throw 'Electron runtime installation failed' }
 }
 npm.cmd run build

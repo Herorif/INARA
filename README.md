@@ -31,7 +31,11 @@ only when requested. Projects and typed sessions survive restart, and reminders 
 transactional delivery with receipt and completion. Private payloads are protected
 with Windows DPAPI before SQLite writes; see [persistence and recovery](docs/PERSISTENCE.md).
 
-On Windows with Python 3.12 and Node.js 24 LTS:
+Supported toolchain on Windows: **Python 3.12** (3.13 works for development, but
+packaging and some runtime tests are pinned to 3.12) and **Node.js 24 LTS**
+(`.nvmrc`; 22.12+ works with the npm scripts, which pass the needed flags below 22.18).
+`bootstrap.ps1` creates the venv with `py -3.12` when the Python launcher has it, warns
+on any other Python version, and stops on Node.js older than 22.12.
 
 ```powershell
 .\scripts\bootstrap.ps1 -Dev
@@ -41,7 +45,7 @@ npm start
 For backend-only development:
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.lock
 .\.venv\Scripts\python.exe backend/server.py
 ```
@@ -78,14 +82,19 @@ Camera/model resources stop on close, source/device loss, hide/sleep and gaming;
 restart is deliberate. Real camera/hand acceptance remains pending. See
 [Vision studio and verification](docs/VISION_STUDIO.md).
 
-Run the deterministic milestone and desktop-contract checks with:
+Run the full deterministic test suites (the same checks CI runs) with:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_admin_policy.py tests/test_route_policy.py tests/test_application.py tests/test_conversation_service.py tests/test_legacy_runtime_smoke.py tests/test_durable_storage.py tests/test_resource_policy.py tests/test_native_resident.py tests/test_cad_jobs.py tests/test_scene_jobs.py tests/test_image_jobs.py -q
-.\.venv\Scripts\python.exe -m ruff check tests/test_admin_policy.py tests/test_route_policy.py backend/application.py backend/transport tests/test_application.py backend/services tests/test_conversation_service.py
-node --test tests/test_reminder_ui.mjs tests/test_capture.mjs tests/test_resident.cjs tests/test_cad_ui.mjs tests/test_vision.mjs
+npm run test:py       # full pytest suite (about 6 minutes)
+npm run test:client   # every tests/*.mjs and tests/*.cjs with node's test runner
+npm run check:types
+npm run lint:py       # ruff with the pyproject.toml config
 npm run build
 ```
+
+Tests marked `live_api` (real paid AI providers) or `live_hardware` (real devices on
+the local network) are skipped unless `INARA_LIVE_API_TESTS=1` or
+`INARA_LIVE_HARDWARE_TESTS=1` is set.
 
 See [implementation status](docs/IMPLEMENTATION_STATUS.md) for verified behavior,
 current limitations and the next milestone.
@@ -192,8 +201,8 @@ The repository still contains an unfinished event-bus rewrite under `backend/cor
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 18+
+- Python 3.12 (3.13 works for development)
+- Node.js 24 LTS (22.12+ works)
 
 ### Setup
 

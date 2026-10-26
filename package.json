@@ -9,7 +9,13 @@
     "build": "vite build",
     "start": "node scripts/launch-native.cjs",
     "start:legacy": "electron .",
-    "check:types": "node node_modules/typescript/lib/tsc.js -p tsconfig.ui.json"
+    "check:types": "node node_modules/typescript/lib/tsc.js -p tsconfig.ui.json",
+    "test:client": "node --experimental-require-module --experimental-strip-types --test \"tests/*.mjs\" \"tests/*.cjs\"",
+    "test:py": ".venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider",
+    "lint:py": ".venv\\Scripts\\python.exe -m ruff check backend tests"
+  },
+  "engines": {
+    "node": ">=22.12"
   },
   "keywords": [],
   "author": "",
