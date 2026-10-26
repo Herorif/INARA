@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import { PERMISSION_OPTIONS, permissionOption, permissionValue } from './toolPermissions';
+import AiSettings from '../features/settings/AiSettings';
 
 const TOOLS = [
 { id: 'generate_cad', label: 'Generate CAD' },
@@ -58,12 +59,14 @@ const SettingsWindow = ({ onClose }) => {
 
   const [permissions, setPermissions] = useState({});
   const [faceAuthEnabled, setFaceAuthEnabled] = useState(false);
+  const [assistant, setAssistant] = useState(null);
 
   useEffect(() => {
     emitSocket('get_settings');
     const handleSettings = (settings) => {
       if (settings) {
         if (settings.tool_permissions) setPermissions(settings.tool_permissions);
+        setAssistant(settings.assistant && typeof settings.assistant === 'object' ? settings.assistant : {});
         if (typeof settings.face_auth_enabled !== 'undefined') {
           setFaceAuthEnabled(settings.face_auth_enabled);
           localStorage.setItem('face_auth_enabled', settings.face_auth_enabled);
@@ -92,6 +95,8 @@ const SettingsWindow = ({ onClose }) => {
 
   return (
     <div className="tool-panel tool-panel--settings">
+            <AiSettings assistant={assistant} />
+
             <section className="flex flex-col gap-2">
                 <h3 className="hud-label">Security</h3>
                 <div className={ROW}>

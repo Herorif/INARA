@@ -4,9 +4,9 @@ import asyncio
 import sqlite3
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, ValidationError
 
-from services.secrets import REGISTRY
+from services.secrets import REGISTRY, check_message
 from services.settings import EmptyRequest
 from services.storage import StorageError
 from services.tools import ServiceError
@@ -22,6 +22,8 @@ class SecretReference(BaseModel):
 class SecretValue(SecretReference):
     # The value is validated by the registry; pydantic only bounds its size/type.
     value: StrictStr = Field(max_length=512)
+    # Check with the provider before storing; a rejected key never replaces the saved one.
+    verify: StrictBool = False
 
 
 class SecretsTransport:
@@ -44,7 +46,19 @@ class SecretsTransport:
                     return {"ok": True, "secrets": store.statuses()}
                 if name == "secrets_set":
                     request = SecretValue.model_validate(data)
-                    return {"ok": True, "secret": store.set(request.name, request.value)}
+                    if not request.verify:
+                        return {"ok": True, "secret": store.set(request.name, request.value)}
+                    value = store.validate(request.name, request.value)
+                    check = await asyncio.to_thread(store.check_value, request.name, value)
+                    if check["code"] == "invalid_key":
+                        return {
+                            "ok": False,
+                            "code": "key_rejected",
+                            "message": check_message(request.name, check["code"]),
+                            "check": check,
+                        }
+                    secret = store.set(request.name, value, check=check)
+                    return {"ok": True, "secret": secret, "check": check}
                 request = SecretReference.model_validate(data)
                 if name == "secrets_clear":
                     return {"ok": True, "secret": store.clear(request.name)}

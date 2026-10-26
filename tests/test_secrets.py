@@ -333,6 +333,73 @@ async def test_invalid_set_requests_store_nothing_and_echo_nothing(owner_app, pa
     assert owner_app.secrets.get("anthropic_api_key") is None
 
 
+VERIFIED_SET = {"name": "anthropic_api_key", "value": ANTHROPIC, "verify": True}
+PREVIOUS = "sk-ant-api03-" + "Z9y8X7w6V5u4T3s2" * 4 + "prev"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("previous", [None, PREVIOUS])
+async def test_verified_set_rejected_key_stores_nothing(owner_app, previous):
+    if previous:
+        owner_app.secrets.set("anthropic_api_key", previous)
+    owner_app.secrets.send = Sender((401, "{}"))
+    result = await owner_app.sio.handlers["/"]["secrets_set"]("renderer", VERIFIED_SET)
+    assert result["ok"] is False and result["code"] == "key_rejected"
+    assert result["message"] == "This key was rejected by Anthropic."
+    assert result["check"]["code"] == "invalid_key" and result["check"]["ok"] is False
+    assert owner_app.secrets.get("anthropic_api_key") == previous
+    assert len(owner_app.secrets.send.calls) == 1
+    assert ANTHROPIC not in json.dumps(result)
+
+
+@pytest.mark.asyncio
+async def test_verified_set_ok_marks_verified(owner_app):
+    result = await owner_app.sio.handlers["/"]["secrets_set"]("renderer", VERIFIED_SET)
+    assert result["ok"] is True and result["check"]["code"] == "ok"
+    assert result["secret"]["verified_at"] and result["secret"]["last_check"]["ok"] is True
+    assert owner_app.secrets.get("anthropic_api_key") == ANTHROPIC
+    assert owner_app.secrets.send.calls[0][1]["x-api-key"] == ANTHROPIC
+    assert ANTHROPIC not in json.dumps(result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "outcome, code",
+    [(httpx.ConnectError("offline"), "network_error"), ((429, ""), "rate_limited"), ((500, ""), "unexpected")],
+)
+async def test_verified_set_unreachable_saves_unverified(owner_app, outcome, code):
+    owner_app.secrets.set("anthropic_api_key", PREVIOUS)
+    owner_app.secrets.send = Sender(outcome)
+    result = await owner_app.sio.handlers["/"]["secrets_set"]("renderer", VERIFIED_SET)
+    assert result["ok"] is True and result["check"]["code"] == code
+    assert result["secret"]["verified_at"] is None and result["secret"]["last_check"]["code"] == code
+    assert owner_app.secrets.get("anthropic_api_key") == ANTHROPIC
+    assert ANTHROPIC not in json.dumps(result)
+
+
+@pytest.mark.asyncio
+async def test_verified_set_checks_format_before_any_request(owner_app):
+    payload = {**VERIFIED_SET, "value": "sk-ant-oops"}
+    result = await owner_app.sio.handlers["/"]["secrets_set"]("renderer", payload)
+    assert result["ok"] is False and result["code"] == "invalid_format"
+    assert owner_app.secrets.send.calls == [] and "sk-ant-oops" not in json.dumps(result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("sid", ["unknown", "tray", "control", "foreign"])
+async def test_verified_set_is_owner_renderer_only(owner_app, sid):
+    result = await owner_app.sio.handlers["/"]["secrets_set"](sid, VERIFIED_SET)
+    assert result["ok"] is False and result["code"] in {"authentication_required", "permission_denied"}
+    assert owner_app.secrets.send.calls == [] and owner_app.secrets.get("anthropic_api_key") is None
+
+
+@pytest.mark.asyncio
+async def test_verify_flag_must_be_boolean(owner_app):
+    result = await owner_app.sio.handlers["/"]["secrets_set"]("renderer", {**VERIFIED_SET, "verify": "yes"})
+    assert result == {"ok": False, "code": "invalid_arguments", "message": "Invalid key request."}
+    assert owner_app.secrets.get("anthropic_api_key") is None
+
+
 # --- CLI ---------------------------------------------------------------------------
 
 
