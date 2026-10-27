@@ -1133,6 +1133,17 @@
       "lifetime": "Live connection with sliding-window compression and resumption handle (GoAway/drop reconnects up to 3 times); 60s silence, end_conversation, stop, disconnect, lock, project change, gaming/resident mode and quit end it; audio never stored",
       "replacement": "VoiceTransport / VoiceService (Gemini Live)",
       "status": "migrated"
+    },
+    "voice_preview": {
+      "schema": "VoicePreviewRequest (name: one of live_config.PREBUILT_VOICES; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Captured owner and current project for the usage receipt; Gemini key from the profile secret store",
+      "effects": "Admit a voice_preview usage step and make one Gemini text-to-speech request (model_id('tts'), 30s timeout) for the fixed line \"Hello, I'm INARA. How can I help?\" in the named prebuilt voice; cached in memory per model and voice for the process, so a repeat preview makes no request",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; no Gemini key -> provider_not_configured before any request",
+      "response": "Origin ACK {ok, name, cached, sample_rate, pcm_base64 (PCM16 mono)}; provider errors mapped to plain codes, SDK text never echoed",
+      "lifetime": "Request-only; one in-flight request per voice; audio kept only in process memory, never stored",
+      "replacement": "VoicePreviewTransport / VoicePreviewService (Gemini TTS)",
+      "status": "migrated"
     }
   },
   "http_routes": {
@@ -1645,6 +1656,43 @@
       "method": "WebSocket",
       "authentication": "Upgrade X-Twilio-Signature over the public wss:// (or https://) stream URL with no params, else HTTP 403; start message must carry the configured AccountSid and redeem the single-use stream token for its CallSid and direction",
       "effects": "Bidirectional Twilio Media Stream (mu-law 8 kHz) bridged to CallAudioSession for the call agent; ends the call when the agent hangs up"
+    }
+  },
+  "call_agent_declarations": {
+    "record_message": {
+      "mode": "screening (inbound)",
+      "target": "CallAgent: stored in the call record's fields.message (CallRecords, DPAPI, 7 days)",
+      "schema": "name 1-80, reason 1-300, urgency low|normal|urgent, callback_number (confirmed digit by digit; E.164, Malaysian national numbers get +60, or \"none\"), message 1-1000",
+      "policy": "Validated with pydantic; invalid arguments return is_error to the model and record nothing; the latest valid call wins",
+      "status": "c2"
+    },
+    "record_owner_decision": {
+      "mode": "owner_briefing (outbound to the owner's number only)",
+      "target": "CallAgent: fields.decision; a confirmed callback issues ONE C1 grant (TelephonyService.grants.issue) for the caller's number and the approved callback brief's hash",
+      "schema": "action callback|ignore|owner_handles, message_for_caller (required for callback, 1-500), confirmed: bool",
+      "policy": "confirmed=false returns the read-back; confirmed=true is refused unless the same action and message were read back first and the owner's words since contain an explicit yes and no negation; one decision per briefing; with calls.briefing_pin set, refused until verify_pin succeeds",
+      "status": "c2"
+    },
+    "verify_pin": {
+      "mode": "owner_briefing, only when calls.briefing_pin is set",
+      "target": "CallAgent: constant-time compare with calls.briefing_pin; on success returns the call details",
+      "schema": "pin: string (digits; separators ignored)",
+      "policy": "The PIN is never in the instruction, logs or record (spoken digits are redacted from captions); the call details reach the model only after a match; three failures end the call",
+      "status": "c2"
+    },
+    "record_outcome": {
+      "mode": "approved_callback, task (outbound; each needs a one-use grant bound to the number and brief hash, consumed by place_call)",
+      "target": "CallAgent: fields.outcome",
+      "schema": "status delivered|confirmed|declined|no_answer|needs_owner, details 0-1000",
+      "policy": "Validated with pydantic; is_error on invalid arguments",
+      "status": "c2"
+    },
+    "end_call": {
+      "mode": "all call modes",
+      "target": "CallAgent: hangs up after the current utterance (final Media Stream mark played, 15 s cap)",
+      "schema": "reason: string 1-200",
+      "policy": "Ends only this call; also used for the 10-minute limit, silence and budget wrap-up",
+      "status": "c2"
     }
   }
 }

@@ -4,6 +4,7 @@ import useStore from '../store';
 import socket from '../services/socket';
 import { SpeechController } from '../features/speech/controller';
 import { liveVoice, voiceTarget } from '../features/voice';
+import { holdButtonTone, shouldStartConversation } from '../features/voice/defaultMode.js';
 import PresenceRing from './PresenceRing';
 import HudLabel from '../shared/ui/HudLabel';
 import './quick-assistant.css';
@@ -39,7 +40,9 @@ export default function QuickAssistant({
     restoring = useStore(s => s.conversationRestoring),
     messages = useStore(s => s.messages),
     deviceId = useStore(s => s.selectedMicId),
-    live = useStore(s => s.voice);
+    live = useStore(s => s.voice),
+    defaultMode = useStore(s => s.voiceDefaultMode),
+    openedAt = useStore(s => s.quickOpenedAt);
   const [voice, setVoice] = useState({
       state: 'idle',
       transcript: '',
@@ -48,7 +51,8 @@ export default function QuickAssistant({
     [text, setText] = useState(''),
     [speak, setSpeak] = useState(false);
   const controller = useRef(null),
-    input = useRef(null);
+    input = useRef(null),
+    startedFor = useRef(null);
   useEffect(() => {
     let live = true;
     const value = new SpeechController({
@@ -93,6 +97,12 @@ export default function QuickAssistant({
       if (liveVoice().active()) liveVoice().stop();
     }
   }, [gaming, locked]);
+  // Default mode Conversation: opening the Quick assistant (the hotkey) turns it on once.
+  useEffect(() => {
+    if (openedAt == null || !shouldStartConversation({ mode: defaultMode, started: startedFor.current === openedAt, elapsed: performance.now() - openedAt, connected, gaming, locked, restoring, liveState: live.state, speechState: voice.state })) return;
+    startedFor.current = openedAt;
+    liveVoice().toggleConversation(voiceTarget());
+  }, [openedAt, defaultMode, connected, gaming, locked, restoring, live.state, voice.state]);
   const active = !['idle', 'answered'].includes(voice.state);
   const dictating = ['armed', 'opening', 'listening'].includes(voice.state);
   const talking = live.state !== 'off';
@@ -143,7 +153,7 @@ export default function QuickAssistant({
             send(event);
           }
         }} /><button type="submit" className="btn btn--primary btn--icon" aria-label="Send quick message" disabled={!connected || locked || processing || restoring || active && voice.state !== 'review' || !(voice.state === 'review' ? voice.transcript : text).trim()}><ArrowUp size={16} aria-hidden="true" /></button></div></form>
-    <div className="quick-voice"><button type="button" className={`ptt-button btn btn--secondary ${voice.state === 'listening' || (live.micOpen && !hands) ? 'holding' : ''}`} disabled={!connected || gaming || locked || processing || restoring || hands || (active && !dictating)} onPointerDown={event => {
+    <div className="quick-voice"><button type="button" className={`ptt-button btn ${holdButtonTone(defaultMode)} ${voice.state === 'listening' || (live.micOpen && !hands) ? 'holding' : ''}`} disabled={!connected || gaming || locked || processing || restoring || hands || (active && !dictating)} onPointerDown={event => {
         event.currentTarget.setPointerCapture(event.pointerId);
         hold(event);
       }} onPointerUp={release} onPointerCancel={cancelHold} onKeyDown={hold} onKeyUp={release}><Mic size={16} aria-hidden="true" />{dictating ? 'Hold to dictate' : 'Hold to talk'}</button><button type="button" className={`conversation-toggle btn btn--secondary ${hands ? 'is-on' : ''}`} aria-pressed={hands} disabled={!connected || gaming || locked || restoring || active} onClick={() => liveVoice().toggleConversation(voiceTarget())}><AudioWaveform size={16} aria-hidden="true" />Conversation</button>{['idle', 'answered'].includes(voice.state) && <button type="button" className="dictate-voice btn btn--ghost" disabled={!connected || gaming || locked || processing || restoring || hands || live.micOpen} onClick={async () => {

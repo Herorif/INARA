@@ -289,6 +289,41 @@ class UsageService:
         finally:
             self.active.discard(ticket["id"])
 
+    def record_estimate(self, owner, project, feature, operation, model, counts, duration):
+        """A completed, priced receipt for work billed after the fact (Twilio call minutes).
+
+        No admission and no allowance: the work has already happened, so a budget cannot
+        refuse it; the receipt only makes the list-price estimate visible."""
+        identifier = scope_hash(f"{owner}\n{Path(project).resolve()}\n{feature}\n{operation}")
+        _, month = self.periods()
+        kind = self.call_kind(owner, month)
+        with self.database.transaction() as db:
+            if self.database.get(db, kind, identifier):
+                return None
+            receipt = {
+                "id": identifier,
+                "request_id": str(operation),
+                "provider_step": None,
+                "kind": kind,
+                "owner": owner,
+                "project": Path(project).name,
+                "project_scope": scope_hash(Path(project).resolve()),
+                "feature": feature,
+                "model": str(model)[:120],
+                "state": "completed",
+                "created_at": self.clock(),
+                "allowance_microusd": 0,
+                "capped": False,
+                "max_output_tokens": None,
+                "instance": self.instance,
+                "tokens": dict(counts),
+                "duration_seconds": round(max(0, duration), 3),
+                "estimated_cost_microusd": estimate_microusd(model, counts),
+                "cloud": True,
+            }
+            self.database.put(db, kind, identifier, receipt)
+        return receipt
+
     def begin_local_call(self, owner, project, request_id, *, model="local_structured_english"):
         """Content-free local admission, never a cloud authorization or invoice."""
         self.owner(owner)
@@ -408,6 +443,10 @@ class UsageService:
                 "transcription",
                 "voice_live",
                 "voice_brain",
+                "voice_preview",
+                "call_live",
+                "call_triage",
+                "call_twilio",
             ],
             "unmetered_legacy_blocked_when_enabled": True,
         }

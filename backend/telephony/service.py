@@ -44,6 +44,7 @@ PENDING_SECONDS = 300.0
 OWNER_CALL_WINDOW = 120.0
 PUBLIC_BASE = re.compile(r"https://[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+")
 HHMM = re.compile(r"([01][0-9]|2[0-3]):[0-5][0-9]")
+BRIEFING_PIN = re.compile(r"[0-9]{4,8}")
 
 
 def calls_settings(settings):
@@ -66,6 +67,14 @@ def calls_settings(settings):
             value[key] = raw[key]
     if raw.get("when_disabled") in ("voicemail", "hangup"):
         value["when_disabled"] = raw["when_disabled"]
+    # C2 call agent: facts pack, optional briefing PIN, call length limit.
+    if isinstance(raw.get("facts"), str) and len(raw["facts"]) <= 1000:
+        value["facts"] = raw["facts"]
+    pin = raw.get("briefing_pin")
+    if isinstance(pin, str) and (pin == "" or BRIEFING_PIN.fullmatch(pin)):
+        value["briefing_pin"] = pin
+    if type(raw.get("max_call_minutes")) is int and 2 <= raw["max_call_minutes"] <= 30:
+        value["max_call_minutes"] = raw["max_call_minutes"]
     return value
 
 
@@ -97,6 +106,13 @@ class TelephonyService:
     def set_agent(self, agent, input_rate=16000):
         """``agent(session)`` is awaited once per connected call (C2)."""
         self.agent, self.agent_input_rate = agent, input_rate
+
+    def agent_ready(self):
+        """An agent is installed and, if it can tell (C2's ``available()``), able to talk."""
+        if self.agent is None:
+            return False
+        available = getattr(self.agent, "available", None)
+        return available is None or bool(available())
 
     def calls_settings(self):
         return calls_settings(self.app.settings)
@@ -208,7 +224,7 @@ class TelephonyService:
         if not settings["enabled"]:
             return self._unavailable(settings)
         base = self.public_base_url()
-        if self.agent is None or base is None or not CALL_SID.fullmatch(call_sid):
+        if not self.agent_ready() or base is None or not CALL_SID.fullmatch(call_sid):
             logger.info("Inbound call %s sent to the unavailable path", mask_sid(call_sid))
             return self._unavailable(settings)
         self._prune_inbound()
@@ -392,12 +408,20 @@ class TelephonyService:
             outbound_today = None
         gateway, tunnel = self.gateway.status(), self.tunnel.status()
         base = settings["public_base_url"]
+        agent_ready = self.agent_ready()
+        if self.agent is None:
+            agent = "none"
+        elif self.agent is stub_agent:
+            agent = "stub"
+        else:  # C2 call agent: "unavailable" until Live voice (Gemini key and SDK) is ready
+            agent = "ready" if agent_ready else "unavailable"
         ready = (
             settings["enabled"]
             and all(secrets[name]["configured"] for name in REQUIRED_SECRETS)
             and bool(base)
             and gateway["listening"]
             and tunnel["state"] == "running"
+            and agent_ready
         )
         return {
             "enabled": settings["enabled"],
@@ -408,7 +432,7 @@ class TelephonyService:
             "secrets": secrets,
             "gateway": gateway,
             "tunnel": tunnel,
-            "agent": "none" if self.agent is None else ("stub" if self.agent is stub_agent else "ready"),
+            "agent": agent,
             "active_calls": len(self.sessions),
             "outbound_today": outbound_today,
             "daily_outbound_cap": settings["daily_outbound_cap"],

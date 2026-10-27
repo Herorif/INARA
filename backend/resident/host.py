@@ -13,6 +13,8 @@ import uuid
 from resident.state import Identity, State
 from services.log import get_logger
 
+NOTICES = {"call": ("INARA call", "A call record is ready. Open the command deck to view it.")}
+
 logger = get_logger(__name__)
 
 
@@ -295,7 +297,11 @@ class NativeHost:
                     result.set_result(False)
                     return
                 key = delivery["delivery_id"]
-                queued = key in self.seen or self.tray.notify()
+                # Fixed, content-free notices: reminders by default, calls (C2) by kind.
+                notice = NOTICES.get(delivery.get("notice"))
+                queued = key in self.seen or (
+                    self.tray.notify(*notice) if notice else self.tray.notify()
+                )
                 if queued:
                     self.seen.add(key)
                     if len(self.seen) > 512:

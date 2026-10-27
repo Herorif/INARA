@@ -46,6 +46,20 @@ def mask(value):
     return f"***{number[-4:]}" if number else "withheld"
 
 
+def mask_display(value):
+    """Owner-facing masked number: ``+60 12-•••• 6789`` (Malaysia), ``+44 •••• 1234``
+    elsewhere, ``withheld`` when there is no usable number."""
+    number = normalize(value) if isinstance(value, str) else None
+    if number is None or number in WITHHELD_NUMBERS:
+        return "withheld"
+    digits = number[1:]
+    if digits.startswith("60") and len(digits) >= 9:
+        national = digits[2:]
+        prefix = national[:2] if national[:1] in ("1", "8") else national[:1]
+        return f"+60 {prefix}-•••• {digits[-4:]}"
+    return f"+{digits[:2]} •••• {digits[-4:]}"
+
+
 def number_key(value):
     """Stable non-reversible key for per-number ledgers (no raw numbers stored)."""
     return hashlib.sha256(("inara-telephony-number:" + value).encode("utf-8")).hexdigest()[:32]

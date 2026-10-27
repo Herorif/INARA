@@ -203,6 +203,14 @@ class CallsSettings(EmptyRequest):
     daily_outbound_cap: StrictInt | None = Field(default=None, ge=0, le=100)
     number_cooldown_minutes: StrictInt | None = Field(default=None, ge=0, le=10080)
     when_disabled: Literal["voicemail", "hangup"] | None = None
+    # Owner-approved facts the call agent may share with callers (C2). Printable text and
+    # line breaks only: it is placed in the call agent's system instruction.
+    facts: StrictStr | None = Field(
+        default=None, max_length=1000, pattern=r"^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$"
+    )
+    # Optional spoken PIN for owner briefings; "" turns it off. Never logged.
+    briefing_pin: StrictStr | None = Field(default=None, pattern=r"^(|[0-9]{4,8})$")
+    max_call_minutes: StrictInt | None = Field(default=None, ge=2, le=30)
 
     @field_validator(
         "enabled",
@@ -211,6 +219,9 @@ class CallsSettings(EmptyRequest):
         "daily_outbound_cap",
         "number_cooldown_minutes",
         "when_disabled",
+        "facts",
+        "briefing_pin",
+        "max_call_minutes",
         mode="before",
     )
     @classmethod
@@ -233,6 +244,9 @@ CALLS_DEFAULTS = {
     "daily_outbound_cap": 10,
     "number_cooldown_minutes": 60,
     "when_disabled": "voicemail",
+    "facts": "",
+    "briefing_pin": "",
+    "max_call_minutes": 10,
 }
 
 

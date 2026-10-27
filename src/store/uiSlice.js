@@ -14,6 +14,8 @@ const approvalState = queue => ({ confirmationQueue: queue, confirmationRequest:
 
 export const createUiSlice = (set, get) => ({
     showQuickAssistant: window.electronAPI?.quickMode === true,
+    // performance.now() when the Quick assistant was last opened (hotkey, tray or launch).
+    quickOpenedAt: window.electronAPI?.quickMode === true ? performance.now() : null,
     showSettings: false,
     showCapabilities: false,
     showCallLab: false,

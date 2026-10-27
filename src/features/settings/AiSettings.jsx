@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import socket from '../../services/socket';
 import StatusChip from '../../shared/ui/StatusChip';
 import { createSecretsClient } from '../../transport/secretsClient.ts';
+import VoiceSettings from './VoiceSettings';
 import {
   AUTO_HELP, BRAIN_OPTIONS, ENV_NOTE, NAME_HELP, PROVIDERS, REMOVE_CONFIRM,
   activeModelText, brainOption, brainProblem, rejectedMessage, rpcFailureMessage, saveResultMessage, secretChip, testResultMessage,
@@ -154,8 +155,8 @@ const BrainControl = ({ value, disabled, onChange }) =>
     )}
   </div>;
 
-/** "AI and assistant" section at the top of Preferences. `assistant` is the saved settings.assistant. */
-export default function AiSettings({ assistant }) {
+/** "AI and assistant" section at the top of Preferences. `assistant` and `voice` are the saved settings sections. */
+export default function AiSettings({ assistant, voice }) {
   const client = useMemo(() => createSecretsClient(socket), []);
   const [statuses, setStatuses] = useState({});
   const [loadError, setLoadError] = useState('');
@@ -195,11 +196,11 @@ export default function AiSettings({ assistant }) {
   }, [refreshBrain]);
 
   // update_settings reports failures on the `error` event with the core's message.
-  const patchAssistant = async (patch) => {
+  const patchSettings = async (patch) => {
     let message = '';
     const off = client.on('error', (payload) => { if (payload && typeof payload.msg === 'string') message = payload.msg; });
     try {
-      await client.updateSettings({ assistant: patch });
+      await client.updateSettings(patch);
       return '';
     } catch (error) {
       return message || rpcFailureMessage(error);
@@ -208,13 +209,13 @@ export default function AiSettings({ assistant }) {
 
   const chooseBrain = async (next) => {
     if (next === setting) return;
-    setBrainError(await patchAssistant({ brain: next }));
+    setBrainError(await patchSettings({ assistant: { brain: next } }));
   };
 
   const saveName = async (raw) => {
     const next = raw.replace(/\s+/g, ' ').trim();
     if (next === savedName) return;
-    const failure = await patchAssistant({ owner_name: next });
+    const failure = await patchSettings({ assistant: { owner_name: next } });
     setNameResult(failure ? { tone: 'danger', text: failure } : { tone: 'ok', text: 'Name saved.' });
   };
 
@@ -254,5 +255,8 @@ export default function AiSettings({ assistant }) {
         <ResultMessage id="assistant-owner-name-result" result={nameResult} />
       </div>
     </div>
+
+    <VoiceSettings voice={voice} client={client} patch={patchSettings}
+      previewAvailable={statuses.gemini_api_key ? !!statuses.gemini_api_key.configured : null} />
   </section>;
 }

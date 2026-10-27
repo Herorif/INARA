@@ -204,7 +204,8 @@ async def test_calls_status_is_owner_renderer_only(owner_app, sid):
     assert result["code"] in {"authentication_required", "permission_denied"}
 
 
-async def test_calls_status_reports_readiness_and_never_values(owner_app):
+async def test_calls_status_reports_readiness_and_never_values(owner_app, monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     owner_app.secrets.set("twilio_auth_token", TOKEN)
     handler = owner_app.sio.handlers["/"]["calls_status"]
     assert (await handler("renderer", {"extra": 1}))["code"] == "invalid_arguments"
@@ -215,7 +216,8 @@ async def test_calls_status_reports_readiness_and_never_values(owner_app):
     assert calls["secrets"]["twilio_auth_token"]["configured"] is True
     assert calls["secrets"]["twilio_account_sid"]["configured"] is False
     assert calls["gateway"]["listening"] is False and calls["tunnel"]["state"] == "stopped"
-    assert calls["agent"] == "none"
+    # C2: the Gemini Live call agent is installed; without a Gemini key it is unavailable.
+    assert calls["agent"] == "unavailable"
     assert TOKEN not in json.dumps(result)
 
 

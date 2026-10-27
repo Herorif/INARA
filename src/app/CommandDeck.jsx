@@ -85,7 +85,7 @@ export default function CommandDeck() {
   const setQuick = useCallback(value => {
     if (value && useStore.getState().isLockScreenVisible) return;
     if (value) { setCamera(false); setCommands(false); useStore.setState(clearedFeatures()); }
-    useStore.setState({ showQuickAssistant:value });
+    useStore.setState(value && !useStore.getState().showQuickAssistant ? { showQuickAssistant:value, quickOpenedAt:performance.now() } : { showQuickAssistant:value });
     window.electronAPI?.setQuickMode?.(value);
   }, []);
   useEffect(() => window.electronAPI?.onQuickAssistant?.(setQuick), [setQuick]);

@@ -1,6 +1,6 @@
 # Call routing
 
-Owner decision, 25 October 2026. Status: the C1 telephony gateway is built and tested offline ([Implementation status (C1)](#implementation-status-c1)); nothing has been verified against a live Twilio number, and C2-C5 are not built. Gate: `sim-call-routing` in [RELEASE_GATES.json](RELEASE_GATES.json).
+Owner decision, 25 October 2026. Status: the C1 telephony gateway and the C2 call agent are built and tested offline ([Implementation status (C1)](#implementation-status-c1), [Implementation status (C2)](#implementation-status-c2)); nothing has been verified against a live Twilio number, and C3-C5 are not built. Gate: `sim-call-routing` in [RELEASE_GATES.json](RELEASE_GATES.json).
 
 ## Decision
 
@@ -157,10 +157,49 @@ Voicemail is `<Say>` + one `<Record maxLength="120">` (stored by Twilio) + `<Han
 
 ### Remaining
 
-- **C2 Call agent:** Gemini Live bridge on `CallAudioSession`, AI disclosure, screening script and structured outcome tools; replaces the stub.
+- **C2 Call agent:** built; see [Implementation status (C2)](#implementation-status-c2).
 - **C3 Approvals, orchestration and Calls view:** triage, owner briefings (`place_call` to the owner, handling `owner_unreachable`), issuing grants after approval, the kill switch in the tray and Calls view, a `calls_status` UI, transcripts (DPAPI, 7-day retention), voicemail retrieval and deletion.
 - **C4 Reservation flow:** call briefs, grant binding to the brief hash, bounded task calls, reminders and reports.
 - **C5 Setup guide:** Twilio number and regulatory bundle, webhook and Fallback URL configuration, tunnel ingress, installing cloudflared, forwarding codes and the first live test call (including the items above).
+
+## Implementation status (C2)
+
+Built 27 October 2026 in `backend/telephony/agent.py` (CallAgent), `briefs.py` (CallBrief, instructions, tool schemas) and `triage.py`; records in `backend/calls/records.py`. Covered by `tests/test_call_agent.py` with a fake Live session and C1's real `CallAudioSession` (no network, no Twilio, no provider). The core installs the agent at startup (`INARA_TELEPHONY_STUB_AGENT=1` still selects the developer stub); calls stay off by default and nothing needs a telephony secret to start. Without a Gemini key the agent reports `unavailable` in `calls_status` and inbound calls take the `calls.when_disabled` path.
+
+### Calls and briefs
+
+Every call runs from a `CallBrief`: mode, direction, counterpart (E.164), owner name (`assistant.owner_name`), facts pack (`calls.facts`), and for outbound modes the briefed call, the approved message, or the task goal and constraints. `CallBrief.purpose()` embeds the brief's SHA-256, so a C1 grant for that purpose binds the number and the exact brief.
+
+| Mode | Direction | Start | Tools |
+| --- | --- | --- | --- |
+| `screening` | inbound (default) | "Hi, you've reached <owner or 'this number'>. I'm INARA, an AI assistant. This call is transcribed." | `record_message`, `end_call` |
+| `owner_briefing` | outbound, owner's number only, no grant | "Hi <owner>, it's INARA, your AI assistant, with a call briefing." | `verify_pin` (only with `calls.briefing_pin`), `record_owner_decision`, `end_call` |
+| `approved_callback` | outbound, one-use grant | "Hello, this is INARA, an AI assistant calling on behalf of <owner>. This call is transcribed." | `record_outcome`, `end_call` |
+| `task` | outbound, one-use grant | same disclosure | `record_outcome`, `end_call` |
+
+- `CallAgent.call(brief, grant=None)` places an outbound call and returns a handle whose `result` resolves to a `CallResult` (record id, outcome, captured fields and, after a confirmed briefing, the approved callback brief with its grant). Callbacks and task calls without a grant are refused before anything is sent; `place_call` checks the grant against the number and brief hash and consumes it. The stream finds its brief by a single-use token in the call context, so a brief runs once; an outbound stream without one is hung up before Live connects. Calls that end unanswered are recorded as `no_answer`. When to place a briefing or a callback is C3's decision.
+- Briefing decisions: `record_owner_decision(confirmed=false)` returns the read-back; `confirmed=true` is refused unless the same decision was read back and the owner's words since contain an explicit yes and no negation. A confirmed callback issues one grant (10 minutes) for the caller's confirmed number. The PIN is compared in code, never placed in the instruction, logs or record (spoken digits are redacted from captions); the call details reach the model only after it matches; three failures end the call.
+- Arguments are validated with pydantic; failures go back to the model as `{"is_error": true, "error", "message"}`.
+
+### Audio and limits
+
+Caller mu-law 8 kHz -> PCM16 16 kHz (C1) -> Live; Live PCM16 24 kHz -> `session.send` (8 kHz mu-law); `interrupted` -> `session.clear()`. Automatic voice activity detection is on; context-window compression and session resumption (GoAway and up to three reconnects) work as for desktop voice, through the shared `live_connect_config`. Caller audio is held until the disclosure has played (its mark returns, at most 12 s), so the disclosure is always heard first. `end_call` hangs up once Twilio has played the audio before a final mark (15 s cap). Limits: `calls.max_call_minutes` (default 10; a nudge one minute before, a goodbye at the limit, a hard stop 25 s later); 20 s without speech -> a polite check, 10 s more -> goodbye; a usage budget reached mid-call -> goodbye. The stream ending (caller, kill switch, shutdown) closes the Live session at once. Gaming and resident mode do not stop phone calls.
+
+### Records, triage and notices
+
+After every call the record is saved first (CallRecords, DPAPI, 7-day retention, at most 256 records; the oldest gives way): schema 2 with `direction`, `mode`, `counterpart` (`{"masked": "+60 12-•••• 6789", "key": per-profile HMAC}`), timestamps, `duration_seconds`, `fields` (what the tools captured), `transcript` (captions only, no audio), `outcome`, `end_reason`, `brief_hash`, `triage`, `triage_state`. Schema 1 call-lab records are read with empty structured fields. Triage then runs off the call path on the router's `fast` task (Claude Haiku 5.5, else the Gemini text model) and stores `{summary (two sentences at most), urgency, needs_owner, suggested_actions}`, or a failure code without touching the record. The owner's renderers then get `call_record_ready` with the record id only; with no renderer open, the native tray shows a generic notice ("A call record is ready").
+
+Usage: Live turns are metered per turn (`call_live`), triage as `call_triage`, and Twilio minutes as list-price estimates (`call_twilio`: US$0.0555/min local and inbound, US$0.08/min to +60 1x mobiles, billed per started minute; `llm/pricing.py`).
+
+Settings added to `calls.*`: `facts` (free text, at most 1,000 characters, default empty), `briefing_pin` (4-8 digits, or empty for none), `max_call_minutes` (2-30, default 10). There is no settings UI for them yet.
+
+### Not verified offline
+
+- Gemini Live's handling of the kickoff text (`send_realtime_input(text=...)`) and whether `gemini-3.8-live` speaks the opening line verbatim, in English, before anything else.
+- Voice activity detection and barge-in on 8 kHz phone audio upsampled to 16 kHz, including the line echo of INARA's own voice.
+- Twilio playing marks in order and the `clear` behaviour mid-goodbye; end-to-end latency.
+- Caption quality for Malaysian English and Malay, and digit-by-digit callback numbers.
+- Tray notices on the native host, and Electron (legacy host) shows none for calls.
 
 ## Sources
 

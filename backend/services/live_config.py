@@ -110,29 +110,30 @@ def declarations(mode):
     return [ASK_BRAIN, *([END_CONVERSATION] if mode == "conversation" else [])]
 
 
-def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_output_tokens=None):
-    """LiveConnectConfig for one connection; ``handle`` resumes a dropped session."""
+def live_connect_config(*, system_instruction, voice_name, function_declarations,
+                        automatic_activity_detection, handle=None, max_output_tokens=None):
+    """The Live session shape shared by desktop voice and phone calls (telephony/agent.py):
+    audio out in a prebuilt voice, captions both ways, barge-in, context-window
+    compression and session resumption (``handle`` resumes a dropped session)."""
     from google.genai import types
 
-    if mode not in VOICE_MODES:
-        raise ValueError("Unknown voice mode")
-    voice = voice_settings(settings)
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"],
-        system_instruction=voice_instruction(settings),
+        system_instruction=system_instruction,
         speech_config=types.SpeechConfig(
             voice_config=types.VoiceConfig(
-                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice["name"])
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
             )
         ),
         # Empty configs enable captions with automatic language detection (English or Malay).
         input_audio_transcription=types.AudioTranscriptionConfig(),
         output_audio_transcription=types.AudioTranscriptionConfig(),
         realtime_input_config=types.RealtimeInputConfig(
-            # Push-to-talk: the renderer sends explicit activity start/end around the hold.
-            # Conversation: server VAD, and new speech interrupts the answer (barge-in).
+            # Without automatic detection the client sends activity start/end itself
+            # (push-to-talk). With it the server detects speech, and new speech
+            # interrupts the answer (barge-in).
             automatic_activity_detection=types.AutomaticActivityDetection(
-                disabled=mode == "push_to_talk"
+                disabled=not automatic_activity_detection
             ),
             activity_handling=types.ActivityHandling.START_OF_ACTIVITY_INTERRUPTS,
         ),
@@ -140,6 +141,21 @@ def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_out
             sliding_window=types.SlidingWindow()
         ),
         session_resumption=types.SessionResumptionConfig(handle=handle),
-        tools=[types.Tool(function_declarations=declarations(mode))],
+        tools=[types.Tool(function_declarations=list(function_declarations))],
         **({"max_output_tokens": max_output_tokens} if max_output_tokens else {}),
+    )
+
+
+def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_output_tokens=None):
+    """LiveConnectConfig for one desktop voice connection; ``handle`` resumes a dropped session."""
+    if mode not in VOICE_MODES:
+        raise ValueError("Unknown voice mode")
+    return live_connect_config(
+        system_instruction=voice_instruction(settings),
+        voice_name=voice_settings(settings)["name"],
+        function_declarations=declarations(mode),
+        # Push-to-talk: the renderer marks the hold. Conversation: server VAD.
+        automatic_activity_detection=mode == "conversation",
+        handle=handle,
+        max_output_tokens=max_output_tokens,
     )

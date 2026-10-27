@@ -13,6 +13,10 @@ MODEL_DEFAULTS = {
     # Live API voice: Google's stable default Live model (the model id in
     # https://ai.google.dev/gemini-api/docs/live-api/get-started-sdk, checked 26 Oct 2026).
     "voice": ("INARA_VOICE_MODEL", "gemini-3.8-live"),
+    # Voice previews in Preferences: the stable text-to-speech model from the "Supported
+    # models" table of https://ai.google.dev/gemini-api/docs/speech-generation (checked
+    # 27 Oct 2026).
+    "tts": ("INARA_TTS_MODEL", "gemini-3.8-flash-tts"),
     # gemini-2.0-flash and gemini-3-pro-preview are shut down, and Google's model list
     # (https://ai.google.dev/gemini-api/docs/models, checked 26 Oct 2026) has no stable
     # Pro model, so vision and legacy CAD follow the text model.

@@ -512,13 +512,14 @@ class Tray:
         self.data.tip, self.data.flags = value[:127], 4
         shell.Shell_NotifyIconW(1, C.byref(self.data))
 
-    def notify(self):
+    def notify(self, title="INARA reminder",
+               info="A reminder is ready. Open the command deck to view it."):
         if self.suppress_notifications:
             self.notification_count += 1
             return True
         self.data.flags, self.data.info_flags = 0x10, 1 | 0x80
-        self.data.title = "INARA reminder"
-        self.data.info = "A reminder is ready. Open the command deck to view it."
+        self.data.title = title[:63]
+        self.data.info = info[:255]
         result = bool(shell.Shell_NotifyIconW(1, C.byref(self.data)))
         if result:
             self.notification_count += 1

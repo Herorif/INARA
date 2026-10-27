@@ -61,11 +61,14 @@ from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
 from services.speech import SpeechService, SpeechTransport
 from services.voice import VoiceService, VoiceTransport
+from services.voice_preview import VoicePreviewService
+from transport.voice_preview import VoicePreviewTransport
 from services.scheduler_tools import register_scheduler_tools
 from services.sessions import SessionStore
 from services.storage import Database
 from services.secrets import SecretStore, activate as activate_secrets
 from transport.secrets import SecretsTransport
+from telephony.agent import CallAgent
 from telephony.service import TelephonyService
 from transport.telephony import CallsTransport
 from services.tools import ToolDispatcher, register_project_tools
@@ -161,6 +164,8 @@ class Application:
         self.speech_transport = SpeechTransport(self)
         self.voice = VoiceService(self)
         self.voice_transport = VoiceTransport(self)
+        self.voice_preview = VoicePreviewService(self)
+        self.voice_preview_transport = VoicePreviewTransport(self)
         self.reminder_transport = ReminderTransport(sio, self.dispatcher, reminders, self.sessions)
         # Legacy integrations retain their existing contracts and load only on demand.
         self.printer = LazyService("printer_agent", "PrinterAgent")
@@ -217,6 +222,10 @@ class Application:
         # Telephony gateway (docs/CALL_ROUTING.md): its own loopback listener, idle
         # unless calls.enabled; calls_status reports readiness to the owner.
         self.telephony = TelephonyService(self)
+        # C2 call agent (Gemini Live). INARA_TELEPHONY_STUB_AGENT=1 keeps the developer stub.
+        self.call_agent = CallAgent(self)
+        if self.telephony.agent is None:
+            self.telephony.set_agent(self.call_agent, input_rate=16000)
         self.calls_transport = CallsTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
@@ -263,6 +272,8 @@ class Application:
             )
 
     async def restrict_resources(self):
+        # Phone calls (telephony / call_agent) are deliberately not restricted: gaming and
+        # resident mode never end a call in progress (telephony/agent.py).
         self.call_testing.invalidate()
         operations = [
             self.call_admission.stop_sid(),
@@ -383,6 +394,7 @@ class Application:
                 if isinstance(result, BaseException):
                     raise result
         finally:
+            await _isolated("call_agent", self.call_agent.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:
                 await self.bus.drain()

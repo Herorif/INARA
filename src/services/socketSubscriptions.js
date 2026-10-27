@@ -11,6 +11,7 @@ import { registerDevicesEvents } from './events/devices';
 import { registerRemindersEvents } from './events/reminders';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
+import { defaultVoiceMode } from '../features/voice/defaultMode.js';
 
 /** Matches the core's ToolDispatcher approval timeout; the core rejects later answers. */
 const APPROVAL_TIMEOUT_MS = 60_000;
@@ -153,6 +154,7 @@ export function initSocketListeners() {
         if (typeof settings.camera_flipped !== 'undefined') {
             useStore.setState({ isCameraFlipped: settings.camera_flipped });
         }
+        if (settings && settings.voice) useStore.setState({ voiceDefaultMode: defaultVoiceMode(settings) });
     }));
 
     // --- Tool Confirmation ---

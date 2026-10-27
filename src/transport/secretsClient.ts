@@ -21,6 +21,19 @@ export type BrainStatus = {
 
 // The provider check makes one outbound request with a 10 s budget on the core.
 const TEST_TIMEOUT = 25000;
+// A voice preview is one TTS request with a 30 s budget on the core.
+const PREVIEW_TIMEOUT = 40000;
+// About 20 s of 48 kHz PCM16, base64-encoded.
+const PREVIEW_LIMIT = 2_600_000;
+
+export type VoicePreview = { name: string; cached: boolean; sample_rate: number; pcm_base64: string };
+export const isVoicePreview = (value: unknown): value is VoicePreview => {
+  const preview = value as VoicePreview;
+  return !!preview && typeof preview === 'object' && typeof preview.name === 'string'
+    && Number.isInteger(preview.sample_rate) && preview.sample_rate >= 8000 && preview.sample_rate <= 48000
+    && typeof preview.pcm_base64 === 'string' && preview.pcm_base64.length > 0 && preview.pcm_base64.length <= PREVIEW_LIMIT
+    && /^[A-Za-z0-9+/]+={0,2}$/.test(preview.pcm_base64);
+};
 
 const isCheck = (value: unknown): value is SecretCheck => {
   const check = value as SecretCheck;
@@ -72,6 +85,13 @@ export function createSecretsClient(socket: RpcSocket) {
       const response = await scope.call<{ brain?: unknown }>('capability_diagnostics', {});
       const brain = response.brain as BrainStatus | undefined;
       return brain && typeof brain === 'object' && typeof brain.provider === 'string' ? brain : null;
+    },
+    /** Spoken sample of one prebuilt voice (PCM16 mono); the core caches it per voice. */
+    async voicePreview(name: string): Promise<VoicePreview> {
+      const response = await scope.call<Record<string, unknown>>('voice_preview', { name }, PREVIEW_TIMEOUT);
+      if (!isVoicePreview(response) || response.name !== name)
+        throw new RpcError('The core returned an invalid voice preview. Try again.', 'invalid_response');
+      return response;
     },
     /** Settings patch with an acknowledgement; failures carry the core's code. */
     async updateSettings(patch: Record<string, unknown>): Promise<void> {
