@@ -1,6 +1,8 @@
 import { createRpcScope, RpcError, type RpcSocket } from './rpc.ts';
 
-export type SecretName = 'anthropic_api_key' | 'gemini_api_key';
+export type SecretName = 'anthropic_api_key' | 'gemini_api_key'
+  | 'twilio_account_sid' | 'twilio_auth_token' | 'twilio_phone_number' | 'owner_phone_number'
+  | 'cloudflare_tunnel_token' | 'call_briefing_pin';
 export type SecretCheck = { ok: boolean; code: string; at: string; message?: string };
 export type SecretStatus = {
   name: SecretName;

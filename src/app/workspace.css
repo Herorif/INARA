@@ -39,6 +39,9 @@ button:disabled { cursor:not-allowed; opacity:.45; }
  */
 .chip-text { white-space:nowrap; }
 .core-chip { position:relative; flex-shrink:0; }
+.on-call-chip { display:inline-flex; flex-shrink:0; padding:0; border:0; border-radius:var(--radius-sm); background:transparent; }
+.on-call-chip .status-chip { position:relative; color:var(--accent); border-color:var(--line-accent); }
+.on-call-chip:hover .status-chip { background:var(--bg-selected); }
 @container command-bar (max-width:74rem) { .deck-clock { display:none; } }
 @container command-bar (max-width:64rem) { .titlebar-chips .voice-chip { display:none; } }
 @container command-bar (max-width:56rem) {
@@ -55,6 +58,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .brand-word { display:none; }
   .core-chip { padding:0 .375rem; }
   .core-chip .chip-text { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .on-call-chip .status-chip { padding:0 .375rem; }
+  .on-call-chip .chip-text { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 }
 
 /* Navigation rail */
@@ -66,6 +71,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .navigation button svg { flex-shrink:0; }
 .navigation button>span:not(.toggle-switch) { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .navigation button:hover { background:var(--bg-hover); color:var(--text-1); }
+/* Calls badge: count of calls that need the owner; stays visible in the compact rails. */
+.navigation button>span.nav-badge { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-width:1.125rem; height:1.125rem; margin-left:auto; padding:0 .25rem; overflow:visible; border:1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-radius:var(--radius-sm); background:var(--warn-subtle); color:var(--warn); font-family:var(--font-mono); font-size:var(--text-xs); line-height:1; font-variant-numeric:tabular-nums; }
 .navigation nav button.selected { color:var(--accent); background:var(--bg-selected); border-radius:0 var(--radius-sm) var(--radius-sm) 0; }
 .navigation nav button.selected::before { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent); border-radius:0; }
 .nav-project { display:flex; flex-direction:column; align-items:flex-start; gap:.375rem; margin:1.5rem .5rem 1rem; padding-top:1rem; border-top:1px solid var(--line); }
@@ -235,6 +242,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .nav-caption,.nav-project,.resident-note,.navigation button>span,.navigation .quit-button { display:none; }
   .navigation button { justify-content:center; min-height:2.75rem; padding:0; }
   .navigation nav button.selected { border-radius:var(--radius-sm); }
+  .navigation button>span.nav-badge { position:absolute; top:.25rem; right:.25rem; margin:0; min-width:1rem; height:1rem; font-size:.625rem; }
   .deck-clock { display:none; }
   .command-trigger { min-width:14rem; }
   .workspace-body.with-inspector { grid-template-columns:minmax(0,1fr) 16rem; }
@@ -255,7 +263,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .brand-word,.titlebar-divider { display:none; }
   .titlebar-main { flex:none; padding:0 .25rem; }
   .core-chip { padding:0 .375rem; }
-  .core-chip .chip-text { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .core-chip .chip-text,.on-call-chip .chip-text { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .on-call-chip .status-chip { padding:0 .375rem; }
   .command-trigger { width:2.25rem; min-width:2.25rem; padding:0; justify-content:center; }
   .command-trigger__text,.command-trigger>.kbd { display:none; }
   .titlebar-status { margin-left:auto; gap:.25rem; }

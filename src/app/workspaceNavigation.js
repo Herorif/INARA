@@ -6,6 +6,7 @@ export const featureWorkspace = feature => {
   if (['cad', 'image', 'camera', 'browser', 'printer', 'activity'].includes(feature)) return 'studio';
   if (['tasks', 'routines'].includes(feature)) return 'tasks';
   if (feature === 'inbox') return 'inbox';
+  if (feature === 'callsview') return 'callsview';
   return 'connections';
 };
 export const clearedFeatures = presentation => Object.fromEntries(Object.entries(flags)
@@ -16,6 +17,7 @@ export const workspaceTitles = {
   assistant: ['Assistant', ''],
   studio: ['Studio', '3D, images, vision and web tools'],
   inbox: ['Inbox', 'Notifications you chose to share from your phone'],
+  callsview: ['Calls', 'Calls INARA answered and made for you'],
   tasks: ['Tasks', 'Review and run multi-step desktop tasks'],
   connections: ['Connections', 'Devices, phone and calls'],
   activity: ['Activity', 'Artifacts and revisions for this project'],

@@ -80,7 +80,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
       navigator.mediaDevices.enumerateDevices = async () => { commandQA.enumerateCalls++; return []; };
       navigator.mediaDevices.getUserMedia = async () => { commandQA.mediaCalls++; throw new DOMException('No media in shell verification', 'NotAllowedError'); }; void 0`);
     assert.deepEqual(await evaluate(`[...document.querySelectorAll('nav[aria-label="Main navigation"] button')].map(button => button.getAttribute('aria-label'))`),
-      ['Assistant', 'Studio', 'Inbox', 'Tasks', 'Connections']);
+      ['Assistant', 'Studio', 'Inbox', 'Calls', 'Tasks', 'Connections']);
     assert.equal(await evaluate(`document.querySelector('.command-deck').dataset.uiContractVersion`), '1');
     assert.equal(await evaluate(`document.querySelector('.workspace-heading h1').textContent`), 'Assistant');
     assert.equal(await evaluate(`document.querySelectorAll('.core-chip').length`), 1, 'Core status is shown once, in the command bar');
@@ -137,10 +137,17 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     await click('[aria-label="Refresh connection readiness"]');
     await until(() => evaluate(`!document.querySelector('.connections-readiness__error') && !document.querySelector('[aria-label="Refresh connection readiness"]').disabled`), 'readiness recovery');
 
-    for (const page of ['Assistant', 'Studio', 'Inbox', 'Tasks', 'Connections']) {
+    for (const page of ['Assistant', 'Studio', 'Inbox', 'Calls', 'Tasks', 'Connections']) {
       await click(`nav [aria-label="${page}"]`);
       await until(() => evaluate(`document.querySelector('nav [aria-current="page"]')?.getAttribute('aria-label') === ${JSON.stringify(page)}`), `${page} navigation`);
       if (page === 'Tasks') await until(() => evaluate(`!!document.querySelector('.task-queue__list')`), 'Tasks content');
+      if (page === 'Calls') {
+        // An isolated profile has no telephony secrets: the setup checklist replaces the call list.
+        await until(() => evaluate(`document.querySelector('.calls-workspace h1')?.textContent === 'Calls' && !!document.querySelector('.calls-setup [data-setup="twilio"]')`), 'Calls setup checklist');
+        assert.equal(await evaluate(`document.querySelector('.calls-answering-chip')?.textContent`), 'ANSWERING OFF');
+        assert.equal(await evaluate(`document.querySelector('.calls-workspace [role="switch"]').getAttribute('aria-checked')`), 'false');
+        assert.equal(await evaluate(`document.querySelectorAll('.workspace-heading h1').length`), 1, 'Calls owns a single page heading');
+      }
       if (page === 'Inbox') {
         await until(() => evaluate(`!!document.querySelector('.inbox-empty')`), 'Empty private inbox');
         assert.equal(await evaluate(`document.querySelector('.inbox-stream-footer').textContent.includes('Replies and AI processing are off')`), true);
@@ -154,7 +161,7 @@ BrowserWindow.prototype.loadFile = async function (...args) {
       }
     }
     result.navigation_widths = [390, 768, 1440, 2560];
-    result.navigation_pages = ['Assistant', 'Studio', 'Inbox', 'Tasks', 'Connections'];
+    result.navigation_pages = ['Assistant', 'Studio', 'Inbox', 'Calls', 'Tasks', 'Connections'];
     window.setContentSize(1440, 1000);
     await click('nav [aria-label="Assistant"]');
     const inspectorControl = '[aria-controls="workspace-inspector"]';

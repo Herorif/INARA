@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { AudioLines, Cable, Gamepad2, History, Inbox, Layers3, ListChecks, Maximize2, MessageSquare, Minus, PanelRight, Power, Search, Settings2, X } from 'lucide-react';
+import { AudioLines, Cable, Gamepad2, History, Inbox, Layers3, ListChecks, Maximize2, MessageSquare, Minus, PanelRight, PhoneCall, Power, Search, Settings2, X } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import FeatureDialog from './FeatureDialog';
@@ -18,14 +18,17 @@ import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
 import { flags, heavyFeatures } from './features';
 import { voiceChip } from '../features/voice/status.js';
 import { clearedFeatures, dialogFeatures, featureWorkspace, workspaceTitles } from './workspaceNavigation';
+import useCallsStatus from '../features/calls/useCallsStatus';
+import { startPresencePing } from '../features/calls/presence';
 import './workspace.css';
 
 const CommandPalette = lazy(() => import('./CommandPalette'));
 const QuickAssistant = lazy(() => import('./QuickAssistant'));
 const ActivityCenter = lazy(() => import('./ActivityCenter'));
 const InboxWorkspace = lazy(() => import('./InboxWorkspace'));
+const CallsWorkspace = lazy(() => import('../features/calls/CallsWorkspace'));
 const AuthLock = lazy(() => import('../components/AuthLock'));
-const navigation = [['assistant', MessageSquare, 'Assistant'], ['studio', Layers3, 'Studio'], ['inbox', Inbox, 'Inbox'], ['tasks', ListChecks, 'Tasks'], ['connections', Cable, 'Connections']];
+const navigation = [['assistant', MessageSquare, 'Assistant'], ['studio', Layers3, 'Studio'], ['inbox', Inbox, 'Inbox'], ['callsview', PhoneCall, 'Calls'], ['tasks', ListChecks, 'Tasks'], ['connections', Cable, 'Connections']];
 
 const datePart = (date, part) => new Intl.DateTimeFormat(undefined, { [part]: part === 'day' ? 'numeric' : 'short' }).format(date).replace(/\.$/, '');
 
@@ -77,6 +80,10 @@ export default function CommandDeck() {
   const [resource, setResource] = useState({ state:'chat' });
   const canvas = useRef(null);
   const gaming = resident.gaming || resource.state === 'gaming';
+  const { status: calls } = useCallsStatus(connected && !locked);
+  const needsYou = calls?.needs_you_count || 0;
+  // Tells the core the owner is at the PC, so urgent briefings are not phoned in meanwhile.
+  useEffect(() => (connected && !locked ? startPresencePing({ socket }) : undefined), [connected, locked]);
   const activeFeature = camera ? 'camera' : activeFlag;
   const section = page === 'activity' ? 'studio' : page;
   const closeCommands = useCallback(() => setCommands(false), []);
@@ -126,7 +133,7 @@ export default function CommandDeck() {
   const openFeature = useCallback((feature, heavy = heavyFeatures.has(feature), requestId = null) => {
     if (locked || (gaming && heavy)) return;
     if (feature === 'quick') { setQuick(true); return; }
-    if (feature === 'activity' || feature === 'inbox') { navigate(feature); return; }
+    if (feature === 'activity' || feature === 'inbox' || feature === 'callsview') { navigate(feature); return; }
     if (!flags[feature] && feature !== 'camera') return;
     if (dialogFeatures.has(feature)) {
       useStore.setState({ ...clearedFeatures('dialog'), [flags[feature]]:true });
@@ -172,7 +179,7 @@ export default function CommandDeck() {
           <button type="button" className="command-trigger btn btn--secondary" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={14} aria-hidden="true"/><span className="command-trigger__text">Find a tool or action</span><Kbd>Ctrl K</Kbd></button>
         </div>
         <div className="titlebar-status">
-          <div className="titlebar-chips"><CoreChip connected={connected}/><VoiceChip connected={connected} gaming={gaming} voice={voice}/></div>
+          <div className="titlebar-chips"><CoreChip connected={connected}/>{calls?.active_call && <button type="button" className="on-call-chip" aria-label="On a call. Open Calls" title="INARA is on a call" onClick={() => navigate('callsview')}><StatusChip tone="accent"><span className="chip-text">ON CALL</span></StatusChip></button>}<VoiceChip connected={connected} gaming={gaming} voice={voice}/></div>
           <Clock/>
           <div className="titlebar-actions">
             <button type="button" className="btn btn--ghost btn--icon" aria-label="Open quick assistant" title="Quick assistant" onClick={() => setQuick(true)}><AudioLines size={16} aria-hidden="true"/></button>
@@ -186,16 +193,16 @@ export default function CommandDeck() {
           </div>
         </div>
       </header>
-      <div className="deck-layout"><aside className="navigation"><HudLabel className="nav-caption">WORKSPACE</HudLabel><nav aria-label="Main navigation">{navigation.map(([key, Icon, label]) => <button type="button" key={key} className={section === key ? 'selected' : ''} aria-label={label} title={label} aria-current={section === key ? 'page' : undefined} onClick={() => navigate(key)}><Icon size={16} aria-hidden="true"/><span>{label}</span></button>)}</nav>
+      <div className="deck-layout"><aside className="navigation"><HudLabel className="nav-caption">WORKSPACE</HudLabel><nav aria-label="Main navigation">{navigation.map(([key, Icon, label]) => <button type="button" key={key} className={section === key ? 'selected' : ''} aria-label={label} title={label} aria-current={section === key ? 'page' : undefined} aria-describedby={key === 'callsview' && needsYou ? 'nav-calls-count' : undefined} onClick={() => navigate(key)}><Icon size={16} aria-hidden="true"/><span>{label}</span>{key === 'callsview' && needsYou > 0 && <span className="nav-badge" aria-hidden="true">{needsYou > 99 ? '99+' : needsYou}</span>}</button>)}</nav>{needsYou > 0 && <span id="nav-calls-count" className="sr-only">{`${needsYou} ${needsYou === 1 ? 'call needs' : 'calls need'} you`}</span>}
         <div className="nav-project"><HudLabel>PROJECT</HudLabel><strong className="nav-project__name">{currentProject || 'temp'}</strong><button type="button" className="btn btn--ghost btn--sm nav-project__link" onClick={() => openFeature('memory')}>Project memory</button></div>
         <div className="nav-bottom"><button type="button" aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode</span><span className="toggle-switch" aria-hidden="true"/></button><button type="button" aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={16} aria-hidden="true"/><span>Preferences</span></button>{window.electronAPI && <button type="button" className="quit-button" aria-label="Quit INARA" onClick={() => window.electronAPI.quit()}><Power size={16} aria-hidden="true"/><span>Quit INARA</span></button>}<div className="resident-note"><HudLabel>QUICK ASSISTANT</HudLabel><Kbd>Ctrl Shift Space</Kbd></div></div>
       </aside>
       <main id="main-workspace" className="workspace" tabIndex={-1} data-page={page}>
         {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
         <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''}`}>
-          {!activeFeature && <div className="workspace-heading"><div className="workspace-heading__copy"><h1>{title}</h1>{description && <p>{description}</p>}</div>{page === 'assistant' && <HudLabel className="workspace-heading__meta">{`PROJECT · ${currentProject || 'temp'}`}</HudLabel>}</div>}
+          {!activeFeature && page !== 'callsview' && <div className="workspace-heading"><div className="workspace-heading__copy"><h1>{title}</h1>{description && <p>{description}</p>}</div>{page === 'assistant' && <HudLabel className="workspace-heading__meta">{`PROJECT · ${currentProject || 'temp'}`}</HudLabel>}</div>}
           {(page === 'studio' || page === 'activity') && <div className="studio-tabs hud-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['activity','Artifacts']].map(([key,label]) => { const selected = activeFeature === key || page === key; return <button type="button" key={key} className={`hud-tab ${selected ? 'is-active' : ''}`} aria-pressed={selected} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={14} aria-hidden="true"/>}{label}</button>; })}</div>}
-          {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <Conversation onOpen={openFeature}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
+          {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <Conversation onOpen={openFeature}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'callsview' ? <Suspense fallback={<PanelState kind="loading" title="Opening calls"/>}><CallsWorkspace/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
         </div>{inspector && <WorkspaceInspector connected={connected} processing={processing} voice={voice} gaming={gaming} resource={resource} memory={memory} onOpen={openFeature} onClose={() => setInspector(false)}/>}</div>
         <WorkspaceTray expanded={tray} onToggle={() => setTray(value => !value)} onOpen={openFeature} gaming={gaming}/>
       </main></div>{activeDialog && <FeatureDialog key={activeDialog} feature={activeDialog} onClose={closeDialog}/>}</>}

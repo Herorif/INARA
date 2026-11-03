@@ -19,8 +19,14 @@ export const AUTO_HELP = 'Claude when an Anthropic key is set, otherwise Gemini.
 export const NAME_HELP = 'INARA uses it sparingly.';
 export const CLAUDE_WITHOUT_KEY = 'The assistant is set to use Claude, but no Anthropic API key is saved. Add one under AI providers, or choose Auto.';
 
+// Other stored secrets that share the key row (Calls setup and settings).
+const OTHER_PROVIDERS = {
+  twilio_account_sid: 'Twilio', twilio_auth_token: 'Twilio', twilio_phone_number: 'Twilio',
+  owner_phone_number: 'Twilio', cloudflare_tunnel_token: 'Cloudflare', call_briefing_pin: 'INARA',
+};
+
 export function providerFor(name) {
-  return PROVIDERS.find(entry => entry.name === name)?.provider ?? 'the provider';
+  return PROVIDERS.find(entry => entry.name === name)?.provider ?? OTHER_PROVIDERS[name] ?? 'the provider';
 }
 
 /** Chip for one key status: { tone, label, envOverride }. */
@@ -28,6 +34,10 @@ export function secretChip(status) {
   if (!status || !status.configured) return { tone: 'idle', label: 'NOT SET', envOverride: false };
   if (status.source === 'env') return { tone: 'accent', label: 'ENV OVERRIDE', envOverride: true };
   const check = status.last_check;
+  // Values with nothing to check against (phone numbers, tunnel token, PIN) are simply saved.
+  if (check && check.code === 'no_check') {
+    return status.hint ? { tone: 'ok', label: `SAVED ··${status.hint}`, envOverride: false, hint: status.hint, prefix: 'SAVED' } : { tone: 'ok', label: 'SAVED', envOverride: false };
+  }
   if (check && check.code === 'invalid_key') return { tone: 'danger', label: 'REJECTED', envOverride: false };
   if ((check && check.ok) || (!check && status.verified_at)) {
     // hint: last four characters, rendered without the chip's uppercase transform.
@@ -49,6 +59,8 @@ export function rpcFailureMessage(error) {
 /** Message after Save; `status` is the stored key's status (secrets_set with verify). */
 export function saveResultMessage(name, status) {
   if (status?.last_check?.ok) return { tone: 'ok', text: 'Key saved and verified.' };
+  if (status?.last_check?.code === 'no_check') return { tone: 'ok', text: 'Saved.' };
+  if (status?.last_check?.code === 'incomplete') return { tone: 'warn', text: `Saved. ${providerFor(name)} can check it once the other value is saved.` };
   return { tone: 'warn', text: "Couldn't reach the service — the key was saved but not verified." };
 }
 
@@ -67,6 +79,7 @@ export function testResultMessage(name, status) {
   const code = status?.last_check?.code;
   if (status?.last_check?.ok) return { tone: 'ok', text: `${provider} accepted this key.` };
   if (code === 'invalid_key') return { tone: 'danger', text: `This key was rejected by ${provider}.` };
+  if (code === 'incomplete') return { tone: 'warn', text: `Save the other ${provider} value first, then test again.` };
   if (code === 'network_error') return { tone: 'warn', text: "Couldn't reach the service. Check your connection." };
   if (code === 'tls_error') return { tone: 'warn', text: "Couldn't make a secure connection to the service. A proxy or antivirus may be intercepting HTTPS." };
   if (code === 'rate_limited') return { tone: 'warn', text: `${provider} is limiting requests right now. Try the test again in a minute.` };

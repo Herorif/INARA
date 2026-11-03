@@ -7,7 +7,7 @@ import Kbd from '../shared/ui/Kbd';
 import './workspace-tools.css';
 
 const icons = {
-  calls: PhoneCall, inbox: Inbox, connections: Cable, tasks: ListChecks, usage: Gauge, memory: BookOpen,
+  callsview: PhoneCall, calls: PhoneCall, inbox: Inbox, connections: Cable, tasks: ListChecks, usage: Gauge, memory: BookOpen,
   quick: AudioLines, capabilities: Wrench, activity: Activity, cad: Box, image: Image, camera: Camera,
   browser: Globe2, reminder: Bell, routines: Repeat, desktop: Monitor, kasa: Zap, device: Cpu,
   printer: Printer, phone: Smartphone, settings: Settings2,

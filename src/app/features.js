@@ -1,5 +1,6 @@
 /** One catalog for navigation, commands and panel labels. */
 export const features = [
+  { id: 'callsview', title: 'Calls', group: 'Connect', keywords: 'phone answering answered callers missed messages callbacks approvals voicemail screening twilio' },
   { id: 'calls', title: 'Call lab', group: 'Connect', keywords: 'sim whatsapp personal phone call assistant simulation check call bridge lab', flag: 'showCallLab' },
   { id: 'inbox', title: 'Inbox', group: 'Organize', keywords: 'phone whatsapp messages selected read only signals notification inbox' },
   { id: 'connections', title: 'Connections', group: 'System', keywords: 'kasa printer dependencies device setup offline status connections readiness', flag: 'showConnectionReadiness' },
