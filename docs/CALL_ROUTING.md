@@ -1,6 +1,6 @@
 # Call routing
 
-Owner decision, 25 October 2026. Status: the C1 telephony gateway and the C2 call agent are built and tested offline ([Implementation status (C1)](#implementation-status-c1), [Implementation status (C2)](#implementation-status-c2)); nothing has been verified against a live Twilio number, and C3-C5 are not built. Gate: `sim-call-routing` in [RELEASE_GATES.json](RELEASE_GATES.json).
+Owner decision, 25 October 2026. Status: the C1 telephony gateway and the C2 call agent are built and tested offline ([Implementation status (C1)](#implementation-status-c1), [Implementation status (C2)](#implementation-status-c2)); the C3 orchestration backend is built ([C3 orchestration](#c3-orchestration)); nothing has been verified against a live Twilio number, and the Calls view (C3b), C4 and C5 are not finished. Gate: `sim-call-routing` in [RELEASE_GATES.json](RELEASE_GATES.json).
 
 ## Decision
 
@@ -173,7 +173,7 @@ Every call runs from a `CallBrief`: mode, direction, counterpart (E.164), owner 
 | Mode | Direction | Start | Tools |
 | --- | --- | --- | --- |
 | `screening` | inbound (default) | "Hi, you've reached <owner or 'this number'>. I'm INARA, an AI assistant. This call is transcribed." | `record_message`, `end_call` |
-| `owner_briefing` | outbound, owner's number only, no grant | "Hi <owner>, it's INARA, your AI assistant, with a call briefing." | `verify_pin` (only with `calls.briefing_pin`), `record_owner_decision`, `end_call` |
+| `owner_briefing` | outbound, owner's number only, no grant | "Hi <owner>, it's INARA, your AI assistant, with a call briefing." | `verify_pin` (only with a briefing PIN: the `call_briefing_pin` secret since C3), `record_owner_decision`, `end_call` |
 | `approved_callback` | outbound, one-use grant | "Hello, this is INARA, an AI assistant calling on behalf of <owner>. This call is transcribed." | `record_outcome`, `end_call` |
 | `task` | outbound, one-use grant | same disclosure | `record_outcome`, `end_call` |
 
@@ -191,7 +191,7 @@ After every call the record is saved first (CallRecords, DPAPI, 7-day retention,
 
 Usage: Live turns are metered per turn (`call_live`), triage as `call_triage`, and Twilio minutes as list-price estimates (`call_twilio`: US$0.0555/min local and inbound, US$0.08/min to +60 1x mobiles, billed per started minute; `llm/pricing.py`).
 
-Settings added to `calls.*`: `facts` (free text, at most 1,000 characters, default empty), `briefing_pin` (4-8 digits, or empty for none), `max_call_minutes` (2-30, default 10). There is no settings UI for them yet.
+Settings added to `calls.*`: `facts` (free text, at most 1,000 characters, default empty), `briefing_pin` (4-8 digits, or empty for none; moved to the `call_briefing_pin` secret in C3), `max_call_minutes` (2-30, default 10). There is no settings UI for them yet.
 
 ### Not verified offline
 
@@ -200,6 +200,62 @@ Settings added to `calls.*`: `facts` (free text, at most 1,000 characters, defau
 - Twilio playing marks in order and the `clear` behaviour mid-goodbye; end-to-end latency.
 - Caption quality for Malaysian English and Malay, and digit-by-digit callback numbers.
 - Tray notices on the native host, and Electron (legacy host) shows none for calls.
+
+## C3 orchestration
+
+Built 4 November 2026 (C3a, backend) in `backend/telephony/orchestrator.py` (CallOrchestrator) and `backend/transport/telephony.py` (CallsTransport); covered by `tests/test_call_orchestration.py` (no network: Twilio is an httpx mock and call results are simulated). Calls stay off by default; nothing is placed unless `calls.enabled` is true. The Calls view itself is C3b.
+
+### Rules
+
+- **Owner briefing policy.** When `call_record_ready` fires for an inbound screening record (after triage), INARA phones the owner with `CallAgent.call(owner_briefing_brief(record, owner_number=...))` and no grant, only if all of these hold:
+  - `calls.brief_by_phone` allows it: `off` never; `urgent` (default) when triage urgency is `urgent`; `needs_owner` when triage says `urgent` or `needs_owner`. A record without a finished triage is never briefed.
+  - The owner is away from the PC: no owner renderer connected, the native window hidden, or no `presence_ping` for 5 minutes (the renderer sends it on user input, at most once a minute; a fresh core start counts as activity).
+  - It is not quiet hours (`calls.quiet_hours`), unless the call is urgent.
+  - The owner's number is configured, and the record has not been briefed or marked done already (a record is briefed at most once).
+
+  Otherwise the owner gets only C2's desktop notice. The briefing state (`calling`, `completed`, `no_answer` or `failed`, with the decision) is kept on the original record, and both records are linked through `related_ids`.
+- **Voice-confirmed callbacks.** A briefing that ends with a confirmed callback returns C2's approved brief and its one-use grant (10 minutes); the callback is placed at once with `CallAgent.call(brief, grant)`. If quiet hours, the daily cap or the per-number cooldown refuse it, the grant is revoked, the original record gets `callback` state `blocked` with the reason (`quiet_hours`, `daily_cap`, `cooldown`), and the owner is notified (`call_record_ready` to the renderers, else a generic tray notice). Nothing is retried automatically; the owner retries from the Calls view, which re-approves and issues a fresh grant. A callback that fails or is not answered is marked the same way (`failed` / `no_answer`) and notified.
+- **Desktop-approved callbacks.** "Approve call" (`calls_callback_approve`) from the authenticated owner renderer is the approval. The core checks `calls.enabled`, the record's callback number, that INARA is not already on a call or calling about this record, readiness and the third-party limits; then it issues one grant through `TelephonyService.grants` for exactly that E.164 number and the `approved_callback` brief's hash, and places the call immediately (`place_call` checks the limits again and consumes the grant).
+- **Budget exhausted on an inbound call.** When the usage budget would refuse a new provider step (daily or monthly limit, or receipt capacity; `UsageService.admission_blocked`, read-only), the inbound webhook answers with the voicemail TwiML (as with `calls.when_disabled="voicemail"`) instead of connecting a stream that would hang up silently, and stores a minimal record: `state` `missed`, `outcome` `{"status": "missed", "reason": "budget"}`, masked counterpart, no transcript, triage `skipped`. The owner gets `call_record_ready`, and the record counts as `needs_you` (in `calls_list` and `needs_you_count`) until it is marked done.
+- **Briefing PIN.** The optional PIN is a secret, `call_briefing_pin` (4-8 digits, no online check, developer override `INARA_CALL_BRIEFING_PIN`; [AI_PROVIDERS](AI_PROVIDERS.md#telephony-secrets-calls)), and the call agent reads it from the encrypted store. At startup a legacy `calls.briefing_pin` in settings.json is stored as the secret (an already stored secret wins), removed from settings, and the settings file is saved. If the store cannot be written, the setting stays and the agent still honours it until a later start migrates it. `briefing_pin` is refused by `SettingsPatch` (extra field). The PIN is never logged or returned: `calls_status.briefing_pin_set` and `secrets_status` show configured yes/no only, and its hint is always null.
+- **Done.** The owner's "done" mark is stored on the record (`done`, `done_at`), not in settings.
+
+### Settings
+
+`calls.brief_by_phone`: `off`, `urgent` (default) or `needs_owner`, validated by `SettingsPatch.calls` and changed through the existing `update_settings` route. `calls.briefing_pin` was removed (see above).
+
+### Owner-only RPCs (Calls view contract)
+
+Every route needs the authenticated, unlocked owner renderer (`authentication_required` or `permission_denied` otherwise). Phone numbers only ever leave masked (`+60 19-•••• 5432`). Unknown ids return `not_found`; bad payloads return `invalid_arguments` (pydantic details are never echoed).
+
+| Route | Request | Response |
+| --- | --- | --- |
+| `calls_list` | `{filter: "needs_you"\|"all"\|"done", limit?: 1-100 (default 50)}` | `{ok, calls: [{id, direction, mode, counterpart_masked, name\|null, started_at (ISO, UTC), duration_seconds, urgency\|null, needs_owner, summary\|null, status, outcome_status\|null}]}`, newest first |
+| `calls_get` | `{id}` | `{ok, call: {...list fields, fields: {name, reason, urgency, callback_number_masked, message}\|null, triage: {summary, urgency, needs_owner, suggested_actions}\|null, triage_state, transcript: [{role: "caller"\|"inara"\|"owner", text}], outcome: {status, details}\|null, related_ids}}` |
+| `calls_mark_done` | `{id}` | `{ok}` |
+| `calls_delete` | `{id}` | `{ok}`; the record is deleted now |
+| `calls_callback_draft` | `{id}` | `{ok, message}`: a blocked or failed callback's owner-approved words, else the triage's `suggested_reply` (addressed to the caller), else `""`; at most 300 characters. The triage's `suggested_actions` are instructions to the owner and are never used as the draft |
+| `calls_callback_approve` | `{id, message (1-500)}` | `{ok, call_id}` or `{ok: false, code: "calls_disabled"\|"not_ready"\|"no_callback_number"\|"quiet_hours"\|"daily_cap"\|"cooldown"\|"busy", message}` |
+| `presence_ping` | `{}` | `{ok}` |
+| `calls_status` | `{}` | C1's status plus `answering` (= `calls.enabled`), `needs_you_count`, `active_call` (`{id, mode, direction, state}` or null), `briefing_pin_set` and `inara_number` (INARA's Twilio number in E.164, or null when not set; owner-only, for the carrier forwarding codes) |
+
+`status` is decided per record, in this order: `done` (marked done); `in_progress` (a briefing or callback is being placed or is running, or triage is pending); `callback_blocked`; `failed` (the callback failed or was not answered); `done` (the briefing decision was "ignore", or the callback completed); `needs_you` (a missed incoming call: voicemail because the budget ran out, or the agent failed); `in_progress` (triage pending); `failed` (a call INARA placed that failed); `needs_you` (triage `needs_owner` or `urgent`); otherwise `done`. The `needs_you` filter is: triage `needs_owner` or `urgent`, a missed incoming call, or a blocked, failed or unanswered callback, and not marked done. Owner briefing records never need the owner, because the owner was on the call. The `done` filter returns the records whose status is `done`. `outcome.details` is the outcome's details, the approved callback words, or, for a screening record whose callback did not go through, a short reason ("Callback not placed: it is quiet hours.").
+
+### Triage reply suggestion
+
+Triage (C2's `fast` task) also returns `suggested_reply`: a short, plain message for the caller (no promises of times, no commitments on the owner's behalf), or `""` when no reply makes sense. It is validated with the other fields: missing means `""`; more than 600 characters makes the whole triage invalid (`triage_invalid`); otherwise it is cleaned to one printable line and cut to 300 characters at a word boundary. It is stored with the triage and used only as the `calls_callback_draft` text; the owner edits and approves the final words.
+
+### Events to the owner's renderers
+
+- `call_record_ready` `{record_id}`: after every call (C2), and also when a record changes in a way the owner must see (a blocked, failed or unanswered callback).
+- `call_progress` `{call_id, record_id|null, mode, direction, state, message?}`, with state `dialing`, `ringing`, `in_progress`, `completed`, `no_answer` or `failed`. `message` is present only for `failed` and `no_answer`: plain text of at most 200 characters, never provider internals ("No one answered.", "The line was busy.", "The call was cancelled before anyone answered.", "The call could not be connected."). Outbound calls follow Twilio's status callbacks and the Media Stream opening and closing; `call_id` is C1's call id (the one `calls_callback_approve` returns), and `record_id` is the record a briefing or callback is about (null otherwise). Inbound calls report `in_progress` when the stream opens and `completed` when it closes, with a random `call_id` (never the CallSid) and `record_id` null; the new record arrives with `call_record_ready`. States never go backwards, and a call's last event is a terminal state. Sent only while the owner is authenticated.
+
+Internal: the gateway service emits `telephony.session` on the event bus (never to a renderer) when a Media Stream opens or closes.
+
+### Not verified offline
+
+- The presence signal on the native host (`state.visible`) and the renderer's `presence_ping` cadence (sent by C3b).
+- Twilio's status callback order for a callback placed right after a briefing. A briefing and its callback never overlap: the callback is placed after the briefing call has ended.
 
 ## Sources
 

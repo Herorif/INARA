@@ -169,3 +169,37 @@ class CallRecords:
                 db, self.kind, record_id, {**upgrade(item), "triage": triage, "triage_state": state}
             )
         return True
+
+    # --- the Calls view (C3) -----------------------------------------------------------
+
+    def phone_calls(self):
+        """Every phone call record (C2 ``save_call``) within retention, newest first."""
+        with self.database.transaction() as db:
+            now = self.stamp(db)
+            values = [upgrade(item) for _key, item in self._expire(db, now)
+                      if item.get("source") == "twilio"]
+        return sorted(values, key=lambda item: item["started_at"], reverse=True)
+
+    def update_call(self, record_id, changes):
+        """Merge top-level ``changes`` into one stored phone call record; False if gone.
+        ``changes`` may be a callable taking the current record and returning the changes."""
+        with self.database.transaction() as db:
+            self.stamp(db)
+            item = self.database.get(db, self.kind, record_id)
+            if not item or item.get("source") != "twilio":
+                return False
+            current = upgrade(item)
+            values = changes(current) if callable(changes) else changes
+            if values:
+                self.database.put(db, self.kind, record_id, {**current, **values})
+        return True
+
+    def delete_call(self, record_id):
+        """Delete one phone call record now; False when there is none."""
+        with self.database.transaction() as db:
+            self.stamp(db)
+            item = self.database.get(db, self.kind, record_id)
+            if not item or item.get("source") != "twilio":
+                return False
+            db.execute("DELETE FROM documents WHERE kind=? AND id=?", (self.kind, record_id))
+        return True

@@ -562,7 +562,7 @@ async def test_ignore_decision_creates_no_grant(phone):
 
 async def test_briefing_pin_gates_the_details_and_is_never_kept(phone, caplog):
     app = phone
-    app.settings["calls"]["briefing_pin"] = "4321"
+    app.secrets.values["call_briefing_pin"] = "4321"
     caplog.set_level(logging.DEBUG)
     task, live = await connect(app, outbound_session(Line(), {"owner": True}), briefing())
     await opened(app, live)
@@ -588,7 +588,7 @@ async def test_briefing_pin_gates_the_details_and_is_never_kept(phone, caplog):
 
 async def test_three_wrong_pins_end_the_briefing(phone):
     app = phone
-    app.settings["calls"]["briefing_pin"] = "4321"
+    app.secrets.values["call_briefing_pin"] = "4321"
     task, live = await connect(app, outbound_session(Line(), {"owner": True}), briefing())
     await opened(app, live)
     for index in range(3):
@@ -740,6 +740,7 @@ async def test_triage_is_stored_and_the_owner_is_told_with_the_record_id_only(ph
     assert triage["summary"] == "Aiman from the courier called about a parcel. It needs a decision today."
     assert triage["urgency"] == "normal" and triage["needs_owner"] is True
     assert triage["suggested_actions"] == ["Call back about the delivery"]
+    assert triage["suggested_reply"] == ""  # this reply has none: stored as no reply (C3)
     assert triage["model"] == "claude-haiku-5-5"
     (messages, kwargs), = app.call_agent.provider.calls
     assert messages[0].content.startswith("UNTRUSTED CALL RECORD DATA") and kwargs["effort"] == "low"
@@ -868,18 +869,17 @@ def test_masked_numbers():
 
 
 def test_call_agent_settings_validate_and_default():
-    assert CALLS_DEFAULTS["facts"] == "" and CALLS_DEFAULTS["briefing_pin"] == ""
+    # The briefing PIN is a secret since C3 (call_briefing_pin), never a setting.
+    assert CALLS_DEFAULTS["facts"] == "" and "briefing_pin" not in CALLS_DEFAULTS
     assert CALLS_DEFAULTS["max_call_minutes"] == 10 and CALLS_DEFAULTS["enabled"] is False
-    SettingsPatch.model_validate({"calls": {"facts": "Line one.\nLine two.", "briefing_pin": "123456",
-                                            "max_call_minutes": 15}})
-    SettingsPatch.model_validate({"calls": {"briefing_pin": ""}})
-    for bad in ({"facts": "x" * 1001}, {"facts": "bad\x07"}, {"briefing_pin": "12"},
-                {"briefing_pin": "12a4"}, {"max_call_minutes": 1}, {"max_call_minutes": 31},
+    SettingsPatch.model_validate({"calls": {"facts": "Line one.\nLine two.", "max_call_minutes": 15}})
+    for bad in ({"facts": "x" * 1001}, {"facts": "bad\x07"}, {"briefing_pin": "1234"},
+                {"briefing_pin": ""}, {"max_call_minutes": 1}, {"max_call_minutes": 31},
                 {"max_call_minutes": "10"}):
         with pytest.raises(Exception):
             SettingsPatch.model_validate({"calls": bad})
     values = calls_settings({"calls": {"facts": "ok", "briefing_pin": "9876", "max_call_minutes": 5}})
-    assert (values["facts"], values["briefing_pin"], values["max_call_minutes"]) == ("ok", "9876", 5)
+    assert (values["facts"], values["max_call_minutes"]) == ("ok", 5) and "briefing_pin" not in values
     broken = calls_settings({"calls": {"facts": 5, "briefing_pin": "12", "max_call_minutes": 99}})
     assert broken == CALLS_DEFAULTS
 

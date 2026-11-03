@@ -274,6 +274,27 @@ class UsageService:
         self.active.add(identifier)
         return ticket
 
+    def admission_blocked(self, owner):
+        """Read-only: the code ``begin`` would refuse a new step with for budget reasons
+        (daily or monthly limit, receipt capacity), or None. Nothing is reserved."""
+        with self.database.connection() as db:
+            policy = self.database.get(db, self.policy_kind, scope_hash(owner))
+            if not isinstance(policy, dict):
+                return None
+            day, month = self.periods(max(self.clock(), policy.get("clock") or 0))
+            kind = self.call_kind(owner, month)
+            count = db.execute("SELECT count(*) FROM documents WHERE kind=?", (kind,)).fetchone()[0]
+        if count >= 4096:
+            return "usage_capacity"
+        if not policy.get("enabled"):
+            return None
+        amount = policy.get("per_call_microusd", 0)
+        if policy.get("days", {}).get(day, 0) + amount > policy.get("daily_microusd", 0):
+            return "usage_daily_limit"
+        if policy.get("months", {}).get(month, 0) + amount > policy.get("monthly_microusd", 0):
+            return "usage_monthly_limit"
+        return None
+
     def finish(self, ticket, state, counts, duration):
         try:
             with self.database.transaction() as db:

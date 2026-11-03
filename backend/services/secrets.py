@@ -233,6 +233,16 @@ REGISTRY = {
             pattern=r"[A-Za-z0-9+/_\-]{80,500}={0,2}",
             format_message="Paste only the token from the tunnel's install command (a long string starting with ey), not the whole command.",
         ),
+        # Optional spoken PIN the owner gives on a briefing call before INARA shares the
+        # call details (C3; formerly calls.briefing_pin in settings.json). No online check.
+        SecretSpec(
+            name="call_briefing_pin",
+            label="Call briefing PIN",
+            provider="INARA",
+            env="INARA_CALL_BRIEFING_PIN",
+            pattern=r"[0-9]{4,8}",
+            format_message="Use 4 to 8 digits for the call briefing PIN.",
+        ),
     )
 }
 

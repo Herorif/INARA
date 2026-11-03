@@ -27,9 +27,13 @@ SYSTEM = (
     "(\"low\", \"normal\" or \"urgent\"; urgent only for time-critical or safety matters), "
     "\"needs_owner\" (true when the owner should decide or act personally), "
     "\"suggested_actions\" (zero to four short imperative phrases for the owner, for example "
-    "\"Call back about the delivery\"). Do not invent facts that are not in the record. Write "
-    "in English."
+    "\"Call back about the delivery\"), \"suggested_reply\" (a short, plain message INARA could "
+    "say to the caller on a callback, addressed to the caller, at most 300 characters; no "
+    "promises of times, no commitments or agreements on the owner's behalf; \"\" when no reply "
+    "makes sense, for example on an owner briefing). Do not invent facts that are not in the "
+    "record. Write in English."
 )
+REPLY_LIMIT = 300
 
 
 class TriageResult(BaseModel):
@@ -39,6 +43,9 @@ class TriageResult(BaseModel):
     urgency: Literal[URGENCY]
     needs_owner: StrictBool
     suggested_actions: list[StrictStr] = Field(default_factory=list, max_length=8)
+    # For the caller (C3 callback draft). Missing means none; longer than 600 characters is
+    # invalid; otherwise one plain line, cut to 300 characters at a word boundary.
+    suggested_reply: StrictStr = Field(default="", max_length=600)
 
     @field_validator("summary")
     @classmethod
@@ -54,6 +61,15 @@ class TriageResult(BaseModel):
     @classmethod
     def actions(cls, value):
         return [clean_line(item, 120) for item in value if clean_line(item, 120)][:4]
+
+    @field_validator("suggested_reply")
+    @classmethod
+    def reply(cls, value):
+        text = clean_line(value, 600)
+        if len(text) > REPLY_LIMIT:
+            cut = text[: REPLY_LIMIT + 1]
+            text = (cut.rsplit(" ", 1)[0] if " " in cut else cut[:REPLY_LIMIT]).rstrip(" ,;:")
+        return text[:REPLY_LIMIT]
 
 
 def prompt(record):

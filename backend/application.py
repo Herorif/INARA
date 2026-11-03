@@ -69,6 +69,7 @@ from services.storage import Database
 from services.secrets import SecretStore, activate as activate_secrets
 from transport.secrets import SecretsTransport
 from telephony.agent import CallAgent
+from telephony.orchestrator import CallOrchestrator, migrate_briefing_pin
 from telephony.service import TelephonyService
 from transport.telephony import CallsTransport
 from services.tools import ToolDispatcher, register_project_tools
@@ -226,6 +227,8 @@ class Application:
         self.call_agent = CallAgent(self)
         if self.telephony.agent is None:
             self.telephony.set_agent(self.call_agent, input_rate=16000)
+        # C3: owner briefings, callbacks, call progress and the Calls view routes.
+        self.call_orchestrator = CallOrchestrator(self)
         self.calls_transport = CallsTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
@@ -353,6 +356,8 @@ class Application:
         self.tasks.append(
             asyncio.create_task(self.memory.maintain(), name="project-memory-retention")
         )
+        # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
+        migrate_briefing_pin(self)
         if self.telephony.calls_settings()["enabled"]:
             await self.telephony.reconcile()  # never raises; failures show in calls_status
         try:
@@ -394,6 +399,7 @@ class Application:
                 if isinstance(result, BaseException):
                     raise result
         finally:
+            await _isolated("call_orchestrator", self.call_orchestrator.close)
             await _isolated("call_agent", self.call_agent.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:

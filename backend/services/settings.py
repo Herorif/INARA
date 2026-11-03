@@ -208,9 +208,11 @@ class CallsSettings(EmptyRequest):
     facts: StrictStr | None = Field(
         default=None, max_length=1000, pattern=r"^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$"
     )
-    # Optional spoken PIN for owner briefings; "" turns it off. Never logged.
-    briefing_pin: StrictStr | None = Field(default=None, pattern=r"^(|[0-9]{4,8})$")
+    # The optional owner-briefing PIN is not a setting: it lives in the encrypted secret
+    # store as call_briefing_pin (C3), so a briefing_pin key here is rejected (extra field).
     max_call_minutes: StrictInt | None = Field(default=None, ge=2, le=30)
+    # C3: when to phone the owner about a screened call (only while away from the PC).
+    brief_by_phone: Literal["off", "urgent", "needs_owner"] | None = None
 
     @field_validator(
         "enabled",
@@ -220,8 +222,8 @@ class CallsSettings(EmptyRequest):
         "number_cooldown_minutes",
         "when_disabled",
         "facts",
-        "briefing_pin",
         "max_call_minutes",
+        "brief_by_phone",
         mode="before",
     )
     @classmethod
@@ -245,8 +247,8 @@ CALLS_DEFAULTS = {
     "number_cooldown_minutes": 60,
     "when_disabled": "voicemail",
     "facts": "",
-    "briefing_pin": "",
     "max_call_minutes": 10,
+    "brief_by_phone": "urgent",
 }
 
 

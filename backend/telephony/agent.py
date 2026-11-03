@@ -58,6 +58,7 @@ logger = get_logger("telephony.agent")
 EVENT_RECORD_READY = "call_record_ready"
 EVENT_CALL_STATUS = "telephony.call_status"  # telephony.service
 TERMINAL_STATUSES = frozenset({"completed", "busy", "failed", "no-answer", "canceled"})
+BRIEFING_PIN = re.compile(r"[0-9]{4,8}")
 WARN_BEFORE_END = 60
 SILENCE_SECONDS = 20
 SILENCE_END_SECONDS = 10
@@ -368,9 +369,68 @@ class CallAgent:
 
     # --- one call ---------------------------------------------------------------------------
 
+    def briefing_pin(self):
+        """The owner-briefing PIN from the encrypted secret store (``call_briefing_pin``), or
+        "" for none. A legacy ``calls.briefing_pin`` still in settings (its startup migration
+        failed) is honoured rather than silently dropping the PIN. Never logged."""
+        pin = self.app.telephony.secret("call_briefing_pin") or ""
+        if not BRIEFING_PIN.fullmatch(pin):
+            calls = self.app.settings.get("calls") if isinstance(self.app.settings, dict) else None
+            legacy = calls.get("briefing_pin") if isinstance(calls, dict) else None
+            pin = legacy if isinstance(legacy, str) and BRIEFING_PIN.fullmatch(legacy) else ""
+        return pin
+
+    def inbound_refusal(self, params):
+        """C3: the usage budget is exhausted, so an inbound call cannot be screened. Stores a
+        minimal record ("missed", reason "budget"), tells the owner, and returns the code so
+        the gateway answers with voicemail; None when the call can go ahead."""
+        owner, _project = self.usage_scope()
+        try:
+            code = self.app.usage.admission_blocked(owner)
+        except Exception:
+            logger.warning("Usage budget could not be checked", exc_info=True)
+            return None
+        if code is None:
+            return None
+        caller = (params or {}).get("From")
+        now = self.wall()
+        try:
+            counterpart = self.records.counterpart(caller)
+        except Exception:
+            counterpart = {"masked": "withheld", "key": None}
+        record = {
+            "id": str(uuid.uuid4()),
+            "source": "twilio",
+            "state": "missed",
+            "code": code,
+            "direction": "inbound",
+            "mode": "screening",
+            "counterpart": counterpart,
+            "caller_hash": counterpart["key"],
+            "started_at": now,
+            "finished_at": now,
+            "duration_seconds": 0.0,
+            "fields": {},
+            "transcript": [],
+            "outcome": {"status": "missed", "reason": "budget"},
+            "end_reason": "voicemail",
+            "brief_hash": None,
+            "triage": None,
+            "triage_state": "skipped",
+            "identity_verified": False,
+            "message_confirmed": False,
+        }
+        try:
+            self.records.save_call(record)
+        except Exception:
+            logger.exception("Missed call record could not be saved")
+            return code
+        self._spawn(self._announce(record["id"]))
+        return code
+
     def _new_run(self, session, brief):
         settings = self.settings()
-        pin = (settings.get("briefing_pin") or "") if brief.mode == "owner_briefing" else ""
+        pin = self.briefing_pin() if brief.mode == "owner_briefing" else ""
         now = self.clock()
         return CallRun(
             brief=brief,

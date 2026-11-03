@@ -28,6 +28,7 @@ logger = get_logger("telephony.service")
 EVENT_OWNER_UNREACHABLE = "telephony.owner_unreachable"
 EVENT_CALL_STATUS = "telephony.call_status"
 EVENT_VOICEMAIL = "telephony.voicemail"
+EVENT_SESSION = "telephony.session"  # a Media Stream opened or closed (C3 call_progress)
 SECRET_NAMES = (
     "twilio_account_sid",
     "twilio_auth_token",
@@ -67,14 +68,15 @@ def calls_settings(settings):
             value[key] = raw[key]
     if raw.get("when_disabled") in ("voicemail", "hangup"):
         value["when_disabled"] = raw["when_disabled"]
-    # C2 call agent: facts pack, optional briefing PIN, call length limit.
+    # C2 call agent: facts pack and call length limit. The briefing PIN is a secret
+    # (call_briefing_pin), never a setting value (C3).
     if isinstance(raw.get("facts"), str) and len(raw["facts"]) <= 1000:
         value["facts"] = raw["facts"]
-    pin = raw.get("briefing_pin")
-    if isinstance(pin, str) and (pin == "" or BRIEFING_PIN.fullmatch(pin)):
-        value["briefing_pin"] = pin
     if type(raw.get("max_call_minutes")) is int and 2 <= raw["max_call_minutes"] <= 30:
         value["max_call_minutes"] = raw["max_call_minutes"]
+    # C3 orchestration: when to phone the owner about a screened call.
+    if raw.get("brief_by_phone") in ("off", "urgent", "needs_owner"):
+        value["brief_by_phone"] = raw["brief_by_phone"]
     return value
 
 
@@ -227,6 +229,12 @@ class TelephonyService:
         if not self.agent_ready() or base is None or not CALL_SID.fullmatch(call_sid):
             logger.info("Inbound call %s sent to the unavailable path", mask_sid(call_sid))
             return self._unavailable(settings)
+        # C3: with the usage budget exhausted the agent could not talk, so the caller gets
+        # voicemail (never a silent hang-up) and the agent stores a minimal record.
+        refusal = getattr(self.agent, "inbound_refusal", None)
+        if refusal is not None and refusal(params):
+            logger.info("Inbound call %s sent to voicemail: budget", mask_sid(call_sid))
+            return twiml.voicemail()
         self._prune_inbound()
         self.inbound[call_sid] = {
             "direction": "inbound",
@@ -348,11 +356,23 @@ class TelephonyService:
 
     def session_opened(self, session):
         self.sessions[session.call_sid] = session
+        self._emit_session(session, "opened")
 
     def session_closed(self, session):
         if self.sessions.get(session.call_sid) is session:
             del self.sessions[session.call_sid]
         logger.info("Media Stream ended call=%s reason=%s", mask_sid(session.call_sid), session.end_reason)
+        self._emit_session(session, "closed")
+
+    def _emit_session(self, session, state):
+        info = session.info if isinstance(getattr(session, "info", None), dict) else {}
+        self._emit(EVENT_SESSION, {
+            "call_sid": session.call_sid,
+            "direction": session.direction,
+            "state": state,
+            "call_id": info.get("call_id"),
+            "purpose": info.get("purpose"),
+        })
 
     # --- lifecycle --------------------------------------------------------------------
     async def reconcile(self):
