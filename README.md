@@ -138,7 +138,7 @@ INARA's Minority Report interface uses your webcam for hands-free window control
 
 | Module                        | Description                                                         |
 | ----------------------------- | ------------------------------------------------------------------- |
-| 📞 **Phone Calls**            | Outbound/inbound call handling through voice                        |
+| 📞 **Phone Calls**            | Outbound/inbound call handling through voice ([setup](docs/CALLS_SETUP.md)) |
 | 📅 **Calendar Integration**   | Time-aware scheduling synced to external calendars                  |
 | 🔌 **Matter / Thread**        | Next-gen smart home protocol support                                |
 | 🎤 **Custom Wake Word**        | Train a personal wake phrase instead of a button press              |
