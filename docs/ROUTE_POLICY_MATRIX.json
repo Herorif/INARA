@@ -1429,6 +1429,14 @@
       "replacement": "CadTransport planner",
       "model_visible": true
     },
+    "place_task_call": {
+      "schema": "PlaceTaskCall",
+      "policy": "Own permissions[place_task_call]; always asks the owner on screen (ToolSpec.always_ask, enforced in dispatch: True, False and allow_within_scope all ask); deny rejects. Review facts carry the exact approval sentence; owner's and INARA's numbers refused before the card",
+      "context": "Authenticated desktop owner; conversation id and project captured for the outcome report",
+      "lifetime": "Returns once the call is placed or refused; the approved card issues one 10-minute grant bound to the number and the task brief hash; the outcome is appended to the conversation when the call ends (CallOrchestrator, 45-minute result cap)",
+      "replacement": "C4 task calls (telephony/task_calls.py)",
+      "model_visible": true
+    },
     "save_memory": {
       "schema": "SaveMemory",
       "policy": "Shared save_memory permission; own alias deny also enforced",
@@ -1760,7 +1768,7 @@
     "record_outcome": {
       "mode": "approved_callback, task (outbound; each needs a one-use grant bound to the number and brief hash, consumed by place_call)",
       "target": "CallAgent: fields.outcome",
-      "schema": "status delivered|confirmed|declined|no_answer|needs_owner, details 0-1000",
+      "schema": "status delivered|confirmed|declined|no_answer|needs_owner, details 0-1000, confirmed_time HH:MM optional (task calls, C4)",
       "policy": "Validated with pydantic; is_error on invalid arguments",
       "status": "c2"
     },

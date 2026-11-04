@@ -64,6 +64,9 @@ class ToolSpec:
     # Optional (validated, context) -> dict of extra review facts (e.g. the
     # resolved command) shown with the approval request. May raise ServiceError.
     review: Callable | None = None
+    # Always asks the owner, whatever the stored policy says (True, False or
+    # "allow_within_scope"); "deny" still disables it. Enforced in dispatch().
+    always_ask: bool = False
 
 
 def inline_tool_schema(model):
@@ -151,7 +154,7 @@ class ToolDispatcher:
             or self.permissions().get(spec.alias_for) == "deny"
         ):
             raise ServiceError("permission_denied", "This action is disabled.")
-        if force_approval or policy not in (False, "allow_within_scope"):
+        if force_approval or spec.always_ask or policy not in (False, "allow_within_scope"):
             if request_approval is None:
                 raise ServiceError("approval_required", "This action requires owner approval.")
             review_args = approval_arguments(validated.model_dump())

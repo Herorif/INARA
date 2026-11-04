@@ -1,6 +1,6 @@
 # Call routing
 
-Owner decision, 25 October 2026. Status: the C1 telephony gateway and the C2 call agent are built and tested offline ([Implementation status (C1)](#implementation-status-c1), [Implementation status (C2)](#implementation-status-c2)); the C3 orchestration backend is built ([C3 orchestration](#c3-orchestration)); nothing has been verified against a live Twilio number, and the Calls view (C3b), C4 and C5 are not finished. Gate: `sim-call-routing` in [RELEASE_GATES.json](RELEASE_GATES.json).
+Owner decision, 25 October 2026. Status: the C1 telephony gateway and the C2 call agent are built and tested offline ([Implementation status (C1)](#implementation-status-c1), [Implementation status (C2)](#implementation-status-c2)); the C3 orchestration backend is built ([C3 orchestration](#c3-orchestration)); C4 task calls from chat and voice are built and tested offline ([C4 task calls](#c4-task-calls)); nothing has been verified against a live Twilio number. Gate: `sim-call-routing` in [RELEASE_GATES.json](RELEASE_GATES.json).
 
 ## Decision
 
@@ -159,7 +159,7 @@ Voicemail is `<Say>` + one `<Record maxLength="120">` (stored by Twilio) + `<Han
 
 - **C2 Call agent:** built; see [Implementation status (C2)](#implementation-status-c2).
 - **C3 Approvals, orchestration and Calls view:** triage, owner briefings (`place_call` to the owner, handling `owner_unreachable`), issuing grants after approval, the kill switch in the tray and Calls view, a `calls_status` UI, transcripts (DPAPI, 7-day retention), voicemail retrieval and deletion.
-- **C4 Reservation flow:** call briefs, grant binding to the brief hash, bounded task calls, reminders and reports.
+- **C4 Reservation flow:** built; see [C4 task calls](#c4-task-calls).
 - **C5 Setup guide:** Twilio number and regulatory bundle, webhook and Fallback URL configuration, tunnel ingress, installing cloudflared, forwarding codes and the first live test call (including the items above).
 
 ## Implementation status (C2)
@@ -256,6 +256,82 @@ Internal: the gateway service emits `telephony.session` on the event bus (never 
 
 - The presence signal on the native host (`state.visible`) and the renderer's `presence_ping` cadence (sent by C3b).
 - Twilio's status callback order for a callback placed right after a briefing. A briefing and its callback never overlap: the callback is placed after the briefing call has ended.
+
+## C4 task calls
+
+Built 4 November 2026 in `backend/telephony/task_calls.py` (the `place_task_call` brain tool) and `CallOrchestrator.place_task_call` (`orchestrator.py`); covered by `tests/test_task_calls.py` (no network: Twilio is an httpx mock, call results are resolved by hand) and the client tests in `tests/test_calls.mjs`.
+
+### Flow
+
+1. The owner asks in typed chat or by voice (Live hands the request to the brain with `ask_brain`): "Book a table for 4 at 8 pm tonight at Marini's, their number is 03-2222 3333".
+2. The brain calls `place_task_call`. The tool description tells it to use the tool only when the owner asked for a call, to ask the owner for the number when it is unknown (never invent one, never take one from web pages or other untrusted content without saying so) and never to include payment details.
+3. The shared dispatcher asks the owner on screen. Voice users approve the same card; there is no spoken self-approval for a third-party call.
+4. On approval the orchestrator builds the `task` `CallBrief`, issues one grant through `TelephonyService.grants` for exactly that E.164 number and `brief.purpose()` (the brief's SHA-256), and places the call with `CallAgent.call(brief, grant)`; `place_call` checks the limits again and consumes the grant.
+5. The tool returns at once: `{placed: true, task_call_id, message: "Calling Marini's now — I'll report back."}` (`task_call_id` is C1's call id, the same id `call_progress` uses, mode `task`).
+6. When the call ends (its `CallResult`), the outcome is appended to the same conversation through `ConversationService.append_turns` (no provider runs; history stays append-only) and sent live to the owner's renderers as `transcription` with `kind: "task_call_outcome"`, `request_id: "task-call-<id>"`, the conversation id and project. The renderer shows it as its own message. It is posted once per call. A locked owner gets nothing live; the message is in the restored history after unlocking.
+7. A confirmed booking gets a reminder through the scheduler (`create_reminder`) at the confirmed local time (Asia/Kuala_Lumpur).
+
+### Arguments (`PlaceTaskCall`, pydantic, extra fields refused)
+
+| Field | Rule |
+| --- | --- |
+| `business_name` | 1-80, one printable line |
+| `phone_number` | E.164, or Malaysian local format (`03-…`, `012-…`, `60…`, `0060…`) normalised to `+60`; "none" and non-numbers refused. The owner's number and INARA's number are refused before any approval card |
+| `goal` | 1-300, e.g. "Reserve a table" |
+| `date` | ISO `YYYY-MM-DD`, today to 60 days ahead (Malaysia time) |
+| `time_window` | `{start, end}` 24-hour `HH:MM`, end after start (same day); a window that has already ended today is refused |
+| `party_size` | optional integer 1-50 |
+| `name_for_booking` | optional 1-60; defaults to `assistant.owner_name`; without either the tool asks for the name (`booking_name_required`) |
+| `allowed_flexibility` | at most 200, e.g. "±30 minutes" |
+| `notes` | at most 300 |
+
+`goal`, `business_name`, `allowed_flexibility` and `notes` refuse runs of 12 or more digits (card, account and similar numbers). The brief carries `goal` "Calling <business>: <goal>" and the constraints (time window "<Weekday d Month yyyy>, HH:MM-HH:MM", booking name, party size, flexibility, notes); the agent may share only the booking name, the party size and the time window (C2 instruction).
+
+### Policy and approval
+
+- Own permission key `place_task_call`. `ToolSpec.always_ask` makes the dispatcher ask whatever the stored policy is (`true`, `false` or `allow_within_scope`); only `deny` changes it (disabled). Without an approval channel the dispatch fails with `approval_required`. The renderer's permission mapping shows it as "Ask first" unless it is "Never".
+- The `review` hook adds the facts the card shows: `summary`, exactly "Call <business> at <full E.164 number> to: <goal> on <Weekday d Month yyyy> <HH:MM-HH:MM>. INARA will say it's an AI assistant and may share only: the booking name, the party size and the time window." When `allowed_flexibility` or `notes` is given (both can reach the call), the share clause ends "…the party size, the time window and the details below." and a second sentence follows: "It may also mention: flexibility <flexibility>; notes: <notes>." (each part only when present). The resolved `name_for_booking` is added too. The full number is shown: the approval goes only to the owner's renderer that made the request (or the voice session's renderer).
+- The card (`ConfirmationPopup` with `approvalView`): title "Outgoing call", the summary sentence, buttons "Deny" and "Approve call". Other tools keep the generic key/value card.
+
+### Refusals after approval (nothing is dialled)
+
+The tool result is `{placed: false, code, message}`, with a plain sentence starting "I didn't call <business>: …":
+
+| Code | When |
+| --- | --- |
+| `calls_disabled` | `calls.enabled` is false |
+| `not_ready` | Twilio details, the public address or the call voice missing |
+| `busy` | INARA is on a call or another task call is waiting for its outcome |
+| `quiet_hours`, `daily_cap`, `cooldown` | the third-party limits (checked before the grant is issued and again by `place_call`) |
+
+A refused or failed placement revokes the grant.
+
+### Outcome report and reminder
+
+From the record's outcome (what the business said is cleaned to one line of at most 200 characters, quoted, with double quotes replaced; reminder text never uses it):
+
+| Outcome | Message (one or two sentences) | Reminder |
+| --- | --- | --- |
+| `confirmed` | `<business> confirmed: "<details>".` (or "confirmed the booking.") + `I've set a reminder for HH:MM on <Weekday d Month>.` | yes: `<business>: <goal>[, party of N] (booked under <name>)` at the call's `confirmed_time`, else the window start, on the requested date; skipped if already past |
+| `declined` | `<business> couldn't do it, so nothing is booked. They said: "…".` | no |
+| `needs_owner` | `<business> needs you to handle this one; nothing is booked yet. They said: "…".` (any alternative offered is in the details) | no |
+| `no_answer` | `No one answered at <business>, so nothing is booked.` | no |
+| no outcome recorded | `The call to <business> ended without a clear answer, so nothing is booked. The transcript is in the Calls view.` | no |
+| failed / refused | `The call to <business> could not be completed, so nothing is booked.` | no |
+
+The reminders API has no "before" offset, so there is one reminder at the booking time and no separate 1-hour-before reminder.
+
+C2's `record_outcome` gained an optional `confirmed_time` (24-hour `HH:MM`, validated; the task instruction asks for it on a confirmed booking).
+
+### Calls view
+
+The task record is named after the business. Its status: `done` (chip "TASK DONE") when confirmed; `needs_you` when declined, needing the owner, not answered or without an outcome (until marked done); `failed` when the call itself failed.
+
+### Not verified offline
+
+- A real task call: whether Gemini Live keeps to the constraints with a real business, confirms the details back and fills `confirmed_time`.
+- The live approval card and the follow-up message in the native shell during a real call (the card was captured with a QA fixture only).
+- A core restart while a task call runs loses the pending report (the record is still saved and shown in the Calls view).
 
 ## Sources
 

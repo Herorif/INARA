@@ -408,6 +408,8 @@ class ConversationService:
                     "principal": context["owner"],
                     "origin_sid": context["origin_sid"],
                     "usage_operation": f"{context['operation']}:{step}:{index}",
+                    # The conversation a tool's later report belongs to (C4 task calls).
+                    "conversation_id": context.get("conversation_id"),
                 },
                 context["request_approval"],
                 authorize=context["authorize"],
@@ -451,6 +453,7 @@ class ConversationService:
         context = {
             "owner": owner, "project": project, "origin_sid": origin_sid, "authorize": authorize,
             "request_approval": request_approval, "operation": operation,
+            "conversation_id": str(request.conversation_id),
         }
         for step in range(TOOL_STEPS):
             response = await asyncio.wait_for(
@@ -504,6 +507,7 @@ class ConversationService:
         context = {
             "owner": owner, "project": project, "origin_sid": origin_sid, "authorize": authorize,
             "request_approval": request_approval, "operation": operation,
+            "conversation_id": str(request.conversation_id),
         }
         system = self.system_prompt()
         for step in range(TOOL_STEPS):

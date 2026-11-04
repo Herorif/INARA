@@ -3,6 +3,8 @@
 // run without asking. Missing keys ask, except default-deny keys.
 
 export const DEFAULT_DENY_PERMISSIONS = new Set(['legacy_generated_cad']);
+// Always ask, whatever is stored (backend ToolSpec.always_ask); only "deny" changes them.
+export const ALWAYS_ASK_PERMISSIONS = new Set(['place_task_call']);
 
 export const PERMISSION_OPTIONS = [
   { id: 'never', label: 'Never', value: 'deny' },
@@ -16,6 +18,7 @@ export function permissionOption(permissions, key) {
   if (!present) return DEFAULT_DENY_PERMISSIONS.has(key) ? 'never' : 'ask';
   const stored = permissions[key];
   if (stored === 'deny') return 'never';
+  if (ALWAYS_ASK_PERMISSIONS.has(key)) return 'ask';
   if (stored === false || stored === 'allow_within_scope') return 'allow';
   // The backend asks for any other stored value, including true.
   return 'ask';

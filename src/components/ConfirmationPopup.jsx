@@ -3,6 +3,7 @@ import useStore from '../store';
 import { emitSocket } from '../services/socket';
 import { useDialogFocus } from '../app/useDialogFocus';
 import HudLabel from '../shared/ui/HudLabel';
+import { approvalView } from './approvalView';
 
 /** Shows the oldest pending approval; answering removes exactly that request id. */
 export default function ConfirmationPopup() {
@@ -17,15 +18,15 @@ export default function ConfirmationPopup() {
   const decline = useCallback(() => respond(false), [respond]);
   useDialogFocus(dialog, request ? decline : null);
   if (!request) return null;
-  const action = request.tool?.replaceAll('_', ' ') || 'Assistant action';
+  const view = approvalView(request);
   return <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="approval-title" aria-describedby="approval-summary" className="tool-confirmation-dialog approval-backdrop">
     <section className="approval-card" key={request.id}>
       <div className="approval-body">
         <div className="approval-top"><HudLabel className="approval-label">APPROVAL NEEDED</HudLabel>{pending > 1 && <HudLabel className="approval-count">{`1 of ${pending}`}</HudLabel>}</div>
-        <h3 id="approval-title">{action}</h3>
-        <p id="approval-summary">INARA continues only after you approve. Denying leaves this action undone.</p>
+        <h3 id="approval-title">{view.title}</h3>
+        <p id="approval-summary">{view.summary}</p>
         {request.project && <p className="approval-project">Project · <strong>{request.project}</strong></p>}
-        <details open><summary>Details</summary><pre>{JSON.stringify(request.args || {}, null, 2)}</pre></details>
-      </div><footer><button type="button" className="btn btn--secondary" data-dialog-autofocus onClick={decline}>Deny</button><button type="button" className="btn btn--primary" onClick={() => respond(true)}>Approve</button></footer>
+        {view.details && <details open><summary>Details</summary><pre>{JSON.stringify(view.details, null, 2)}</pre></details>}
+      </div><footer><button type="button" className="btn btn--secondary" data-dialog-autofocus onClick={decline}>{view.denyLabel}</button><button type="button" className="btn btn--primary" onClick={() => respond(true)}>{view.approveLabel}</button></footer>
     </section></div>;
 }

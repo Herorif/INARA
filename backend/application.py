@@ -71,6 +71,7 @@ from transport.secrets import SecretsTransport
 from telephony.agent import CallAgent
 from telephony.orchestrator import CallOrchestrator, migrate_briefing_pin
 from telephony.service import TelephonyService
+from telephony.task_calls import register_task_call_tool
 from transport.telephony import CallsTransport
 from services.tools import ToolDispatcher, register_project_tools
 from transport.conversation import ConversationTransport
@@ -122,6 +123,8 @@ class Application:
         register_scheduler_tools(
             self.dispatcher, self.scheduler, reminders, authorize=self.authorize_owner
         )
+        # C4: the brain's task calls (always ask; placed by self.call_orchestrator below).
+        register_task_call_tool(self.dispatcher, self)
         self.delivery = EventDelivery(sio, self.sessions, reminders, self.dispatcher, resources)
         self.cad = CadService(database, resources, partial(self.delivery.publish_job, "cad_job"))
         self.images = ImageService(

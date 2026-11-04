@@ -15,6 +15,10 @@ Calls stay off by default; nothing here places a call unless ``calls.enabled`` i
   ``callback_blocked`` with the reason and the owner is notified.
 - **Desktop-approved callbacks.** "Approve call" in the Calls view is the approval: a grant
   bound to that number and that brief's hash is issued and the call placed immediately.
+- **Task calls (C4).** The owner approved ``place_task_call`` on screen (task_calls.py);
+  a grant bound to the business's number and the task brief's hash is issued and the call
+  placed. When it ends, the outcome is appended to the conversation the request came from
+  (and sent live as ``transcription``), and a confirmed booking gets a reminder.
 - **Progress.** Twilio status callbacks and Media Stream open/close become
   ``call_progress`` events for the owner's renderers.
 
@@ -29,7 +33,7 @@ import uuid
 
 from services.log import get_logger
 from services.tools import ServiceError
-from telephony import briefs
+from telephony import briefs, task_calls
 from telephony.agent import BRIEFING_PIN
 from telephony.grants import in_quiet_hours
 from telephony.numbers import mask_display, normalize, withheld
@@ -78,6 +82,7 @@ PROGRESS_MESSAGES = {
     "failed": "The call could not be connected.",
 }
 DEFAULT_MESSAGES = {"no_answer": "No one answered.", "failed": "The call could not be connected."}
+REPORTED_LIMIT = 256
 
 
 def should_brief(setting, triage, *, away, quiet):
@@ -153,6 +158,15 @@ def missed(record):
     )
 
 
+def task_unconfirmed(record):
+    """A task call INARA made that did not end with a confirmation (declined, needs the
+    owner, no answer or no outcome). A failed call shows as failed instead."""
+    outcome = record.get("outcome") if isinstance(record.get("outcome"), dict) else {}
+    return (record.get("mode") == "task" and record.get("direction") == "outbound"
+            and record.get("state") not in ("failed", "uncertain")
+            and outcome.get("status") != "confirmed")
+
+
 def needs_you(record):
     if record.get("done") is True or record.get("mode") == "owner_briefing":
         return False
@@ -162,6 +176,8 @@ def needs_you(record):
         return False
     if missed(record):
         return True
+    if record.get("mode") == "task":
+        return task_unconfirmed(record)
     triage = _triage(record) or {}
     return triage.get("needs_owner") is True or triage.get("urgency") == "urgent"
 
@@ -289,6 +305,8 @@ class CallOrchestrator:
         self.progress = {}  # progress call id -> entry
         self.inbound_ids = {}  # CallSid -> progress call id (inbound streams)
         self.ended = {}  # progress call id -> time, so late Twilio statuses are ignored
+        self.task_calls = {}  # C4: C1 call id -> the task call waiting for its outcome
+        self.reported = {}  # C1 call id -> time its outcome was posted (once per call)
         self.tasks = set()
         self.closing = False
         bus = getattr(app, "bus", None)
@@ -510,6 +528,128 @@ class CallOrchestrator:
         if handle is None:
             return _refused(code if code in BLOCKED.values() else "not_ready", text)
         return {"ok": True, "call_id": handle.call_id}
+
+    # --- task calls (C4) ----------------------------------------------------------------------
+
+    async def place_task_call(self, brief, request, *, owner, project, conversation_id):
+        """The owner approved this task call on screen (that card is the authorization).
+        Returns the tool result at once: placed with its id, or why nothing was dialled."""
+        business = request.business_name
+
+        def refused(code, reason):
+            reason = reason.rstrip(".")
+            return {
+                "placed": False, "code": code,
+                "message": f"I didn't call {business}: {reason[:1].lower() + reason[1:]}.",
+            }
+
+        telephony = self.telephony
+        settings = telephony.calls_settings()
+        if not settings["enabled"]:
+            return refused("calls_disabled", "Calls are turned off. Turn them on in the Calls view first")
+        if (telephony.credentials() is None or telephony.public_base_url() is None
+                or not telephony.agent_ready()):
+            return refused("not_ready", "Call setup isn't complete. Check the Calls view")
+        if telephony.sessions or self.task_calls:
+            return refused("busy", "INARA is on another call. Ask again when it ends")
+        number = brief.counterpart
+        try:
+            telephony.limits.check(number, settings)
+        except ServiceError as exc:
+            return refused(BLOCKED.get(exc.code, "not_ready"), str(exc))
+        # Bound to exactly this number and this brief's hash; consumed by place_call.
+        grant = telephony.grants.issue(number, brief.purpose())
+        try:
+            handle = await self.agent.call(brief, grant)
+        except ServiceError as exc:
+            telephony.grants.revoke(grant.id)
+            logger.warning("Task call not placed: %s", exc.code)
+            return refused(BLOCKED.get(exc.code, exc.code), str(exc))
+        except BaseException:
+            telephony.grants.revoke(grant.id)
+            raise
+        task = {
+            "call_id": handle.call_id, "request": request, "brief": brief, "owner": owner,
+            "project": project, "conversation_id": conversation_id,
+        }
+        self.task_calls[handle.call_id] = task
+        await self._placed(handle.call_id, "task", None)
+        self._spawn(self._after_task(task, handle))
+        return {
+            "placed": True, "task_call_id": handle.call_id,
+            "message": f"Calling {business} now — I'll report back.",
+        }
+
+    async def _after_task(self, task, handle):
+        try:
+            result = await self._result(handle)
+        finally:
+            self.task_calls.pop(handle.call_id, None)
+        request = task["request"]
+        if result is not None and result.record_id:
+            self._update(result.record_id, {"name": request.business_name})
+        reminder_at = None
+        if task_calls.outcome_status(result) == "confirmed":
+            reminder_at = await self._task_reminder(task, result)
+        await self._report(task, task_calls.outcome_message(request, result, reminder_at))
+
+    async def _task_reminder(self, task, result):
+        """A reminder at the confirmed local time; None when it is past or not created."""
+        request = task["request"]
+        moment = task_calls.reminder_moment(request, result)
+        if moment.timestamp() <= self.wall():
+            return None
+        from core.event_bus import event_owner
+
+        token = event_owner.set(task["owner"])
+        try:
+            created = await self.app.scheduler.handle_tool_call("create_reminder", {
+                "task": task_calls.reminder_task(request, task["brief"].constraints.booking_name),
+                "when": moment.replace(tzinfo=None).isoformat(timespec="minutes"),
+                "timezone": task_calls.ZONE_NAME,
+            })
+        except Exception:
+            logger.exception("Task call reminder could not be created")
+            return None
+        finally:
+            event_owner.reset(token)
+        if not created.success:
+            logger.warning("Task call reminder was refused")
+            return None
+        return moment
+
+    async def _report(self, task, text):
+        """Post the outcome once into the conversation the request came from, and live to
+        the owner's renderers (``transcription``, a separate message)."""
+        call_id = task["call_id"]
+        if call_id in self.reported:
+            return
+        self.reported[call_id] = self.wall()
+        while len(self.reported) > REPORTED_LIMIT:
+            self.reported.pop(next(iter(self.reported)))
+        owner, project, conversation_id = task["owner"], task["project"], task["conversation_id"]
+        if conversation_id and project is not None:
+            try:
+                await self.app.conversation.append_turns(
+                    owner, conversation_id, project, [{"role": "assistant", "content": text}]
+                )
+            except Exception:
+                logger.warning("Task call outcome could not be added to the conversation",
+                               exc_info=True)
+        sessions = self.app.sessions
+        if not sessions.authenticated(owner):
+            return  # restored from the conversation history after unlocking
+        payload = {
+            "sender": "INARA", "text": text, "kind": "task_call_outcome",
+            "request_id": f"task-call-{call_id}",
+            **({"conversation_id": conversation_id} if conversation_id else {}),
+            **({"project": project.name} if project is not None else {}),
+        }
+        try:
+            for sid in sessions.rooms(owner, "renderer"):
+                await self.app.sio.emit("transcription", payload, room=sid)
+        except Exception:
+            logger.warning("Task call outcome could not be delivered", exc_info=True)
 
     # --- Calls view --------------------------------------------------------------------------
 

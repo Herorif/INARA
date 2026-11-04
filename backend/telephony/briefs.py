@@ -43,6 +43,7 @@ PURPOSE_PREFIX = "inara-call-brief"
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _LINE_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+HHMM = re.compile(r"([01][0-9]|2[0-3]):[0-5][0-9]")
 
 
 def clean_line(value, limit):
@@ -142,11 +143,22 @@ class OwnerDecision(StrictModel):
 class RecordOutcome(StrictModel):
     status: Literal[OUTCOMES]
     details: StrictStr = Field(default="", max_length=1000)
+    # C4: a confirmed task booking's time (24-hour HH:MM), for the owner's reminder.
+    confirmed_time: StrictStr | None = Field(default=None, max_length=5)
 
     @field_validator("details")
     @classmethod
     def text(cls, value):
         return clean_text(value, 1000)
+
+    @field_validator("confirmed_time")
+    @classmethod
+    def clock_time(cls, value):
+        if value is None or not value.strip():
+            return None
+        if not HHMM.fullmatch(value.strip()):
+            raise ValueError("Give the confirmed time as HH:MM (24-hour), or leave it out.")
+        return value.strip()
 
 
 class VerifyPin(StrictModel):
@@ -506,7 +518,8 @@ def system_instruction(brief, *, now=None, pin_required=False):
             "record_outcome needs_owner with the alternative in details and end politely. "
             "Before finishing, confirm the details back (date, time, party size, name and "
             "any reference) and get their confirmation. Then call record_outcome: confirmed "
-            "(put the confirmed details in details), declined, no_answer (voicemail or no one "
+            "(put the confirmed details in details and the confirmed time, 24-hour HH:MM, in "
+            "confirmed_time), declined, no_answer (voicemail or no one "
             "responds; leave no voicemail) or needs_owner. Then say goodbye and call end_call."
         )
     return "\n\n".join(parts)
@@ -673,6 +686,11 @@ RECORD_OUTCOME = {
                 "type": STRING,
                 "description": "Their reply, or the confirmed details (date, time, party "
                 "size, name, any reference).",
+            },
+            "confirmed_time": {
+                "type": STRING,
+                "description": "Task calls only, when confirmed: the confirmed time as 24-hour "
+                "HH:MM. Leave it out otherwise.",
             },
         },
         "required": ["status", "details"],

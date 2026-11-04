@@ -31,7 +31,9 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
                 completedTextRequests.delete(completedTextRequests.values().next().value);
             }
         }
-        s().appendTranscription(data.sender, data.text, safeMemorySources(data.memory_sources));
+        // A task call's outcome (C4) arrives later as its own message, never joined to the last one.
+        if (data.kind === 'task_call_outcome') s().addMessage(data.sender, data.text);
+        else s().appendTranscription(data.sender, data.text, safeMemorySources(data.memory_sources));
     }));
 
     // --- Project ---

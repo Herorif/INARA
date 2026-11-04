@@ -284,3 +284,44 @@ test('presence ping: on input at most once a minute, on focus always, only while
   socket.connected = true; stop(); clock += 120000; target.dispatchEvent(new Event('keydown')); target.dispatchEvent(new Event('focus'));
   assert.equal(sent.length, 3, 'stop removes every listener');
 });
+
+// --- C4 task calls ---------------------------------------------------------------------
+import { approvalView } from '../src/components/approvalView.js';
+import { permissionOption } from '../src/components/toolPermissions.js';
+import { createSubscriptions } from '../src/services/subscriptions.js';
+import { registerConversationEvents } from '../src/services/events/conversation.js';
+
+test('a task call approval gets its own readable card', () => {
+  const summary = "Call Marini's at +60322223333 to: Reserve a table on Friday 6 November 2026 20:00-20:30. INARA will say it's an AI assistant and may share only: the booking name, the party size and the time window.";
+  assert.deepEqual(approvalView({ id: 'a', tool: 'place_task_call', args: { summary, phone_number: '+60322223333' } }),
+    { kind: 'task_call', title: 'Outgoing call', summary, approveLabel: 'Approve call', denyLabel: 'Deny', details: null });
+  // Without the review sentence it falls back to the generic key/value card.
+  const generic = approvalView({ id: 'b', tool: 'place_task_call', args: { goal: 'x' } });
+  assert.equal(generic.kind, 'generic'); assert.deepEqual(generic.details, { goal: 'x' });
+  assert.deepEqual(approvalView({ id: 'c', tool: 'write_file', args: { path: 'a.txt' } }),
+    { kind: 'generic', title: 'write file', summary: 'INARA continues only after you approve. Denying leaves this action undone.', approveLabel: 'Approve', denyLabel: 'Deny', details: { path: 'a.txt' } });
+  assert.equal(approvalView({ id: 'd' }).title, 'Assistant action');
+});
+
+test('task calls always show as ask first unless set to never', () => {
+  assert.equal(permissionOption({ place_task_call: false }, 'place_task_call'), 'ask');
+  assert.equal(permissionOption({ place_task_call: 'allow_within_scope' }, 'place_task_call'), 'ask');
+  assert.equal(permissionOption({}, 'place_task_call'), 'ask');
+  assert.equal(permissionOption({ place_task_call: 'deny' }, 'place_task_call'), 'never');
+  assert.equal(permissionOption({ write_file: false }, 'write_file'), 'allow');
+});
+
+test('a task call outcome arrives live as its own transcript message, once', () => {
+  const socket = new EventEmitter(), scope = createSubscriptions(socket);
+  let state = { currentProject: 'temp', conversationId: 'c-1', messages: [{ sender: 'INARA', text: "Calling Marini's now — I'll report back." }] };
+  state.addMessage = (sender, text) => { state = { ...state, messages: [...state.messages, { sender, text }] }; };
+  state.appendTranscription = (sender, text) => { const last = state.messages.at(-1); state = { ...state, messages: [...state.messages.slice(0, -1), { ...last, text: last.text + text }] }; };
+  const store = { getState: () => state, setState: value => { state = { ...state, ...value }; } };
+  registerConversationEvents({ onSocket: scope.on, store, unsubs: [], resumeConversation: () => {}, conversationForProject: p => `${p}-id` });
+  const outcome = { sender: 'INARA', text: 'No one answered at Marini\'s, so nothing is booked.', kind: 'task_call_outcome', request_id: 'task-call-1', conversation_id: 'c-1', project: 'temp' };
+  socket.emit('transcription', outcome);
+  socket.emit('transcription', outcome);
+  socket.emit('transcription', { ...outcome, request_id: 'task-call-2', conversation_id: 'other' });
+  assert.deepEqual(state.messages.map(m => m.text), ["Calling Marini's now — I'll report back.", "No one answered at Marini's, so nothing is booked."]);
+  scope.dispose();
+});
