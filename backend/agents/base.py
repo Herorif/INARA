@@ -8,7 +8,7 @@ execution when those tools are called by the LLM.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from llm.tools import Tool
 
@@ -66,10 +66,10 @@ class BaseAgent(ABC):
         """
         ...
 
-    async def initialize(self):
+    async def initialize(self):  # noqa: B027  optional hook; the default is a no-op
         """Called once when the agent is loaded. Override for setup logic."""
         pass
 
-    async def shutdown(self):
+    async def shutdown(self):  # noqa: B027  optional hook; the default is a no-op
         """Called when the agent is being unloaded. Override for cleanup."""
         pass

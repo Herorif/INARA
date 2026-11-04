@@ -157,7 +157,7 @@ async def test_lru_eviction_skips_busy_conversations_and_evicted_ones_reload(
     held = asyncio.create_task(
         service.reply("owner", ConversationRequest(text="hold", conversation_id=busy), project)
     )
-    while not provider.messages:
+    while not provider.messages:  # noqa: ASYNC110  waits for the task under test to reach the fake
         await asyncio.sleep(0)
     await service.reply("owner", ConversationRequest(text="first", conversation_id=idle), project)
     # The busy conversation is least recently used, but in flight: the idle one goes.
@@ -181,7 +181,7 @@ async def test_limit_still_refuses_when_every_conversation_is_busy_or_not_durabl
     held = asyncio.create_task(
         service.reply("owner", ConversationRequest(text="hold"), project)
     )
-    while not provider.messages:
+    while not provider.messages:  # noqa: ASYNC110  waits for the task under test to reach the fake
         await asyncio.sleep(0)
     with pytest.raises(ServiceError) as error:
         await service.reply("owner", ConversationRequest(text="other"), project)

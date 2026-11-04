@@ -114,7 +114,7 @@ def stage(runtime, output):
         for path, name in inputs
     ]
     output.mkdir(parents=True)
-    for (source, name), record in zip(inputs, records):
+    for (source, name), record in zip(inputs, records, strict=True):
         target = output / name
         target.parent.mkdir(parents=True, exist_ok=True)
         with source.open("rb") as incoming, target.open("xb") as outgoing:

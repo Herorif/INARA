@@ -23,9 +23,11 @@ export default function HandoffReview({destination, project, version, disabled, 
       if (live) setDraft(value);
     }).catch(failure => {if(live)setError(failure.message);});
     return () => {live=false;client.dispose();};
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the handoff id: selection is re-derived every render and version is a ref
   }, [selection?.id, connected, project, disabled]);
   useEffect(() => () => {
     if (selection && useStore.getState().studioHandoff?.id === selection.id) useStore.setState({studioHandoff:null});
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup discards the handoff that was current when it was registered
   }, [selection?.id]);
   if (!selection) return null;
   const stale = draft && captured.current !== version.current;

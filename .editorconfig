@@ -1,0 +1,24 @@
+# Mirrors the conventions the repository already uses. Line endings are deliberately
+# not set: Git (core.autocrlf) owns them, and the tree mixes CRLF and LF files.
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+
+[*.{py,ps1,kt,kts,xml,cs,toml,ini}]
+indent_style = space
+indent_size = 4
+
+[*.{js,jsx,mjs,cjs,ts,css,html,json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Older modules and root build configs written with four-space indentation.
+[{*.config.js,src/main.jsx,src/components/{AuthLock,CadWindow,ReminderAlert}.jsx,src/services/{socket,socketSubscriptions}.js,src/services/events/*.js,src/features/speech/capture.js,src/store/{audioSlice,browserSlice,cadSlice,chatSlice,connectionSlice,desktopSlice,deviceSlice,index,kasaSlice,phoneSlice,printerSlice,reminderSlice,smartHomeSlice,uiSlice,videoSlice,voiceSlice}.js,scripts/verify-{admin-client,cad-workspace,command-workspace,workspace}.cjs,tests/test_reminder_ui.mjs}]
+indent_size = 4
+
+# QA evidence records are kept exactly as their PowerShell writers produced them.
+[docs/qa/*.json]
+insert_final_newline = unset
+indent_size = unset

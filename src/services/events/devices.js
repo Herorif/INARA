@@ -1,5 +1,5 @@
 /** Scoped devices socket/store registrations. No connection ownership. */
-export function registerDevicesEvents({ onSocket, socket, store: useStore, unsubs, deliveredReminderIds }) {
+export function registerDevicesEvents({ onSocket, store: useStore, unsubs }) {
     const s = useStore.getState;
     // --- Print Window Request ---
     unsubs.push(onSocket('request_print_window', () => {

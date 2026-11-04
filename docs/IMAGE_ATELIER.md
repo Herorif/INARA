@@ -1,4 +1,4 @@
-﻿# Image atelier and owned local generation
+# Image atelier and owned local generation
 
 Implemented 14 October 2026. Open **Studio > Image atelier**. The panel offers editable prompts, negative prompts, frame sizes, seed, steps, guidance, preview, PNG/recipe downloads and scoped revision history. It fits the JARVIS workspace on desktop and narrow screens. [Unconfigured desktop](qa/image-unconfigured-desktop.png), [narrow controls](qa/image-mobile-controls.png), [labelled verification preview](qa/image-mobile-preview.png).
 

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 import pytest
 from devices.printer_models import Printer, PrinterType
-from devices.printer_protocols import PrinterProtocolClient, MAX_JSON, MAX_GCODE
+from devices.printer_protocols import PrinterProtocolClient, MAX_JSON, MAX_GCODE, ProtocolError
 from devices.printer_discovery import discover_printers, PrinterDiscoveryListener
 from devices.kasa import KasaController
 from tests.test_workspace_policy import workspace as workspace_fixture
@@ -225,7 +225,7 @@ async def test_octoprint_status_uses_exact_job_and_temperature_endpoints():
 )
 async def test_invalid_status_is_not_reported_online(response):
     api, calls, sessions = client([response])
-    with pytest.raises(Exception):
+    with pytest.raises((ProtocolError, KeyError, ValueError)):
         await api.status(printer())
     assert len(calls) == 1 and sessions[0].closed and response.closed
 

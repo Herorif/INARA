@@ -95,7 +95,7 @@ class BaseLLMProvider(ABC):
         """Streaming generation. Yields partial responses."""
         ...
 
-    async def close(self):
+    async def close(self):  # noqa: B027  optional hook; the default is a no-op
         """Clean up provider resources. Override if needed."""
         pass
 

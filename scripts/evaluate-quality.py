@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-from services.quality import run_offline_suite  # noqa: E402
+from services.quality import run_offline_suite
 
 if __name__ == "__main__":
     result = asyncio.run(run_offline_suite())

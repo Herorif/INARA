@@ -1,4 +1,4 @@
-﻿import { createCadClient } from '../../src/transport/cadClient.ts';
+import { createCadClient } from '../../src/transport/cadClient.ts';
 import type { RpcSocket } from '../../src/transport/rpc.ts';
 declare const socket: RpcSocket;
 const cad = createCadClient(socket);

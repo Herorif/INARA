@@ -14,6 +14,7 @@ import uuid
 import httpx
 import pytest
 from google.genai import types
+from pydantic import ValidationError
 
 from calls.records import RETENTION_SECONDS, CallRecords
 from llm.base import LLMResponse
@@ -876,7 +877,7 @@ def test_call_agent_settings_validate_and_default():
     for bad in ({"facts": "x" * 1001}, {"facts": "bad\x07"}, {"briefing_pin": "1234"},
                 {"briefing_pin": ""}, {"max_call_minutes": 1}, {"max_call_minutes": 31},
                 {"max_call_minutes": "10"}):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             SettingsPatch.model_validate({"calls": bad})
     values = calls_settings({"calls": {"facts": "ok", "briefing_pin": "9876", "max_call_minutes": 5}})
     assert (values["facts"], values["max_call_minutes"]) == ("ok", 5) and "briefing_pin" not in values
@@ -902,13 +903,13 @@ def test_calls_stay_off_and_unavailable_live_voice_takes_voicemail(phone):
 
 
 def test_brief_validation():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         briefs.CallBrief(mode="screening", direction="outbound", counterpart=CALLER)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         briefs.CallBrief(mode="approved_callback", direction="outbound", counterpart=CALLER)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         briefs.CallBrief(mode="task", direction="outbound", counterpart=SHOP, goal="x")
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         briefs.TaskConstraints(time_window="x", booking_name="y", card_number="4111")
     brief = briefing()
     assert brief.hash() == copy.deepcopy(brief).hash() and brief.purpose().endswith(brief.hash())

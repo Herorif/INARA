@@ -74,6 +74,7 @@ export default function ProjectMemory() {
     const reconnect = value.on("connect", () => refresh.current());
     if (socket.connected) refresh.current();
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
       generation.current++;
       off();
       reconnect();

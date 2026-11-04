@@ -6,13 +6,7 @@ import StatusChip from '../shared/ui/StatusChip';
 import EmptyState from '../shared/ui/EmptyState';
 import { printerWebUrl } from './printerHost';
 
-const PrinterWindow = ({
-  position,
-  onClose,
-  activeDragElement,
-  onMouseDown,
-  zIndex = 40
-}) => {
+const PrinterWindow = () => {
   const printers = useStore((s) => s.printerList);
   const slicingProgress = useStore((s) => s.slicingStatus);
   const printerSystemStatus = useStore((s) => s.printerSystemStatus);

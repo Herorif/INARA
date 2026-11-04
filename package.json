@@ -12,7 +12,8 @@
     "check:types": "node node_modules/typescript/lib/tsc.js -p tsconfig.ui.json",
     "test:client": "node --experimental-require-module --experimental-strip-types --test \"tests/*.mjs\" \"tests/*.cjs\"",
     "test:py": ".venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider",
-    "lint:py": ".venv\\Scripts\\python.exe -m ruff check backend tests"
+    "lint:py": ".venv\\Scripts\\python.exe -m ruff check",
+    "lint:js": "eslint --max-warnings 0 --report-unused-disable-directives src electron tests scripts *.config.js"
   },
   "engines": {
     "node": ">=22.12"
@@ -37,6 +38,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^5.2.0",
@@ -44,6 +46,10 @@
     "concurrently": "^10.0.6",
     "cross-env": "^10.1.0",
     "electron": "44.9.3",
+    "eslint": "9.39.5",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "5.0.4",

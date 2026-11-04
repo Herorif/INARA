@@ -43,7 +43,7 @@ const PermissionControl = ({ tool, option, onChange }) =>
   )}
 </div>;
 
-const SettingsWindow = ({ onClose }) => {
+const SettingsWindow = () => {
   const micDevices = useStore((s) => s.micDevices);
   const speakerDevices = useStore((s) => s.speakerDevices);
   const webcamDevices = useStore((s) => s.webcamDevices);

@@ -31,7 +31,7 @@ def main():
     now = signed.trust.utc()
     private = [Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()]
     keys = []
-    for role, key in zip(("publisher", "reviewer"), private):
+    for role, key in zip(("publisher", "reviewer"), private, strict=True):
         public = key.public_key().public_bytes_raw()
         keys.append(
             {
@@ -89,7 +89,7 @@ def main():
                 "key_id": record["key_id"],
                 "signature": base64.b64encode(key.sign(signed.signing_message(statement))).decode(),
             }
-            for record, key in zip(keys, private)
+            for record, key in zip(keys, private, strict=True)
         ],
     }
     (package / signed.ENVELOPE).write_bytes(signed.review.encoded(envelope))

@@ -111,7 +111,7 @@ def setup_package(tmp_path, monkeypatch, purpose="fixture", variant=""):
     monkeypatch.setattr(signed.trust, "material", lambda *_: (bindings, purpose == "production"))
     private = [Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()]
     keys = []
-    for role, key in zip(("publisher", "reviewer"), private):
+    for role, key in zip(("publisher", "reviewer"), private, strict=True):
         public = key.public_key().public_bytes_raw()
         keys.append(
             {
@@ -167,7 +167,7 @@ def setup_package(tmp_path, monkeypatch, purpose="fixture", variant=""):
                         p.sign(signed.signing_message(statement))
                     ).decode(),
                 }
-                for k, p in zip(keys, private)
+                for k, p in zip(keys, private, strict=True)
             ],
         }
         save(package / signed.ENVELOPE, envelope)

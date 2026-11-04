@@ -156,7 +156,7 @@ async def test_decline_and_permission_change_after_approval_fail_closed(app):
         app.settings["tool_permissions"]["write_file"] = False
         identifier = create(app)
 
-        async def review(payload):
+        async def review(payload, deny_after=deny_after):
             if deny_after:
                 app.settings["tool_permissions"]["write_file"] = "deny"
             app.dispatcher.resolve("owner", payload["id"], deny_after)

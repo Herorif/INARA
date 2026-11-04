@@ -384,7 +384,7 @@ def prepare(
     if len(raw) > 8_388_608:
         raise ValueError("Excessive package manifest")
     output.mkdir(parents=True)
-    for (source, name), entry in zip(mapping, records):
+    for (source, name), entry in zip(mapping, records, strict=True):
         target = output / name
         target.parent.mkdir(parents=True, exist_ok=True)
         plain(source)

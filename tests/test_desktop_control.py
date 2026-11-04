@@ -9,7 +9,7 @@ from tests.test_desktop_install import (
     manager as slot_manager,  # noqa: F401
     candidate,
     install as fixture_install,
-)  # noqa: F401
+)
 
 spec = importlib.util.spec_from_file_location(
     "desktop_control", Path(__file__).resolve().parents[1] / "scripts/desktop-control.py"

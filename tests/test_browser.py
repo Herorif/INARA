@@ -252,7 +252,7 @@ async def test_owned_worker_closes_and_cleans_staging_on_cancel(monkeypatch):
 
     monkeypatch.setattr("resident.win32.WorkspaceProcess", spawn)
     task = asyncio.create_task(run_inspection(BrowserInspect(url="https://example.com/")))
-    while not created:
+    while not created:  # noqa: ASYNC110  waits for the task under test to reach the fake
         await asyncio.sleep(0.01)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):

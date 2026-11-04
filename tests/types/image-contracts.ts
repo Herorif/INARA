@@ -1,4 +1,4 @@
-﻿import { createImageClient } from '../../src/transport/imageClient.ts';
+import { createImageClient } from '../../src/transport/imageClient.ts';
 import type { RpcSocket } from '../../src/transport/rpc.ts';
 declare const socket: RpcSocket;
 const image = createImageClient(socket);

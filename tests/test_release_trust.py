@@ -30,7 +30,7 @@ def setup(tmp_path, monkeypatch):
         roots.append(root)
     private = [Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()]
     keys = []
-    for role, key in zip(["publisher", "reviewer"], private):
+    for role, key in zip(["publisher", "reviewer"], private, strict=True):
         public = key.public_key().public_bytes_raw()
         keys.append(
             {
@@ -87,7 +87,7 @@ def setup(tmp_path, monkeypatch):
                     "key_id": key["key_id"],
                     "signature": base64.b64encode(priv.sign(trust.message(statement))).decode(),
                 }
-                for key, priv in zip(keys, private)
+                for key, priv in zip(keys, private, strict=True)
             ],
         }
 

@@ -28,7 +28,7 @@ function Controls({geometry, view, cameraRef}) {
       cameraRef.current = null;
       controls.dispose();
     };
-  }, [camera, gl, invalidate]);
+  }, [camera, gl, invalidate, cameraRef]);
   useEffect(() => {
     const controls = cameraRef.current;
     if (!controls || !geometry) return;

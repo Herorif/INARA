@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { AlertTriangle, Loader2, Radio, RefreshCw } from 'lucide-react';
 import StatusChip from '../shared/ui/StatusChip';
 import './panel.css';

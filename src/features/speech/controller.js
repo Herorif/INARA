@@ -67,8 +67,7 @@ export class SpeechController {
   }
   async begin({
     project,
-    conversationId,
-    deviceId
+    conversationId
   }) {
     await this.cancel();
     if (this.closed) return;

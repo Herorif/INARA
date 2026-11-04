@@ -75,7 +75,7 @@ class EventBus:
                 *(h(event) for h in handlers),
                 return_exceptions=True,
             )
-            for handler, result in zip(handlers, results):
+            for handler, result in zip(handlers, results, strict=True):
                 if isinstance(result, asyncio.CancelledError):
                     continue  # A handler stopped by its owner is not a delivery failure.
                 if isinstance(result, BaseException):

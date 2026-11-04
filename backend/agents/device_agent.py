@@ -102,10 +102,14 @@ class DeviceAgent(BaseAgent):
         if self._kasa and hasattr(self._kasa, "devices"):
             for ip, dev in self._kasa.devices.items():
                 dev_type = "unknown"
-                if   getattr(dev, "is_bulb",   False): dev_type = "bulb"
-                elif getattr(dev, "is_plug",   False): dev_type = "plug"
-                elif getattr(dev, "is_strip",  False): dev_type = "strip"
-                elif getattr(dev, "is_dimmer", False): dev_type = "dimmer"
+                if getattr(dev, "is_bulb", False):
+                    dev_type = "bulb"
+                elif getattr(dev, "is_plug", False):
+                    dev_type = "plug"
+                elif getattr(dev, "is_strip", False):
+                    dev_type = "strip"
+                elif getattr(dev, "is_dimmer", False):
+                    dev_type = "dimmer"
                 all_devices.append({
                     "id":     ip,
                     "name":   getattr(dev, "alias", ip),
@@ -212,15 +216,18 @@ class DeviceAgent(BaseAgent):
 
         if action == "turn_on":
             ok = await self._kasa.turn_on(device_id)
-            if ok: msg = f"Turned ON '{device_id}'."
+            if ok:
+                msg = f"Turned ON '{device_id}'."
         elif action == "turn_off":
             ok = await self._kasa.turn_off(device_id)
-            if ok: msg = f"Turned OFF '{device_id}'."
+            if ok:
+                msg = f"Turned OFF '{device_id}'."
         elif action == "toggle":
             dev = self._kasa.devices.get(device_id)
             if dev:
                 ok = await (self._kasa.turn_off if dev.is_on else self._kasa.turn_on)(device_id)
-                if ok: msg = f"Toggled '{device_id}'."
+                if ok:
+                    msg = f"Toggled '{device_id}'."
         elif action == "set":
             ok = True
             msg = f"Updated '{device_id}'."

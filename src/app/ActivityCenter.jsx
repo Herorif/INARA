@@ -41,6 +41,7 @@ export default function ActivityCenter({ onOpen, gaming }) {
     cad.on('connect', refresh);
     cad.on('disconnect', () => { generation.current++; setLoading(false); setExporting(''); });
     if (socket.connected) refresh(); else setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
     return () => { generation.current++; cad.dispose(); image.dispose(); };
   }, [project]);
   const download = async item => {

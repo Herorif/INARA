@@ -68,7 +68,7 @@ const DeviceRow = ({ device }) => {
 // ---------------------------------------------------------------------------
 // DeviceWindow
 // ---------------------------------------------------------------------------
-const DeviceWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement }) => {
+const DeviceWindow = () => {
   const [filter, setFilter] = useState('all');
 
   const allDevices = useStore((s) => s.allDevices);

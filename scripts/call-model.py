@@ -60,4 +60,4 @@ if __name__ == "__main__":
     except Exception as exc:
         print(json.dumps({"ok": False, "code": exc.code if isinstance(exc, ServiceError) else "local_model_unavailable",
                           "message": str(exc) if isinstance(exc, ServiceError) else "Inspect pinned local setup and runtime compatibility."}))
-        raise SystemExit(2)
+        raise SystemExit(2) from exc

@@ -98,7 +98,7 @@ class CallSupervisor:
                 try:
                     (directory / "stop").write_text("stop", encoding="ascii")
                     deadline = time.monotonic() + self.stop_timeout
-                    while process.alive() and time.monotonic() < deadline:
+                    while process.alive() and time.monotonic() < deadline:  # noqa: ASYNC110  polls a child process; no in-process event exists
                         await asyncio.sleep(0.05)
                 except Exception:
                     pass

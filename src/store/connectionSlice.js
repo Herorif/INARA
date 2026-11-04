@@ -1,6 +1,6 @@
 import socket from '../services/socket';
 
-export const createConnectionSlice = (set, get) => ({
+export const createConnectionSlice = (set) => ({
     // State
     status: socket.connected ? 'Backend Connected' : 'Backend Disconnected',
     backendConnected: socket.connected,

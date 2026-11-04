@@ -91,6 +91,7 @@ npm run test:py       # full pytest suite (about 6 minutes)
 npm run test:client   # every tests/*.mjs and tests/*.cjs with node's test runner
 npm run check:types
 npm run lint:py       # ruff with the pyproject.toml config
+npm run lint:js       # eslint with eslint.config.js
 npm run build
 ```
 

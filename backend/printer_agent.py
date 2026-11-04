@@ -64,7 +64,7 @@ class PrinterAgent:
 
     def get_printer_list(self) -> List[Dict]:
         printer_list = []
-        for host, printer in self.printers.items():
+        for printer in self.printers.values():
             item = printer.to_dict()
             status = self._last_status.get(self._status_key(printer))
             if status:

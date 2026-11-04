@@ -8,6 +8,7 @@ from pathlib import Path
 import uuid
 import zipfile
 import pytest
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from services.storage import Database
 from tests.test_desktop_install import manager, add  # noqa: F401
@@ -170,7 +171,7 @@ def test_invalid_backups_never_create_destination_or_modify_profile(profile, tmp
 
         mutate(output, protector, change)
     destination = tmp_path / "must-not-create"
-    with pytest.raises(Exception):
+    with pytest.raises((ValueError, InvalidTag)):
         recovery.restore(
             slot,
             output,
@@ -241,7 +242,7 @@ def test_backup_refuses_unsafe_or_unstable_profiles_without_emitting_plaintext(
             return original(*args, **kwargs)
 
         monkeypatch.setattr(backup, "inventory", inventory)
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         recovery.backup(slot, output)
     if kind == "existing_backup":
         assert output.read_bytes() == b"preserve"
@@ -345,7 +346,7 @@ def test_inner_archive_contract_rejects_authenticated_but_invalid_content(
                 (data / "desktop-profile/resident-identity.json").write_text(json.dumps(identity))
 
         mutate(output, protector, change)
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         recovery.preview(slot, output)
 
 

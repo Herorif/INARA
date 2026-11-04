@@ -134,7 +134,7 @@ class TunnelSupervisor:
                 self.state = "failed"
                 return
             self.state = "running"
-            while self.process.alive():
+            while self.process.alive():  # noqa: ASYNC110  polls the cloudflared child; no in-process event exists
                 await asyncio.sleep(self.poll_seconds)
             try:
                 self.exit_code = self.process.exit_code()

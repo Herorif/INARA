@@ -10,6 +10,7 @@ import uuid
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from core.event_bus import Event
 from services.settings import SettingsPatch
@@ -19,15 +20,22 @@ from telephony.grants import purpose_hash
 from telephony.orchestrator import migrate_briefing_pin, should_brief
 from telephony.service import EVENT_CALL_STATUS, EVENT_SESSION
 
-from tests.test_call_agent import (  # noqa: F401  (the phone fixture is used by name)
+from tests.test_call_agent import (
     ACCOUNT,
     CALLER,
     INARA,
     OWNER,
     OUT_CALL,
-    phone,
+    phone as phone_fixture,
     until,
 )
+
+
+@pytest.fixture
+def phone(application_factory):
+    """The call agent's fake line and app, shared by name with test_call_agent."""
+    return phone_fixture.__wrapped__(application_factory)
+
 
 CALL_SID = "CA" + "c" * 32
 
@@ -399,7 +407,7 @@ async def test_briefing_pin_migrates_to_the_secret_store_and_is_never_returned(
     assert pin["configured"] is True and pin["hint"] is None
     assert "2468" not in json.dumps(status) + json.dumps(secrets) and "2468" not in caplog.text
     assert migrate_briefing_pin(app) is False  # nothing left to move
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SettingsPatch.model_validate({"calls": {"briefing_pin": "1357"}})
     refused = await rpc(app, "update_settings", {"calls": {"briefing_pin": "1357"}})
     assert refused == {"ok": False, "code": "invalid_arguments"}

@@ -1,5 +1,5 @@
 /** Scoped creative socket/store registrations. No connection ownership. */
-export function registerCreativeEvents({ onSocket, socket, store: useStore, unsubs, deliveredReminderIds }) {
+export function registerCreativeEvents({ onSocket, store: useStore, unsubs }) {
     const s = useStore.getState;
     for (const kind of ['cad', 'image']) unsubs.push(onSocket(`${kind}_job`, job => s().recordActivity(kind, job)));
     // --- CAD ---

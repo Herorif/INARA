@@ -15,6 +15,7 @@ export default function BrowserWindow(){
     const epoch=++generation.current,c=createBrowserClient(socket);client.current=c;
     setUrl('');setReport(null);setBusy(false);setError('');
     const off=c.on('disconnect',()=>{if(generation.current===epoch){setUrl('');setReport(null);setBusy(false);setError('Connection lost. Inspection stopped.');}});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
     return()=>{generation.current++;if(socket.connected)c.cancel().catch(()=>{});off();c.dispose();};
   },[project]);
   const inspect=async event=>{

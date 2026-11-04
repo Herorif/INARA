@@ -1,4 +1,4 @@
-﻿/* Command palette */
+/* Command palette */
 .command-palette { width: min(40rem, calc(100vw - 1.5rem)); border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--bg-overlay); box-shadow: var(--shadow-overlay); overflow: hidden; color: var(--text-1); outline: none; }
 .palette-search { display: flex; align-items: center; gap: .75rem; padding: .75rem .75rem .75rem 1rem; border-bottom: 1px solid var(--line); color: var(--text-3); }
 .palette-search > svg { flex-shrink: 0; }

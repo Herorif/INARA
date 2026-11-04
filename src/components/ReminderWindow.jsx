@@ -185,7 +185,7 @@ const RoutineRow = ({ routine }) => {
 // ---------------------------------------------------------------------------
 const TABS = [{ id: 'reminders', label: 'Reminders' }, { id: 'routines', label: 'Routines' }];
 
-const ReminderWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement }) => {
+const ReminderWindow = () => {
   const [tab, setTab] = useState('reminders');
   const [input, setInput] = useState('');
 

@@ -68,13 +68,13 @@ class FakeRunner:
         self.calls = []
 
     async def run(self, script_path, work_dir):
-        with open(script_path) as f:
+        with open(script_path) as f:  # noqa: ASYNC230  test fake for the child-process runner
             script = f.read()
         self.calls.append({"script_path": script_path, "work_dir": work_dir, "script": script})
         returncode, stderr = self.results.pop(0) if self.results else (0, "")
         if returncode == 0 and self.write_stl:
             target = re.search(r"export_stl\(result_part, '([^']+)'\)", script).group(1)
-            with open(target.replace("\\\\", "\\"), "wb") as f:
+            with open(target.replace("\\\\", "\\"), "wb") as f:  # noqa: ASYNC230  test fake for the child-process runner
                 f.write(STL_BYTES)
         return returncode, stderr
 

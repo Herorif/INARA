@@ -156,7 +156,7 @@ class TaskQueue:
                     self.authorize(sid, owner, project)
                     self.step(key, identifier, index, state="awaiting_approval")
 
-                    async def review(payload):
+                    async def review(payload, index=index):
                         await approve(
                             {
                                 **payload,
@@ -169,7 +169,7 @@ class TaskQueue:
                             }
                         )
 
-                    def before_execute():
+                    def before_execute(index=index):
                         self.authorize(sid, owner, project)
                         # This transaction must commit before any adapter effect.
                         self.step(key, identifier, index, state="running")

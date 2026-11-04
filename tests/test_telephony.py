@@ -33,7 +33,7 @@ from telephony.audio import (
     tone,
 )
 from telephony.grants import CallGrant, in_quiet_hours, purpose_hash
-from telephony.media import CallAudioSession, MediaStreamHandler
+from telephony.media import CallAudioSession, MediaStreamHandler, StreamClosed
 from telephony.numbers import mask, normalize, withheld
 from telephony.service import (
     EVENT_OWNER_UNREACHABLE,
@@ -584,7 +584,7 @@ async def test_media_stream_start_timeout_and_disconnect_teardown():
         mark = await session.mark("pending")
         frames = [frame async for frame in session]
         state.update(frames=frames, mark=mark.result(), reason=session.end_reason)
-        with pytest.raises(Exception):
+        with pytest.raises(StreamClosed):
             await session.send(b"\x00\x00" * 80, 8000)
 
     service.set_agent(agent)

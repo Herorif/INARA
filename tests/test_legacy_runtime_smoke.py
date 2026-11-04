@@ -12,7 +12,7 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
-import server
+import server  # noqa: E402  must follow the sys.path insert of backend/
 
 
 class LegacyRuntimeSmokeTests(unittest.IsolatedAsyncioTestCase):

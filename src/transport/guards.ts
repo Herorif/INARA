@@ -1,4 +1,4 @@
-﻿/** Runtime guards for untrusted ACK/event envelopes; field authority stays server-side. */
+/** Runtime guards for untrusted ACK/event envelopes; field authority stays server-side. */
 export function isJobUpdate(value: unknown): value is { request_id: string; project: string; state: string; phase: string } {
   if (!value || typeof value !== 'object') return false;
   return 'request_id' in value && typeof value.request_id === 'string'

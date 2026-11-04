@@ -5,8 +5,8 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-from services.storage import WindowsProtection  # noqa: E402
-import json  # noqa: E402
+from services.storage import WindowsProtection
+import json
 
 
 def main():

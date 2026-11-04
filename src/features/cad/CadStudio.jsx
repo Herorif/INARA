@@ -163,6 +163,7 @@ function CadSession({ project }) {
         confirmationRequest: null
       });
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- subscribes once per mount (keyed by project); refresh and resetRecipe only use refs and stable setters
   }, [project]);
   const build = async (event) => {
     const generation = epoch.current;

@@ -61,7 +61,7 @@ async def main(request):
             sequence += 1
             await asyncio.sleep(0.25)
     async def stop_watch(task):
-        while not (directory / "stop").exists():
+        while not (directory / "stop").exists():  # noqa: ASYNC110  the stop request is a file written by the parent process
             await asyncio.sleep(0.05)
         task.cancel()
     pulse = asyncio.create_task(heartbeat())

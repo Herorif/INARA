@@ -12,7 +12,7 @@ def cross(a, b):
 
 
 def sub(a, b):
-    return tuple(x - y for x, y in zip(a, b))
+    return tuple(x - y for x, y in zip(a, b, strict=False))
 
 
 def normal(a, b, c):
@@ -87,7 +87,7 @@ def validate(vertices, faces, max_faces=512):
         origin = vertices[0]
         ar, br, cr = (sub(point, origin) for point in (a, b, c))
         volume += sum(ar[i] * cross(br, cr)[i] for i in range(3)) / 6
-        for i, j in zip(face, (face[1], face[2], face[0])):
+        for i, j in zip(face, (face[1], face[2], face[0]), strict=True):
             edges[tuple(sorted((i, j)))] += 1
             directed[(i, j)] += 1
     if (

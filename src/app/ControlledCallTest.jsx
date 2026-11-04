@@ -75,6 +75,7 @@ export default function ControlledCallTest({ project, connected }) {
       if (!document.hidden) refresh.current();
     }, 2000);
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
       epoch.current++;
       clearInterval(timer);
       // The request UUID is retained before Arm, including a lost acknowledgement.

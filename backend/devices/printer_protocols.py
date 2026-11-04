@@ -179,7 +179,8 @@ class PrinterProtocolClient:
             limit = upload_timeout(size)
             async with asyncio.timeout(limit):
                 async with self.sessions(limit) as session:
-                    with path.open("rb") as stream:
+                    # Only opens the handle; aiohttp reads the upload body in its executor.
+                    with path.open("rb") as stream:  # noqa: ASYNC230
                         form = forms()
                         form.add_field("file", stream, filename=path.name)
                         if kind == "moonraker":

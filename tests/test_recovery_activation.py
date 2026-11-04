@@ -186,7 +186,7 @@ def test_incompatible_records_reject_before_creating_profile(profile, kind):  # 
     recovery.backup(slot, archive)
     service = activation.Activation(recovery.manager, protector)
     pid = uuid.uuid4().hex
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         service.preview(slot, archive, pid)
     assert not (recovery.manager.root / "recovery-profiles" / pid).exists()
     assert recovery.manager.data(recovery.manager.load(), slot) == data
@@ -355,5 +355,5 @@ def test_stored_provider_keys_carry_into_recovery_and_malformed_ones_reject(prof
     with restored.transaction() as db:
         restored.put(db, "secrets", "gemini_api_key", {"value": key, "unexpected": True})
     recovery.backup(slot, archive.with_name("second.inara"))
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         service.preview(slot, archive.with_name("second.inara"), uuid.uuid4().hex)

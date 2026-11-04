@@ -1,5 +1,5 @@
 require('./qa-capture-retry.cjs');
-﻿// Actual native renderer. Every camera is a labelled synthetic canvas, never hardware.
+// Actual native renderer. Every camera is a labelled synthetic canvas, never hardware.
 const {BrowserWindow,powerMonitor}=require('electron');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const pipe=fs.readFileSync(0,'utf8'),bootstrap=JSON.parse(pipe),read=fs.readFileSync;

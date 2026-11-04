@@ -137,6 +137,7 @@ export default function CameraPanel() {
     refreshDevices();
     return () => {
       alive.current = false;
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
       deviceEpoch.current++;
       session.current.dispose();
       offPause?.();

@@ -61,6 +61,7 @@ export default function CallLab() {
       if (!document.hidden) refresh.current();
     }, 1000);
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
       epoch.current++;
       clearInterval(timer);
       if (active.current && socket.connected) api.stop(active.current).catch(() => {});

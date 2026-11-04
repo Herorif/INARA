@@ -23,7 +23,7 @@ def transform(point, obj):
             x, z = c * x + s * z, -s * x + c * z
         else:
             x, y = c * x - s * y, s * x + c * y
-    return tuple(v + offset for v, offset in zip((x, y, z), obj["position"]))
+    return tuple(v + offset for v, offset in zip((x, y, z), obj["position"], strict=True))
 
 
 def assemble(recipe):

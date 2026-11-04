@@ -131,7 +131,7 @@ async def test_symlink_escape_and_profile_escape_do_not_slice(printing, tmp_path
         directory.mkdir()
         (directory / "outside.stl").write_bytes(b"outside")
         junction = context["project_path"] / "cad/junction"
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: ASYNC221  one-off fixture setup before the code under test runs
             ["cmd", "/c", "mklink", "/J", str(junction), str(directory)], capture_output=True
         )
         assert result.returncode == 0, "Could not create the isolated junction fixture"

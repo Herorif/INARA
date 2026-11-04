@@ -52,6 +52,7 @@ export default function NotificationInbox({ device, project, readOnly = false })
     });
     return () => {
       live = false;
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
       generation.current++;
       client.current = null;
       off();

@@ -126,7 +126,7 @@ class ProjectManager:
 
         # List all files recursively
         all_files = []
-        for root, dirs, files in os.walk(project_path):
+        for root, _dirs, files in os.walk(project_path):
             for f in files:
                 rel_path = os.path.relpath(os.path.join(root, f), project_path)
                 all_files.append(rel_path)

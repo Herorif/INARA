@@ -1,5 +1,6 @@
 from services.capability_profiles import model_id, provider_key
 from services.tls import genai_http_options
+import asyncio
 import os
 from datetime import datetime
 from google import genai
@@ -7,6 +8,17 @@ from google.genai import types
 from typing import Optional
 from services.legacy_cad import LegacyScriptRunner
 from services.tools import ServiceError
+
+
+# Reads run in a worker thread so a large STL never stalls the event loop.
+def _read_text(path):
+    with open(path, "r") as f:
+        return f.read()
+
+
+def _read_bytes(path):
+    with open(path, "rb") as f:
+        return f.read()
 
 
 class CadAgent:
@@ -158,7 +170,9 @@ export_stl(result_part, 'output.stl')
                 # Fix for Windows paths in python strings: escape backslashes
                 safe_output_path = output_stl.replace("\\", "\\\\")
                 
-                with open(script_path, "w") as f:
+                # A small script write stays synchronous: cancellation must not leave a
+                # write still running in a thread behind the caller.
+                with open(script_path, "w") as f:  # noqa: ASYNC230
                     # Inject output path into the script
                     code_with_path = code.replace("output.stl", safe_output_path)
                     f.write(code_with_path)
@@ -200,8 +214,7 @@ Original request: {prompt}
                 # 5. Read Output
                 if os.path.exists(output_stl):
                     print(f"[CadAgent DEBUG] [file] '{output_stl}' found.")
-                    with open(output_stl, "rb") as f:
-                        stl_data = f.read()
+                    stl_data = await asyncio.to_thread(_read_bytes, output_stl)
                         
                     import base64
                     b64_stl = base64.b64encode(stl_data).decode('utf-8')
@@ -257,8 +270,7 @@ Original request: {prompt}
         existing_code = ""
         
         if os.path.exists(script_path):
-            with open(script_path, "r") as f:
-                existing_code = f.read()
+            existing_code = await asyncio.to_thread(_read_text, script_path)
             
             # Sanitize existing code: replace any absolute paths with 'output.stl'
             # This prevents the LLM from seeing/reproducing Windows paths that cause Unicode escape errors
@@ -336,7 +348,9 @@ Ensure you still export to 'output.stl'.
                 # Fix for Windows paths in python strings: escape backslashes
                 safe_output_path = output_stl.replace("\\", "\\\\")
                 
-                with open(script_path, "w") as f:
+                # A small script write stays synchronous: cancellation must not leave a
+                # write still running in a thread behind the caller.
+                with open(script_path, "w") as f:  # noqa: ASYNC230
                     # Inject output path into the script
                     code_with_path = code.replace("output.stl", safe_output_path)
                     f.write(code_with_path)
@@ -365,8 +379,7 @@ Ensure you still export to 'output.stl'.
                 # 5. Read Output
                 if os.path.exists(output_stl):
                     print(f"[CadAgent DEBUG] [file] '{output_stl}' found.")
-                    with open(output_stl, "rb") as f:
-                        stl_data = f.read()
+                    stl_data = await asyncio.to_thread(_read_bytes, output_stl)
                         
                     import base64
                     b64_stl = base64.b64encode(stl_data).decode('utf-8')

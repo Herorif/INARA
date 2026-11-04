@@ -9,7 +9,60 @@ requires-python = ">=3.12,<3.14"
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-include = ["backend/devices/**/*.py", "backend/printer_agent.py", "backend/kasa_agent.py", "tests/test_adapter_protocols.py", "scripts/verify-connections.py", "tests/test_task_queue.py", "scripts/verify-tasks.py", "scripts/verify-browser.py", "tests/test_browser.py", "tests/test_usage.py", "scripts/evaluate-quality.py", "scripts/verify-usage.py", "tests/test_project_memory.py", "scripts/verify-memory.py", "tests/test_notifications.py", "tests/test_release_tools.py", "scripts/release-tools.py", "tests/test_mobile.py", "scripts/check-android-source.py", "scripts/verify-mobile.py", "scripts/export-ui-contracts.py", "backend/application.py", "backend/transport/**/*.py", "backend/core/event_bus.py", "tests/test_application.py", "tests/test_inara_tools.py", "tests/test_route_policy.py", "tests/test_admin_policy.py", "tests/test_device_printers.py", "tests/test_printing.py", "tests/test_workflow_policy.py", "tests/test_workspace_policy.py", "tests/test_voice_dispatch.py", "tests/test_connection_policy.py", "backend/services/**/*.py", "backend/telephony/**/*.py", "tests/test_telephony.py", "tests/test_telephony_gateway.py", "backend/creative/**/*.py", "backend/workers/**/*.py", "backend/resident/**/*.py", "backend/resident_main.py", "scripts/verify-native.py", "scripts/verify-cad.py", "backend/core/durable_reminders.py", "backend/core/reminder_store.py", "tests/test_conversation_service.py", "tests/test_durable_storage.py", "tests/test_creative_revisions.py", "tests/test_capabilities.py", "tests/test_resource_policy.py", "tests/test_native_resident.py", "tests/test_cad_jobs.py", "tests/test_scene_jobs.py", "tests/test_image_jobs.py", "tests/image_support.py", "tests/fixtures/image_worker.py", "scripts/verify-images.py", "scripts/verify-vision.py", "scripts/verify-speech.py"]
+# Lint all first-party Python by default: new files under these trees are covered
+# automatically. Ruff also honours .gitignore (.venv, .runtime, __pycache__).
+include = ["backend/**/*.py", "tests/**/*.py", "scripts/**/*.py"]
+extend-exclude = [
+    # Hand-run developer utilities (see scripts/manual/README.md): outside the runtime,
+    # CI and packaging, and written against the retired CadAgent script layout.
+    "scripts/manual",
+]
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F"]
+# Correctness-only rule sets; no style or formatting rules.
+select = [
+    "E4", "E7", "E9", "F",  # pycodestyle errors that are bugs + pyflakes
+    "B",          # flake8-bugbear: likely bugs and design problems
+    "ASYNC",      # flake8-async: blocking calls and misuse in async code
+    "PLE",        # pylint errors
+    "RUF006",     # dangling asyncio tasks (no reference kept)
+    "RUF018",     # assignment expression inside assert (vanishes under -O)
+    "RUF024",     # dict.fromkeys with a shared mutable value
+    "RUF026",     # defaultdict(default_factory=...) keyword misuse
+    "RUF030",     # print() as an assert message
+    "RUF034",     # if/else expression with identical branches
+    "RUF040",     # assert message that is a non-string literal
+    "RUF043",     # pytest.raises(match=) pattern with unescaped regex metacharacters
+    "RUF100",     # noqa directives that no longer suppress anything
+    "PGH004",     # blanket noqa (every suppression must name its code)
+    "T10",        # leftover debugger calls/imports
+    "YTT",        # sys.version / sys.version_info misuse
+    "LOG",        # logging misuse (wrong logger construction, exception() outside except)
+    "PIE794",     # class field defined twice (the first silently disappears)
+    "PIE796",     # duplicate Enum values (silently aliased)
+    # Pylint warnings that are outright mistakes (not style):
+    "PLW0120",    # else on a loop without break
+    "PLW0127",    # self-assignment
+    "PLW0129",    # assert on a non-empty string literal (always true)
+    "PLW0131",    # walrus without a context
+    "PLW0177",    # comparison with NaN
+    "PLW0245",    # super without parentheses
+    "PLW0406",    # module imports itself
+    "PLW0642",    # reassigning self/cls
+    "PLW0711",    # except (A or B) catches only A
+    "PLW1501",    # invalid open() mode
+    "PLW1507",    # copy.copy(os.environ) is not a copy
+    "PLW1508",    # os.getenv default that is not a string
+    "PLW1509",    # subprocess preexec_fn (unsafe with threads)
+]
+ignore = [
+    # ASYNC109: trio-style advice to replace `timeout=` parameters with cancel scopes.
+    # Here those parameters are deliberate asyncio deadlines passed to wait_for/wait,
+    # not a bug, and changing them would change public signatures.
+    "ASYNC109",
+    # ASYNC240: flags every pathlib/os.path metadata call (resolve, is_file, exists)
+    # in async code. These are microsecond local-disk checks used as containment guards
+    # right before acting on the path; offloading them buys nothing and only adds noise.
+    # Real blocking file reads/writes stay covered by ASYNC230.
+    "ASYNC240",
+]

@@ -10,7 +10,7 @@ import StatusChip from "../shared/ui/StatusChip";
 import "./mobile-companion.css";
 import "./inbox-workspace.css";
 
-function ProjectInbox({ project, connected, locked, onOpen, embedded }) {
+function ProjectInbox({ project, connected, locked, onOpen }) {
   const [report, setReport] = useState(null),
     [error, setError] = useState("");
   const [selected, setSelected] = useState(null),

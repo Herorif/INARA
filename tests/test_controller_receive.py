@@ -40,7 +40,7 @@ def common(value, envelope):
 def resign(value, envelope):
     body = json.loads(envelope.read_bytes())
     message = receiver.delivery.DOMAIN + receiver.old.encoded(body["statement"])
-    body["signatures"] = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"])]
+    body["signatures"] = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"], strict=True)]
     fixture_tools.save(envelope, body)
 
 
@@ -186,7 +186,7 @@ def test_envelope_bytes_changed_during_native_check_refuse(fixture, producer):
         envelope.write_bytes(envelope.read_bytes() + b"\n")
         return fixture_tools.native()
 
-    with pytest.raises(ValueError, match="envelope|inputs"):
+    with pytest.raises(ValueError, match=r"envelope|inputs"):
         if producer:
             receiver.delivery.verify(*common(value, envelope), source=value["source"], now=NOW, _native_check=native)
         else:

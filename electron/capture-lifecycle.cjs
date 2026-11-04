@@ -1,4 +1,4 @@
-﻿// Send only lifecycle reasons across preload; never camera frames or handles.
+// Send only lifecycle reasons across preload; never camera frames or handles.
 function bindCaptureLifecycle(window, powerMonitor) {
   const subscriptions = [];
   const bind = (target,event,reason) => {

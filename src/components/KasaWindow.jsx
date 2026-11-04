@@ -8,13 +8,7 @@ import EmptyState from '../shared/ui/EmptyState';
 // The hue slider's spectrum is the control's content (it shows which color each position sets).
 const HUE_TRACK = 'linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)';
 
-const KasaWindow = ({
-  position,
-  onClose,
-  activeDragElement,
-  onMouseDown,
-  zIndex = 40
-}) => {
+const KasaWindow = () => {
   const devices = useStore((s) => s.kasaDevices);
   const [isThinking, setIsThinking] = useState(false);
   const [loadingDevices, setLoadingDevices] = useState({});

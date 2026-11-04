@@ -31,7 +31,7 @@ def main():
     now = trust.utc()
     keys = [Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()]
     records = []
-    for role, key in zip(("publisher", "reviewer"), keys):
+    for role, key in zip(("publisher", "reviewer"), keys, strict=True):
         public = key.public_key().public_bytes_raw()
         records.append(
             {
@@ -80,7 +80,7 @@ def main():
                 "key_id": record["key_id"],
                 "signature": base64.b64encode(key.sign(trust.message(request))).decode(),
             }
-            for record, key in zip(records, keys)
+            for record, key in zip(records, keys, strict=True)
         ],
     }
     envelope_path = output / "fixture-attestation.json"

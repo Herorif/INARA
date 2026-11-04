@@ -52,8 +52,8 @@ class ScreenCapture:
         """
         try:
             from PIL import ImageGrab
-        except ImportError:
-            raise RuntimeError("Pillow is required for screenshots: pip install Pillow")
+        except ImportError as exc:
+            raise RuntimeError("Pillow is required for screenshots: pip install Pillow") from exc
 
         if region:
             x, y, w, h = region

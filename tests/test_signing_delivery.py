@@ -33,7 +33,7 @@ def fixture(tmp_path, monkeypatch):
     policy = {"format": 1, "kind": "inara-release-trust-policy", "mode": "production", "publisher": "SYNTHETIC TEST OWNER",
               "channel": "pilot", "policy_sequence": 1, "minimum_sequence": 1,
               "thresholds": {"publisher": 1, "reviewer": 1}, "keys": []}
-    for role, secret in zip(("publisher", "reviewer"), private):
+    for role, secret in zip(("publisher", "reviewer"), private, strict=True):
         public = secret.public_key().public_bytes_raw()
         policy["keys"].append({"key_id": reviews.trust.sha(public), "public_key": base64.b64encode(public).decode(),
                                "identity": "Synthetic " + role, "role": role, "state": "active",
@@ -100,7 +100,7 @@ def signed_delivery(value):
     statement = json.loads((output / "statement.json").read_bytes())
     message = delivery.DOMAIN + reviews.old.encoded(statement)
     assert (output / "signing-message.bin").read_bytes() == message
-    signatures = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"])]
+    signatures = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"], strict=True)]
     path = value["tmp"] / "signed-delivery.json"
     save(path, {"statement": statement, "signatures": signatures})
     return path
@@ -249,7 +249,7 @@ def test_delivery_refuses_wrong_authority_drift_and_native_failures(fixture, mon
         envelope["signatures"] = []
         monkeypatch.setattr(delivery, "readiness", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("Payload checked before signatures")))
     elif kind == "wrong-domain":
-        for item, secret in zip(envelope["signatures"], value["private"]):
+        for item, secret in zip(envelope["signatures"], value["private"], strict=True):
             item["signature"] = base64.b64encode(secret.sign(b"WRONG-DOMAIN\n" + reviews.old.encoded(envelope["statement"]))).decode()
     elif kind == "expired":
         now += timedelta(hours=2)

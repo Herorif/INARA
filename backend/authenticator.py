@@ -38,7 +38,7 @@ class FaceAuthenticator:
         if not os.path.exists(self.MODEL_PATH):
             if not self.allow_download:
                 raise RuntimeError("Install the face model explicitly before enabling face verification.")
-            print(f"[AUTH] Downloading Face Landmarker model...")
+            print("[AUTH] Downloading Face Landmarker model...")
             try:
                 urllib.request.urlretrieve(self.MODEL_URL, self.MODEL_PATH)
                 print(f"[AUTH] [OK] Model downloaded to {self.MODEL_PATH}")

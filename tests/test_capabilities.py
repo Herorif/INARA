@@ -67,7 +67,7 @@ async def test_fifo_queue_capacity_crash_and_explicit_release(tmp_path):
     assert error.value.code == "worker_busy"
     assert len(instance.list("owner", context["project_path"])) == 4
     for index, args in enumerate(requests):
-        await until(lambda: len(processes) == index + 1)
+        await until(lambda index=index: len(processes) == index + 1)
         assert instance.governor.runner[1] == str(args.request_id)
         assert all(p.closed for p in processes[:index])
         processes[index].stopped = True

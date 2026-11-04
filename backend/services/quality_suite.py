@@ -268,7 +268,7 @@ async def run_fixture_suite(directory):
         provenance,
     )
     try:
-        for identifier, action in zip(CASE_IDS, actions):
+        for identifier, action in zip(CASE_IDS, actions, strict=True):
             await run(identifier, action)
     finally:
         await app.close()

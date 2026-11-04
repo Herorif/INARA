@@ -105,7 +105,7 @@ def verify(controller, pin, evidence, ledger, enrollment, enrollment_pin, policy
 
 def inventory(controller, evidence, ledger, enrollment, envelope):
     records, total = [], 0
-    for section, directory in zip(SECTIONS, (controller, evidence, ledger, enrollment)):
+    for section, directory in zip(SECTIONS, (controller, evidence, ledger, enrollment), strict=True):
         for file in delivery.audit.package.files_in(Path(directory)):
             size = file.stat().st_size
             total += size
@@ -138,7 +138,7 @@ def assemble(controller, pin, evidence, ledger, enrollment, enrollment_pin, poli
         raise ValueError("Receiving copy plan changed; review again")
     output = Path(planned["plan"]["output"])
     output.mkdir(parents=True)
-    roots = dict(zip(SECTIONS, map(Path, (controller, evidence, ledger, enrollment))))
+    roots = dict(zip(SECTIONS, map(Path, (controller, evidence, ledger, enrollment)), strict=True))
     for entry in planned["plan"]["files"]:
         section, _, relative = entry["path"].partition("/")
         source = Path(envelope) if section == "envelope.json" else roots[section] / relative

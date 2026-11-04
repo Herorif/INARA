@@ -27,7 +27,7 @@ def main():
             chunks.mkdir(exist_ok=True)
             size = 16_777_216
 
-            def chunk(start):
+            def chunk(start, item=item, size=size, chunks=chunks):
                 end = min(start + size, item["bytes"]) - 1
                 destination = chunks / str(start)
                 if not destination.exists():

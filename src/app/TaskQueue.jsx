@@ -58,6 +58,7 @@ export default function TaskQueue() {
           if (generation.current === epoch) setError(failure.message);
         });
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
       generation.current++;
       if (socket.connected && runId.current) c.cancel(runId.current).catch(() => {});
       c.dispose();
@@ -127,7 +128,9 @@ export default function TaskQueue() {
         try {
           const value = await client.current.state();
           if (generation.current === epoch) setData(value);
-        } catch {}
+        } catch {
+          // Best-effort resync; the original failure is already shown.
+        }
       }
     } finally {
       if (generation.current === epoch) {

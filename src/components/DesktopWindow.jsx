@@ -152,7 +152,7 @@ const ProcessList = ({ processes }) => {
 // ---------------------------------------------------------------------------
 const TABS = [{ id: 'stats', label: 'Stats' }, { id: 'apps', label: 'Apps' }, { id: 'tools', label: 'Tools' }];
 
-const DesktopWindow = ({ position, onClose, onMouseDown, zIndex, activeDragElement }) => {
+const DesktopWindow = () => {
   const [tab, setTab] = useState('stats');
   const [searchQuery, setSearchQuery] = useState('');
 

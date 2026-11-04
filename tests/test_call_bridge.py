@@ -196,7 +196,7 @@ async def test_owner_cancellation_stops_streams_ends_matching_call_and_saves(tmp
     control = Control([observed(), observed(), observed("active")])
     session, _, audio, voice, records = fixture(tmp_path, control=control)
     task = asyncio.create_task(session.run())
-    while not voice.greeted:
+    while not voice.greeted:  # noqa: ASYNC110  waits for the task under test to reach the fake
         await asyncio.sleep(0)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):

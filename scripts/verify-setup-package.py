@@ -122,7 +122,7 @@ try:
                 name = C.create_unicode_buffer(256)
                 user.GetClassNameW(hwnd, name, 256)
                 if name.value.startswith("INARA.Native."):
-                    found.append(hwnd)
+                    found.append(hwnd)  # noqa: B023  EnumWindows calls back synchronously in this iteration
             return True
 
         user.EnumWindows(enumerate_window, 0)

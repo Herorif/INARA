@@ -20,17 +20,24 @@ from telephony.agent import CallResult
 from telephony.grants import purpose_hash
 from telephony.task_calls import PlaceTaskCall
 
-from tests.test_call_agent import (  # noqa: F401  (the phone fixture is used by name)
+from tests.test_call_agent import (
     CALLER,
     INARA,
     OWNER,
     SHOP,
-    phone,
+    phone as phone_fixture,
     until,
 )
 from tests.test_call_orchestration import Twilio, emitted, rpc
 
-KL = ZoneInfo("Asia/Kuala_Lumpur")
+
+@pytest.fixture
+def phone(application_factory):
+    """The call agent's fake line and app, shared by name with test_call_agent."""
+    return phone_fixture.__wrapped__(application_factory)
+
+
+KL =ZoneInfo("Asia/Kuala_Lumpur")
 
 
 def day(offset=2):

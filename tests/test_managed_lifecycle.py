@@ -48,7 +48,7 @@ def sign(value, action, profile=None):
     statement = json.loads((directory / "statement.json").read_bytes())
     message = life.DOMAIN + life.review.encoded(statement)
     assert (directory / "signing-message.bin").read_bytes() == message
-    signatures = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"])]
+    signatures = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"], strict=True)]
     path = directory / "signed.json"
     save(path, {"statement": statement, "signatures_before": signatures, "signatures_after": signatures})
     return path
@@ -134,7 +134,7 @@ def test_signed_lifecycle_refuses_before_journal_or_deletion(fixture, kind):
             envelope["signatures_before"] = []
         else:
             message = updates.managed.message(envelope["statement"])
-            envelope["signatures_before"] = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"])]
+            envelope["signatures_before"] = [{"key_id": key["key_id"], "signature": base64.b64encode(secret.sign(message)).decode()} for key, secret in zip(value["policy"]["keys"], value["private"], strict=True)]
         save(path, envelope)
     elif kind == "expired":
         now += timedelta(hours=2)

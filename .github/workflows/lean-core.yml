@@ -26,6 +26,8 @@ jobs:
         run: python -m pytest -q -p no:cacheprovider
       - name: Lint Python with the repo ruff config (pyproject.toml)
         run: python -m ruff check
+      - name: Lint JavaScript with the repo ESLint config (eslint.config.js)
+        run: npm run lint:js
       - run: python scripts/check-android-source.py
       - run: python scripts/export-ui-contracts.py --check
       - name: Client tests (all tests/*.mjs and tests/*.cjs)

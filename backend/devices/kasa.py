@@ -184,7 +184,8 @@ class KasaController:
             not isinstance(hsv, (tuple, list))
             or len(hsv) != 3
             or any(
-                type(v) is not int or not 0 <= v <= limit for v, limit in zip(hsv, (360, 100, 100))
+                type(v) is not int or not 0 <= v <= limit
+                for v, limit in zip(hsv, (360, 100, 100), strict=True)
             )
         ):
             return False

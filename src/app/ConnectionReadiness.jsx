@@ -39,6 +39,7 @@ export default function ConnectionReadiness({ compact = false, onOpen }) {
         });
     }
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- a request counter, not a DOM ref: bumping its live value invalidates in-flight replies
       generation.current++;
       c.dispose();
     };

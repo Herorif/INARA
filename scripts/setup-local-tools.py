@@ -102,7 +102,7 @@ def toolchain():
     ]
     with ThreadPoolExecutor(max_workers=3) as pool:
         downloaded = list(pool.map(download, items))
-    for name, item in zip(("jdk", "gradle-8.14.6", "android-commandline"), downloaded):
+    for name, item in zip(("jdk", "gradle-8.14.6", "android-commandline"), downloaded, strict=True):
         extract(Path(item["path"]), TOOLS / name)
     java = next((TOOLS / "jdk").glob("*/bin/javac.exe")).parents[1]
     gradle = TOOLS / "gradle-8.14.6/gradle-8.14.6/bin"

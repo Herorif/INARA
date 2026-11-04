@@ -54,7 +54,7 @@ def signatures(signer, statement):
             "key_id": key["key_id"],
             "signature": base64.b64encode(private.sign(managed.message(statement))).decode(),
         }
-        for key, private in zip(signer["policy"]["keys"], signer["private"])
+        for key, private in zip(signer["policy"]["keys"], signer["private"], strict=True)
     ]
 
 
@@ -151,7 +151,7 @@ def new_package(fixture, monkeypatch, sequence=2):
                     private.sign(signed.signing_message(statement))
                 ).decode(),
             }
-            for key, private in zip(signer["policy"]["keys"], signer["private"])
+            for key, private in zip(signer["policy"]["keys"], signer["private"], strict=True)
         ],
     }
     save(other["package"] / signed.ENVELOPE, envelope)
@@ -162,7 +162,7 @@ def rotated(fixture):
     old = fixture["current"]
     policy = json.loads(json.dumps(old["policy"]))
     private = [Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()]
-    for key, secret in zip(policy["keys"], private):
+    for key, secret in zip(policy["keys"], private, strict=True):
         public = secret.public_key().public_bytes_raw()
         key.update(key_id=signed.trust.sha(public), public_key=base64.b64encode(public).decode())
     policy["policy_sequence"] += 1

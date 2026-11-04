@@ -62,7 +62,7 @@ def sign(fixture, statement, path):
                 "key_id": key["key_id"],
                 "signature": base64.b64encode(private.sign(admission.message(statement))).decode(),
             }
-            for key, private in zip(fixture["policy"]["keys"], fixture["private"])
+            for key, private in zip(fixture["policy"]["keys"], fixture["private"], strict=True)
         ],
     }
     save(path, envelope)
