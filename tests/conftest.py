@@ -29,6 +29,7 @@ def pytest_configure(config):
 OPT_IN_MARKERS = {
     "live_api": "JARVIS_LIVE_API_TESTS",
     "live_hardware": "JARVIS_LIVE_HARDWARE_TESTS",
+    "live_blender": "JARVIS_LIVE_BLENDER_TESTS",
 }
 
 
