@@ -1,9 +1,9 @@
-"""Twilio REST: placing and ending calls from INARA's own number.
+"""Twilio REST: placing and ending calls from JARVIS's own number.
 
 ``place_call`` enforces the outbound policy in code: the owner's number is
 always allowed; any other number needs a valid one-use grant (see grants.py)
 and passes quiet hours, the daily cap and the per-number cooldown. The caller
-ID is always INARA's Twilio number; there is no way to choose another.
+ID is always JARVIS's Twilio number; there is no way to choose another.
 """
 
 import asyncio
@@ -61,7 +61,7 @@ class TwilioClient:
         except ValueError:
             body = {}
         if response.status_code in (401, 403):
-            raise ServiceError("twilio_auth_failed", "Twilio rejected INARA's account details.")
+            raise ServiceError("twilio_auth_failed", "Twilio rejected JARVIS's account details.")
         if response.status_code >= 400:
             code = body.get("code") if isinstance(body, dict) else None
             logger.warning(
@@ -74,7 +74,7 @@ class TwilioClient:
         return body if isinstance(body, dict) else {}
 
     async def place_call(self, to, purpose, context=None, *, grant=None):
-        """Ring ``to`` from INARA's number; returns ``{call_id, call_sid, status, owner}``."""
+        """Ring ``to`` from JARVIS's number; returns ``{call_id, call_sid, status, owner}``."""
         service = self.service
         settings = service.calls_settings()
         if not settings["enabled"]:
@@ -91,7 +91,7 @@ class TwilioClient:
                 "calls_not_configured", "Add the Twilio details and the public tunnel address first."
             )
         if same_number(target, credentials["phone_number"]):
-            raise ServiceError("invalid_number", "INARA can't call its own number.")
+            raise ServiceError("invalid_number", "JARVIS can't call its own number.")
         owner = same_number(target, credentials["owner_number"])
         async with self.lock:
             if not owner:
@@ -134,7 +134,7 @@ class TwilioClient:
         }
 
     async def hangup(self, call_sid):
-        """End a call INARA is part of (``Status=completed``)."""
+        """End a call JARVIS is part of (``Status=completed``)."""
         if not isinstance(call_sid, str) or not CALL_SID.fullmatch(call_sid):
             raise ServiceError("invalid_arguments", "Unknown call.")
         credentials = self.service.credentials()

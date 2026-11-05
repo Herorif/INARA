@@ -133,7 +133,7 @@ def test_activation_refuses_changed_or_unknown_slot_without_switch(manager, tmp_
     elif kind == "payload":
         (manager.root / "versions" / b / "backend/resident_main.py").write_text("changed")
     elif kind == "ownership":
-        (manager.root / "data" / b / ".inara-data.json").write_text("{}")
+        (manager.root / "data" / b / ".jarvis-data.json").write_text("{}")
     elif kind == "unknown":
         chosen = "0" * 64
     elif kind == "traversal":
@@ -216,14 +216,14 @@ def test_launch_uses_selected_interpreter_and_holds_lease_for_entire_resident(
         manager.launch()
     executable = manager.root / "versions" / a / "runtime/python/python.exe"
     monkeypatch.setattr(sys, "executable", str(executable))
-    monkeypatch.setenv("INARA_DATA_DIR", "sentinel-original")
-    monkeypatch.setenv("INARA_DEV_SERVER", "http://invalid.example")
+    monkeypatch.setenv("JARVIS_DATA_DIR", "sentinel-original")
+    monkeypatch.setenv("JARVIS_DEV_SERVER", "http://invalid.example")
 
     def resident(path, run_name):
         assert path == str(manager.root / "versions" / a / "backend/resident_main.py")
         assert run_name == "__main__" and sys.argv[-1] == "--resident-only"
-        assert os.environ["INARA_DATA_DIR"] == str(manager.root / "data" / a / "database")
-        assert "INARA_DEV_SERVER" not in os.environ
+        assert os.environ["JARVIS_DATA_DIR"] == str(manager.root / "data" / a / "database")
+        assert "JARVIS_DEV_SERVER" not in os.environ
         with pytest.raises(ValueError, match="busy"):
             manager.deactivate()
         raise SystemExit(0)
@@ -232,8 +232,8 @@ def test_launch_uses_selected_interpreter_and_holds_lease_for_entire_resident(
     with pytest.raises(SystemExit) as result:
         manager.launch(resident_only=True)
     assert result.value.code == 0
-    assert os.environ["INARA_DATA_DIR"] == "sentinel-original"
-    assert os.environ["INARA_DEV_SERVER"] == "http://invalid.example"
+    assert os.environ["JARVIS_DATA_DIR"] == "sentinel-original"
+    assert os.environ["JARVIS_DEV_SERVER"] == "http://invalid.example"
     assert manager.status()["selected"] == a
 
 

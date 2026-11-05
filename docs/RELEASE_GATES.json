@@ -330,7 +330,7 @@
       "track": "acceptance",
       "status": "pending",
       "required": false,
-      "evidence": "Owner decision, 25 Oct 2026; design in CALL_ROUTING.md. Owner SIM keeps its number and conditionally forwards (busy/no answer/unreachable) to a Twilio Malaysian local number; Twilio Media Streams reach the INARA telephony gateway via a Cloudflare named tunnel; Gemini Live voice, Claude triage. Outbound calls to the owner allowed; any other number needs a one-use owner grant; AI disclosure on every call. Acceptance: Twilio number answers a forwarded test call end-to-end; owner briefing call placed and answered; approved callback placed; loop guard verified; offline voicemail fallback verified. Nothing built or verified yet."
+      "evidence": "Owner decision, 25 Oct 2026; design in CALL_ROUTING.md. Owner SIM keeps its number and conditionally forwards (busy/no answer/unreachable) to a Twilio Malaysian local number; Twilio Media Streams reach the JARVIS telephony gateway via a Cloudflare named tunnel; Gemini Live voice, Claude triage. Outbound calls to the owner allowed; any other number needs a one-use owner grant; AI disclosure on every call. Acceptance: Twilio number answers a forwarded test call end-to-end; owner briefing call placed and answered; approved callback placed; loop guard verified; offline voicemail fallback verified. Nothing built or verified yet."
     },
     {
       "id": "whatsapp-actions",

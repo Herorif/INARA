@@ -6,9 +6,9 @@ const os = require('node:os');
 const {rendererProvenance, files} = require('../scripts/renderer-provenance.cjs');
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(),'inara-renderer-test-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(),'jarvis-renderer-test-'));
   t.after(() => {
-    assert.ok(root.startsWith(path.join(os.tmpdir(),'inara-renderer-test-')));
+    assert.ok(root.startsWith(path.join(os.tmpdir(),'jarvis-renderer-test-')));
     fs.rmSync(root,{recursive:true});
   });
   const put = (name, value='fixture') => { const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);return file; };

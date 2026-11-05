@@ -142,7 +142,7 @@ def new_package(fixture, monkeypatch, sequence=2):
     statement = signed.statement_for(manifest, raw)
     envelope = {
         "format": 1,
-        "kind": "inara-package-attestation",
+        "kind": "jarvis-package-attestation",
         "statement": statement,
         "signatures": [
             {
@@ -180,7 +180,7 @@ def rotated(fixture):
 
 
 def test_enrollment_blocks_legacy_controls_and_pins_managed_launch(fixture):
-    original_profile = fixture["root"] / "data" / fixture["slot"] / ".inara-data.json"
+    original_profile = fixture["root"] / "data" / fixture["slot"] / ".jarvis-data.json"
     before = original_profile.read_bytes()
     result = apply(fixture, proposal(fixture))
     assert result["previous_versions_retained"] and not result["launched"]
@@ -244,7 +244,7 @@ def test_update_and_explicit_rollback_preserve_floor_and_data(fixture, monkeypat
     apply(fixture, proposal(fixture, "update", target, 2, package))
     assert fixture["slot"] == target
     assert (fixture["root"] / "versions" / original).exists()
-    assert (fixture["root"] / "data" / original / ".inara-data.json").exists()
+    assert (fixture["root"] / "data" / original / ".jarvis-data.json").exists()
     assert (
         managed.status(fixture["root"], fixture["anchor"], fixture["checkpoint"])["sequence_floor"]
         == 2

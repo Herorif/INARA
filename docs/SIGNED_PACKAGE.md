@@ -14,7 +14,7 @@ audit/      exact notice audit and content-addressed notice copies
 ledger/     exact review ledger and historical attachments
 ```
 
-`package-manifest.json` has a distinct `inara-authenticated-package` format, fixture/production purpose, pinned policy digest, publisher/channel/sequence, bounded UTC validity and explicit path/size/SHA-256 records for every file under those three roots. It also binds the raw desktop manifest, audit report and ledger digests. The wrapper and attestation are the only two files outside that inventory. Request files, keys, helper executables and unknown extras are not accepted inside the final container. File content/path inventories do not authenticate Windows ACLs, file timestamps or other filesystem metadata.
+`package-manifest.json` has a distinct `jarvis-authenticated-package` format, fixture/production purpose, pinned policy digest, publisher/channel/sequence, bounded UTC validity and explicit path/size/SHA-256 records for every file under those three roots. It also binds the raw desktop manifest, audit report and ledger digests. The wrapper and attestation are the only two files outside that inventory. Request files, keys, helper executables and unknown extras are not accepted inside the final container. File content/path inventories do not authenticate Windows ACLs, file timestamps or other filesystem metadata.
 
 Preparation uses the existing trusted source/audit/ledger validators, requires complete recorded production reviews for production purpose, and refuses disabled identity or implicit fixture mode before copying package inputs. The copies are rehashed and the copied pilot/audit/ledger are validated before the manifest is committed. It writes only **new** local assembly and separate signing-request directories. It does not install, register, select or launch a version. A prepared container without an attestation cannot verify, including in explicit fixture mode.
 
@@ -49,8 +49,8 @@ Use an independently trusted checkout/runtime and external owner-enrolled policy
 .venv/Scripts/python.exe scripts/signed-package.py prepare --candidate C:/candidate --audit C:/audit --ledger C:/reviewed-ledger --policy C:/trusted/policy.json --expected-policy '<trusted pin>' --sequence 1 --output C:/new-container --request-output C:/new-signing-request
 # External owned publisher/reviewer signing produces only attestation.json in the container.
 .venv/Scripts/python.exe scripts/signed-package.py verify --package C:/new-container --policy C:/trusted/policy.json --expected-policy '<trusted pin>' --sequence 1
-.venv/Scripts/python.exe scripts/signed-package.py review-install --package C:/new-container --policy C:/trusted/policy.json --expected-policy '<trusted pin>' --sequence 1 --root C:/managed-inara
-.venv/Scripts/python.exe scripts/signed-package.py install --package C:/new-container --policy C:/trusted/policy.json --expected-policy '<trusted pin>' --sequence 1 --root C:/managed-inara --expected-review '<review_sha256>'
+.venv/Scripts/python.exe scripts/signed-package.py review-install --package C:/new-container --policy C:/trusted/policy.json --expected-policy '<trusted pin>' --sequence 1 --root C:/managed-jarvis
+.venv/Scripts/python.exe scripts/signed-package.py install --package C:/new-container --policy C:/trusted/policy.json --expected-policy '<trusted pin>' --sequence 1 --root C:/managed-jarvis --expected-review '<review_sha256>'
 # For a genuinely interrupted owned copy, add --resume to BOTH review-install and install.
 ```
 

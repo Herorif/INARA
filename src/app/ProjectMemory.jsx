@@ -145,7 +145,7 @@ export default function ProjectMemory() {
         const url = URL.createObjectURL(new Blob([value.backup], { type: "application/octet-stream" }));
         const link = document.createElement("a");
         link.href = url;
-        link.download = "inara-project-memory.dpapi";
+        link.download = "jarvis-project-memory.dpapi";
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         setNotice(
@@ -184,7 +184,7 @@ export default function ProjectMemory() {
   return (
     <div className="project-memory tool-panel">
       <header className="memory-intro">
-        <p>Facts, preferences and decisions INARA can use in this project.</p>
+        <p>Facts, preferences and decisions JARVIS can use in this project.</p>
       </header>
       <div className="memory-toolbar">
         <button

@@ -164,7 +164,7 @@ def policy(path, pin):
     if (
         type(value["format"]) is not int
         or value["format"] != 1
-        or value["kind"] != "inara-windows-signing-policy"
+        or value["kind"] != "jarvis-windows-signing-policy"
         or value["mode"] not in {"disabled", "production"}
         or not isinstance(value["targets"], list)
         or len(value["targets"]) > 4096

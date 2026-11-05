@@ -35,7 +35,7 @@ async def main(command):
             value["model"] = ready()["model"]["id"]
         else:
             text = sys.stdin.read(2001)
-            value = {"reply": await model.complete("You are INARA, a concise local assistant. You have no tools, private memory or ability to perform actions. State uncertainty honestly. /no_think", text),
+            value = {"reply": await model.complete("You are JARVIS, a concise local assistant. You have no tools, private memory or ability to perform actions. State uncertainty honestly. /no_think", text),
                      "preview_only": True}
     import psutil
     value["server_released"] = not psutil.pid_exists(pid)

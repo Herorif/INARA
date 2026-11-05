@@ -121,7 +121,7 @@ try:
             if owner.value == pid:
                 name = C.create_unicode_buffer(256)
                 user.GetClassNameW(hwnd, name, 256)
-                if name.value.startswith("INARA.Native."):
+                if name.value.startswith("JARVIS.Native."):
                     found.append(hwnd)  # noqa: B023  EnumWindows calls back synchronously in this iteration
             return True
 
@@ -161,7 +161,7 @@ reviewed = send({"op": "review", "request": {"action": "erase_data", "root": str
 send({"op": "apply", "token": reviewed["token"], "confirmation": "yes"}, success=False)
 assert data.exists()
 reviewed = send({"op": "review", "request": {"action": "erase_data", "root": str(installation)}})
-send({"op": "apply", "token": reviewed["token"], "confirmation": "ERASE INARA DATA"})
+send({"op": "apply", "token": reviewed["token"], "confirmation": "ERASE JARVIS DATA"})
 assert not data.exists()
 worker.stdin.close()
 assert worker.wait(timeout=30) == 0

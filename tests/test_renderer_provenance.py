@@ -55,7 +55,7 @@ def fixture_build(root):
     ]
     value = {
         "format": 1,
-        "kind": "inara-renderer-build",
+        "kind": "jarvis-renderer-build",
         "coverage": "observed-rollup-graph",
         "redistribution_cleared": False,
         "reproducible_build_claimed": False,

@@ -8,10 +8,11 @@ export type VoiceState = 'connecting' | 'listening' | 'thinking' | 'working' | '
 export interface VoiceAudio { session_id: string; seq: number; pcm: ArrayBuffer }
 export interface VoiceStartResult { ok: true; session_id: string; input_rate: 16000; output_rate: 24000 }
 export interface VoiceStateEvent { session_id: string; state: VoiceState; code?: string; message?: string }
-/** 24 kHz PCM16 mono little-endian speech from INARA. */
+/** 24 kHz PCM16 mono little-endian speech from JARVIS. */
 export interface VoiceAudioOut { session_id: string; seq: number; pcm: ArrayBuffer }
 export interface VoiceInterrupted { session_id: string }
-export interface VoiceCaption { session_id: string; role: 'user' | 'inara'; text: string; final: boolean }
+/** `role` 'inara' comes from a core started before the JARVIS rename (5 Nov 2026); read it as 'jarvis'. Remove one release later. */
+export interface VoiceCaption { session_id: string; role: 'user' | 'jarvis' | 'inara'; text: string; final: boolean }
 
 export interface VoiceSocket extends RpcSocket {
   emit(event: string, data: unknown, ack?: (response: unknown) => void): unknown;
@@ -44,7 +45,7 @@ export function isVoiceInterrupted(value: unknown): value is VoiceInterrupted {
 }
 
 export function isVoiceCaption(value: unknown): value is VoiceCaption {
-  return record(value) && sessionOf(value) && (value.role === 'user' || value.role === 'inara')
+  return record(value) && sessionOf(value) && (value.role === 'user' || value.role === 'jarvis' || value.role === 'inara')
     && typeof value.text === 'string' && value.text.length <= 12000 && typeof value.final === 'boolean';
 }
 

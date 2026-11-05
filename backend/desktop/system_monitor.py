@@ -1,5 +1,5 @@
 """
-System resource monitor for INARA.
+System resource monitor for JARVIS.
 
 Provides real-time CPU, memory, disk, battery, and process telemetry
 via psutil. All methods are synchronous and stateless — safe to call

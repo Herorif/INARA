@@ -7,7 +7,7 @@ CONTENT_TYPE = "text/xml; charset=utf-8"
 # Placeholder wording until the call-mode scripts land (C2/C3).
 UNAVAILABLE_MESSAGE = "Sorry, this line can't take calls right now. Please try again later."
 VOICEMAIL_MESSAGE = (
-    "You've reached INARA, an AI assistant. The owner can't take this call right now. "
+    "You've reached JARVIS, an AI assistant. The owner can't take this call right now. "
     "Please leave a message after the tone."
 )
 VOICEMAIL_THANKS = "Thank you. Goodbye."

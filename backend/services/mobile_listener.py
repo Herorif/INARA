@@ -49,7 +49,7 @@ def certificate_identity(database, host):
                 )
             return saved
         key = ec.generate_private_key(ec.SECP256R1())
-        name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "INARA paired laptop")])
+        name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "JARVIS paired laptop")])
         now = datetime.now(timezone.utc)
         cert = (
             x509.CertificateBuilder()
@@ -120,7 +120,7 @@ class MobileListener:
             try:
                 for field in ("key", "cert"):
                     fd, name = tempfile.mkstemp(
-                        prefix="inara-tls-", dir=self.service.app.database.directory
+                        prefix="jarvis-tls-", dir=self.service.app.database.directory
                     )
                     files.append(Path(name))
                     with os.fdopen(fd, "w", encoding="ascii") as stream:

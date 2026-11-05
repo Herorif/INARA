@@ -56,7 +56,7 @@ function rendererProvenance() {
     chunks: Object.values(bundle).filter(item => item.type === 'chunk').map(item => ({path: item.fileName, target, modules: Object.keys(item.modules).map(id => moduleId(id, target)).sort()})),
   });
   const plugin = {
-    name: 'inara-renderer-provenance', apply: 'build', enforce: 'pre',
+    name: 'jarvis-renderer-provenance', apply: 'build', enforce: 'pre',
     configResolved(value) {
       config = value; root = path.resolve(config.root); out = path.resolve(root, config.build.outDir);
       if (out !== path.join(root, 'dist') || path.resolve(config.publicDir) !== path.join(root, 'public') || config.build.ssr || config.build.watch) throw Error('Unsupported provenance build layout');
@@ -88,7 +88,8 @@ function rendererProvenance() {
       if (outputs.some(item => item.path === MANIFEST)) throw Error('Stale renderer manifest');
       const copies = outputs.flatMap(output => [...inputs.values()].filter(input => input.sha256 === output.sha256 && input.bytes === output.bytes).map(input => ({input: input.path, output: output.path, sha256: input.sha256, bytes: input.bytes})));
       const copiedInputs = new Set(copies.map(item => item.input));
-      const manifest = {format: 1, kind: 'inara-renderer-build', coverage: 'observed-rollup-graph',
+      // `kind` is the format identifier scripts/renderer-provenance.py checks.
+      const manifest = {format: 1, kind: 'jarvis-renderer-build', coverage: 'observed-rollup-graph',
         tooling: Object.fromEntries(['vite','rollup'].map(name => [name, JSON.parse(fs.readFileSync(path.join(root,'node_modules',name,'package.json'),'utf8')).version])),
         inputs: [...inputs.values()].sort((a,b) => a.path.localeCompare(b.path)), graph, chunks, public_copies: publicCopies, byte_identical_copies: copies,
         assets: [...inputs.values()].filter(item => copiedInputs.has(item.path) || /\.(png|ico|svg|jpe?g|webp|wasm|task|woff2?|ttf|glb|gltf|stl|mp[34]|wav|bin)$/i.test(item.path)).sort((a,b) => a.path.localeCompare(b.path)),
@@ -101,7 +102,7 @@ function rendererProvenance() {
   };
   return {plugin, workerPlugin() {
     const target = 'worker-' + (++workerCount);
-    return {name: 'inara-worker-provenance', enforce: 'pre',
+    return {name: 'jarvis-worker-provenance', enforce: 'pre',
       load(id) { const file = physical(id); if (file) record(file); return null; },
       generateBundle(_options, bundle) {
         const captured = capture(this, bundle, target);

@@ -1,6 +1,8 @@
-# INARA code cleanup and JARVIS interface plan
+# JARVIS code cleanup and interface plan
 
-Updated 20 October 2026. R1-R8 source milestones and the Command OS UI refinement below are complete within their documented acceptance boundaries. The owner's latest priority is [personal incoming-call answering](IMPLEMENTATION_HANDOFF.md#current-priority-incoming-call-answering-and-message-taking), beginning with a real bridge feasibility gate; the earlier [UI-to-WhatsApp roadmap](IMPLEMENTATION_HANDOFF.md#current-priorities-unified-ui-through-whatsapp-assistance) retains the creative backlog. Older checkpoint descriptions below are historical, not a request to repeat completed work. This extends the [system architecture](INARA_REVAMP_PLAN.md) and translates the [project findings](PROJECT_REVIEW.md) into implementation work. Make the application easier to maintain and give it a responsive JARVIS-style interface while meeting the laptop resource budgets.
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
+
+Updated 20 October 2026. R1-R8 source milestones and the Command OS UI refinement below are complete within their documented acceptance boundaries. The owner's latest priority is [personal incoming-call answering](IMPLEMENTATION_HANDOFF.md#current-priority-incoming-call-answering-and-message-taking), beginning with a real bridge feasibility gate; the earlier [UI-to-WhatsApp roadmap](IMPLEMENTATION_HANDOFF.md#current-priorities-unified-ui-through-whatsapp-assistance) retains the creative backlog. Older checkpoint descriptions below are historical, not a request to repeat completed work. This extends the [system architecture](JARVIS_REVAMP_PLAN.md) and translates the [project findings](PROJECT_REVIEW.md) into implementation work. Make the application easier to maintain and give it a responsive JARVIS-style interface while meeting the laptop resource budgets.
 
 The cleanup and interface changes should ship in reviewable increments. Preserve existing user data and working integrations, establish shared contracts, then move features behind those contracts. The interface should reveal actual assistant state and make creative work easy to inspect and revise.
 
@@ -22,7 +24,7 @@ Source evidence is recorded under `.runtime/command-qa/` by `scripts/verify-comm
 
 ## Current UI redesign brief, 19 October 2026
 
-Concept: **INARA Command OS**, a calm spacecraft console with the current task or artifact at its center. Keep the established graphite/cyan identity, but improve typography, hierarchy, spacing and continuity. The voice core is a compact state indicator that expands during voice use; a large decorative hero must not displace useful work. No invented telemetry or continuously running decorative 3D scene.
+Concept: **JARVIS Command OS**, a calm spacecraft console with the current task or artifact at its center. Keep the established graphite/cyan identity, but improve typography, hierarchy, spacing and continuity. The voice core is a compact state indicator that expands during voice use; a large decorative hero must not displace useful work. No invented telemetry or continuously running decorative 3D scene.
 
 ```text
 Navigation   Project / search / resource mode

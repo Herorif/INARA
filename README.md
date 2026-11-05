@@ -1,15 +1,17 @@
 ```
-  ___  _  _    _    ___    _
- |_ _|| \| |  /_\  | _ \  /_\
-  | | | .` | / _ \ |   / / _ \
- |___||_|\_|/_/ \_\|_|_\/_/ \_\
--=It's Not A Random Acronym=-
+    _    _    ___ __   __ ___  ___
+ _ | |  /_\  | _ \\ \ / /|_ _|/ __|
+| || | / _ \ |   / \ V /  | | \__ \
+ \__/ /_/ \_\|_|_\  \_/  |___||___/
+Your personal assistant for desktop and phone
 ```
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)
 ![Electron](https://img.shields.io/badge/Electron-44.7-47848F?logo=electron)
 ![License](https://img.shields.io/badge/License-MIT-green)
+
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
 
 > Your own AI that lives on your desktop, controls your house, designs your parts, runs your browser, and prints your prototypes - all by voice.
 
@@ -51,14 +53,14 @@ py -3.12 -m venv .venv
 ```
 
 The backend starts without an API key; AI requests return a clear configuration
-error until a valid key is supplied. Set `INARA_TEXT_MODEL` to select the text
+error until a valid key is supplied. Set `JARVIS_TEXT_MODEL` to select the text
 model. Optional integrations install from pinned extras on top of the core lock:
 `requirements-devices.txt` (Kasa, printers, Home Assistant, desktop tools),
 `requirements-vision.txt` (face verification) and `requirements-cad.txt` (legacy
 build123d CAD); `requirements.txt` now lists these files and installs the core only.
 The new JARVIS command deck includes command, Studio and connection views. Closing
-its window leaves INARA in the system tray; Ctrl+Shift+Space reopens it, and Quit
-INARA ends the resident. Local reminders can be created without an AI key.
+its window leaves JARVIS in the system tray; Ctrl+Shift+Space reopens it, and Quit
+JARVIS ends the resident. Local reminders can be created without an AI key.
 Gaming mode and heavy UI activation are explicit. See [resident/workspace details](docs/RESIDENT_AND_WORKSPACE.md)
 and [rendered desktop preview](docs/qa/command-desktop.png). The native resident
 releases Electron completely when the workspace closes. See [native host measurement and limits](docs/NATIVE_RESIDENT.md).
@@ -96,13 +98,13 @@ npm run build
 ```
 
 Tests marked `live_api` (real paid AI providers) or `live_hardware` (real devices on
-the local network) are skipped unless `INARA_LIVE_API_TESTS=1` or
-`INARA_LIVE_HARDWARE_TESTS=1` is set.
+the local network) are skipped unless `JARVIS_LIVE_API_TESTS=1` or
+`JARVIS_LIVE_HARDWARE_TESTS=1` is set.
 
 See [implementation status](docs/IMPLEMENTATION_STATUS.md) for verified behavior,
 current limitations and the next milestone.
 
-INARA is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
+JARVIS is a modular AI agent platform built for real-world control. Not a chatbot. Not a wrapper around an API. A system with eyes, ears, hands, and opinions.
 
 You can talk to it and get a response. Ask it to design a gear and it can create a 3D model, prepare it for printing, and send it to your printer. Tell it to dim the lights and it handles it. Ask it to look something up on Amazon and it opens a browser and searches for you.
 
@@ -127,7 +129,7 @@ You can talk to it and get a response. Ask it to design a gear and it can create
 
 ### 🖐️ Gesture Control
 
-INARA's Minority Report interface uses your webcam for hands-free window control:
+JARVIS's Minority Report interface uses your webcam for hands-free window control:
 
 | Gesture            | Action                    |
 | ------------------ | ------------------------- |
@@ -209,7 +211,7 @@ Retired and removed paths (the always-on voice loop, legacy voice pipeline and w
 
 ```bash
 # Clone
-git clone https://github.com/Herorif/inara.git && cd inara
+git clone https://github.com/Herorif/inara.git jarvis && cd jarvis
 
 # Python environment
 python -m venv .venv
@@ -227,7 +229,7 @@ pip install -r requirements-core.lock
 npm install
 
 # API keys (stored encrypted, read from stdin; see docs/AI_PROVIDERS.md)
-.venv\Scripts\python.exe scripts\inara-secrets.py set gemini_api_key --verify
+.venv\Scripts\python.exe scripts\jarvis-secrets.py set gemini_api_key --verify
 ```
 
 ### 🚀 Run
@@ -262,7 +264,7 @@ npm run backend:dev
 
 Once it's running, try these:
 
-1. 🗣️ **Voice** - Say "Hello INARA". She should respond.
+1. 🗣️ **Voice** - Say "Hello JARVIS". She should respond.
 2. 👁️ **Face Auth** - Look at the camera. If enabled, the lock screen should unlock.
 3. 🧊 **CAD** - Open the CAD window and say "Create a cube". Watch it generate.
 4. 🌐 **Web** - Open the Browser window and say "Go to Google".
@@ -289,11 +291,11 @@ Settings live in `backend/settings.json` (auto-created on first run).
 | `printers`                       | `array` | Saved printer configurations                      |
 | `kasa_devices`                   | `array` | Saved smart home devices                          |
 | `assistant.brain`                | `string`| `auto` (Claude when an Anthropic key is set), `claude` or `gemini` |
-| `assistant.owner_name`           | `string`| Optional name INARA uses for you, sparingly        |
+| `assistant.owner_name`           | `string`| Optional name JARVIS uses for you, sparingly       |
 
 ### 🔑 API Keys
 
-INARA's brain is Claude: Claude Sonnet 5.5 answers chat, plans and uses tools,
+JARVIS's brain is Claude: Claude Sonnet 5.5 answers chat, plans and uses tools,
 and Claude Haiku 5.5 handles fast summaries and classification. Gemini handles
 transcription (and, later, live voice). Without an Anthropic key the assistant
 falls back to the Gemini text model; `assistant.brain` (`auto`, `claude` or
@@ -302,8 +304,8 @@ active model. Usage receipts record Claude token and cache counts with a
 list-price estimate.
 
 Keys are not kept in a `.env` file: they are stored encrypted with Windows DPAPI
-in INARA's profile database. Add them in Setup's **AI providers** step, with
-`scripts/bootstrap.ps1 -ConfigureKeys`, or with `scripts/inara-secrets.py`.
+in JARVIS's profile database. Add them in Setup's **AI providers** step, with
+`scripts/bootstrap.ps1 -ConfigureKeys`, or with `scripts/jarvis-secrets.py`.
 See [AI providers](docs/AI_PROVIDERS.md) for details and the developer
 environment-variable override.
 
@@ -318,7 +320,7 @@ environment-variable override.
 
 Supports **Klipper/Moonraker**, **OctoPrint**, and **PrusaLink**. Printers are auto-discovered via mDNS on your local network, or can be added manually by IP.
 
-Requires [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer) installed for slicing. INARA auto-detects the installation path and selects the right profile based on your printer model.
+Requires [OrcaSlicer](https://github.com/SoftFever/OrcaSlicer) installed for slicing. JARVIS auto-detects the installation path and selects the right profile based on your printer model.
 
 ### 🏠 Smart Home
 
@@ -337,7 +339,7 @@ All processing is local. Nothing is uploaded. Nothing is stored externally.
 ## 📂 Project Structure
 
 ```
-inara/
+jarvis/
 ├── backend/
 │   ├── core/                  # Event bus, reminder store
 │   ├── llm/                   # LLM abstraction (Gemini, Claude, router)

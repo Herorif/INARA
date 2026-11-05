@@ -11,9 +11,10 @@ import time
 import uuid
 
 from resident.state import Identity, State
+from services import env
 from services.log import get_logger
 
-NOTICES = {"call": ("INARA call", "A call record is ready. Open the command deck to view it.")}
+NOTICES = {"call": ("JARVIS call", "A call record is ready. Open the command deck to view it.")}
 
 logger = get_logger(__name__)
 
@@ -57,7 +58,7 @@ class NativeHost:
         self.seen = set()
         self.tray = (tray_factory or Tray)(
             hashlib.sha256(str(self.profile.resolve()).encode()).hexdigest()[:24],
-            self.root / "assets/icons/inara.ico",
+            self.root / "assets/icons/jarvis.ico",
             self.action,
             self.tick,
             suppress_notifications=suppress_notifications,
@@ -73,8 +74,8 @@ class NativeHost:
     def start_core(self):
         if self.thread and self.thread.is_alive():
             return
-        os.environ["INARA_SESSION_TOKEN"] = self.token
-        os.environ["INARA_INSTANCE_ID"] = self.instance_id
+        os.environ["JARVIS_SESSION_TOKEN"] = self.token
+        os.environ["JARVIS_INSTANCE_ID"] = self.instance_id
         self.state.phase, self.state.error = "starting", None
         self.started_at = time.monotonic()
         self.server = None
@@ -96,7 +97,7 @@ class NativeHost:
         configure_logging()
         for sig in (signal.SIGINT, signal.SIGTERM):
             signal.signal(sig, lambda *_: self.tray.post(lambda: self.action("quit")))
-        self.thread = threading.Thread(target=self._core, daemon=True, name="INARA core")
+        self.thread = threading.Thread(target=self._core, daemon=True, name="JARVIS core")
         self.thread.start()
 
     def _core(self):
@@ -146,7 +147,7 @@ class NativeHost:
                     self.loop.run_until_complete(cleanup())
                 except Exception:
                     self.state.error = (
-                        "Core cleanup could not finish. Restart INARA before continuing."
+                        "Core cleanup could not finish. Restart JARVIS before continuing."
                     )
                 pending = asyncio.all_tasks(self.loop)
                 for task in pending:
@@ -206,7 +207,7 @@ class NativeHost:
     def publish(self):
         if self.tray.window:
             self.tray.tooltip(
-                "INARA · "
+                "JARVIS · "
                 + (
                     "Core unavailable"
                     if self.state.phase == "failed"
@@ -276,7 +277,7 @@ class NativeHost:
                     "state": self.state.snapshot(),
                     "hide": self.hide_workspace,
                     "quick": quick,
-                    "dev": not (self.root / "desktop-pilot.json").exists() and os.getenv("INARA_DEV_SERVER") == "1",
+                    "dev": not (self.root / "desktop-pilot.json").exists() and env.getenv("DEV_SERVER") == "1",
                 },
                 self.root,
             )

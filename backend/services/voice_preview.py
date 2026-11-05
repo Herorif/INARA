@@ -1,4 +1,4 @@
-"""Short spoken samples of INARA's prebuilt voices for Preferences.
+"""Short spoken samples of JARVIS's prebuilt voices for Preferences.
 
 One fixed line per voice through Gemini text-to-speech, cached in memory for the process.
 Importing this module opens no provider and imports no SDK.
@@ -32,7 +32,7 @@ from services.usage import usage_counts
 
 logger = get_logger(__name__)
 
-PREVIEW_LINE = "Hello, I'm INARA. How can I help?"
+PREVIEW_LINE = "Hello, I'm JARVIS. How can I help?"
 DEFAULT_RATE = 24000
 TIMEOUT_SECONDS = 30
 # The line is about three seconds; anything over 20 s of 48 kHz PCM16 is not a preview.
@@ -154,7 +154,7 @@ def extract_audio(response):
                         rate, pcm = audio.getframerate(), audio.readframes(audio.getnframes())
                 except (wave.Error, EOFError, ValueError) as exc:
                     raise ServiceError(
-                        "provider_failed", "Gemini returned audio INARA can't play."
+                        "provider_failed", "Gemini returned audio JARVIS can't play."
                     ) from exc
             else:
                 mime = str(getattr(blob, "mime_type", "") or "")
@@ -162,7 +162,7 @@ def extract_audio(response):
                 rate, pcm = (int(match.group(1)) if match else DEFAULT_RATE), data
             pcm = pcm[: len(pcm) - len(pcm) % 2]
             if not 8000 <= rate <= 48000 or not pcm or len(pcm) > MAX_PCM_BYTES:
-                raise ServiceError("provider_failed", "Gemini returned audio INARA can't play.")
+                raise ServiceError("provider_failed", "Gemini returned audio JARVIS can't play.")
             return rate, pcm
     raise ServiceError("provider_failed", "Gemini returned no audio for this voice.")
 

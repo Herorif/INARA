@@ -1,5 +1,7 @@
 # R2c obsolete-path retirement
 
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
+
 Completed 19 October 2026. This cleanup preserves the supported runtime and existing settings/data. The active inventory remains **52 socket routes, 53 shared tools (40 text-visible) and 37 voice functions**.
 
 ## Retirement map

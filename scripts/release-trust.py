@@ -18,7 +18,7 @@ spec = importlib.util.spec_from_file_location(
 )
 review = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(review)
-DOMAIN = b"INARA:distribution-statement:v1\n"
+DOMAIN = b"JARVIS:distribution-statement:v1\n"
 POLICY_FIELDS = {
     "format",
     "kind",
@@ -113,7 +113,7 @@ def policy(path, expected_digest):
     if (
         type(value["format"]) is not int
         or value["format"] != 1
-        or value["kind"] != "inara-release-trust-policy"
+        or value["kind"] != "jarvis-release-trust-policy"
         or value["mode"] not in {"disabled", "fixture", "production"}
         or value["channel"] not in {"pilot", "stable"}
     ):
@@ -227,7 +227,7 @@ def prepare(
         raise ValueError("No sufficient enrolled keys cover the signing window")
     statement = {
         "format": 1,
-        "kind": "inara-distribution-statement",
+        "kind": "jarvis-distribution-statement",
         "usage": trusted["mode"],
         "policy_sha256": expected_policy,
         "publisher": trusted["publisher"],
@@ -275,7 +275,7 @@ def verify(
     if (
         type(envelope["format"]) is not int
         or envelope["format"] != 1
-        or envelope["kind"] != "inara-detached-attestation"
+        or envelope["kind"] != "jarvis-detached-attestation"
     ):
         raise ValueError("Unsupported detached attestation")
     statement = envelope["statement"]
@@ -283,7 +283,7 @@ def verify(
     if (
         type(statement["format"]) is not int
         or statement["format"] != 1
-        or statement["kind"] != "inara-distribution-statement"
+        or statement["kind"] != "jarvis-distribution-statement"
         or statement["usage"] != trusted["mode"]
         or statement["publisher"] != trusted["publisher"]
         or statement["channel"] != trusted["channel"]

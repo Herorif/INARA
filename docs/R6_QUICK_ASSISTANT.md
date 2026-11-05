@@ -1,5 +1,7 @@
 # R6 quick assistant and reviewed speech
 
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
+
 Implemented 19 October 2026 as one milestone. R7 secure Android pairing is next. This completes the bounded implementation and fixture acceptance; physical speech/provider acceptance remains deferred.
 
 ## Everyday flow
@@ -33,7 +35,7 @@ Five strict `speech_*` routes and owner-gated `cancel_conversation` are additive
 
 The old `inara.AudioLoop` and `voice.pipeline.VoicePipeline` constructors now fail with `voice_migrated` and guidance to open Quick assistant. Their two always-on audio/provider loops were removed. The voice namespace no longer eagerly imports audio/camera helpers. Retained WorkspaceService tests inject legacy fixtures to preserve compatibility-policy evidence; they do not establish a running legacy microphone path. The VoiceBridge catalog was replaced by live voice; reviewed push-to-talk remains as Dictate.
 
-No key, model, device or dependency was configured or installed. The optional adapter lazy-loads the existing Google SDK only after a completed recording. `INARA_TRANSCRIPTION_MODEL` can independently select an audio-capable model later; otherwise it inherits `INARA_TEXT_MODEL`. Existing model defaults were preserved, not validated against the provider. Missing key/SDK fails before microphone acquisition. Ordinary typed AI answers still require their separately deferred text-provider configuration.
+No key, model, device or dependency was configured or installed. The optional adapter lazy-loads the existing Google SDK only after a completed recording. `JARVIS_TRANSCRIPTION_MODEL` can independently select an audio-capable model later; otherwise it inherits `JARVIS_TEXT_MODEL`. Existing model defaults were preserved, not validated against the provider. Missing key/SDK fails before microphone acquisition. Ordinary typed AI answers still require their separately deferred text-provider configuration.
 
 ## Verification and limits
 

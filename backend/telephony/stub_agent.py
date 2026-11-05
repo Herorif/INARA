@@ -1,6 +1,6 @@
 """STUB call agent until C2 (Gemini Live) exists. Never enabled by default.
 
-Only used when the developer sets ``INARA_TELEPHONY_STUB_AGENT=1``: it plays a
+Only used when the developer sets ``JARVIS_TELEPHONY_STUB_AGENT=1``: it plays a
 short synthesized tone (no recording), holds the line for at most ten seconds
 and hangs up. It proves the gateway, stream token and audio path end to end.
 """

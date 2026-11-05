@@ -33,12 +33,12 @@ test('saved voice settings map with the core fallbacks', () => {
   assert.deepEqual(voiceChoice({ name: 'constructor' }), { name: 'Kore', mode: 'push_to_talk' });
   assert.deepEqual(VOICE_MODES.map(item => item.label), ['Push to talk', 'Conversation']);
   assert.equal(modeHelp('push_to_talk'), 'Hold the hotkey or button while you speak.');
-  assert.equal(modeHelp('conversation'), 'Talk hands-free; INARA listens until you stop the conversation.');
+  assert.equal(modeHelp('conversation'), 'Talk hands-free; JARVIS listens until you stop the conversation.');
 });
 
 test('preview failures read plainly', () => {
   assert.equal(previewFailureMessage({ code: 'provider_not_configured', message: 'x' }), PREVIEW_NO_KEY);
-  assert.equal(previewFailureMessage({ code: 'offline' }), 'INARA core is offline. Reconnect and try again.');
+  assert.equal(previewFailureMessage({ code: 'offline' }), 'JARVIS core is offline. Reconnect and try again.');
   assert.equal(previewFailureMessage({ code: 'invalid_response', message: 'Refresh revision history.' }), 'The voice preview could not play. Try again.');
   assert.equal(previewFailureMessage({ code: 'provider_rate_limited', message: 'Gemini is limiting requests right now.' }), 'Gemini is limiting requests right now.');
   assert.equal(previewFailureMessage(null), 'The voice preview could not play. Try again.');

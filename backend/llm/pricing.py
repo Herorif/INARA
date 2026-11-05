@@ -57,7 +57,7 @@ GEMINI_TTS_PRICES = {
 # Twilio Programmable Voice, Malaysia: ESTIMATES in US dollars per minute (not per million
 # tokens). Source: Twilio's Malaysia voice pricing page,
 # https://www.twilio.com/en-us/voice/pricing/my (Aug 2026 rates, as recorded in
-# docs/CALL_ROUTING.md; verify current rates). Twilio bills each started minute; INARA
+# docs/CALL_ROUTING.md; verify current rates). Twilio bills each started minute; JARVIS
 # prices inbound calls to its local number and outbound calls to landlines at the local
 # rate and outbound calls to +60 1x mobile numbers at the mobile rate. The owner's
 # carrier bills the forwarded leg separately; the number rental is not included.

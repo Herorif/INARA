@@ -132,7 +132,7 @@ def _handler_name(handler):
     return name
 
 
-# Well-known event types used across INARA
+# Well-known event types used across JARVIS
 class Events:
     # Voice pipeline
     VOICE_CONNECTED = "voice.connected"

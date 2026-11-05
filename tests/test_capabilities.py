@@ -164,7 +164,7 @@ async def test_diagnostics_cheap_private_unknown_and_read_only(application_facto
     app.sessions.roles["client"] = "renderer"
     app.sessions.local_owner = "owner"
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.delenv("INARA_IMAGE_MODEL_DIR", raising=False)
+    monkeypatch.delenv("JARVIS_IMAGE_MODEL_DIR", raising=False)
     calls = []
     app.resources.probe = lambda: calls.append(1) or hardware()
     before = set(sys.modules)

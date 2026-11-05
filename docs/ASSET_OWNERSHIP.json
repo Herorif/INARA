@@ -2,7 +2,7 @@
   "format": 1,
   "entries": [
     {
-      "path": "assets/icons/inara.ico",
+      "path": "assets/icons/jarvis.ico",
       "sha256": "e88a17444691ddab4158442c532c7b51095bf35744e0ab78428ef9f619236f44",
       "origin": "unverified-local-asset",
       "owner": null,
@@ -10,7 +10,7 @@
       "decision": "pending"
     },
     {
-      "path": "assets/icons/inara.png",
+      "path": "assets/icons/jarvis.png",
       "sha256": "112bcb592ee927f9e1c7ad97f270345395e931bf256e58c2d61195544ebcc696",
       "origin": "unverified-local-asset",
       "owner": null,

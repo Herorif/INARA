@@ -29,8 +29,8 @@ export type CallsStatus = {
   needs_you_count: number;
   active_call: ActiveCall | null;
   briefing_pin_set: boolean | null;
-  /** INARA's own number for the forwarding codes, when the core provides it. */
-  inara_number: string | null;
+  /** JARVIS's own number for the forwarding codes, when the core provides it. */
+  jarvis_number: string | null;
 };
 export type CallSummary = {
   id: string;
@@ -48,7 +48,7 @@ export type CallSummary = {
 };
 export type CallFields = { name: string | null; reason: string | null; urgency: string | null; callback_number_masked: string | null; message: string | null };
 export type CallTriage = { summary: string | null; urgency: string | null; needs_owner: boolean; suggested_actions: string[] };
-export type TranscriptTurn = { role: 'caller' | 'inara' | 'owner'; text: string };
+export type TranscriptTurn = { role: 'caller' | 'jarvis' | 'owner'; text: string };
 export type CallDetail = CallSummary & {
   fields: CallFields | null;
   triage: CallTriage | null;
@@ -65,7 +65,10 @@ const DIRECTIONS: CallDirection[] = ['inbound', 'outbound'];
 const URGENCIES: Urgency[] = ['low', 'normal', 'urgent'];
 const PROGRESS: ProgressState[] = ['dialing', 'ringing', 'in_progress', 'completed', 'no_answer', 'failed'];
 const TRIAGE_STATES: TriageState[] = ['pending', 'done', 'failed', 'skipped'];
-const ROLES = ['caller', 'inara', 'owner'];
+// Wire names from before the INARA -> JARVIS rename (5 Nov 2026): a core started before it sends
+// `inara_number` and the transcript role 'inara'. Read them as the JARVIS names; remove one release later.
+const LEGACY_ROLE = 'inara', LEGACY_NUMBER = 'inara_number';
+const ROLES = ['caller', 'jarvis', 'owner', LEGACY_ROLE];
 export const CALLBACK_LIMIT = 500;
 const TEXT_LIMIT = 20000;
 const ID = /^[A-Za-z0-9_.:-]{1,128}$/;
@@ -104,7 +107,8 @@ export function parseCallsStatus(response: unknown): CallsStatus | null {
   if (body.needs_you_count !== undefined && body.needs_you_count !== null && !isCount(body.needs_you_count)) return null;
   if (body.active_call !== undefined && body.active_call !== null && !isActiveCall(body.active_call)) return null;
   if (body.briefing_pin_set !== undefined && typeof body.briefing_pin_set !== 'boolean') return null;
-  if (body.inara_number !== undefined && body.inara_number !== null && !(typeof body.inara_number === 'string' && E164.test(body.inara_number))) return null;
+  const number = body.jarvis_number ?? body[LEGACY_NUMBER];
+  if (number !== undefined && number !== null && !(typeof number === 'string' && E164.test(number))) return null;
   return {
     enabled: body.enabled,
     when_disabled: (body.when_disabled as string | null | undefined) ?? null,
@@ -121,7 +125,7 @@ export function parseCallsStatus(response: unknown): CallsStatus | null {
     needs_you_count: isCount(body.needs_you_count) ? body.needs_you_count : 0,
     active_call: (body.active_call as ActiveCall | null | undefined) ?? null,
     briefing_pin_set: typeof body.briefing_pin_set === 'boolean' ? body.briefing_pin_set : null,
-    inara_number: typeof body.inara_number === 'string' ? body.inara_number : null,
+    jarvis_number: typeof number === 'string' ? number : null,
   };
 }
 
@@ -187,7 +191,8 @@ export function createCallsClient(socket: RpcSocket) {
     async get(id: string): Promise<CallDetail> {
       const response = await scope.call<{ call?: unknown }>('calls_get', { id });
       if (!isCallDetail(response.call) || response.call.id !== id) throw invalid();
-      return { ...response.call, related_ids: response.call.related_ids ?? [] };
+      const transcript = response.call.transcript.map(turn => ((turn.role as string) === LEGACY_ROLE ? { ...turn, role: 'jarvis' as const } : turn));
+      return { ...response.call, transcript, related_ids: response.call.related_ids ?? [] };
     },
     async markDone(id: string): Promise<void> { await scope.call('calls_mark_done', { id }); },
     async remove(id: string): Promise<void> { await scope.call('calls_delete', { id }); },
@@ -198,7 +203,7 @@ export function createCallsClient(socket: RpcSocket) {
     },
     /** Fails with the core's code: calls_disabled, not_ready, no_callback_number, quiet_hours, daily_cap, cooldown or busy. */
     async approveCallback(id: string, message: string): Promise<string> {
-      if (!message.trim() || message.length > CALLBACK_LIMIT) throw new RpcError('Write what INARA should say, up to 500 characters.', 'invalid_arguments');
+      if (!message.trim() || message.length > CALLBACK_LIMIT) throw new RpcError('Write what JARVIS should say, up to 500 characters.', 'invalid_arguments');
       const response = await scope.call<{ call_id?: unknown }>('calls_callback_approve', { id, message }, 20000);
       if (!isId(response.call_id)) throw invalid();
       return response.call_id;

@@ -53,7 +53,7 @@ const AuthLock = () => {
     return (
         <div className={`auth-lock ${leaving ? 'is-leaving' : ''}`} role="dialog" aria-modal="true" aria-labelledby="auth-lock-title">
             <div className="auth-lock__content">
-                <span className="monogram monogram--lg" aria-hidden="true">I</span>
+                <span className="monogram monogram--lg" aria-hidden="true">J</span>
                 <h1 id="auth-lock-title">Locked</h1>
                 <p className="auth-lock__status" role="status" data-state={status}>{message}</p>
                 <div className="auth-lock__camera hud-panel">

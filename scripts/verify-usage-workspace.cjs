@@ -19,10 +19,10 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await button('Review budget');await set('Daily authorization allowance','0.10');await set('Monthly authorization allowance','0.30');await set('Per call authorization allowance','0.06');await set('Maximum output tokens','1024');await evaluate(`document.querySelector('.usage-policy input[type=checkbox]').click()`);await button('Apply reviewed budget');
   await until(()=>evaluate(`document.querySelector('.usage-mode').textContent==='CAPS ENABLED' && !document.querySelector('.usage-policy')`));
   await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
-  await set('Message INARA','Synthetic budget check');await evaluate(`document.querySelector('[aria-label="Send"]').click()`);
+  await set('Message JARVIS','Synthetic budget check');await evaluate(`document.querySelector('[aria-label="Send"]').click()`);
   await until(()=>evaluate(`document.querySelector('.conversation-log')?.textContent.includes('Synthetic budget response.') || [...document.querySelectorAll('.chat-message p')].some(el=>el.textContent==='Synthetic budget response.')`));
-  await until(()=>evaluate(`!document.querySelector('[aria-label="Message INARA"]').disabled`));
-  await set('Message INARA','Second synthetic budget check');await evaluate(`document.querySelector('[aria-label="Send"]').click()`);
+  await until(()=>evaluate(`!document.querySelector('[aria-label="Message JARVIS"]').disabled`));
+  await set('Message JARVIS','Second synthetic budget check');await evaluate(`document.querySelector('[aria-label="Send"]').click()`);
   await until(()=>evaluate(`[...document.querySelectorAll('.chat-message p')].some(el=>el.textContent.includes('Daily cloud authorization budget reached'))`));
   await open();assert.equal(await evaluate(`document.querySelector('.usage-meters strong').textContent`),'$0.06');
   await until(()=>evaluate(`document.querySelector('.usage-history')?.textContent.includes('Reported tokens: 61')`));

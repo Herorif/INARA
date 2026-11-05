@@ -16,6 +16,7 @@ import sqlite3
 import ssl
 from typing import Callable, Optional
 
+from services import env
 from services.storage import StorageError
 from services.tools import ServiceError
 
@@ -51,7 +52,7 @@ CHECK_MESSAGES = {
     ),
     "unexpected": "{provider} gave an unexpected answer. Try again later.",
     "incomplete": "Save the other {provider} account details first, then test again.",
-    "no_check": "There is no online check for this value; INARA checks it when it is used.",
+    "no_check": "There is no online check for this value; JARVIS checks it when it is used.",
 }
 
 
@@ -193,7 +194,7 @@ REGISTRY = {
             name="twilio_account_sid",
             label="Twilio Account SID",
             provider="Twilio",
-            env="INARA_TWILIO_ACCOUNT_SID",
+            env="JARVIS_TWILIO_ACCOUNT_SID",
             pattern=r"AC[0-9a-f]{32}",
             format_message="Twilio Account SIDs start with AC followed by 32 hex characters. Copy it from the Twilio Console.",
             request=_twilio_sid_request,
@@ -203,7 +204,7 @@ REGISTRY = {
             name="twilio_auth_token",
             label="Twilio Auth Token",
             provider="Twilio",
-            env="INARA_TWILIO_AUTH_TOKEN",
+            env="JARVIS_TWILIO_AUTH_TOKEN",
             pattern=r"[0-9a-f]{32}",
             format_message="Twilio Auth Tokens are 32 hex characters. Copy the primary token from the Twilio Console.",
             request=_twilio_token_request,
@@ -211,17 +212,17 @@ REGISTRY = {
         ),
         SecretSpec(
             name="twilio_phone_number",
-            label="INARA's Twilio number",
+            label="JARVIS's Twilio number",
             provider="Twilio",
-            env="INARA_TWILIO_PHONE_NUMBER",
+            env="JARVIS_TWILIO_PHONE_NUMBER",
             pattern=r"\+60[1-9][0-9]{7,9}",
-            format_message="Use INARA's Malaysian Twilio number in international format, for example +60312345678.",
+            format_message="Use JARVIS's Malaysian Twilio number in international format, for example +60312345678.",
         ),
         SecretSpec(
             name="owner_phone_number",
             label="Owner's mobile number",
             provider="Twilio",
-            env="INARA_OWNER_PHONE_NUMBER",
+            env="JARVIS_OWNER_PHONE_NUMBER",
             pattern=r"\+[1-9][0-9]{7,14}",
             format_message="Use the owner's mobile number in international format, for example +60123456789.",
         ),
@@ -229,17 +230,17 @@ REGISTRY = {
             name="cloudflare_tunnel_token",
             label="Cloudflare tunnel token",
             provider="Cloudflare",
-            env="INARA_CLOUDFLARE_TUNNEL_TOKEN",
+            env="JARVIS_CLOUDFLARE_TUNNEL_TOKEN",
             pattern=r"[A-Za-z0-9+/_\-]{80,500}={0,2}",
             format_message="Paste only the token from the tunnel's install command (a long string starting with ey), not the whole command.",
         ),
-        # Optional spoken PIN the owner gives on a briefing call before INARA shares the
+        # Optional spoken PIN the owner gives on a briefing call before JARVIS shares the
         # call details (C3; formerly calls.briefing_pin in settings.json). No online check.
         SecretSpec(
             name="call_briefing_pin",
             label="Call briefing PIN",
-            provider="INARA",
-            env="INARA_CALL_BRIEFING_PIN",
+            provider="JARVIS",
+            env="JARVIS_CALL_BRIEFING_PIN",
             pattern=r"[0-9]{4,8}",
             format_message="Use 4 to 8 digits for the call briefing PIN.",
         ),
@@ -280,7 +281,7 @@ class SecretStore:
         return value if isinstance(value, dict) else None
 
     def _environment(self, spec):
-        value = (self.environ.get(spec.env) or "").strip()
+        value = (env.lookup(spec.env, self.environ) or "").strip()
         return None if is_placeholder(value) else value
 
     def resolve(self, name):
@@ -401,7 +402,7 @@ def active_store():
 def resolve(name, environ=None):
     """Env override, then the active profile store; None when neither has a real key."""
     spec = spec_for(name)
-    value = ((os.environ if environ is None else environ).get(spec.env) or "").strip()
+    value = (env.lookup(spec.env, environ) or "").strip()
     if not is_placeholder(value):
         return value
     store = _active["store"]
@@ -418,5 +419,5 @@ def resolve(name, environ=None):
 def environment_placeholder(name, environ=None):
     """True when the env var is set but only to a known placeholder (startup hint)."""
     spec = spec_for(name)
-    raw = (os.environ if environ is None else environ).get(spec.env)
+    raw = env.lookup(spec.env, environ)
     return raw is not None and raw.strip() != "" and is_placeholder(raw)

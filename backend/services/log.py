@@ -1,9 +1,9 @@
 """Redacted diagnostic logging for the core.
 
-``get_logger(name)`` returns a logger under the ``inara`` namespace whose records are
+``get_logger(name)`` returns a logger under the ``jarvis`` namespace whose records are
 redacted before any handler sees them. ``configure_logging()`` runs once per process from
 the real entry points (``server.py`` and the native resident host); it attaches a
-size-capped rotating file under ``<user data>/logs/inara.log`` plus stderr. Callers log
+size-capped rotating file under ``<user data>/logs/jarvis.log`` plus stderr. Callers log
 codes, event names and exception types: never key values, prompts or transcripts. The
 filter below is defense in depth for secrets that slip into messages or tracebacks.
 """
@@ -14,7 +14,7 @@ import re
 import sys
 import threading
 
-ROOT = "inara"
+ROOT = "jarvis"
 MASK = "[REDACTED]"
 FILE_BYTES = 2 * 1024 * 1024
 FILE_BACKUPS = 3
@@ -58,7 +58,7 @@ class RedactingFilter(logging.Filter):
     """Render each record once, redacted, so no handler formats the raw arguments."""
 
     def filter(self, record):
-        if getattr(record, "_inara_redacted", False):
+        if getattr(record, "_jarvis_redacted", False):
             return True
         try:
             message = record.getMessage()
@@ -71,7 +71,7 @@ class RedactingFilter(logging.Filter):
             record.exc_text = redact(record.exc_text)
         if record.stack_info:
             record.stack_info = redact(record.stack_info)
-        record._inara_redacted = True
+        record._jarvis_redacted = True
         return True
 
 
@@ -81,7 +81,7 @@ _configured = None
 
 
 def get_logger(name=None):
-    """A redacting logger under ``inara`` (``name`` may be a module ``__name__``)."""
+    """A redacting logger under ``jarvis`` (``name`` may be a module ``__name__``)."""
     name = ROOT if not name or name == ROOT else name
     if name != ROOT and not name.startswith(ROOT + "."):
         name = f"{ROOT}.{name}"
@@ -110,7 +110,7 @@ def configure_logging(directory=None, level=logging.INFO, stream=None):
         try:
             directory = log_directory() if directory is None else directory
             directory.mkdir(parents=True, exist_ok=True)
-            path = directory / "inara.log"
+            path = directory / "jarvis.log"
             handlers.append(
                 logging.handlers.RotatingFileHandler(
                     path,
@@ -130,6 +130,13 @@ def configure_logging(directory=None, level=logging.INFO, stream=None):
         _configured = {"path": path, "handlers": handlers}
         if path is None:
             logger.warning("Diagnostic log file unavailable; logging to stderr only.")
+        # The INARA -> JARVIS folder move runs while the log directory is resolved, before
+        # these handlers existed: replay what it reported so it reaches the log file.
+        from services.data_migration import drain_pending
+
+        migration = get_logger("migration")
+        for level, message in drain_pending():
+            migration.log(level, message)
         return path
 
 

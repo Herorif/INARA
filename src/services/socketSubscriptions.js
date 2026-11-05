@@ -80,14 +80,14 @@ export function initSocketListeners() {
         }
 
         s().addMessage('System', data.msg);
-        if (data.msg.includes('INARA Started')) {
+        if (data.msg.includes('JARVIS Started')) {
             useStore.setState({
                 status: 'AI Connected',
                 aiConnected: true,
                 aiConnecting: false,
                 aiUnavailable: false,
             });
-        } else if (data.msg === 'INARA Stopped') {
+        } else if (data.msg === 'JARVIS Stopped') {
             useStore.setState({
                 status: 'Backend Connected',
                 aiConnected: false,

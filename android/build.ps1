@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 $taskPython = Join-Path $taskRoot '.venv/Scripts/python.exe'
 $taskEvidenceTool = Join-Path $taskRoot 'scripts/android-build.py'
-if (!(Test-Path -LiteralPath $taskPython)) { throw 'Provide the existing INARA Python environment first. This script installs nothing.' }
+if (!(Test-Path -LiteralPath $taskPython)) { throw 'Provide the existing JARVIS Python environment first. This script installs nothing.' }
 if ($Preflight) { & $taskPython $taskEvidenceTool preflight; exit $LASTEXITCODE }
 if ($ResolveDependencies -and !$RecordDependencies) { throw 'Dependency resolution is allowed only with explicit -RecordDependencies. Normal builds are strict and offline.' }
 $taskJava = Get-Command javac -ErrorAction SilentlyContinue

@@ -69,7 +69,7 @@ def copy(value, operation, file, profile=None):
 def test_encrypted_backup_typed_prepare_signed_activation_and_profile_rollback(fixture):
     value = fixture
     before = (value["root"] / "installation.json").read_bytes()
-    file = value["tmp"] / "private.inara"
+    file = value["tmp"] / "private.jarvis"
     assert copy(value, "backup", file)["backup_created"]
     assert b"PRIVATE MODEL" not in file.read_bytes()
     profile = uuid.uuid4().hex
@@ -91,7 +91,7 @@ def test_encrypted_backup_typed_prepare_signed_activation_and_profile_rollback(f
 
 def test_remove_retains_data_trust_and_separate_exact_phrase_erasure(fixture):
     value = fixture
-    archive = value["tmp"] / "retained.inara"
+    archive = value["tmp"] / "retained.jarvis"
     copy(value, "backup", archive)
     path = sign(value, "remove-software")
     assert apply(value, path)["data_preserved"]
@@ -115,7 +115,7 @@ def test_remove_retains_data_trust_and_separate_exact_phrase_erasure(fixture):
 def test_signed_lifecycle_refuses_before_journal_or_deletion(fixture, kind):
     value = fixture
     if kind == "foreign-profile":
-        marker = value["data"] / ".inara-data.json"
+        marker = value["data"] / ".jarvis-data.json"
         save(marker, {"format": 1, "installation": "0" * 32, "slot": value["slot"]})
         apply(value, sign(value, "remove-software"))
         with pytest.raises(ValueError):
@@ -228,7 +228,7 @@ def test_unknown_partial_or_changed_recovery_evidence_refuses(fixture, monkeypat
 
 def test_backup_review_detects_changed_data_and_preserves_metadata(fixture):
     value = fixture
-    output = value["tmp"] / "profile.inara"
+    output = value["tmp"] / "profile.jarvis"
     reviewed = life.copies(*common(value), "backup", value["slot"], output, _protector=value["protector"])
     (value["data"] / "projects/projects/temp/model.stl").write_text("changed")
     with pytest.raises(ValueError):
@@ -239,7 +239,7 @@ def test_backup_review_detects_changed_data_and_preserves_metadata(fixture):
 @pytest.mark.parametrize("kind", ["owner", "payload", "unknown-record-with-rewritten-receipt"])
 def test_prepared_activation_rechecks_owner_inventory_and_typed_data(fixture, kind):
     value = fixture
-    archive = value["tmp"] / "profile.inara"
+    archive = value["tmp"] / "profile.jarvis"
     copy(value, "backup", archive)
     profile = uuid.uuid4().hex
     copy(value, "prepare-profile", archive, profile)
@@ -266,7 +266,7 @@ def test_actual_original_account_backup_and_preparation(fixture, monkeypatch):
     storage = life.module("desktop-backup").protection()
     monkeypatch.setattr(life.backup, "protection", lambda: storage)
     value["protector"] = storage
-    archive = value["tmp"] / "real-account.inara"
+    archive = value["tmp"] / "real-account.jarvis"
     assert copy(value, "backup", archive)["backup_created"]
     profile = uuid.uuid4().hex
     assert copy(value, "prepare-profile", archive, profile)["prepared"]
@@ -299,8 +299,8 @@ def test_deletion_inventory_cannot_escape_owned_scope(tmp_path, unsafe):
 def test_new_outputs_cannot_modify_trusted_controller(fixture):
     value = fixture
     with pytest.raises(ValueError):
-        life.copies(*common(value), "backup", value["slot"], life.ROOT / "must-not-create.inara")
-    assert not (life.ROOT / "must-not-create.inara").exists()
+        life.copies(*common(value), "backup", value["slot"], life.ROOT / "must-not-create.jarvis")
+    assert not (life.ROOT / "must-not-create.jarvis").exists()
 
 
 def test_interrupted_erasure_requires_phrase_again_at_resume(fixture, monkeypatch):
@@ -342,7 +342,7 @@ def test_relative_cli_paths_are_canonical_in_recoverable_journal(fixture, monkey
 
 def test_change_after_apply_snapshot_cannot_enter_backup(fixture, monkeypatch):
     value = fixture
-    file = value["tmp"] / "must-not-write.inara"
+    file = value["tmp"] / "must-not-write.jarvis"
     reviewed = life.copies(*common(value), "backup", value["slot"], file, _protector=value["protector"])
     original = life.backup.Recovery.backup
 

@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
@@ -17,10 +17,10 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Non-exported signing key plus independently encrypted, non-backed-up local state. */
-class DeviceSecurity(context: Context, private val storageName: String = "companion-state.enc", private val storageAlias: String = "inara-device-storage-v1") {
+class DeviceSecurity(context: Context, private val storageName: String = "companion-state.enc", private val storageAlias: String = "jarvis-device-storage-v1") {
     private val keys = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
     private val file = AtomicFile(File(context.noBackupFilesDir, storageName))
-    private val signingAlias = "inara-device-signing-v1"
+    private val signingAlias = "jarvis-device-signing-v1"
     private fun signingKey() {
         if (!keys.containsAlias(signingAlias)) {
             KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore").apply {
@@ -58,7 +58,7 @@ class DeviceSecurity(context: Context, private val storageName: String = "compan
         require(raw.size in 29..524288)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, storageKey(), GCMParameterSpec(128, raw.copyOfRange(0, 12)))
-        cipher.updateAAD((if (storageName == "companion-state.enc") "INARA-ANDROID-1" else "INARA-ANDROID-1:$storageName").toByteArray(Charsets.UTF_8))
+        cipher.updateAAD((if (storageName == "companion-state.enc") "JARVIS-ANDROID-1" else "JARVIS-ANDROID-1:$storageName").toByteArray(Charsets.UTF_8))
         return JSONObject(String(cipher.doFinal(raw.copyOfRange(12, raw.size)), Charsets.UTF_8))
     }
     fun write(value: JSONObject) {
@@ -66,7 +66,7 @@ class DeviceSecurity(context: Context, private val storageName: String = "compan
         require(raw.size <= 500000)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, storageKey())
-        cipher.updateAAD((if (storageName == "companion-state.enc") "INARA-ANDROID-1" else "INARA-ANDROID-1:$storageName").toByteArray(Charsets.UTF_8))
+        cipher.updateAAD((if (storageName == "companion-state.enc") "JARVIS-ANDROID-1" else "JARVIS-ANDROID-1:$storageName").toByteArray(Charsets.UTF_8))
         val output = file.startWrite()
         try { output.write(cipher.iv + cipher.doFinal(raw)); file.finishWrite(output) }
         catch (failure: Exception) { file.failWrite(output); throw failure }

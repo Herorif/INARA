@@ -16,7 +16,7 @@ The existing Windows manager lease spans each operation, excluding a managed res
 
 Preview decrypts and validates entirely in memory. It checks strict JSON, bounds, exact inventory, hashes, safe Windows paths, case collisions, directory/file conflicts, settings object, resident identity and SQLite version-1 table layout/integrity. Inner compression, duplicate entries/keys, links/hardlinks, unknown payloads, device names, traversal and alternate-stream paths reject. SQLite WAL-mode headers are changed only in the in-memory validation copy, as described by [SQLite's deserialize contract](https://sqlite.org/c3ref/deserialize.html); the archived/restored database bytes remain unchanged.
 
-Preview emits only counts, total bytes, format/protection status and the encrypted file's SHA-256. It emits no filenames, resident IDs, settings or record values. Restore requires this reviewed digest, rereads/revalidates the encrypted backup, and accepts only a new directory outside the installation. It verifies the copied tree before marking `.inara-recovery.json` complete. Failed/interrupted restores remain incomplete and are never reused or automatically repaired. Existing profiles and installation pointers remain untouched.
+Preview emits only counts, total bytes, format/protection status and the encrypted file's SHA-256. It emits no filenames, resident IDs, settings or record values. Restore requires this reviewed digest, rereads/revalidates the encrypted backup, and accepts only a new directory outside the installation. It verifies the copied tree before marking `.jarvis-recovery.json` complete. Failed/interrupted restores remain incomplete and are never reused or automatically repaired. Existing profiles and installation pointers remain untouched.
 
 **Recovery copies are not activated.** Records currently contain absolute project paths and scope hashes. These are preserved exactly, including protected values; relocating files does not automatically make all project-scoped history/memory usable at the new path. [Reviewed activation with initial typed project adapters](RECOVERY_ACTIVATION.md) is now implemented separately; unsupported record groups still reject. Do not manually replace a live slot with this detached copy and assume compatibility. Retain the original package, installation metadata and Windows account.
 
@@ -28,7 +28,7 @@ Use the verified control candidate's bundled Python; no external Python/npm or d
 $control = 'C:/path/to/verified-control-candidate'
 $installation = 'C:/path/to/existing-managed-installation'
 $slot = '<exact registered slot identifier>'
-$file = 'C:/path/to/private-backups/new-profile.inara'
+$file = 'C:/path/to/private-backups/new-profile.jarvis'
 & "$control/runtime/python/python.exe" -I -B "$control/scripts/desktop-backup.py" backup --root $installation --slot $slot --file $file
 & "$control/runtime/python/python.exe" -I -B "$control/scripts/desktop-backup.py" preview --root $installation --slot $slot --file $file
 # Review the preview and copy its digest, then choose a new owner-controlled directory.

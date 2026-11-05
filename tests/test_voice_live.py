@@ -250,7 +250,7 @@ async def test_conversation_mode_uses_server_vad_and_barge_in(voice):
     assert emitted(app, "voice_interrupted") == [{"session_id": ack["session_id"]}]
     assert emitted(app, "voice_caption")[-1] == {
         "session_id": ack["session_id"],
-        "role": "inara",
+        "role": "jarvis",
         "text": "The weather is",
         "final": True,
     }
@@ -281,10 +281,10 @@ async def test_captions_stream_and_append_to_the_shared_conversation(voice):
     assert captions == [
         ("user", "What time", False),
         ("user", "What time is it?", False),
-        ("inara", "It is", False),
-        ("inara", "It is nine.", False),
+        ("jarvis", "It is", False),
+        ("jarvis", "It is nine.", False),
         ("user", "What time is it?", True),
-        ("inara", "It is nine.", True),
+        ("jarvis", "It is nine.", True),
     ]
     # A later exchange appends after the first; roles keep alternating.
     live.push(input_transcription=types.Transcription(text="Thanks"))
@@ -335,7 +335,7 @@ async def test_ask_brain_runs_a_conversation_turn_with_unchanged_approvals(voice
     assert response.response == {"result": "Saved note.txt with your text."}
     assert (project / "note.txt").read_text() == "hi"
     shown = emitted(app, "transcription")[-1]
-    assert shown["text"] == "Saved note.txt with your text." and shown["sender"] == "INARA"
+    assert shown["text"] == "Saved note.txt with your text." and shown["sender"] == "JARVIS"
     assert shown["conversation_id"] == str(conversation_id)
     # The model speaks a condensed answer; the brain already recorded the exchange.
     live.push(output_transcription=types.Transcription(text="Done, the note is saved."))
@@ -574,7 +574,7 @@ def test_live_usage_counts_and_price_table():
 
 @pytest.mark.asyncio
 async def test_inert_fixture_provider_runs_a_full_turn_and_interruption(voice):
-    from services.voice_fixture import INARA_CAPTION, USER_CAPTION, FixtureLive
+    from services.voice_fixture import JARVIS_CAPTION, USER_CAPTION, FixtureLive
 
     app, _ = voice
     fixture = FixtureLive(chunks=20, pace=0.02)
@@ -587,7 +587,7 @@ async def test_inert_fixture_provider_runs_a_full_turn_and_interruption(voice):
     await call(app, "activity", {"session_id": session_id, "state": "end"})
     await until(lambda: len(emitted(app, "voice_audio_out")) >= 3)
     texts = {item["text"] for item in emitted(app, "voice_caption")}
-    assert {USER_CAPTION, INARA_CAPTION} <= texts
+    assert {USER_CAPTION, JARVIS_CAPTION} <= texts
     assert all(len(item["pcm"]) == 4800 for item in emitted(app, "voice_audio_out"))
     await call(app, "activity", {"session_id": session_id, "state": "start"})
     await until(lambda: emitted(app, "voice_interrupted"))

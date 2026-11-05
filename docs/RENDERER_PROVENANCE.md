@@ -16,7 +16,7 @@ The manifest bounds file inventories and metadata size. The Python verifier reje
 
 ## Ownership is explicit and pending
 
-[ASSET_OWNERSHIP.json](ASSET_OWNERSHIP.json) starts with exact SHA-256 records for the two local INARA icons and `public/hand_landmarker.task`. Their origin is unverified, owner is unset, license evidence is empty and decision is pending. Existing file names and project MIT metadata do not establish their ownership. No model or replacement asset was downloaded or activated.
+[ASSET_OWNERSHIP.json](ASSET_OWNERSHIP.json) starts with exact SHA-256 records for the two local JARVIS icons and `public/hand_landmarker.task`. Their origin is unverified, owner is unset, license evidence is empty and decision is pending. Existing file names and project MIT metadata do not establish their ownership. No model or replacement asset was downloaded or activated.
 
 The actual build also inventories the MediaPipe WASM and loader under their exact installed npm package. That establishes an observed package path/version, not redistribution clearance. All **five asset inputs remain pending** in the audit. The current registry accepts only pending entries; a future owner-reviewed decision format must bind authoritative source/license evidence before approval can have any effect. Removing the pending label or editing a file cannot silently grant clearance.
 

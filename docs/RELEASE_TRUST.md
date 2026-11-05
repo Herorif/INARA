@@ -2,7 +2,7 @@
 
 Implemented 22 October 2026. `scripts/release-trust.py` prepares unsigned signing messages and verifies externally produced detached attestations for the exact candidate, audit and review ledger. It uses the existing core `cryptography` dependency; no package, model, SDK or signing tool was downloaded. It has **no private-key import, generation, signing, certificate-store or network CLI**.
 
-The checked-in [RELEASE_TRUST_POLICY.json](RELEASE_TRUST_POLICY.json) is deliberately disabled: no publisher identity and zero enrolled keys. No INARA production signing identity was created or inferred. Policy inspection succeeds, while preparation/verification with that disabled policy refuses before writing a signing request or validating a candidate as trusted.
+The checked-in [RELEASE_TRUST_POLICY.json](RELEASE_TRUST_POLICY.json) is deliberately disabled: no publisher identity and zero enrolled keys. No JARVIS production signing identity was created or inferred. Policy inspection succeeds, while preparation/verification with that disabled policy refuses before writing a signing request or validating a candidate as trusted.
 
 ## External trust policy
 
@@ -44,7 +44,7 @@ Successful verification reports key and whole-payload binding verification, with
 
 The default request validity is 60 minutes; `--valid-minutes` accepts 1–1,440. Preparation writes only a **new** detached directory containing `statement.json` and the exact public `signing-message.bin`. Existing requests and candidate/audit/ledger locations are never overwritten. Keep request/envelope files separate from those bound immutable inputs. Interruption can leave a partial request directory; retain it and choose a new destination. No signing operation is retried or executed by preparation.
 
-An external owned signer must sign the exact message bytes, with separate publisher and reviewer keys, and produce an envelope containing `format: 1`, `kind: inara-detached-attestation`, the exact statement, and signature records with only `key_id` and canonical base64 `signature`. The envelope cannot enroll its own keys. This source milestone intentionally supplies no production signer/key storage integration.
+An external owned signer must sign the exact message bytes, with separate publisher and reviewer keys, and produce an envelope containing `format: 1`, `kind: jarvis-detached-attestation`, the exact statement, and signature records with only `key_id` and canonical base64 `signature`. The envelope cannot enroll its own keys. This source milestone intentionally supplies no production signer/key storage integration.
 
 For Windows distribution, detached attestations and Authenticode are separate requirements. Actual Windows signing/timestamp validation remains unimplemented/unconfigured; see Microsoft's [SignTool verification](https://learn.microsoft.com/windows/win32/seccrypto/signtool) and [Authenticode timestamping](https://learn.microsoft.com/en-us/windows/win32/seccrypto/time-stamping-authenticode-signatures). When binary signatures change bytes, sign the intended binaries first, regenerate the final package/renderer-compatible inventory and audit/review bindings, then attest those **final bytes**. Current package controls still require their documented unsigned pilot format; do not silently relabel it as a signed installer. No certificate/container password or private key belongs in these JSON files, source or CLI arguments.
 

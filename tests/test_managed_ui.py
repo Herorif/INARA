@@ -142,7 +142,7 @@ def test_protocol_ready_json_only_and_generic_failure():
     outgoing = StringIO()
     ui.serve(BytesIO(b'{"op":"shell","secret":"never echo"}\n'), outgoing)
     ready, result = map(json.loads, outgoing.getvalue().splitlines())
-    assert ready["ready"] and ready["kind"] == "inara-protected-management"
+    assert ready["ready"] and ready["kind"] == "jarvis-protected-management"
     assert "signed-lifecycle" in ready["capabilities"]
     assert result["ok"] is False and "never echo" not in outgoing.getvalue()
 
@@ -229,19 +229,19 @@ def test_native_entry_verifies_inventory_before_fixed_process(tmp_path, monkeypa
 @pytest.mark.parametrize("operation", ["copy", "lifecycle"])
 def test_profile_and_signed_lifecycle_worker_routes(tmp_path, monkeypatch, operation):
     value = base(tmp_path, operation)
-    value.update({"copy_action": "backup", "slot": "e" * 64, "file": str(tmp_path / "profile.inara")} if operation == "copy" else {"change": str(tmp_path / "lifecycle.json")})
+    value.update({"copy_action": "backup", "slot": "e" * 64, "file": str(tmp_path / "profile.jarvis")} if operation == "copy" else {"change": str(tmp_path / "lifecycle.json")})
     calls = []
     fake = SimpleNamespace(copies=lambda *args: calls.append(args) or {"route": "copy"}, apply=lambda *args: calls.append(args) or {"route": "lifecycle"})
     monkeypatch.setattr(ui.managed, "module", lambda _: fake)
-    result = ui.Control().invoke(ui.request(value), "f" * 64, confirmation="ERASE INARA DATA")
+    result = ui.Control().invoke(ui.request(value), "f" * 64, confirmation="ERASE JARVIS DATA")
     assert result["route"] == operation
-    assert calls[-1][-1] == ("f" * 64 if operation == "copy" else "ERASE INARA DATA")
+    assert calls[-1][-1] == ("f" * 64 if operation == "copy" else "ERASE JARVIS DATA")
 
 
 @pytest.mark.parametrize("kind", ["missing-profile", "invalid-slot", "unknown-copy"])
 def test_copy_request_refuses_incomplete_or_arbitrary_actions(tmp_path, kind):
     value = base(tmp_path, "copy")
-    value.update(copy_action="prepare-profile", slot="e" * 64, file=str(tmp_path / "profile.inara"))
+    value.update(copy_action="prepare-profile", slot="e" * 64, file=str(tmp_path / "profile.jarvis"))
     if kind == "invalid-slot":
         value["slot"] = "not-a-version"
     elif kind == "unknown-copy":

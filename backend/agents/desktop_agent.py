@@ -1,5 +1,5 @@
 """
-Desktop Agent — gives INARA awareness of and control over the host machine.
+Desktop Agent — gives JARVIS awareness of and control over the host machine.
 
 Follows the BaseAgent pattern. Provides 8 LLM-callable tools:
   get_system_info, launch_app, list_running_apps, focus_window,

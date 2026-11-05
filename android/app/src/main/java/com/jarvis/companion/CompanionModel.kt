@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -162,7 +162,7 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
             val args = JSONObject(pending.toString()).apply { remove("state") }
             val result = request("chat", args)
             require(result.getString("request_id") == pending.getString("request_id"))
-            append("INARA", result.getString("text")); saved.remove("pending")
+            append("JARVIS", result.getString("text")); saved.remove("pending")
             publish("Answer saved on this phone.")
         } finally {
             if (saved.has("pending")) {
@@ -178,7 +178,7 @@ class CompanionModel(application: Application) : AndroidViewModel(application) {
             "succeeded" -> {
                 val answer = result.getJSONObject("result")
                 require(answer.getString("request_id") == pending.getString("request_id"))
-                append("INARA", answer.getString("text")); saved.remove("pending"); publish("Saved reply recovered; no new AI request was sent.")
+                append("JARVIS", answer.getString("text")); saved.remove("pending"); publish("Saved reply recovered; no new AI request was sent.")
             }
             "absent" -> publish("The laptop has no receipt. Your message is preserved; discard it before composing a new request.")
             else -> publish("The request is incomplete or failed. No automatic retry will run. You can discard this local pending item.")

@@ -1,10 +1,10 @@
 {
-  "name": "inara",
+  "name": "jarvis",
   "version": "1.0.0",
-  "description": "INARA - General-Purpose AI Agent Platform",
+  "description": "JARVIS - General-Purpose AI Agent Platform",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"node --experimental-require-module node_modules/vite/bin/vite.js\" \"wait-on tcp:5173 && cross-env INARA_DEV_SERVER=1 node scripts/launch-native.cjs\"",
+    "dev": "concurrently -k \"node --experimental-require-module node_modules/vite/bin/vite.js\" \"wait-on tcp:5173 && cross-env JARVIS_DEV_SERVER=1 node scripts/launch-native.cjs\"",
     "backend:dev": "python backend/server.py",
     "build": "node --experimental-require-module node_modules/vite/bin/vite.js build",
     "start": "node scripts/launch-native.cjs",

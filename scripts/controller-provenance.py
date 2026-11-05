@@ -60,7 +60,7 @@ def collect(directory, pin, source=ROOT):
         })
 
     _, own = observe(directory, "controller", "LICENSE", True)
-    component("project", "INARA trusted controller", pin, "SEE_LICENSE_EVIDENCE", [own])
+    component("project", "JARVIS trusted controller", pin, "SEE_LICENSE_EVIDENCE", [own])
     runtime_raw, _ = observe(directory, "controller", "runtime/runtime-manifest.json")
     runtime = json.loads(runtime_raw)
     _, python_license = observe(directory, "controller", "runtime/LICENSE.txt", True)
@@ -102,7 +102,7 @@ def collect(directory, pin, source=ROOT):
     native = [entry for entry in manifest["files"] if Path(entry["path"]).suffix.lower() in {".exe", ".dll", ".pyd"}]
     missing = [{k: c[k] for k in ("ecosystem", "name", "version", "metadata")} for c in components if not c["notices"]]
     report = {
-        "format": 1, "kind": "inara-controller-provenance", "controller_manifest_sha256": pin,
+        "format": 1, "kind": "jarvis-controller-provenance", "controller_manifest_sha256": pin,
         "collector_sha256": audit.digest(Path(__file__).read_bytes()), "controller_files": verified["files"],
         "components": sorted(components, key=lambda c: (c["ecosystem"], c["name"])),
         "inputs": sorted(inputs.values(), key=lambda x: (x["scope"], x["path"])),
@@ -135,7 +135,7 @@ def collect(directory, pin, source=ROOT):
         subject("delivery-input", entry["path"], entry, ["origin", "license", "obligations", "delivery"])
     report_raw = encoded(report)
     queue = {
-        "format": 1, "kind": "inara-controller-review-queue", "controller_manifest_sha256": pin,
+        "format": 1, "kind": "jarvis-controller-review-queue", "controller_manifest_sha256": pin,
         "report_sha256": audit.digest(report_raw), "subjects": subjects,
         "decisions_recorded": 0, "release_authorized": False,
         "note": "Pending evidence checklist only; not the desktop ledger or a release authorization input.",

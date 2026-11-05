@@ -48,7 +48,7 @@ from telephony.tunnel import ARGUMENTS, TunnelSupervisor, locate_cloudflared
 
 ACCOUNT = "AC" + "0123456789abcdef" * 2
 TOKEN = "0123456789abcdef" * 2
-INARA = "+60312345678"
+JARVIS = "+60312345678"
 OWNER = "+60123456789"
 FRIEND = "+60198765432"
 BASE = "https://calls.example.com"
@@ -115,7 +115,7 @@ class FakeApp:
             secrets if secrets is not None else {
                 "twilio_account_sid": ACCOUNT,
                 "twilio_auth_token": TOKEN,
-                "twilio_phone_number": INARA,
+                "twilio_phone_number": JARVIS,
                 "owner_phone_number": OWNER,
             }
         )
@@ -157,7 +157,7 @@ def xml(document):
 
 def inbound_params(**overrides):
     return {
-        "AccountSid": ACCOUNT, "CallSid": CALL, "From": "+60111111111", "To": INARA,
+        "AccountSid": ACCOUNT, "CallSid": CALL, "From": "+60111111111", "To": JARVIS,
         "Direction": "inbound", "CallStatus": "ringing", **overrides,
     }
 
@@ -186,7 +186,7 @@ def test_twilio_published_signature_vectors(caller, expected):
 
 
 def test_signature_rejects_tampering_missing_and_url_mismatch():
-    params = [("CallSid", CALL), ("From", "+60111111111"), ("To", INARA)]
+    params = [("CallSid", CALL), ("From", "+60111111111"), ("To", JARVIS)]
     url = BASE + "/telephony/voice/inbound"
     good = compute_signature(TOKEN, url, params)
     assert valid_signature(TOKEN, [url], params, good)
@@ -247,7 +247,7 @@ def test_tampered_stream_tokens_are_invalid(mutate):
     token = tokens.issue(CALL, "inbound")
     payload, _, signature = token.partition(".")
     forged = {
-        "payload": base64.urlsafe_b64encode(b'{"p":"inara-media-stream-v1","c":"' + CALL.encode()
+        "payload": base64.urlsafe_b64encode(b'{"p":"jarvis-media-stream-v1","c":"' + CALL.encode()
                                             + b'","d":"inbound","n":"x","x":99999999999}').decode().rstrip("=")
         + "." + signature,
         "signature": payload + "." + signature[:-2] + ("AA" if signature[-2:] != "AA" else "BB"),
@@ -322,11 +322,11 @@ def test_no_agent_or_missing_number_takes_the_unavailable_path():
 
 
 @pytest.mark.parametrize("enabled", [True, False])
-def test_loop_guard_rejects_inaras_own_number_first(enabled):
+def test_loop_guard_rejects_jarviss_own_number_first(enabled):
     service = make_service({"enabled": enabled})
     service.register_outbound("owner-call", OWNER, "briefing", None, True)
     service.outbound_placed("owner-call", "CA" + "d" * 32, "ringing")
-    root = xml(service.inbound_twiml(inbound_params(From=INARA)))
+    root = xml(service.inbound_twiml(inbound_params(From=JARVIS)))
     assert [child.tag for child in root] == ["Reject"]
     (event,) = service.app.bus.events
     assert event.type == EVENT_OWNER_UNREACHABLE
@@ -337,14 +337,14 @@ def test_loop_guard_rejects_inaras_own_number_first(enabled):
 def test_loop_guard_withheld_caller_forwarded_from_owner():
     service = make_service()
     withheld_forward = inbound_params(From="+266696687", ForwardedFrom=OWNER)
-    # No sign that INARA is the caller: a withheld caller forwarded by the owner is screened.
+    # No sign that JARVIS is the caller: a withheld caller forwarded by the owner is screened.
     assert xml(service.inbound_twiml(withheld_forward)).find("Connect") is not None
-    by_name = inbound_params(From="Anonymous", ForwardedFrom=OWNER, CallerName=INARA)
+    by_name = inbound_params(From="Anonymous", ForwardedFrom=OWNER, CallerName=JARVIS)
     assert [c.tag for c in xml(service.inbound_twiml(by_name))] == ["Reject"]
     service.register_outbound("owner-call", OWNER, "briefing", None, True)
     assert [c.tag for c in xml(service.inbound_twiml(withheld_forward))] == ["Reject"]
     assert [e.data["reason"] for e in service.app.bus.events] == ["forwarded_withheld"] * 2
-    # A visible third-party caller forwarded while INARA rings the owner is not rejected.
+    # A visible third-party caller forwarded while JARVIS rings the owner is not rejected.
     visible = inbound_params(From=FRIEND, ForwardedFrom=OWNER)
     assert xml(service.inbound_twiml(visible)).find("Connect") is not None
 
@@ -645,7 +645,7 @@ def test_stub_agent_is_never_the_default():
     service = TelephonyService(FakeApp(), port=0, tunnel=Tunnel(), environ={})
     assert service.agent is None and service.status()["agent"] == "none"
     developer = TelephonyService(FakeApp(), port=0, tunnel=Tunnel(),
-                                 environ={"INARA_TELEPHONY_STUB_AGENT": "1"})
+                                 environ={"JARVIS_TELEPHONY_STUB_AGENT": "1"})
     assert developer.agent is stub_agent and developer.status()["agent"] == "stub"
 
 
@@ -687,7 +687,7 @@ async def test_owner_call_needs_no_grant_and_has_the_right_shape():
     assert request.headers["authorization"] == "Basic " + base64.b64encode(
         f"{ACCOUNT}:{TOKEN}".encode()).decode()
     fields = form(request)
-    assert fields["To"] == [OWNER] and fields["From"] == [INARA]
+    assert fields["To"] == [OWNER] and fields["From"] == [JARVIS]
     assert fields["Timeout"] == ["15"] and fields["Method"] == ["POST"]
     assert fields["StatusCallback"] == [BASE + "/telephony/status"]
     assert fields["StatusCallbackEvent"] == ["initiated", "ringing", "answered", "completed"]
@@ -783,7 +783,7 @@ async def test_outbound_refusals_before_any_request():
         await service.place_call(OWNER, "Briefing")
     assert error.value.code == "calls_disabled"
     service, twilio = outbound_service()
-    for number, code in ((INARA, "invalid_number"), ("0123", "invalid_number")):
+    for number, code in ((JARVIS, "invalid_number"), ("0123", "invalid_number")):
         with pytest.raises(ServiceError) as error:
             await service.place_call(number, "Briefing")
         assert error.value.code == code
@@ -815,7 +815,7 @@ async def test_outbound_twiml_uses_the_ticket_once_and_checks_the_call():
     service, twilio = outbound_service()
     result = await service.place_call(OWNER, "Briefing", {"why": "missed call"})
     ticket = parse_qs(urlsplit(form(twilio.requests[0])["Url"][0]).query)["ticket"][0]
-    params = {"AccountSid": ACCOUNT, "CallSid": result["call_sid"], "From": INARA, "To": OWNER,
+    params = {"AccountSid": ACCOUNT, "CallSid": result["call_sid"], "From": JARVIS, "To": OWNER,
               "Direction": "outbound-api", "CallStatus": "in-progress"}
     with pytest.raises(ServiceError):
         service.outbound_twiml(ticket, {**params, "To": FRIEND})
@@ -911,8 +911,8 @@ async def test_tunnel_reports_missing_token_binary_and_failures(tmp_path):
 def test_locate_cloudflared(tmp_path):
     binary = tmp_path / "cloudflared.exe"
     binary.write_bytes(b"")
-    assert locate_cloudflared({"INARA_CLOUDFLARED": str(binary)}) == binary
-    assert locate_cloudflared({"INARA_CLOUDFLARED": str(tmp_path / "nope.exe")}) is None
+    assert locate_cloudflared({"JARVIS_CLOUDFLARED": str(binary)}) == binary
+    assert locate_cloudflared({"JARVIS_CLOUDFLARED": str(tmp_path / "nope.exe")}) is None
     assert locate_cloudflared({"PATH": str(tmp_path)}, which=lambda name, path: str(binary)) == binary
     empty = {"PATH": "", "ProgramFiles": str(tmp_path / "none")}
     assert locate_cloudflared(empty, which=lambda name, path: None) is None
@@ -1018,7 +1018,7 @@ def test_telephony_secret_formats():
     cases = {
         "twilio_account_sid": (ACCOUNT, ["AC" + "0" * 31, "ac" + "0" * 32, "AC" + "G" * 32]),
         "twilio_auth_token": (TOKEN, ["0" * 31, "Z" * 32, TOKEN + " "]),
-        "twilio_phone_number": (INARA, ["+12025550123", "60312345678", "+60 3 1234 5678"]),
+        "twilio_phone_number": (JARVIS, ["+12025550123", "60312345678", "+60 3 1234 5678"]),
         "owner_phone_number": (OWNER, ["0123456789", "+0123456789", "+60123"]),
         "cloudflare_tunnel_token": (TUNNEL, ["short", "cloudflared service install " + TUNNEL]),
     }

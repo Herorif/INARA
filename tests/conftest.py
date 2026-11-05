@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for INARA tests.
+Pytest configuration and shared fixtures for JARVIS tests.
 """
 import pytest
 import sys
@@ -15,27 +15,29 @@ sys.path.insert(0, str(BACKEND_DIR))
 def pytest_configure(config):
     """Isolate storage before collection: smoke tests import the server at module scope."""
     import tempfile
-    config._inara_previous_data = os.environ.get("INARA_DATA_DIR")
-    config._inara_test_data = tempfile.TemporaryDirectory(prefix="inara-tests-")
-    os.environ["INARA_DATA_DIR"] = config._inara_test_data.name
-    config._inara_previous_isolation = {key: os.environ.get(key) for key in
-                                       ("INARA_PROJECT_ROOT", "INARA_LEGACY_DATA_DIR", "INARA_SETTINGS_FILE")}
-    os.environ["INARA_PROJECT_ROOT"] = config._inara_test_data.name
-    os.environ["INARA_LEGACY_DATA_DIR"] = config._inara_test_data.name
-    os.environ["INARA_SETTINGS_FILE"] = str(Path(config._inara_test_data.name) / "settings.json")
+    config._jarvis_previous_data = os.environ.get("JARVIS_DATA_DIR")
+    config._jarvis_test_data = tempfile.TemporaryDirectory(prefix="jarvis-tests-")
+    os.environ["JARVIS_DATA_DIR"] = config._jarvis_test_data.name
+    config._jarvis_previous_isolation = {key: os.environ.get(key) for key in
+                                       ("JARVIS_PROJECT_ROOT", "JARVIS_LEGACY_DATA_DIR", "JARVIS_SETTINGS_FILE")}
+    os.environ["JARVIS_PROJECT_ROOT"] = config._jarvis_test_data.name
+    os.environ["JARVIS_LEGACY_DATA_DIR"] = config._jarvis_test_data.name
+    os.environ["JARVIS_SETTINGS_FILE"] = str(Path(config._jarvis_test_data.name) / "settings.json")
 
 
 # Opt-in markers (registered in pytest.ini): marker -> environment switch.
 OPT_IN_MARKERS = {
-    "live_api": "INARA_LIVE_API_TESTS",
-    "live_hardware": "INARA_LIVE_HARDWARE_TESTS",
+    "live_api": "JARVIS_LIVE_API_TESTS",
+    "live_hardware": "JARVIS_LIVE_HARDWARE_TESTS",
 }
 
 
 def pytest_collection_modifyitems(config, items):
     """Skip paid-API and real-device tests unless their switch is exactly "1"."""
     for marker, variable in OPT_IN_MARKERS.items():
-        if os.environ.get(variable) == "1":
+        from services import env  # INARA_* switches still work for one release
+
+        if env.getenv(variable) == "1":
             continue
         skip = pytest.mark.skip(reason=f"{marker} test: set {variable}=1 to run it")
         for item in items:
@@ -44,16 +46,16 @@ def pytest_collection_modifyitems(config, items):
 
 
 def pytest_unconfigure(config):
-    for key, value in config._inara_previous_isolation.items():
+    for key, value in config._jarvis_previous_isolation.items():
         if value is None:
             os.environ.pop(key, None)
         else:
             os.environ[key] = value
-    if config._inara_previous_data is None:
-        os.environ.pop("INARA_DATA_DIR", None)
+    if config._jarvis_previous_data is None:
+        os.environ.pop("JARVIS_DATA_DIR", None)
     else:
-        os.environ["INARA_DATA_DIR"] = config._inara_previous_data
-    config._inara_test_data.cleanup()
+        os.environ["JARVIS_DATA_DIR"] = config._jarvis_previous_data
+    config._jarvis_test_data.cleanup()
 
 # Settings file path
 SETTINGS_FILE = BACKEND_DIR / "settings.json"

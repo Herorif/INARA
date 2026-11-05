@@ -290,7 +290,7 @@ export default function CallLab() {
           </header>
           {record.transcript.map((item, index) => (
             <div className={`call-lab__segment is-${item.role}`} key={index}>
-              <strong>{item.role === "caller" ? "Simulated caller" : "Simulated INARA"}</strong>
+              <strong>{item.role === "caller" ? "Simulated caller" : "Simulated JARVIS"}</strong>
               <p>{item.text}</p>
             </div>
           ))}

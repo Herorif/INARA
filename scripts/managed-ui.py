@@ -147,7 +147,7 @@ def serve(incoming=None, outgoing=None):
         outgoing.flush()
 
     managed.module("managed-lifecycle")  # Resolve trusted typed copy adapters before announcing readiness.
-    emit({"ready": True, "kind": "inara-protected-management", "protocol": 1,
+    emit({"ready": True, "kind": "jarvis-protected-management", "protocol": 1,
           "capabilities": ["backup", "prepare-profile", "signed-lifecycle", "reviewed-recovery"], "launched": False})
     while True:
         raw = incoming.readline(65537)

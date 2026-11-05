@@ -11,7 +11,7 @@ export const FILTERS = [
 export const CALLBACK_LIMIT = 500;
 export const FACTS_LIMIT = 1000;
 export const DELETE_CONFIRM = "Delete this call record? This can't be undone.";
-export const FORWARDING_STORAGE_KEY = 'inara.calls.forwardingConfirmed';
+export const FORWARDING_STORAGE_KEY = 'jarvis.calls.forwardingConfirmed';
 
 /** Chip for a list row: { tone, label }. */
 export function callChip(call) {
@@ -53,7 +53,7 @@ export function filterCalls(calls, filter) {
 
 export function emptyState(filter) {
   if (filter === 'needs_you') return { title: 'No calls need you', body: 'Calls that need a decision from you show up here.' };
-  return { title: 'No calls yet', body: 'Calls INARA answers or makes for you show up here.' };
+  return { title: 'No calls yet', body: 'Calls JARVIS answers or makes for you show up here.' };
 }
 
 const toDate = value => {
@@ -113,7 +113,7 @@ export function messageRows(call) {
 export const needsCallbackApproval = call => (call?.status === 'needs_you' || call?.status === 'callback_blocked')
   && call.direction === 'inbound' && (call.mode === 'screening' || call.mode === null || call.mode === undefined);
 
-export const ROLE_LABELS = { caller: 'CALLER', inara: 'INARA', owner: 'YOU' };
+export const ROLE_LABELS = { caller: 'CALLER', jarvis: 'JARVIS', owner: 'YOU' };
 
 export function quietHoursText(quietHours) {
   const start = quietHours?.start || '21:00', end = quietHours?.end || '09:00';
@@ -127,12 +127,12 @@ export function approveErrorMessage(code, quietHours, message = '') {
   switch (code) {
     case 'quiet_hours': return `It's quiet hours (${quietHoursText(quietHours)}). Try again later or change quiet hours in Call settings.`;
     case 'daily_cap': return 'Daily call limit reached.';
-    case 'cooldown': return 'INARA called this number recently. Try again later.';
+    case 'cooldown': return 'JARVIS called this number recently. Try again later.';
     case 'no_callback_number': return 'No callback number was given.';
     case 'calls_disabled': return 'Calls are off.';
     case 'not_ready': return (typeof message === 'string' && message.trim()) || "Call setup isn't complete.";
     case 'not_found': return NOT_FOUND;
-    case 'busy': return 'INARA is already on a call. Try again when it ends.';
+    case 'busy': return 'JARVIS is already on a call. Try again when it ends.';
     default: return '';
   }
 }
@@ -140,7 +140,7 @@ export function approveErrorMessage(code, quietHours, message = '') {
 /** Transport failure -> plain sentence (never the shared RPC scope's Studio wording). */
 export function callsFailureMessage(error) {
   const code = error && typeof error === 'object' ? error.code : undefined;
-  if (code === 'offline' || code === 'disconnected') return 'INARA core is offline. Reconnect and try again.';
+  if (code === 'offline' || code === 'disconnected') return 'JARVIS core is offline. Reconnect and try again.';
   if (code === 'timeout') return 'The core did not answer in time. Refresh Calls before trying again.';
   if (code === 'invalid_response' || code === 'send_failed' || code === 'scope_closed') return 'The request did not finish. Refresh Calls and try again.';
   if (code === 'not_found') return NOT_FOUND;
@@ -161,9 +161,9 @@ export function progressText(progress) {
   }
 }
 
-/** Carrier forwarding codes (GSM), with INARA's number when the core provides it. */
+/** Carrier forwarding codes (GSM), with JARVIS's number when the core provides it. */
 export function forwardingCodes(number) {
-  const target = number || '<INARA number>';
+  const target = number || '<JARVIS number>';
   return [
     { id: 'busy', label: 'When you are busy', code: `**67*${target}#` },
     { id: 'no_reply', label: "When you don't answer after 20 seconds", code: `**61*${target}**20#` },
@@ -201,7 +201,7 @@ export function setupRows(status, forwardingConfirmed = false) {
   const forwarding = forwardingConfirmed ? { tone: 'ok', label: 'DONE', done: true } : { tone: 'idle', label: 'NOT CONFIRMED', done: false };
   return [
     { id: 'twilio', title: 'Twilio account', required: true, ...twilio },
-    { id: 'inara_number', title: 'INARA phone number', required: true, ...saved(secret(status, 'twilio_phone_number')) },
+    { id: 'jarvis_number', title: 'JARVIS phone number', required: true, ...saved(secret(status, 'twilio_phone_number')) },
     { id: 'owner_number', title: 'Your mobile number', required: false, ...saved(secret(status, 'owner_phone_number')) },
     { id: 'tunnel', title: 'Cloudflare tunnel', required: true, ...tunnel },
     { id: 'address', title: 'Public address', required: true, ...address },
@@ -219,7 +219,7 @@ export function answeringProblem(status) {
   if (status.tunnel?.state === 'failed') return 'The Cloudflare tunnel stopped.';
   if (status.tunnel?.state === 'missing_binary' || status.tunnel?.binary_found === false) return 'cloudflared is not installed.';
   if (!voiceReady(status)) return 'The phone voice is not ready.';
-  if (status.tunnel?.state === 'starting' || status.tunnel?.state === 'restarting' || !status.gateway?.listening) return 'INARA is still starting the phone gateway.';
+  if (status.tunnel?.state === 'starting' || status.tunnel?.state === 'restarting' || !status.gateway?.listening) return 'JARVIS is still starting the phone gateway.';
   return 'Call setup is not complete.';
 }
 

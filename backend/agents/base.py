@@ -1,7 +1,7 @@
 """
 Base agent interface.
 
-Every capability in INARA (CAD, printer, web, Kasa, etc.) is an agent
+Every capability in JARVIS (CAD, printer, web, Kasa, etc.) is an agent
 that implements this interface. Agents register their tools and handle
 execution when those tools are called by the LLM.
 """
@@ -24,7 +24,7 @@ class AgentResult:
 
 
 class BaseAgent(ABC):
-    """Abstract base for all INARA agents (plugins)."""
+    """Abstract base for all JARVIS agents (plugins)."""
 
     @property
     @abstractmethod

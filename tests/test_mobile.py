@@ -372,7 +372,7 @@ async def test_real_loopback_tls_identity_protected_no_plaintext_key_and_clean_s
         async with httpx.AsyncClient(verify=context, trust_env=False) as client:
             result = await client.post(app.mobile.listener.endpoint + "/v1/status", json={})
             assert result.status_code == 400
-        assert not list(app.database.directory.glob("inara-tls-*"))
+        assert not list(app.database.directory.glob("jarvis-tls-*"))
         assert b"PRIVATE KEY" not in app.database.path.read_bytes()
     finally:
         await app.mobile.close()
@@ -481,7 +481,7 @@ def test_mobile_inventory_matches_isolated_api(mobile):
 def test_utf8_signature_vector_matches_android_protocol_contract():
     assert (
         signing_bytes("/v1/status", "device", "request", 123, '{"text":"\u4f60\u597d"}').decode()
-        == "INARA-MOBILE-1\nPOST\n/v1/status\ndevice\nrequest\n123\nac72dedbe8e0d53dda6f5cbfd5e1c9e6f7f8bac70c7423177e450174b1c09d83"
+        == "JARVIS-MOBILE-1\nPOST\n/v1/status\ndevice\nrequest\n123\nac72dedbe8e0d53dda6f5cbfd5e1c9e6f7f8bac70c7423177e450174b1c09d83"
     )
 
 

@@ -106,7 +106,7 @@ def base_for(candidate, audited):
         raise ValueError("Duplicate or excessive review subjects")
     return {
         "format": 1,
-        "kind": "inara-distribution-review",
+        "kind": "jarvis-distribution-review",
         "candidate_manifest_sha256": report["candidate_manifest_sha256"],
         "audit_report_sha256": hashlib.sha256(raw).hexdigest(),
         "review_tool_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),

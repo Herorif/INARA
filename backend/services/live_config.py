@@ -1,4 +1,4 @@
-"""Gemini Live session configuration for INARA's spoken voice.
+"""Gemini Live session configuration for JARVIS's spoken voice.
 
 Importing this module opens no device or provider and imports no SDK; ``make_live_config``
 imports google-genai only when a session is about to connect.
@@ -10,7 +10,7 @@ Field names follow the Live API docs (checked 26 Oct 2026):
   session_resumption handle, go_away)
 - https://ai.google.dev/gemini-api/docs/live-tools (function_declarations; asynchronous
   NON_BLOCKING calls are documented only for Gemini 2.5 Flash Live, so ask_brain is a normal
-  blocking call and INARA acknowledges the request aloud before calling it)
+  blocking call and JARVIS acknowledges the request aloud before calling it)
 """
 
 INPUT_RATE = 16000  # raw PCM16 mono little-endian into Live

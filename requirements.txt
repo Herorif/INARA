@@ -1,4 +1,4 @@
-# INARA no longer installs every integration from one unpinned file. Choose the set you need:
+# JARVIS no longer installs every integration from one unpinned file. Choose the set you need:
 #   requirements-core.lock      supported desktop backend (exact pins; scripts/bootstrap.ps1 uses it)
 #   requirements-dev.lock       core plus pytest and ruff
 #   requirements-devices.txt    Kasa, printers, Home Assistant, app/clipboard/screen tools

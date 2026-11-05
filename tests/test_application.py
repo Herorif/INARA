@@ -30,7 +30,7 @@ class Provider:
 
 
 def test_import_has_no_runtime_or_server_side_effects(tmp_path):
-    env = {**os.environ, "INARA_DATA_DIR": str(tmp_path / "not-created"), "PYTHONPATH": "backend"}
+    env = {**os.environ, "JARVIS_DATA_DIR": str(tmp_path / "not-created"), "PYTHONPATH": "backend"}
     result = subprocess.run(
         [
             sys.executable,

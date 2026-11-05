@@ -1,4 +1,5 @@
 // Lifecycle policy separated from Electron for deterministic verification.
+const path = require('path');
 class ResidentController {
   constructor({
     open,
@@ -91,7 +92,19 @@ async function waitForBackend(probe, {
   }
   throw new Error('Backend startup timed out. Check the core environment and storage.');
 }
+// The desktop profile moved from %APPDATA%\inara to %APPDATA%\<app name> (jarvis) with the JARVIS
+// rename (5 Nov 2026); backend/resident_main.py makes the one-time move. Until it has, Electron's
+// default profile falls back to the pre-rename folder when only that folder holds the resident
+// identity (the data_migration.desktop_has_data rule). A profile a caller chose itself, such as a
+// QA harness's throwaway folder, is always kept, so tests never open the owner's real profile.
+function desktopProfile({ userData, appData, name, hasIdentity }) {
+  const same = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+  const legacy = path.join(appData, 'inara');
+  if (!same(userData, path.join(appData, name))) return userData;
+  return !hasIdentity(userData) && hasIdentity(legacy) ? legacy : userData;
+}
 module.exports = {
   ResidentController,
+  desktopProfile,
   waitForBackend
 };

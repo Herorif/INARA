@@ -66,7 +66,7 @@ class ConnectionTransport:
             self.sessions.remove(sid)
             return False
         try:
-            await self.sio.emit("status", {"msg": "Connected to INARA Backend"}, room=sid)
+            await self.sio.emit("status", {"msg": "Connected to JARVIS Backend"}, room=sid)
             if self.sessions.roles[sid] != "renderer":
                 return
             capabilities = getattr(self.app, "capabilities", None)

@@ -255,7 +255,7 @@ def patch_genai(monkeypatch, models):
 
     monkeypatch.setattr(genai, "Client", client)
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setenv("INARA_VISION_MODEL", "profile-vision-model")
+    monkeypatch.setenv("JARVIS_VISION_MODEL", "profile-vision-model")
 
 
 def test_describe_uses_vision_profile_model(monkeypatch):

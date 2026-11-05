@@ -70,7 +70,7 @@ export default function QuickAssistant({
       onAnswer: (question, answer, sources) => {
         if (live) {
           useStore.getState().addMessage('You', question);
-          useStore.getState().addMessage('INARA', answer, sources);
+          useStore.getState().addMessage('JARVIS', answer, sources);
         }
       }
     });
@@ -136,11 +136,11 @@ export default function QuickAssistant({
     else liveVoice().holdEnd();
   };
   return <section className="quick-assistant" aria-labelledby="quick-title" data-speech-state={voice.state} data-voice-state={live.state} data-voice-mode={live.mode || 'none'} data-microphone={live.micOpen ? 'on' : 'off'}>
-    <header className="quick-header"><div className="quick-header__brand"><span className="monogram" aria-hidden="true">I</span><HudLabel>QUICK ASSISTANT</HudLabel></div><div className="quick-header__actions"><button type="button" className="btn btn--ghost btn--icon" aria-label="Open full workspace" title="Open full workspace" onClick={onExpand}><Maximize2 size={16} aria-hidden="true" /></button><button type="button" className="btn btn--ghost btn--icon" aria-label="Close quick assistant" onClick={onClose}><X size={16} aria-hidden="true" /></button></div></header>
+    <header className="quick-header"><div className="quick-header__brand"><span className="monogram" aria-hidden="true">J</span><HudLabel>QUICK ASSISTANT</HudLabel></div><div className="quick-header__actions"><button type="button" className="btn btn--ghost btn--icon" aria-label="Open full workspace" title="Open full workspace" onClick={onExpand}><Maximize2 size={16} aria-hidden="true" /></button><button type="button" className="btn btn--ghost btn--icon" aria-label="Close quick assistant" onClick={onClose}><X size={16} aria-hidden="true" /></button></div></header>
     <div className="quick-signal"><PresenceRing size={64} state={presence} /></div>
     <span className="eyebrow quick-status">{project} · {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span><h1 id="quick-title">{title}</h1>
     <p className="quick-subtitle">Type anytime. Hold to talk, or turn on Conversation to talk hands-free. Dictate to review before sending.</p>
-    <div className="quick-log" aria-label="Recent conversation" aria-live="polite">{messages.filter(message => ['You', 'INARA'].includes(message.sender)).slice(-6).map((message, index) => <article key={index} className={message.sender === 'INARA' ? 'assistant' : 'user'}><small className="hud-label">{message.sender === 'INARA' ? 'INARA' : 'YOU'}</small><p>{message.text}</p>{!!message.memory_sources?.length && <small>Project memory: {message.memory_sources.map(source => source.title).join(" / ")}</small>}</article>)}</div>
+    <div className="quick-log" aria-label="Recent conversation" aria-live="polite">{messages.filter(message => ['You', 'JARVIS'].includes(message.sender)).slice(-6).map((message, index) => <article key={index} className={message.sender === 'JARVIS' ? 'assistant' : 'user'}><small className="hud-label">{message.sender === 'JARVIS' ? 'JARVIS' : 'YOU'}</small><p>{message.text}</p>{!!message.memory_sources?.length && <small>Project memory: {message.memory_sources.map(source => source.title).join(" / ")}</small>}</article>)}</div>
     {voice.error && <p className="quick-error" role="alert">{voice.error}</p>}
     {live.error && <p className="quick-error quick-error--voice" role="alert">{live.error}</p>}
     {gaming && <p className="quick-note">Gaming mode: microphone capture is paused.</p>}

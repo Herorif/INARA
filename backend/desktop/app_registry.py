@@ -1,5 +1,5 @@
 """
-App registry for INARA's desktop control.
+App registry for JARVIS's desktop control.
 
 Maps friendly names to launch commands. Supports built-in apps,
 user-defined overrides from config, exact (case-insensitive) name or

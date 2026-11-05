@@ -35,7 +35,7 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await button('Restore reviewed notes');await until(()=>evaluate(`document.querySelector('.memory-note')?.textContent.includes('Private note') && !document.querySelector('.memory-recovery')`));
   await button('Edit / archive');assert.equal(await evaluate(`document.querySelector('.memory-editor input[type=checkbox]').checked`),false);await evaluate(`document.querySelector('.memory-editor input[type=checkbox]').click()`);await button('Save reviewed memory');await until(()=>evaluate(`!document.querySelector('.memory-editor')`));
   window.setSize(1440,1000);await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);
-  await set('Message INARA','What enclosure clearance should I use?');await evaluate(`document.querySelector('[aria-label="Send"]').click()`);
+  await set('Message JARVIS','What enclosure clearance should I use?');await evaluate(`document.querySelector('[aria-label="Send"]').click()`);
   await until(()=>evaluate(`document.querySelector('.memory-citations')?.textContent.includes('Enclosure clearance')`));await screenshot('memory-assistant-sources.png');
   await open();await evaluate(`document.querySelector('.memory-retention summary').click()`);await set('Project memory retention days','1');await button('Apply retention');await until(()=>evaluate(`document.querySelector('.memory-overview').textContent.includes('1 day limit')`));
   await evaluate(`document.querySelector('[aria-label="Close panel"]').click()`);

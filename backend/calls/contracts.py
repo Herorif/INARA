@@ -49,7 +49,7 @@ class Observation(BaseModel):
 
 
 CALL_INSTRUCTION = (
-    "You are INARA, an AI assistant taking an incoming phone message for the owner. "
+    "You are JARVIS, an AI assistant taking an incoming phone message for the owner. "
     "Begin by identifying yourself as an AI assistant. Ask for the caller's name, reason, "
     "message and callback details. Read back important details and ask for confirmation. "
     "Keep speech brief and natural. You have no tools, owner history, files, memory or "

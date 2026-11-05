@@ -46,10 +46,10 @@ def main():
         )
     policy = {
         "format": 1,
-        "kind": "inara-release-trust-policy",
+        "kind": "jarvis-release-trust-policy",
         "mode": "fixture",
         "policy_sequence": 1,
-        "publisher": "EPHEMERAL TEST ONLY - NOT INARA RELEASE IDENTITY",
+        "publisher": "EPHEMERAL TEST ONLY - NOT JARVIS RELEASE IDENTITY",
         "channel": "pilot",
         "minimum_sequence": 1,
         "thresholds": {"publisher": 1, "reviewer": 1},
@@ -73,7 +73,7 @@ def main():
     request = json.loads((output / "unsigned-request/statement.json").read_text())
     envelope = {
         "format": 1,
-        "kind": "inara-detached-attestation",
+        "kind": "jarvis-detached-attestation",
         "statement": request,
         "signatures": [
             {

@@ -4,7 +4,7 @@ The tunnel token is passed in the child's environment as ``TUNNEL_TOKEN``
 (cloudflared reads it there), never on the command line. The child runs in a
 kill-on-close Windows job (``resident.win32.WorkspaceProcess``) so it cannot
 outlive the core. cloudflared is never downloaded: it is found through
-``INARA_CLOUDFLARED`` (an explicit path), ``PATH`` or the installer's default
+``JARVIS_CLOUDFLARED`` (an explicit path), ``PATH`` or the installer's default
 folders. Ingress (public hostname -> ``http://127.0.0.1:8790``, path
 ``^/telephony/``) is configured on the Cloudflare side for the named tunnel.
 """
@@ -16,6 +16,7 @@ import shutil
 import sys
 import time
 
+from services import env
 from services.log import get_logger
 
 logger = get_logger("telephony.tunnel")
@@ -36,7 +37,7 @@ def default_locations(environ=None):
 def locate_cloudflared(environ=None, which=shutil.which):
     """Path to an existing cloudflared executable, or None."""
     environ = os.environ if environ is None else environ
-    explicit = (environ.get("INARA_CLOUDFLARED") or "").strip()
+    explicit = (env.getenv("CLOUDFLARED", environ=environ) or "").strip()
     if explicit:
         path = Path(explicit)
         return path if path.is_file() else None

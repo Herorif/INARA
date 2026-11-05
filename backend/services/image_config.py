@@ -2,8 +2,9 @@
 
 import importlib.util
 import json
-import os
 from pathlib import Path
+
+from services import env
 
 PIPELINES = {"StableDiffusionPipeline", "StableDiffusionXLPipeline"}
 COMPONENTS = {
@@ -67,7 +68,7 @@ def inspect_model(directory):
 
 
 def image_backend():
-    value = os.getenv("INARA_IMAGE_MODEL_DIR", "").strip()
+    value = env.getenv("IMAGE_MODEL_DIR", "").strip()
     if not value:
         return {
             "available": False,

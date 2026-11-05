@@ -226,7 +226,7 @@ class Application:
         # Telephony gateway (docs/CALL_ROUTING.md): its own loopback listener, idle
         # unless calls.enabled; calls_status reports readiness to the owner.
         self.telephony = TelephonyService(self)
-        # C2 call agent (Gemini Live). INARA_TELEPHONY_STUB_AGENT=1 keeps the developer stub.
+        # C2 call agent (Gemini Live). JARVIS_TELEPHONY_STUB_AGENT=1 keeps the developer stub.
         self.call_agent = CallAgent(self)
         if self.telephony.agent is None:
             self.telephony.set_agent(self.call_agent, input_rate=16000)

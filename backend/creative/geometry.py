@@ -111,7 +111,7 @@ def validate(vertices, faces, max_faces=512):
 
 def stl(vertices, faces):
     data = bytearray(
-        b"INARA parametric solid; units mm".ljust(80, b"\0") + struct.pack("<I", len(faces))
+        b"JARVIS parametric solid; units mm".ljust(80, b"\0") + struct.pack("<I", len(faces))
     )
     for face in faces:
         a, b, c = [vertices[i] for i in face]
@@ -131,7 +131,7 @@ def glb(vertices, faces, name):
     raw = b"".join(struct.pack("<3f", *p) for p in positions + normals)
     length = len(positions) * 12
     document = {
-        "asset": {"version": "2.0", "generator": "INARA offline CAD"},
+        "asset": {"version": "2.0", "generator": "JARVIS offline CAD"},
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": [{"mesh": 0, "name": name}],

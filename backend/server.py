@@ -12,9 +12,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from services.capability_profiles import model_id
 from services import secrets as provider_secrets
+from services import env
 
 
-# Ensure we can import inara
+# Ensure we can import jarvis
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -22,11 +23,11 @@ ACTIVE_RUNTIME = "legacy-desktop-backend"
 ACTIVE_ENTRYPOINT = "backend/server.py"
 
 # Global state
-SETTINGS_FILE = os.getenv('INARA_SETTINGS_FILE') or str(Path(__file__).parent / "settings.json")
+SETTINGS_FILE = env.getenv("SETTINGS_FILE") or str(Path(__file__).parent / "settings.json")
 load_dotenv(Path(__file__).parent.parent / '.env')
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.getenv('INARA_PROJECT_ROOT') or os.path.dirname(backend_dir)
+project_root = env.getenv("PROJECT_ROOT") or os.path.dirname(backend_dir)
 uvicorn_server = None
 
 DEFAULT_SETTINGS = {
@@ -81,7 +82,7 @@ def get_ai_preflight_error():
         return None
     if provider_secrets.environment_placeholder("gemini_api_key"):
         return "GEMINI_API_KEY is still using the placeholder value in .env."
-    return "No Gemini API key is saved. Add one in Setup or with scripts/inara-secrets.py."
+    return "No Gemini API key is saved. Add one in Setup or with scripts/jarvis-secrets.py."
 
 
 def get_anthropic_status():
@@ -113,7 +114,7 @@ def get_runtime_summary():
 
     return {
         "status": "running",
-        "service": "INARA Backend",
+        "service": "JARVIS Backend",
         "runtime": ACTIVE_RUNTIME,
         "entrypoint": ACTIVE_ENTRYPOINT,
         "ai_status": ai_status,
@@ -159,9 +160,9 @@ from application import create_application  # noqa: E402 - settings load first
 
 runtime = create_application(
     settings=SETTINGS, project_root=project_root,
-    legacy_data_dir=os.getenv('INARA_LEGACY_DATA_DIR'),
+    legacy_data_dir=env.getenv("LEGACY_DATA_DIR"),
     startup_summary=print_startup_summary,
-    status_summary=get_runtime_summary, instance_id=os.getenv("INARA_INSTANCE_ID"),
+    status_summary=get_runtime_summary, instance_id=env.getenv("INSTANCE_ID"),
     settings_path=SETTINGS_FILE, permission_names=DEFAULT_SETTINGS["tool_permissions"],
     request_exit=_request_exit)
 # Compatibility aliases for the resident host and unmigrated legacy adapters.

@@ -50,7 +50,7 @@ def profile(manager, tmp_path):  # noqa: F811
     with database.transaction() as db:
         database.put(db, "fixture", "value", {"text": "PRIVATE_RECORD"})
     recovery = backup.Recovery(manager, protector)
-    return recovery, slot, data, tmp_path / "profile.inara", protector
+    return recovery, slot, data, tmp_path / "profile.jarvis", protector
 
 
 def create(profile):
@@ -228,7 +228,7 @@ def test_backup_refuses_unsafe_or_unstable_profiles_without_emitting_plaintext(
     elif kind == "existing_backup":
         output.write_bytes(b"preserve")
     elif kind == "inside_installation":
-        output = recovery.manager.root / "backup.inara"
+        output = recovery.manager.root / "backup.jarvis"
     elif kind == "damaged_database":
         (data / "database/assistant.sqlite3").write_bytes(b"broken")
     elif kind == "changed":

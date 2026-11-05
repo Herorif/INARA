@@ -1,8 +1,10 @@
-# INARA project review
+# JARVIS project review
 
-Review date: 13 October 2026. Project root: the inner `INARA-main` directory. The proposed replacement architecture is in [INARA revamp plan](INARA_REVAMP_PLAN.md). See the [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) and [implementation handoff](IMPLEMENTATION_HANDOFF.md) for the next implementation work.
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
 
-INARA has reusable integrations and a substantial desktop prototype. Its central limitation is that assistant reasoning, audio, tool execution and desktop lifetime are coupled. A lightweight resident assistant and a phone companion need a shared task service that works independently of voice and independently of an open window.
+Review date: 13 October 2026. Project root: the inner `INARA-main` directory. The proposed replacement architecture is in [JARVIS revamp plan](JARVIS_REVAMP_PLAN.md). See the [code cleanup and JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) and [implementation handoff](IMPLEMENTATION_HANDOFF.md) for the next implementation work.
+
+JARVIS has reusable integrations and a substantial desktop prototype. Its central limitation is that assistant reasoning, audio, tool execution and desktop lifetime are coupled. A lightweight resident assistant and a phone companion need a shared task service that works independently of voice and independently of an open window.
 
 ## Project coverage
 

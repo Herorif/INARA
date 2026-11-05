@@ -29,7 +29,7 @@ from services.tools import ServiceError
 from services.usage import metered_generate
 
 PERSONA = (
-    "You are INARA, the owner's personal assistant on this Windows PC. Be composed, precise "
+    "You are JARVIS, the owner's personal assistant on this Windows PC. Be composed, precise "
     "and brief: lead with the answer, then only the detail that matters. Speak plainly with "
     "quiet confidence and a light touch of warmth — no filler, no exclamation marks, no "
     "emoji. You can act on this PC only through the tools provided, and many actions need "
@@ -125,7 +125,7 @@ def turn_context(project, memory_attached, now=None):
     offset = moment.strftime("%z")
     zone = f"UTC{offset[:3]}:{offset[3:]}" if offset else "local time"
     text = (
-        f"Turn context from INARA: local time is {moment:%A %d %B %Y, %H:%M} ({zone}). "
+        f"Turn context from JARVIS: local time is {moment:%A %d %B %Y, %H:%M} ({zone}). "
         f"Current project: {json.dumps(str(project)[:120])}."
     )
     if memory_attached:

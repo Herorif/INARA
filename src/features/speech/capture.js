@@ -69,7 +69,7 @@ export class PttCapture {
       if (this.context.sampleRate < 16000) throw Error('This audio sample rate is unsupported. Type a message instead.');
       await this.context.audioWorklet.addModule(new URL('./pcm.worklet.js', import.meta.url));
       if (generation !== this.generation) return false;
-      this.node = new this.WorkletNode(this.context, 'inara-ptt');
+      this.node = new this.WorkletNode(this.context, 'jarvis-ptt');
       this.node.port.onmessage = event => {
         if (generation === this.generation && event.data?.byteLength === 640) onFrame(event.data);
       };

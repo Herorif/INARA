@@ -128,7 +128,7 @@ public static class CallControl {
     static object Execute(Dictionary<string, object> request) {
         string operation = Text(request, "operation");
         if (operation == "inventory") return Inventory();
-        if (operation == "selftest") return new { ok = Hash("INARA").Length == 64, ui_activated = false };
+        if (operation == "selftest") return new { ok = Hash("JARVIS").Length == 64, ui_activated = false };
         if (operation == "inspect") return Inspect(Convert.ToInt32(request["pid"]));
         if (operation != "observe" && operation != "answer" && operation != "hangup") throw new InvalidOperationException();
         var profile = (Dictionary<string, object>)request["profile"];

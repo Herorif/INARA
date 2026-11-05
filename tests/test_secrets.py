@@ -1,4 +1,4 @@
-"""Provider key store, checks, owner-only routes and the inara-secrets CLI. No network."""
+"""Provider key store, checks, owner-only routes and the jarvis-secrets CLI. No network."""
 
 import importlib.util
 import io
@@ -405,7 +405,7 @@ async def test_verify_flag_must_be_boolean(owner_app):
 
 
 def load_cli():
-    spec = importlib.util.spec_from_file_location("inara_secrets_cli", ROOT / "scripts/inara-secrets.py")
+    spec = importlib.util.spec_from_file_location("jarvis_secrets_cli", ROOT / "scripts/jarvis-secrets.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -503,7 +503,7 @@ def test_cli_test_and_verify_exit_codes(tmp_path, monkeypatch, capsys, cli_env):
 
 
 def installation(tmp_path, select=True):
-    root = tmp_path / "INARA Pilot"
+    root = tmp_path / "JARVIS Pilot"
     for name in ("versions", "transactions", "data"):
         (root / name).mkdir(parents=True)
     slot, ident = "a" * 64, uuid.uuid4().hex
@@ -513,7 +513,7 @@ def installation(tmp_path, select=True):
         "slots": {slot: {"manifest_sha256": slot}},
     }))
     (root / "data" / slot).mkdir()
-    (root / "data" / slot / ".inara-data.json").write_text(
+    (root / "data" / slot / ".jarvis-data.json").write_text(
         json.dumps({"format": 1, "installation": ident, "slot": slot})
     )
     return root, slot
@@ -525,7 +525,7 @@ def test_cli_installation_root_uses_selected_version_profile(tmp_path, monkeypat
         monkeypatch, capsys, ["--installation-root", str(root), "set", "gemini_api_key"], GEMINI.encode()
     )
     assert code == 0, result
-    # Same directory the launcher passes as INARA_DATA_DIR (data/<slot>/database).
+    # Same directory the launcher passes as JARVIS_DATA_DIR (data/<slot>/database).
     assert SecretStore(Database(root / "data" / slot / "database"), environ={}).get("gemini_api_key") == GEMINI
     code, result, _ = run_cli(
         monkeypatch, capsys, ["--installation-root", str(root), "--slot", slot, "status"]
@@ -545,8 +545,8 @@ def test_cli_installation_without_selected_version(tmp_path, monkeypatch, capsys
     assert code == 4
 
 
-def test_cli_default_data_directory_follows_inara_data_dir(tmp_path, monkeypatch, capsys, cli_env):
-    monkeypatch.setenv("INARA_DATA_DIR", str(tmp_path / "profile"))
+def test_cli_default_data_directory_follows_jarvis_data_dir(tmp_path, monkeypatch, capsys, cli_env):
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(tmp_path / "profile"))
     code, _, _ = run_cli(monkeypatch, capsys, ["set", "gemini_api_key"], GEMINI.encode())
     assert code == 0
     assert SecretStore(Database(tmp_path / "profile"), environ={}).get("gemini_api_key") == GEMINI
@@ -554,7 +554,7 @@ def test_cli_default_data_directory_follows_inara_data_dir(tmp_path, monkeypatch
 
 def test_cli_subprocess_stdin_end_to_end(tmp_path, cli_env):
     environment = {k: v for k, v in os.environ.items() if k not in {"GEMINI_API_KEY", "ANTHROPIC_API_KEY"}}
-    command = [sys.executable, "-I", "-B", str(ROOT / "scripts/inara-secrets.py"), "--data-dir", str(tmp_path / "db")]
+    command = [sys.executable, "-I", "-B", str(ROOT / "scripts/jarvis-secrets.py"), "--data-dir", str(tmp_path / "db")]
     done = subprocess.run(
         [*command, "set", "anthropic_api_key"], input=ANTHROPIC.encode(), capture_output=True,
         env=environment, timeout=60,
@@ -578,7 +578,7 @@ def self_signed_identity(directory):
     from cryptography.x509.oid import NameOID
 
     key = ec.generate_private_key(ec.SECP256R1())
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "inara-pinned-test")])
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "jarvis-pinned-test")])
     now = datetime.datetime.now(datetime.timezone.utc)
     cert = (
         x509.CertificateBuilder().subject_name(name).issuer_name(name)

@@ -100,7 +100,7 @@ class DesktopSessions:
             raise ServiceError("permission_denied", "This action belongs to the desktop owner.")
         if not allow_locked and not self.authenticated(principal):
             raise ServiceError(
-                "authentication_required", "Unlock INARA before changing desktop settings."
+                "authentication_required", "Unlock JARVIS before changing desktop settings."
             )
         return principal
 

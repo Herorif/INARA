@@ -46,7 +46,7 @@ def main():
     assert not root.exists()
     value = {
         "format": 1,
-        "kind": "inara-managed-state-development-acceptance",
+        "kind": "jarvis-managed-state-development-acceptance",
         "account_protection_round_trip": True,
         "corrupted_ciphertext_refused": corruption_refused,
         "unsigned_encrypted_metadata_refused": unsigned_refused,

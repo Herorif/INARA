@@ -44,6 +44,7 @@ SOURCE = tuple("scripts/" + name for name in SCRIPTS) + (
     "LICENSE",
     "native/setup/Managed.xaml",
     "backend/services/storage.py",
+    "backend/services/data_migration.py",
 )
 
 
@@ -57,7 +58,7 @@ def verify(directory, pin):
     if (
         type(manifest["format"]) is not int
         or manifest["format"] != 1
-        or manifest["kind"] != "inara-trusted-controller"
+        or manifest["kind"] != "jarvis-trusted-controller"
         or not isinstance(manifest["files"], list)
         or not 1 <= len(manifest["files"]) <= 15000
     ):
@@ -127,7 +128,7 @@ def stage(runtime, output):
     raw = signed.review.encoded(
         {
             "format": 1,
-            "kind": "inara-trusted-controller",
+            "kind": "jarvis-trusted-controller",
             "files": sorted(records, key=lambda entry: entry["path"]),
         }
     )

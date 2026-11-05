@@ -28,17 +28,20 @@ while ($taskParent) {
     $taskParent = Split-Path -Parent $taskParent
 }
 New-Item -ItemType Directory -Path $taskPilotData | Out-Null
-$taskEnvironment = @('INARA_DATA_DIR','INARA_SETTINGS_FILE','INARA_PROJECT_ROOT','INARA_LEGACY_DATA_DIR','INARA_DESKTOP_DATA_DIR','PYTHONDONTWRITEBYTECODE','INARA_DEV_SERVER','ELECTRON_RUN_AS_NODE')
+$taskEnvironment = @('JARVIS_DATA_DIR','JARVIS_SETTINGS_FILE','JARVIS_PROJECT_ROOT','JARVIS_LEGACY_DATA_DIR','JARVIS_DESKTOP_DATA_DIR','PYTHONDONTWRITEBYTECODE','JARVIS_DEV_SERVER','ELECTRON_RUN_AS_NODE')
+# Pre-rename INARA_* names are still read as a one-release fallback: clear them for the pilot.
+$taskEnvironment += @('INARA_DATA_DIR','INARA_SETTINGS_FILE','INARA_PROJECT_ROOT','INARA_LEGACY_DATA_DIR','INARA_DESKTOP_DATA_DIR','INARA_DEV_SERVER')
 $taskPrevious = @{}
 foreach ($taskName in $taskEnvironment) { $taskPrevious[$taskName] = [Environment]::GetEnvironmentVariable($taskName,'Process') }
 try {
-    $env:INARA_DATA_DIR = Join-Path $taskPilotData 'database'
-    $env:INARA_SETTINGS_FILE = Join-Path $taskPilotData 'settings.json'
-    $env:INARA_PROJECT_ROOT = Join-Path $taskPilotData 'projects'
-    $env:INARA_LEGACY_DATA_DIR = Join-Path $taskPilotData 'legacy'
-    $env:INARA_DESKTOP_DATA_DIR = Join-Path $taskPilotData 'desktop-profile'
+    $env:JARVIS_DATA_DIR = Join-Path $taskPilotData 'database'
+    $env:JARVIS_SETTINGS_FILE = Join-Path $taskPilotData 'settings.json'
+    $env:JARVIS_PROJECT_ROOT = Join-Path $taskPilotData 'projects'
+    $env:JARVIS_LEGACY_DATA_DIR = Join-Path $taskPilotData 'legacy'
+    $env:JARVIS_DESKTOP_DATA_DIR = Join-Path $taskPilotData 'desktop-profile'
     $env:PYTHONDONTWRITEBYTECODE = '1'
-    $env:INARA_DEV_SERVER = $null
+    $env:JARVIS_DEV_SERVER = $null
+    foreach ($taskName in $taskEnvironment) { if ($taskName.StartsWith('INARA_')) { [Environment]::SetEnvironmentVariable($taskName, $null, 'Process') } }
     $env:ELECTRON_RUN_AS_NODE = $null
     & $taskPython -I -B (Join-Path $taskPilotRoot 'backend/resident_main.py')
     if ($LASTEXITCODE -ne 0) { throw 'Pilot stopped with an error. Preserve its isolated data directory for inspection.' }

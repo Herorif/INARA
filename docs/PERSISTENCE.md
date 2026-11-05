@@ -1,6 +1,6 @@
 # Durable sessions and reminders
 
-The supported Windows backend uses `%LOCALAPPDATA%\INARA\data-v1\assistant.sqlite3`. `INARA_DATA_DIR` optionally selects an isolated development location. Tests always select temporary storage before server import. Projects and existing artifacts stay in their original directories; the selected project is persisted separately. API credentials are unnecessary for storage and reminder delivery.
+The supported Windows backend uses `%LOCALAPPDATA%\JARVIS\data-v1\assistant.sqlite3`. `JARVIS_DATA_DIR` optionally selects an isolated development location. Tests always select temporary storage before server import. Projects and existing artifacts stay in their original directories; the selected project is persisted separately. API credentials are unnecessary for storage and reminder delivery.
 
 ## Private storage
 

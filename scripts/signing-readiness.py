@@ -15,7 +15,7 @@ signed, trust, audit, old = reviews.signed, reviews.trust, reviews.audit, review
 spec = importlib.util.spec_from_file_location("readiness_windows", ROOT / "scripts/windows-signature.py")
 windows = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(windows)
-INSTRUCTIONS = b"INARA PUBLIC SIGNING PREPARATION\nOwner configuration is deferred. This draft grants no authority.\nUse only public labels, opaque custody references and public text evidence.\nNever include passwords, access tokens, private keys, certificates with keys or profiles.\nReview independent operators, recovery drills, revocation and bootstrap delivery before marking reviewed.\nPolicies remain separate and independently pinned; this tool never writes or enables them.\n"
+INSTRUCTIONS = b"JARVIS PUBLIC SIGNING PREPARATION\nOwner configuration is deferred. This draft grants no authority.\nUse only public labels, opaque custody references and public text evidence.\nNever include passwords, access tokens, private keys, certificates with keys or profiles.\nReview independent operators, recovery drills, revocation and bootstrap delivery before marking reviewed.\nPolicies remain separate and independently pinned; this tool never writes or enables them.\n"
 FIELDS = {"format", "kind", "state", "publisher", "release_policy_sha256", "windows_policy_sha256", "independence_reviewed", "custody", "windows_custody", "bootstrap_delivery"}
 CUSTODY = {"key_id", "operator", "custody_ref", "recovery_ref", "revocation_ref", "recovery_drill_verified", "checked_on", "evidence_sha256"}
 WINDOWS = {"operator", "signing_ref", "timestamp_ref", "recovery_ref", "revocation_ref", "recovery_drill_verified", "checked_on", "evidence_sha256"}
@@ -31,7 +31,7 @@ def destination(output, roots=()):
 
 def draft(output):
     output = destination(output)
-    value = {"format": 1, "kind": "inara-signing-custody-plan", "state": "draft", "publisher": None,
+    value = {"format": 1, "kind": "jarvis-signing-custody-plan", "state": "draft", "publisher": None,
              "release_policy_sha256": None, "windows_policy_sha256": None, "independence_reviewed": False,
              "custody": [], "windows_custody": None, "bootstrap_delivery": None}
     output.mkdir(parents=True)
@@ -52,7 +52,7 @@ def enrollment(directory, expected, now=None):
     if trust.sha(raw) != expected:
         raise ValueError("Custody plan differs from independently retained pin")
     old.exact(value, FIELDS)
-    if type(value["format"]) is not int or value["format"] != 1 or value["kind"] != "inara-signing-custody-plan" or value["state"] not in {"draft", "reviewed"} or type(value["independence_reviewed"]) is not bool:
+    if type(value["format"]) is not int or value["format"] != 1 or value["kind"] != "jarvis-signing-custody-plan" or value["state"] not in {"draft", "reviewed"} or type(value["independence_reviewed"]) is not bool:
         raise ValueError("Unsupported public custody plan")
     if value["publisher"] is not None:
         old.text(value["publisher"], 160)

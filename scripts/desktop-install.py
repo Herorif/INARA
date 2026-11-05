@@ -53,6 +53,23 @@ def identifier(value):
     return value
 
 
+def product_folder_first(root):
+    """Move %LOCALAPPDATA%\\INARA to %LOCALAPPDATA%\\JARVIS before a root is created inside
+    the JARVIS folder, so creating it cannot hide the owner's pre-rename profile data."""
+    local = os.getenv("LOCALAPPDATA")
+    if not local:
+        return
+    parent = Path(local).resolve()
+    if not Path(root).resolve().is_relative_to(parent / "JARVIS"):
+        return
+    spec = importlib.util.spec_from_file_location(
+        "install_data_migration", ROOT / "backend/services/data_migration.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.product_folder(parent)
+
+
 class Installation:
     def __init__(self, root, *, authenticated=False, pending_update=False):
         self.root = plain(root, True)
@@ -62,6 +79,7 @@ class Installation:
     @classmethod
     def create(cls, root):
         root = plain(root)
+        product_folder_first(root)
         if root.exists():
             raise ValueError("Choose a NEW installation root; existing profiles are never adopted")
         root.mkdir(parents=True)
@@ -188,7 +206,7 @@ class Installation:
             if not isinstance(profile, str) or not re.fullmatch(r"[a-f0-9]{32}", profile):
                 raise ValueError("Invalid recovery profile")
             path = plain(self.root / "recovery-profiles" / profile, True)
-            receipt = read(path / ".inara-recovery.json")
+            receipt = read(path / ".jarvis-recovery.json")
             if (
                 receipt.get("status") != "prepared"
                 or receipt.get("installation") != state["id"]
@@ -202,8 +220,8 @@ class Installation:
         expected = {"format": 1, "installation": state["id"], "slot": slot}
         if create and not path.exists():
             path.mkdir()
-            write(path / ".inara-data.json", expected)
-        if not path.is_dir() or read(path / ".inara-data.json") != expected:
+            write(path / ".jarvis-data.json", expected)
+        if not path.is_dir() or read(path / ".jarvis-data.json") != expected:
             raise ValueError(
                 "Data ownership is missing or incompatible; no adoption/migration allowed"
             )
@@ -377,13 +395,16 @@ class Installation:
             # Run in this process: the OS manager lock spans the entire resident lifetime.
             # Existing resident job supervision owns its child processes.
             paths = {
-                "INARA_DATA_DIR": data / "database",
-                "INARA_SETTINGS_FILE": data / "settings.json",
-                "INARA_PROJECT_ROOT": data / "projects",
-                "INARA_LEGACY_DATA_DIR": data / "legacy",
-                "INARA_DESKTOP_DATA_DIR": data / "desktop-profile",
+                "JARVIS_DATA_DIR": data / "database",
+                "JARVIS_SETTINGS_FILE": data / "settings.json",
+                "JARVIS_PROJECT_ROOT": data / "projects",
+                "JARVIS_LEGACY_DATA_DIR": data / "legacy",
+                "JARVIS_DESKTOP_DATA_DIR": data / "desktop-profile",
             }
-            keys = set(paths) | {"INARA_DEV_SERVER", "ELECTRON_RUN_AS_NODE"}
+            # Pre-rename INARA_* names are still read as a fallback for one release: clear
+            # them too so an inherited legacy value cannot steer the resident.
+            legacy = {"INARA_" + key[len("JARVIS_"):] for key in set(paths) | {"JARVIS_DEV_SERVER"}}
+            keys = set(paths) | legacy | {"JARVIS_DEV_SERVER", "ELECTRON_RUN_AS_NODE"}
             previous = {key: os.environ.get(key) for key in keys}
             argv = sys.argv[:]
             try:

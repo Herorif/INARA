@@ -17,7 +17,7 @@ export const workspaceTitles = {
   assistant: ['Assistant', ''],
   studio: ['Studio', '3D, images, vision and web tools'],
   inbox: ['Inbox', 'Notifications you chose to share from your phone'],
-  callsview: ['Calls', 'Calls INARA answered and made for you'],
+  callsview: ['Calls', 'Calls JARVIS answered and made for you'],
   tasks: ['Tasks', 'Review and run multi-step desktop tasks'],
   connections: ['Connections', 'Devices, phone and calls'],
   activity: ['Activity', 'Artifacts and revisions for this project'],

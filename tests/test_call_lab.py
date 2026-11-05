@@ -77,7 +77,7 @@ def test_voice_presence_is_local_and_never_arms_a_call(owner_app, monkeypatch, c
 
     monkeypatch.setattr(module, "local_ready", local)
     monkeypatch.setenv("GEMINI_API_KEY", "INERT_NOT_A_KEY")
-    monkeypatch.setenv("INARA_CALL_MODEL", "INERT_CLOUD_MODEL")
+    monkeypatch.setenv("JARVIS_CALL_MODEL", "INERT_CLOUD_MODEL")
     value = owner_app.call_lab.state("owner")
     assert value["voice_configured"] is configured
     assert value["live_enabled"] is False and value["physical_verified"] is False

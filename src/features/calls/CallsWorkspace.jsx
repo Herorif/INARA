@@ -93,7 +93,7 @@ function ApprovalCard({ call, client, quietHours, approval, progress, onApproval
       Call back {callback ? <span className="calls-mono">{callback}</span> : 'the caller'} and say:
     </label>
     <textarea id={`calls-callback-${call.id}`} rows={4} maxLength={CALLBACK_LIMIT} value={draft} disabled={loading || busy || running}
-      placeholder={loading ? 'Drafting a reply…' : 'What INARA should say'} aria-describedby={`calls-callback-${call.id}-count calls-callback-${call.id}-status`}
+      placeholder={loading ? 'Drafting a reply…' : 'What JARVIS should say'} aria-describedby={`calls-callback-${call.id}-count calls-callback-${call.id}-status`}
       onChange={event => { setDraft(event.target.value); onApproval({ message: event.target.value }); }} />
     <div className="calls-approval__meta">
       <span id={`calls-callback-${call.id}-count`} className="calls-count">{`${draft.length} / ${CALLBACK_LIMIT}`}</span>
@@ -171,7 +171,7 @@ function CallDetail({ call, client, quietHours, approval, progress, onApproval, 
   </article>;
 }
 
-/** Calls: what INARA answered and made, with callbacks waiting for approval. */
+/** Calls: what JARVIS answered and made, with callbacks waiting for approval. */
 export default function CallsWorkspace() {
   const connected = useStore(state => state.backendConnected);
   const locked = useStore(state => state.isLockScreenVisible);
@@ -291,7 +291,7 @@ export default function CallsWorkspace() {
 
   return <section className="calls-workspace" aria-labelledby="calls-title">
     <div className="workspace-heading calls-heading">
-      <div className="workspace-heading__copy"><h1 id="calls-title">Calls</h1><p>Calls INARA answered and made for you</p></div>
+      <div className="workspace-heading__copy"><h1 id="calls-title">Calls</h1><p>Calls JARVIS answered and made for you</p></div>
       {status && <div className="calls-heading__controls">
         <StatusChip tone={answering ? 'ok' : 'idle'} className="calls-answering-chip">{answering ? 'ANSWERING ON' : 'ANSWERING OFF'}</StatusChip>
         <Switch checked={status.enabled} label="Answering" disabled={toggling} describedBy="calls-toggle-note" onClick={toggleAnswering} />
@@ -300,7 +300,7 @@ export default function CallsWorkspace() {
     </div>
     <div id="calls-toggle-note" aria-live="polite">
       {toggleNote && <p className="calls-banner">{toggleNote}</p>}
-      {!toggleNote && problem && <p className="calls-banner">{`Answering is on, but INARA can't answer yet: ${problem}`}{' '}
+      {!toggleNote && problem && <p className="calls-banner">{`Answering is on, but JARVIS can't answer yet: ${problem}`}{' '}
         <button type="button" className="text-button" onClick={() => setView('setup')}>Open setup checklist</button></p>}
     </div>
     {body}

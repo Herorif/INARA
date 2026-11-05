@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "kind": "inara-release-trust-policy",
+  "kind": "jarvis-release-trust-policy",
   "mode": "disabled",
   "policy_sequence": 1,
   "publisher": null,

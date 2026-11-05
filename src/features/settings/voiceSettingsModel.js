@@ -20,7 +20,7 @@ export const SUGGESTED_VOICES = ['Kore', 'Despina', 'Erinome', 'Sulafat', 'Aoede
 
 export const VOICE_MODES = [
   { id: 'push_to_talk', label: 'Push to talk', help: 'Hold the hotkey or button while you speak.' },
-  { id: 'conversation', label: 'Conversation', help: 'Talk hands-free; INARA listens until you stop the conversation.' },
+  { id: 'conversation', label: 'Conversation', help: 'Talk hands-free; JARVIS listens until you stop the conversation.' },
 ];
 export const DEFAULT_MODE = 'push_to_talk';
 export const PREVIEW_NO_KEY = 'Add a Gemini key to preview voices.';
@@ -52,7 +52,7 @@ export function modeHelp(mode) {
 export function previewFailureMessage(error) {
   const code = error && typeof error === 'object' ? error.code : undefined;
   if (code === 'provider_not_configured') return PREVIEW_NO_KEY;
-  if (code === 'offline' || code === 'disconnected') return 'INARA core is offline. Reconnect and try again.';
+  if (code === 'offline' || code === 'disconnected') return 'JARVIS core is offline. Reconnect and try again.';
   if (code === 'timeout') return 'The preview took too long. Try again.';
   if (code === 'playback') return 'This device could not play the preview.';
   if (code === 'invalid_response' || code === 'send_failed' || code === 'scope_closed') return 'The voice preview could not play. Try again.';

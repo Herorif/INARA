@@ -34,4 +34,4 @@ class PttProcessor extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor('inara-ptt', PttProcessor);
+registerProcessor('jarvis-ptt', PttProcessor);

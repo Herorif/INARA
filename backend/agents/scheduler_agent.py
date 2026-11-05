@@ -107,7 +107,7 @@ def _format_routine(rt: Routine) -> str:
 # ---------------------------------------------------------------------------
 
 class SchedulerAgent(BaseAgent):
-    """INARA agent for reminders and routines."""
+    """JARVIS agent for reminders and routines."""
 
     def __init__(self, event_bus: EventBus, reminder_store: ReminderStore):
         self._bus = event_bus
@@ -169,7 +169,7 @@ class SchedulerAgent(BaseAgent):
                 parameters=[
                     ToolParameter("name", ToolParameterType.STRING, "A short name for the routine (e.g. 'Morning Routine')."),
                     ToolParameter("trigger", ToolParameterType.STRING, "When this routine fires (e.g. 'greeting:good_morning')."),
-                    ToolParameter("actions", ToolParameterType.STRING, "Comma-separated list of actions for INARA to perform."),
+                    ToolParameter("actions", ToolParameterType.STRING, "Comma-separated list of actions for JARVIS to perform."),
                 ],
             ),
             Tool(

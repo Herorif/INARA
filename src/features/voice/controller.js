@@ -52,9 +52,10 @@ export class VoiceController {
     });
     this.client.on('voice_caption', value => {
       if (!isVoiceCaption(value) || value.session_id !== this.sessionId) return;
-      const key = `${value.session_id}:${value.role}:${this.captions[value.role]}`;
-      if (value.final) this.captions[value.role]++;
-      this.onCaption({ key, role: value.role, text: value.text, final: value.final });
+      const role = value.role === 'user' ? 'user' : 'jarvis';
+      const key = `${value.session_id}:${role}:${this.captions[role]}`;
+      if (value.final) this.captions[role]++;
+      this.onCaption({ key, role, text: value.text, final: value.final });
     });
   }
   update(patch) {
@@ -88,7 +89,7 @@ export class VoiceController {
       this.mode = mode;
       this.seq = 0;
       this.outSeq = 0;
-      this.captions = { user: 0, inara: 0 };
+      this.captions = { user: 0, jarvis: 0 };
       this.update({ state: mode === 'conversation' ? 'listening' : 'idle', mode });
       return true;
     } catch (error) {
@@ -98,7 +99,7 @@ export class VoiceController {
       this.starting = null;
     }
   }
-  /** Push-to-talk press: interrupts INARA, starts or reuses a session, opens the microphone. */
+  /** Push-to-talk press: interrupts JARVIS, starts or reuses a session, opens the microphone. */
   async holdStart({ conversationId, deviceId }) {
     if (this.holding || this.mode === 'conversation') return;
     this.holding = true;

@@ -163,13 +163,13 @@ def stage(destination, bundle, root=ROOT, runtime_directory=None):
             "desktop-backup.py",
             "desktop-recovery.py",
             "desktop-control.py",
-            "inara-secrets.py",
+            "jarvis-secrets.py",
             "renderer-provenance.py",
             "setup-ui.ps1",
             "pilot-start.ps1",
         )
     ]
-    mapping += [(root / name, name) for name in ("INARA Setup.cmd", "INARA Setup.ps1", "native/setup/Setup.xaml")]
+    mapping += [(root / name, name) for name in ("JARVIS Setup.cmd", "JARVIS Setup.ps1", "native/setup/Setup.xaml")]
     mapping += [(root / name, name) for name in ("dist/renderer-provenance.json", "docs/ASSET_OWNERSHIP.json")]
     mapping += [
         (path, "runtime/electron/" + path.relative_to(runtime).as_posix()) for path in runtime_files

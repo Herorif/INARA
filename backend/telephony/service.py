@@ -10,6 +10,7 @@ import re
 import time
 
 from core.event_bus import Event
+from services import env
 from services.log import get_logger
 from services.settings import CALLS_DEFAULTS
 from services.tools import ServiceError
@@ -95,7 +96,7 @@ class TelephonyService:
         self.tunnel = tunnel or TunnelSupervisor(lambda: self.secret("cloudflare_tunnel_token"))
         # C2 installs the real call agent with set_agent(). The stub is developer-only.
         self.agent, self.agent_input_rate = None, 16000
-        if environ.get("INARA_TELEPHONY_STUB_AGENT") == "1":
+        if env.getenv("TELEPHONY_STUB_AGENT", environ=environ) == "1":
             self.agent = stub_agent
         self.inbound = {}
         self.outbound = {}
@@ -189,7 +190,7 @@ class TelephonyService:
         return None
 
     def loop_guard(self, params, credentials):
-        """Reason to reject an inbound call that is INARA's own call coming back, or None."""
+        """Reason to reject an inbound call that is JARVIS's own call coming back, or None."""
         caller = params.get("From")
         if same_number(caller, credentials["phone_number"]):
             return "forwarded_back"
@@ -210,7 +211,7 @@ class TelephonyService:
             return twiml.thanks()
         credentials = self.credentials()
         settings = self.calls_settings()
-        if credentials is None:  # the loop guard cannot run without INARA's own number
+        if credentials is None:  # the loop guard cannot run without JARVIS's own number
             return self._unavailable(settings)
         reason = self.loop_guard(params, credentials)
         if reason is not None:

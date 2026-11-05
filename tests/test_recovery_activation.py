@@ -219,9 +219,9 @@ def test_activation_refuses_stale_changed_busy_or_incomplete_profiles(prepared_s
             json.dumps({"id": str(uuid.uuid4())})
         )
     elif kind == "incomplete":
-        receipt = json.loads((path / ".inara-recovery.json").read_text())
+        receipt = json.loads((path / ".jarvis-recovery.json").read_text())
         receipt["status"] = "incomplete"
-        (path / ".inara-recovery.json").write_text(json.dumps(receipt))
+        (path / ".jarvis-recovery.json").write_text(json.dumps(receipt))
     elif kind == "busy":
         with service.manager.locked():
             with pytest.raises(ValueError):
@@ -240,7 +240,7 @@ def test_new_backup_after_activation_preserves_new_source_and_rebinds_again(
     review = service.preview(slot, archive, pid)["review_sha256"]
     service.prepare(slot, archive, pid, review)
     service.activate(slot, pid, review)
-    next_archive = tmp_path / "active-backup.inara"
+    next_archive = tmp_path / "active-backup.jarvis"
     service.recovery.backup(slot, next_archive)
     next_pid = uuid.uuid4().hex
     review = service.preview(slot, next_archive, next_pid)["review_sha256"]
@@ -354,6 +354,6 @@ def test_stored_provider_keys_carry_into_recovery_and_malformed_ones_reject(prof
     # The recovered profile is now current; a malformed secret record must refuse review.
     with restored.transaction() as db:
         restored.put(db, "secrets", "gemini_api_key", {"value": key, "unexpected": True})
-    recovery.backup(slot, archive.with_name("second.inara"))
+    recovery.backup(slot, archive.with_name("second.jarvis"))
     with pytest.raises(ValueError):
-        service.preview(slot, archive.with_name("second.inara"), uuid.uuid4().hex)
+        service.preview(slot, archive.with_name("second.jarvis"), uuid.uuid4().hex)

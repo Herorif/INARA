@@ -21,12 +21,20 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("backup_install", ROOT / "scripts/desktop-install.py")
 install = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(install)
-MAGIC = b"INARA-PROFILE-1\x00"
+MAGIC = b"JARVIS-PROFILE-1\x00"
+# Backups written before the INARA -> JARVIS rename (".inara" files) stay readable: they
+# carry the old magic, manifest kind and profile marker name, mapped to the new ones on read.
+LEGACY_MAGIC = b"INARA-PROFILE-1\x00"
+KIND = "jarvis-profile-recovery"
+LEGACY_KIND = "inara-profile-recovery"
+MARKER = ".jarvis-data.json"
+LEGACY_MARKER = ".inara-data.json"
+LEGACY_RECEIPT = ".inara-recovery.json"
 MAX_TOTAL = 64 * 1024 * 1024
 MAX_FILE = 32 * 1024 * 1024
 MAX_ARCHIVE = 72 * 1024 * 1024
 MAX_FILES = 4096
-RECEIPT = ".inara-recovery.json"
+RECEIPT = ".jarvis-recovery.json"
 
 
 def digest(raw):
@@ -63,7 +71,7 @@ def path_name(name):
             or re.fullmatch(r"CON|PRN|AUX|NUL|COM[1-9???]|LPT[1-9???]", part.split(".")[0], re.I)
         ):
             raise ValueError("Unsafe Windows recovery path")
-    if path.parts[0].casefold() == RECEIPT:
+    if path.parts[0].casefold() in (RECEIPT, LEGACY_RECEIPT):
         raise ValueError("Reserved recovery path")
     return path
 
@@ -102,7 +110,7 @@ def inventory(root, recovery=False):
 
 
 def schema(files, manifest):
-    marker = loads(files[".inara-data.json"])
+    marker = loads(files[MARKER])
     if marker != {"format": 1, "installation": manifest["installation"], "slot": manifest["slot"]}:
         raise ValueError("Backup profile ownership does not match")
     identity = loads(files["desktop-profile/resident-identity.json"])
@@ -163,13 +171,14 @@ def seal(raw, protector):
 
 
 def unseal(raw, protector):
-    if not len(MAGIC) + 4 + 12 + 16 < len(raw) <= MAX_ARCHIVE or not raw.startswith(MAGIC):
+    magic = next((value for value in (MAGIC, LEGACY_MAGIC) if raw.startswith(value)), None)
+    if magic is None or not len(magic) + 4 + 12 + 16 < len(raw) <= MAX_ARCHIVE:
         raise ValueError("Invalid encrypted backup")
-    length = struct.unpack_from("<I", raw, len(MAGIC))[0]
-    end = len(MAGIC) + 4 + length
+    length = struct.unpack_from("<I", raw, len(magic))[0]
+    end = len(magic) + 4 + length
     if not 1 <= length <= 16384 or end + 28 >= len(raw):
         raise ValueError("Invalid encrypted key envelope")
-    key = protector.unprotect(raw[len(MAGIC) + 4 : end])
+    key = protector.unprotect(raw[len(magic) + 4 : end])
     if len(key) != 32:
         raise ValueError("Invalid recovered Windows key")
     return AESGCM(key).decrypt(raw[end : end + 12], raw[end + 12 :], raw[: end + 12])
@@ -217,7 +226,7 @@ def unpack(raw):
                     or not 1 <= len(manifest["source_data"]) <= 4096
                 )
             )
-            or manifest["kind"] != "inara-profile-recovery"
+            or manifest["kind"] not in (KIND, LEGACY_KIND)
             or not re.fullmatch(r"[a-f0-9]{32}", manifest["installation"])
             or not isinstance(manifest["files"], list)
             or not isinstance(manifest["directories"], list)
@@ -260,8 +269,22 @@ def unpack(raw):
             for parent in PurePosixPath(name).parents:
                 if str(parent) != "." and paths.get(str(parent)) != "directory":
                     raise ValueError("Missing or conflicting recovery directory")
+        if manifest["kind"] == LEGACY_KIND:
+            manifest, files = legacy_names(manifest, files)
         schema(files, manifest)
         return manifest, files
+
+
+def legacy_names(manifest, files):
+    """A pre-rename backup, verified as written, with its profile marker under the new name."""
+    if MARKER in files or LEGACY_MARKER not in files:
+        raise ValueError("Unsupported legacy recovery profile")
+    files = {MARKER if name == LEGACY_MARKER else name: value for name, value in files.items()}
+    records = [
+        {**record, "path": MARKER} if record["path"] == LEGACY_MARKER else record
+        for record in manifest["files"]
+    ]
+    return {**manifest, "kind": KIND, "files": records}, files
 
 
 class Recovery:
@@ -296,7 +319,7 @@ class Recovery:
             manifest = {
                 "format": 2,
                 "source_data": str(data.resolve()),
-                "kind": "inara-profile-recovery",
+                "kind": KIND,
                 "installation": state["id"],
                 "slot": slot,
                 "owner": str(uuid.UUID(identity["id"])),

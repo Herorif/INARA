@@ -23,7 +23,7 @@ from telephony.service import EVENT_CALL_STATUS, EVENT_SESSION
 from tests.test_call_agent import (
     ACCOUNT,
     CALLER,
-    INARA,
+    JARVIS,
     OWNER,
     OUT_CALL,
     phone as phone_fixture,
@@ -287,7 +287,7 @@ async def test_desktop_approval_issues_a_bound_grant_and_places_once(phone, monk
     assert grant.purpose_hash == purpose_hash(expected.purpose()) and grant.consumed
     assert len(twilio.requests) == 1
     form = dict(httpx.QueryParams(twilio.requests[0].content.decode()))
-    assert form["To"] == CALLER and form["From"] == INARA
+    assert form["To"] == CALLER and form["From"] == JARVIS
     # The same record cannot be called back twice while the first callback runs.
     again = await rpc(app, "calls_callback_approve", {"id": record_id, "message": "On my way."})
     assert again["ok"] is False and again["code"] == "busy" and len(twilio.requests) == 1
@@ -338,7 +338,7 @@ def exhaust_budget(app):
 
 async def test_budget_exhausted_inbound_call_gets_voicemail_and_a_minimal_record(phone):
     app = phone
-    params = {"CallSid": CALL_SID, "From": CALLER, "To": INARA, "AccountSid": ACCOUNT}
+    params = {"CallSid": CALL_SID, "From": CALLER, "To": JARVIS, "AccountSid": ACCOUNT}
     assert b"<Connect>" in app.telephony.inbound_twiml(params)  # budget fine: screened
     exhaust_budget(app)
     body = app.telephony.inbound_twiml({**params, "CallSid": "CA" + "d" * 32}).decode()
@@ -365,7 +365,7 @@ async def test_budget_exhausted_inbound_call_gets_voicemail_and_a_minimal_record
 @pytest.mark.parametrize("direction,mode,state,status,needs", [
     ("inbound", "screening", "failed", "needs_you", True),       # the agent failed: missed
     ("inbound", "screening", "uncertain", "needs_you", True),
-    ("outbound", "approved_callback", "failed", "failed", False),  # INARA's own call failed
+    ("outbound", "approved_callback", "failed", "failed", False),  # JARVIS's own call failed
     ("outbound", "task", "failed", "failed", False),
 ])
 async def test_missed_incoming_calls_need_the_owner_and_failed_outbound_calls_fail(
@@ -483,7 +483,7 @@ async def test_list_and_get_shapes_are_exact_and_numbers_masked(phone):
                                 "needs_owner": True, "suggested_actions": [
                                     "Call back about the delivery", "Confirm the gate code"]}
     assert detail["triage_state"] == "done" and detail["related_ids"] == []
-    assert detail["transcript"] == [{"role": "inara", "text": "Hi, you've reached Hiro."},
+    assert detail["transcript"] == [{"role": "jarvis", "text": "Hi, you've reached Hiro."},
                                     {"role": "caller", "text": "Hello, it's Aiman."}]
     assert detail["outcome"] == {"status": "message_taken", "details": None}
     text = json.dumps([listed, detail])
@@ -496,7 +496,7 @@ async def test_owner_briefing_transcripts_name_the_owner(phone):
     app = phone
     record_id = save(app, mode="owner_briefing", direction="outbound", number=OWNER)
     detail = (await rpc(app, "calls_get", {"id": record_id}))["call"]
-    assert [segment["role"] for segment in detail["transcript"]] == ["inara", "owner"]
+    assert [segment["role"] for segment in detail["transcript"]] == ["jarvis", "owner"]
     assert detail["status"] == "done"  # a briefing never waits on the owner itself
 
 
@@ -538,10 +538,10 @@ async def test_calls_status_extension(phone):
     status = (await rpc(app, "calls_status"))["calls"]
     assert status["answering"] is True and status["needs_you_count"] == 1
     assert status["active_call"] is None and status["briefing_pin_set"] is False
-    assert status["inara_number"] == INARA  # owner-only: the full E.164 number
+    assert status["jarvis_number"] == JARVIS  # owner-only: the full E.164 number
     app.secrets.values.pop("twilio_phone_number")
-    assert (await rpc(app, "calls_status"))["calls"]["inara_number"] is None
-    app.secrets.values["twilio_phone_number"] = INARA
+    assert (await rpc(app, "calls_status"))["calls"]["jarvis_number"] is None
+    app.secrets.values["twilio_phone_number"] = JARVIS
     assert "enabled" in status and "ready" in status  # C1 fields are unchanged
     app.secrets.values["call_briefing_pin"] = "4321"
     await app.bus.emit(Event(type=EVENT_SESSION, data={

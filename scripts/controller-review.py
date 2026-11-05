@@ -32,7 +32,7 @@ def base_for(controller, pin, evidence, source=ROOT):
     subjects = [{key: value for key, value in s.items() if key != "status"} for s in queue["subjects"]]
     if not subjects or len(subjects) > 4096 or len({s["id"] for s in subjects}) != len(subjects):
         raise ValueError("Missing or duplicate controller subjects")
-    return {"format": 1, "kind": "inara-controller-review", "controller_manifest_sha256": pin,
+    return {"format": 1, "kind": "jarvis-controller-review", "controller_manifest_sha256": pin,
             "provenance_inventory_sha256": old.hashed(snapshot(evidence)),
             "review_tool_sha256": signed.digest_file(Path(__file__)), "subjects": subjects}
 

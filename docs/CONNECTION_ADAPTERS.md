@@ -52,7 +52,7 @@ Other printer protocols, full vendor feature parity, actual sliced-output qualit
 
 Evidence: [Connections page](qa/connections-desktop.png), [390px panel](qa/connections-390.png), [sanitized native report](qa/connections-verification.json).
 
-Tests use injected SDK/session/mDNS factories and isolated project/profile data. Real hardware suites now require explicit `INARA_LIVE_HARDWARE_TESTS=1` opt-in and are not run for this milestone. Setting that variable alone is not hardware acceptance.
+Tests use injected SDK/session/mDNS factories and isolated project/profile data. Real hardware suites now require explicit `JARVIS_LIVE_HARDWARE_TESTS=1` opt-in and are not run for this milestone. Setting that variable alone is not hardware acceptance.
 
 ## Protocol references
 

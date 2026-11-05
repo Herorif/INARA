@@ -206,7 +206,7 @@ class ProjectMemory:
             encrypted = base64.b64decode(args.backup, validate=True)
         except (ValueError, binascii.Error) as exc:
             raise ServiceError(
-                "memory_backup", "Choose an intact INARA protected memory backup."
+                "memory_backup", "Choose an intact JARVIS protected memory backup."
             ) from exc
         payload = self.database.decode("project-memory-backup-v1", encrypted)
         if (

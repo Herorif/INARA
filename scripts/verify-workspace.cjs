@@ -51,11 +51,11 @@ app.whenReady().then(async () => {
             overflow: document.documentElement.scrollWidth > innerWidth,
             buttons: [...document.querySelectorAll('button')].filter(b => !b.textContent.trim() && !b.getAttribute('aria-label')).length })`);
     assert.equal(initial.title, 'Assistant');
-    assert.deepEqual(await evaluate(`[...document.querySelectorAll('nav[aria-label="Main navigation"] button')].map(button=>button.getAttribute('aria-label'))`), ['Assistant','Studio','Inbox','Tasks','Connections']);
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('nav[aria-label="Main navigation"] button')].map(button=>button.getAttribute('aria-label'))`), ['Assistant','Studio','Inbox','Calls','Tasks','Connections']);
     assert.equal(initial.overflow, false);
     assert.equal(await window.webContents.executeJavaScript(`document.querySelector('.command-deck').dataset.uiContractVersion`),'1');
     assert.equal(initial.buttons, 0);
-    assert.equal(await evaluate(`document.querySelector('[aria-label="Message INARA"]').disabled`), true, 'Offline assistant must not accept actions');
+    assert.equal(await evaluate(`document.querySelector('[aria-label="Message JARVIS"]').disabled`), true, 'Offline assistant must not accept actions');
     assert.ok(!requests.some(url => /CadWindow-|CadStudio-|CameraPanel-|ImageStudio-|tracker-|tracking.worker-|vision_wasm|hand_landmarker/.test(url)), 'Heavy assets loaded on startup');
     fs.writeFileSync(path.join(output, 'command-desktop.png'), (await window.webContents.capturePage()).toPNG());
     await window.webContents.executeJavaScript(`document.querySelectorAll('nav button')[1].click()`);

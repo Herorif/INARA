@@ -1,5 +1,7 @@
 # Android build acceptance
 
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically. The accepted builds below predate the rename and were built as `com.inara.companion`; the package is now `com.jarvis.companion`.
+
 Latest accepted build, 24 October 2026: [Order 4 mobile call receipts](MOBILE_CALL_RECEIPTS.md), version 0.1.1-receipts/code 2, four executed JVM tests and fresh strict offline APK/signature audit. [Current QA](qa/mobile-call-receipts-verification.json). Build heap is now 768 MB. The initial 23 October account/artifact below is retained as history.
 
 **Accepted, 23 October 2026:** real dependency recording followed by a clean strict offline debug build, Kotlin/Java compilation, one executed JVM protocol test and successful apksigner verification. [Current execution evidence](qa/android-build-verification.json) includes input/dependency/output hashes and the preserved APK location. Compiled aapt2/javap inspection confirms package `com.inara.companion`, INTERNET plus the app-owned AndroidX signature-only internal receiver permission, and notification acceptance false. No phone or emulator was contacted; release signing and physical device acceptance remain pending.

@@ -89,7 +89,7 @@ def test_launch_contract_refuses_changes(tmp_path, monkeypatch, mutation):
     elif mutation == "selection":
         fixture["service"].deactivate()
     elif mutation == "profile":
-        (root / "data" / slot / ".inara-data.json").write_text("{}")
+        (root / "data" / slot / ".jarvis-data.json").write_text("{}")
     else:
         capsule.rename(root / "admissions" / "retained")
     with pytest.raises((ValueError, OSError, KeyError)):
@@ -188,7 +188,7 @@ def windows_fixture(tmp_path):
     path = tmp_path / "windows.json"
     value = {
         "format": 1,
-        "kind": "inara-windows-signing-policy",
+        "kind": "jarvis-windows-signing-policy",
         "mode": "production",
         "targets": [{"path": "owned.exe", "signer_sha256": "a" * 64, "timestamp_sha256": "b" * 64}],
     }

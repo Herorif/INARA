@@ -72,7 +72,7 @@ const AppButton = ({ app }) => {
 // ---------------------------------------------------------------------------
 const StatsPanel = ({ info }) => {
   if (!info) {
-    return <EmptyState className="py-6" icon={<Monitor />} title="No system info yet" body="Ask INARA for system info, or refresh." />;
+    return <EmptyState className="py-6" icon={<Monitor />} title="No system info yet" body="Ask JARVIS for system info, or refresh." />;
   }
 
   const { cpu, memory, disk = [], battery } = info;
@@ -308,7 +308,7 @@ const DesktopWindow = () => {
                 onClick={() => handleAsk('What did I last copy to clipboard?')}
                 className="btn btn--secondary flex-1">
 
-                                    <ClipboardPaste size={14} aria-hidden="true" /> Paste to INARA
+                                    <ClipboardPaste size={14} aria-hidden="true" /> Paste to JARVIS
                                 </button>
                             </div>
                         </section>

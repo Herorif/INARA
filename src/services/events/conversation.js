@@ -1,4 +1,8 @@
 import {safeMemorySources} from '../../transport/memorySources.ts';
+// A core or saved transcript from before the INARA -> JARVIS rename (5 Nov 2026) signs replies 'INARA';
+// show them as JARVIS. Remove one release after the rename, with the other wire fallbacks.
+const sender = value => (value === 'INARA' ? 'JARVIS' : value);
+
 /** Conversation/project event scope, including bounded transcription deduplication. */
 export function registerConversationEvents({ onSocket, store: useStore, unsubs, resumeConversation, conversationForProject }) {
     const s = useStore.getState;
@@ -12,7 +16,7 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
     unsubs.push(onSocket('conversation_restored', data => {
         if (data.conversation_id !== s().conversationId || data.project !== s().currentProject) return;
         useStore.setState({ conversationRestoring: false, messages: data.messages.map(m => ({
-            sender: m.role === 'user' ? 'You' : 'INARA', text: m.content, time: '', memory_sources: safeMemorySources(m.memory_sources),
+            sender: m.role === 'user' ? 'You' : 'JARVIS', text: m.content, time: '', memory_sources: safeMemorySources(m.memory_sources),
         })) });
     }));
     unsubs.push(onSocket('conversation_restore_failed', data => {
@@ -32,8 +36,8 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
             }
         }
         // A task call's outcome (C4) arrives later as its own message, never joined to the last one.
-        if (data.kind === 'task_call_outcome') s().addMessage(data.sender, data.text);
-        else s().appendTranscription(data.sender, data.text, safeMemorySources(data.memory_sources));
+        if (data.kind === 'task_call_outcome') s().addMessage(sender(data.sender), data.text);
+        else s().appendTranscription(sender(data.sender), data.text, safeMemorySources(data.memory_sources));
     }));
 
     // --- Project ---

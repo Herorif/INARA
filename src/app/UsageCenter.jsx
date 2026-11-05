@@ -223,7 +223,7 @@ export default function UsageCenter() {
           <p className="usage-scope">
             Limits are shared across your projects, desktop/speech and paired-phone chat. Receipts below show{" "}
             <b>{project}</b>. Metered paths cover chat, CAD proposals and transcription. Provider invoice cost
-            is unknown; these totals are INARA authorization allowances.
+            is unknown; these totals are JARVIS authorization allowances.
           </p>
           {form && (
             <form className="usage-policy" onSubmit={save}>

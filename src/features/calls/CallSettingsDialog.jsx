@@ -15,9 +15,9 @@ const ROW = 'flex flex-col gap-2 rounded-md border border-line bg-raised px-3 py
 const HELP = 'text-[0.75rem] leading-relaxed text-ink-2';
 const FIELD = 'rounded-md border border-line-strong bg-panel px-2 py-1.5 text-sm text-ink-1';
 const PIN = {
-  name: 'call_briefing_pin', title: 'Briefing PIN', provider: 'INARA', noun: 'PIN', inputLabel: 'Briefing PIN, 4 to 8 digits',
-  inputMode: 'numeric', checkable: false, purpose: 'INARA asks for it before telling anyone on a call about your messages. It is never shown.',
-  removeConfirm: 'Remove the briefing PIN? INARA will brief you without asking for it.', removedText: 'PIN removed.', emptyText: 'Enter 4 to 8 digits first.',
+  name: 'call_briefing_pin', title: 'Briefing PIN', provider: 'JARVIS', noun: 'PIN', inputLabel: 'Briefing PIN, 4 to 8 digits',
+  inputMode: 'numeric', checkable: false, purpose: 'JARVIS asks for it before telling anyone on a call about your messages. It is never shown.',
+  removeConfirm: 'Remove the briefing PIN? JARVIS will brief you without asking for it.', removedText: 'PIN removed.', emptyText: 'Enter 4 to 8 digits first.',
 };
 
 function NumberField({ id, label, help, value, min, max, unit, onSave }) {
@@ -112,15 +112,15 @@ export default function CallSettingsDialog({ settings, briefingPinSet, focus, on
                 <input type="time" className={`${FIELD} font-mono`} value={quiet.end} aria-describedby="calls-quiet-result"
                   onChange={event => setQuiet(current => ({ ...current, end: event.target.value }))} onBlur={saveQuiet} /></label>
             </div>
-            <p className={HELP}>INARA does not phone anyone but you during these hours. The same start and end time turns them off.</p>
+            <p className={HELP}>JARVIS does not phone anyone but you during these hours. The same start and end time turns them off.</p>
             <ResultMessage id="calls-quiet-result" result={results.quiet} />
           </div>
           <NumberField id="calls-daily-cap" label="Daily outgoing call limit" min={0} max={100} value={settings.daily_outbound_cap}
-            help="The most calls INARA may place to other people in a day." onSave={value => patch({ daily_outbound_cap: value })} />
+            help="The most calls JARVIS may place to other people in a day." onSave={value => patch({ daily_outbound_cap: value })} />
           <NumberField id="calls-cooldown" label="Wait before calling the same number again" unit="minutes" min={0} max={10080} value={settings.number_cooldown_minutes}
-            help="Stops INARA from calling one person over and over." onSave={value => patch({ number_cooldown_minutes: value })} />
+            help="Stops JARVIS from calling one person over and over." onSave={value => patch({ number_cooldown_minutes: value })} />
           <NumberField id="calls-max-minutes" label="Longest call" unit="minutes" min={2} max={30} value={settings.max_call_minutes}
-            help="INARA ends a call politely when it reaches this length." onSave={value => patch({ max_call_minutes: value })} />
+            help="JARVIS ends a call politely when it reaches this length." onSave={value => patch({ max_call_minutes: value })} />
         </section>
 
         <section className="flex flex-col gap-2" aria-labelledby="calls-settings-you">
@@ -131,7 +131,7 @@ export default function CallSettingsDialog({ settings, briefingPinSet, focus, on
               <Segmented labelledBy="calls-brief-label" name="calls-brief" options={BRIEF_OPTIONS} value={settings.brief_by_phone}
                 onChange={value => save('brief', { brief_by_phone: value })} />
             </div>
-            <p className={HELP}>Whether INARA phones your mobile about a call: never, only for urgent ones, or whenever a call needs you.</p>
+            <p className={HELP}>Whether JARVIS phones your mobile about a call: never, only for urgent ones, or whenever a call needs you.</p>
             <ResultMessage id="calls-brief-result" result={results.brief} />
           </div>
           <div className={ROW}>
@@ -144,12 +144,12 @@ export default function CallSettingsDialog({ settings, briefingPinSet, focus, on
             <ResultMessage id="calls-disabled-result" result={results.disabled} />
           </div>
           <div className={ROW}>
-            <label htmlFor="calls-facts" className="text-sm text-ink-1">What INARA may tell callers</label>
+            <label htmlFor="calls-facts" className="text-sm text-ink-1">What JARVIS may tell callers</label>
             <textarea id="calls-facts" rows={5} maxLength={FACTS_LIMIT} value={facts} className={`${FIELD} w-full resize-y leading-relaxed`}
               placeholder="For example: Hiro is usually free after 6 pm." aria-describedby="calls-facts-help calls-facts-count calls-facts-result"
               onChange={event => { setFacts(event.target.value); setResults(current => ({ ...current, facts: null })); }} onBlur={saveFacts} />
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p id="calls-facts-help" className={HELP}>INARA shares only what you write here.</p>
+              <p id="calls-facts-help" className={HELP}>JARVIS shares only what you write here.</p>
               <span id="calls-facts-count" className="font-mono text-[0.6875rem] text-ink-2">{`${facts.length.toLocaleString('en-US')} / ${FACTS_LIMIT.toLocaleString('en-US')}`}</span>
             </div>
             <ResultMessage id="calls-facts-result" result={results.facts} />

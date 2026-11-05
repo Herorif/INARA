@@ -1,5 +1,7 @@
 # Shared voice dispatch and connection/face ownership (R2b5)
 
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
+
 Implemented 19 October 2026. This completes the two authorized follow-up steps from [Workspace policy](WORKSPACE_POLICY.md): shared voice execution and connection/face-task ownership.
 
 ## One active tool authority

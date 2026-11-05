@@ -67,7 +67,7 @@ def setup_package(tmp_path, monkeypatch, purpose="fixture", variant=""):
         (audited / name).write_bytes(raw)
     base = {
         "format": 1,
-        "kind": "inara-distribution-review",
+        "kind": "jarvis-distribution-review",
         "candidate_manifest_sha256": report["candidate_manifest_sha256"],
         "audit_report_sha256": signed.digest_file(audited / "distribution-audit.json"),
         "review_tool_sha256": "f" * 64,
@@ -126,7 +126,7 @@ def setup_package(tmp_path, monkeypatch, purpose="fixture", variant=""):
         )
     policy = {
         "format": 1,
-        "kind": "inara-release-trust-policy",
+        "kind": "jarvis-release-trust-policy",
         "mode": purpose,
         "publisher": "SYNTHETIC TEST ONLY",
         "policy_sequence": 1,
@@ -158,7 +158,7 @@ def setup_package(tmp_path, monkeypatch, purpose="fixture", variant=""):
         statement = signed.statement_for(m, raw)
         envelope = {
             "format": 1,
-            "kind": "inara-package-attestation",
+            "kind": "jarvis-package-attestation",
             "statement": statement,
             "signatures": [
                 {

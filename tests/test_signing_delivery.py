@@ -30,7 +30,7 @@ def fixture(tmp_path, monkeypatch):
     ledger = tmp_path / "ledger"
     reviews.create(controller, pin, evidence, ledger, source)
     private = [Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()]
-    policy = {"format": 1, "kind": "inara-release-trust-policy", "mode": "production", "publisher": "SYNTHETIC TEST OWNER",
+    policy = {"format": 1, "kind": "jarvis-release-trust-policy", "mode": "production", "publisher": "SYNTHETIC TEST OWNER",
               "channel": "pilot", "policy_sequence": 1, "minimum_sequence": 1,
               "thresholds": {"publisher": 1, "reviewer": 1}, "keys": []}
     for role, secret in zip(("publisher", "reviewer"), private, strict=True):
@@ -41,7 +41,7 @@ def fixture(tmp_path, monkeypatch):
                                "not_after": (NOW + timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")})
     policy_path, windows_path = tmp_path / "release.json", tmp_path / "windows.json"
     save(policy_path, policy)
-    save(windows_path, {"format": 1, "kind": "inara-windows-signing-policy", "mode": "production", "targets": [{"path": "runtime/python.exe", "signer_sha256": "a" * 64, "timestamp_sha256": "b" * 64}]})
+    save(windows_path, {"format": 1, "kind": "jarvis-windows-signing-policy", "mode": "production", "targets": [{"path": "runtime/python.exe", "signer_sha256": "a" * 64, "timestamp_sha256": "b" * 64}]})
     enrollment = tmp_path / "enrollment"
     custody.draft(enrollment)
     text = b"SYNTHETIC PUBLIC TEST ASSERTIONS. Not legal, hardware or custody evidence."

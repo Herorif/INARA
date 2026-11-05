@@ -32,7 +32,7 @@ def assemble(recipe):
         return validate(vertices, faces), stl(vertices, faces), glb(vertices, faces, recipe["name"])
     vertices, faces, raw = [], [], bytearray()
     document = {
-        "asset": {"version": "2.0", "generator": "INARA scene assembly"},
+        "asset": {"version": "2.0", "generator": "JARVIS scene assembly"},
         "scene": 0,
         "scenes": [{"nodes": []}],
         "nodes": [],

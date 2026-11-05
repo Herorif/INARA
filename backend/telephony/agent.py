@@ -141,7 +141,7 @@ class CallRun:
     connected: bool = False
     closed: bool = False
     last_caller: float = 0.0
-    last_inara: float = 0.0
+    last_jarvis: float = 0.0
     silence_checked: float | None = None
     warned: bool = False
     ending: str | None = None
@@ -149,7 +149,7 @@ class CallRun:
     hanging_up: bool = False
     hung_up_after_mark: bool = False
     caller_text: str = ""
-    inara_text: str = ""
+    jarvis_text: str = ""
     turn_audio: bool = False
     transcript: list = field(default_factory=list)
     transcript_chars: int = 0
@@ -443,7 +443,7 @@ class CallAgent:
             declarations=briefs.declarations(brief.mode, pin_required=bool(pin)),
             pin=pin,
             last_caller=now,
-            last_inara=now,
+            last_jarvis=now,
         )
 
     async def _run(self, session, brief, pending):
@@ -603,13 +603,13 @@ class CallAgent:
                 data = getattr(part, "inline_data", None)
                 mime = str(getattr(data, "mime_type", "") or "") if data else ""
                 if data and data.data and mime.startswith("audio/pcm"):
-                    run.last_inara, run.turn_audio = now, True
+                    run.last_jarvis, run.turn_audio = now, True
                     try:
                         await run.session.send(data.data, _rate(mime))
                     except StreamClosed:
                         return
         if content.output_transcription and content.output_transcription.text:
-            run.inara_text = (run.inara_text + content.output_transcription.text)[-CAPTION_LIMIT:]
+            run.jarvis_text = (run.jarvis_text + content.output_transcription.text)[-CAPTION_LIMIT:]
         if content.turn_complete:
             await self._turn_complete(run)
 
@@ -628,7 +628,7 @@ class CallAgent:
 
     async def _finish_opening(self, run):
         try:
-            mark = await run.session.mark("inara-opening")
+            mark = await run.session.mark("jarvis-opening")
             await asyncio.wait_for(mark, OPENING_TIMEOUT)
         except (StreamClosed, TimeoutError):
             pass
@@ -640,7 +640,7 @@ class CallAgent:
             return
         run.hanging_up = True
         try:
-            mark = await run.session.mark("inara-end")
+            mark = await run.session.mark("jarvis-end")
             played = await asyncio.wait_for(mark, PLAYBACK_TIMEOUT)
         except StreamClosed:
             return
@@ -686,7 +686,7 @@ class CallAgent:
                     return
                 now = self.clock()
                 if run.session.playing:
-                    run.last_inara = now  # INARA is still being heard
+                    run.last_jarvis = now  # JARVIS is still being heard
                 if (not run.opening_done.is_set() and run.opening_started is not None
                         and now - run.opening_started > OPENING_TIMEOUT):
                     run.opening_done.set()
@@ -705,14 +705,14 @@ class CallAgent:
                     if not run.hanging_up and now - run.ending_at > END_GRACE_SECONDS:
                         self._spawn_run(run, self._end_after_playback(run))
                     continue
-                quiet = now - max(run.last_caller, run.last_inara)
+                quiet = now - max(run.last_caller, run.last_jarvis)
                 if run.silence_checked is None:
                     if quiet >= self.silence_seconds:
                         run.silence_checked = now
                         self._nudge(run, briefs.NUDGE_SILENCE_CHECK)
                 elif run.last_caller > run.silence_checked:
                     run.silence_checked = None  # the caller answered
-                elif now - max(run.silence_checked, run.last_inara) >= self.silence_end_seconds:
+                elif now - max(run.silence_checked, run.last_jarvis) >= self.silence_end_seconds:
                     self._nudge(run, briefs.NUDGE_SILENCE_END)
                     self._begin_ending(run, "silence")
         except asyncio.CancelledError:
@@ -724,7 +724,7 @@ class CallAgent:
     # --- captions -------------------------------------------------------------------------------
 
     def _flush(self, run):
-        for role, attribute in (("caller", "caller_text"), ("assistant", "inara_text")):
+        for role, attribute in (("caller", "caller_text"), ("assistant", "jarvis_text")):
             text = getattr(run, attribute).strip()
             setattr(run, attribute, "")
             if not text:
@@ -749,7 +749,7 @@ class CallAgent:
             )
 
     def _tool(self, run, call):
-        run.last_inara = self.clock()
+        run.last_jarvis = self.clock()
         args = call.args if isinstance(call.args, dict) else {}
         try:
             if call.name not in MODE_TOOLS[run.brief.mode] or (
@@ -827,7 +827,7 @@ class CallAgent:
             if approved is None:
                 raise ToolError(
                     "no_callback_number",
-                    "There is no callback number on record, so INARA can't call back. "
+                    "There is no callback number on record, so JARVIS can't call back. "
                     "Tell the owner they will need to handle it.",
                 )
             grant = self.app.telephony.grants.issue(approved.counterpart, approved.purpose())
@@ -893,7 +893,7 @@ class CallAgent:
         else:
             status = fields["outcome"]["status"] if fields.get("outcome") else "no_outcome"
         ended_by = (
-            "inara" if run.hung_up_after_mark or run.session.end_reason == "agent_hangup"
+            "jarvis" if run.hung_up_after_mark or run.session.end_reason == "agent_hangup"
             else "caller" if run.session.end_reason in ("stopped", "disconnected")
             else "gateway"
         )

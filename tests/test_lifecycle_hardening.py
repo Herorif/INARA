@@ -47,7 +47,7 @@ async def test_handler_failure_is_logged_and_other_handlers_still_run(caplog):
 
     bus.on("demo.event", broken)
     bus.on("demo.event", healthy)
-    with caplog.at_level(logging.ERROR, logger="inara"):
+    with caplog.at_level(logging.ERROR, logger="jarvis"):
         await bus.emit(Event("demo.event"))
     assert seen == ["demo.event"]
     failures = records(caplog, "Event demo.event handler")
@@ -84,7 +84,7 @@ async def test_drain_cancels_deliveries_that_outlast_shutdown(caplog):
     bus.on("demo.stuck", stuck)
     bus.emit_nowait(Event("demo.stuck"))
     await asyncio.sleep(0)
-    with caplog.at_level(logging.WARNING, logger="inara"):
+    with caplog.at_level(logging.WARNING, logger="jarvis"):
         await bus.drain(timeout=0.05)
     assert cancelled.is_set()
     await asyncio.sleep(0)
@@ -209,7 +209,7 @@ async def test_disconnect_removes_session_even_when_a_cleanup_raises(application
     runtime.workspace.disconnect = AsyncMock()
     runtime.cad_transport.stop_owner = AsyncMock(side_effect=OSError("owner cleanup broke"))
     runtime.image_transport.stop_owner = AsyncMock()
-    with caplog.at_level(logging.ERROR, logger="inara"):
+    with caplog.at_level(logging.ERROR, logger="jarvis"):
         await runtime.disconnect("one")
     assert "one" not in runtime.sessions.principals and "one" not in runtime.sessions.roles
     runtime.workspace.disconnect.assert_awaited_once_with("one")  # later cleanups still ran
@@ -436,9 +436,9 @@ async def test_call_lab_cancellation_records_stop_then_propagates(call_app):
 )
 def test_redaction_filter_masks_each_secret_shape(secret, caplog):
     logger = log_module.get_logger("tests.redaction")
-    with caplog.at_level(logging.INFO, logger="inara"):
+    with caplog.at_level(logging.INFO, logger="jarvis"):
         logger.info("context %s end", secret)
-    (record,) = [r for r in caplog.records if r.name == "inara.tests.redaction"]
+    (record,) = [r for r in caplog.records if r.name == "jarvis.tests.redaction"]
     message = record.getMessage()
     assert log_module.MASK in message and message.startswith("context ")
     for fragment in ("AbCdEf0123", "SyA1b2C3", "eyJhbGci", "dXNlcjpw", "plainvalue123",
@@ -451,12 +451,12 @@ def test_redaction_keeps_ordinary_text_and_masks_tracebacks(caplog):
     assert log_module.redact("Event voice.connected handler Foo.bar failed") == (
         "Event voice.connected handler Foo.bar failed"
     )
-    with caplog.at_level(logging.ERROR, logger="inara"):
+    with caplog.at_level(logging.ERROR, logger="jarvis"):
         try:
             raise RuntimeError("provider said key=sk-ant-api03-leakedvalue")
         except RuntimeError:
             logger.exception("Provider call failed")
-    (record,) = [r for r in caplog.records if r.name == "inara.tests.traceback"]
+    (record,) = [r for r in caplog.records if r.name == "jarvis.tests.traceback"]
     assert "leakedvalue" not in record.exc_text and log_module.MASK in record.exc_text
 
 
@@ -464,23 +464,23 @@ def test_file_handler_writes_rotating_log_under_user_data_directory(tmp_path, mo
     import io
     import logging.handlers
 
-    monkeypatch.setenv("INARA_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("JARVIS_DATA_DIR", str(tmp_path))
     log_module.reset_logging()
     stream = io.StringIO()
     try:
         path = log_module.configure_logging(stream=stream)
-        assert path == tmp_path / "logs" / "inara.log"
+        assert path == tmp_path / "logs" / "jarvis.log"
         assert log_module.configure_logging() == path  # configured once
         (handler,) = [
-            h for h in logging.getLogger("inara").handlers
+            h for h in logging.getLogger("jarvis").handlers
             if isinstance(h, logging.handlers.RotatingFileHandler)
         ]
         assert handler.maxBytes == 2 * 1024 * 1024 and handler.backupCount == 3
         log_module.get_logger("tests.file").warning("written with sk-ant-api03-secretvalue")
         handler.flush()
         text = path.read_text(encoding="utf-8")
-        assert "inara.tests.file" in text and "secretvalue" not in text and "[REDACTED]" in text
-        assert "secretvalue" not in stream.getvalue() and "inara.tests.file" in stream.getvalue()
+        assert "jarvis.tests.file" in text and "secretvalue" not in text and "[REDACTED]" in text
+        assert "secretvalue" not in stream.getvalue() and "jarvis.tests.file" in stream.getvalue()
     finally:
         log_module.reset_logging()
 
@@ -501,7 +501,7 @@ def test_host_thread_call_failures_are_logged(caplog):
         async def broken():
             raise RuntimeError("emit failed")
 
-        with caplog.at_level(logging.ERROR, logger="inara"):
+        with caplog.at_level(logging.ERROR, logger="jarvis"):
             future = host._submit(broken(), "announce resident state")
             with pytest.raises(RuntimeError):
                 future.result(2)

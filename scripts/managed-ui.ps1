@@ -34,7 +34,7 @@ function Set-ManagedBusy([bool]$value) {
     $script:ui.CancelReview.IsEnabled=!$value
     $script:ui.CopyCheckpoint.IsEnabled=!$value -and $null -ne $script:returnedCheckpoint
     $script:ui.EraseConfirmation.IsEnabled=!$value
-    $script:ui.ConfirmReview.IsEnabled=!$value -and $script:ready -and $null -ne $script:review -and (!$script:eraseRequired -or $script:ui.EraseConfirmation.Text -ceq 'ERASE INARA DATA')
+    $script:ui.ConfirmReview.IsEnabled=!$value -and $script:ready -and $null -ne $script:review -and (!$script:eraseRequired -or $script:ui.EraseConfirmation.Text -ceq 'ERASE JARVIS DATA')
 }
 function Get-ManagedRequest([string]$operation) {
     $request=@{operation=$operation;root=$script:ui.RootPath.Text;anchor=$script:ui.AnchorPath.Text;expected_state=$script:ui.StatePin.Text}
@@ -147,7 +147,7 @@ function Receive-Managed($response) {
         $script:inFlightReview=$null
         $script:ui.StateHeading.Text=$(if($value.backup_created){'Encrypted backup created'}elseif($value.prepared){'Recovery copy prepared / selection unchanged'}elseif($value.cancelled){'Prepared change cancelled'}elseif($value.resumed){'Interrupted change completed'}else{'Reviewed change applied'})
         $script:ui.StateDetails.Text='Returned checkpoint: '+$value.checkpoint+[Environment]::NewLine+'Retain this result independently. Copy it and explicitly enter your retained pin before the next check. Existing inputs have not changed.'
-        $script:ui.StatusText.Text='Operation completed. INARA was not launched. Retain the returned checkpoint before continuing.'
+        $script:ui.StatusText.Text='Operation completed. JARVIS was not launched. Retain the returned checkpoint before continuing.'
     }
 }
 foreach($name in $script:inputs) {$script:ui[$name].Add_TextChanged({Reset-ManagedReview; $script:returnedCheckpoint=$null; $script:ui.CopyCheckpoint.IsEnabled=$false; $script:ui.StateHeading.Text='Inputs changed / check again'; $script:ui.StateDetails.Text='The previous result does not describe these edited inputs.'})}
@@ -161,8 +161,8 @@ $script:ui.ReviewBackup.Add_Click({Request-ManagedReview 'backup'})
 $script:ui.ReviewPrepareProfile.Add_Click({Request-ManagedReview 'prepare-profile'})
 $script:ui.ReviewLifecycle.Add_Click({Request-ManagedReview 'lifecycle'})
 $script:ui.BrowseLifecycle.Add_Click({Pick-ManagedPath 'LifecyclePath' $false})
-$script:ui.OpenBackupFile.Add_Click({$dialog=[Microsoft.Win32.OpenFileDialog]::new(); $dialog.Filter='INARA backup (*.inara)|*.inara'; if($dialog.ShowDialog($script:window)) {$script:ui.BackupFile.Text=$dialog.FileName}})
-$script:ui.NewBackupFile.Add_Click({$dialog=[Microsoft.Win32.SaveFileDialog]::new(); $dialog.Filter='INARA backup (*.inara)|*.inara'; $dialog.FileName='inara-profile.inara'; if($dialog.ShowDialog($script:window)) {$script:ui.BackupFile.Text=$dialog.FileName}})
+$script:ui.OpenBackupFile.Add_Click({$dialog=[Microsoft.Win32.OpenFileDialog]::new(); $dialog.Filter='JARVIS backup (*.jarvis;*.inara)|*.jarvis;*.inara'; if($dialog.ShowDialog($script:window)) {$script:ui.BackupFile.Text=$dialog.FileName}})
+$script:ui.NewBackupFile.Add_Click({$dialog=[Microsoft.Win32.SaveFileDialog]::new(); $dialog.Filter='JARVIS backup (*.jarvis)|*.jarvis'; $dialog.FileName='jarvis-profile.jarvis'; if($dialog.ShowDialog($script:window)) {$script:ui.BackupFile.Text=$dialog.FileName}})
 $script:ui.NewProfileId.Add_Click({$script:ui.RecoveryProfile.Text=[Guid]::NewGuid().ToString('N')})
 $script:ui.BrowseRoot.Add_Click({Pick-ManagedPath 'RootPath' $true})
 $script:ui.BrowseAnchor.Add_Click({Pick-ManagedPath 'AnchorPath' $true})
@@ -175,7 +175,7 @@ $script:ui.ConfirmReview.Add_Click({
         if([DateTime]::UtcNow -ge $script:reviewDeadline) {Reset-ManagedReview; $script:ui.StatusText.Text='Review expired. Review the change again.'; return}
         $message=@{op='apply';token=$script:review;request=$script:reviewRequest}
         if($script:eraseRequired) {
-            if($script:ui.EraseConfirmation.Text -cne 'ERASE INARA DATA') {return}
+            if($script:ui.EraseConfirmation.Text -cne 'ERASE JARVIS DATA') {return}
             $message.confirmation=$script:ui.EraseConfirmation.Text
         }
         $script:inFlightReview=@{value=$script:reviewEvidence;details=$script:ui.ReviewDetails.Text}
@@ -183,7 +183,7 @@ $script:ui.ConfirmReview.Add_Click({
         Send-Managed $message
     }
 })
-$script:ui.EraseConfirmation.Add_TextChanged({$script:ui.ConfirmReview.IsEnabled=!$script:busy -and $script:ready -and $null -ne $script:review -and (!$script:eraseRequired -or $script:ui.EraseConfirmation.Text -ceq 'ERASE INARA DATA')})
+$script:ui.EraseConfirmation.Add_TextChanged({$script:ui.ConfirmReview.IsEnabled=!$script:busy -and $script:ready -and $null -ne $script:review -and (!$script:eraseRequired -or $script:ui.EraseConfirmation.Text -ceq 'ERASE JARVIS DATA')})
 $script:ui.CopyCheckpoint.Add_Click({if($script:returnedCheckpoint){[Windows.Clipboard]::SetText($script:returnedCheckpoint); $script:ui.StatusText.Text='Checkpoint copied. Retain it independently; a prepared pin is not proof of commit. Input pins remain unchanged.'}})
 $script:window.Add_Closing({param($sender,$eventArgs)
     if($script:busy) {$eventArgs.Cancel=$true; $script:ui.StatusText.Text='Wait for the active operation. Closing cannot cancel an update.'; return}
@@ -218,7 +218,7 @@ $script:timer.Add_Tick({
         if(!$raw -or $raw.Length -gt 65536) {throw 'Connection ended or response exceeded limit.'}
         $response=$raw | ConvertFrom-Json
         if($script:currentOp -eq 'connect') {
-            if(!$response.ready -or $response.kind -cne 'inara-protected-management' -or $response.protocol -ne 1) {throw 'Unknown worker.'}
+            if(!$response.ready -or $response.kind -cne 'jarvis-protected-management' -or $response.protocol -ne 1) {throw 'Unknown worker.'}
             foreach($capability in @('backup','prepare-profile','signed-lifecycle','reviewed-recovery')) {if($response.capabilities -cnotcontains $capability){throw 'Lifecycle worker capability missing.'}}
             $script:ready=$true; Set-ManagedBusy $false
             $script:ui.ConnectionBadge.Text='LOCAL / CONNECTED'; $script:ui.StatusText.Text='Controller verified. Enter your installation, checkpoint location and independent pin.'

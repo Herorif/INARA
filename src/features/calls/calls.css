@@ -69,8 +69,8 @@
 .calls-turn { min-width:0; }
 .calls-turn__role { display:block; margin:0 0 .25rem; }
 .calls-turn p { margin:0; font-size:var(--text-sm); line-height:var(--leading-normal); color:var(--text-1); white-space:pre-wrap; overflow-wrap:anywhere; }
-.calls-turn--inara { padding-left:.75rem; border-left:2px solid var(--accent); }
-.calls-turn--inara .calls-turn__role { color:var(--accent); }
+.calls-turn--jarvis { padding-left:.75rem; border-left:2px solid var(--accent); }
+.calls-turn--jarvis .calls-turn__role { color:var(--accent); }
 .calls-turn--owner .calls-turn__role { color:var(--text-2); }
 
 .calls-detail__footer { display:flex; flex-direction:column; gap:.5rem; padding-top:.75rem; border-top:1px solid var(--line); }

@@ -1,4 +1,4 @@
-"""Claude (Anthropic) provider: INARA's brain for chat, planning and tool use.
+"""Claude (Anthropic) provider: JARVIS's brain for chat, planning and tool use.
 
 Request rules for Claude Sonnet 5.5 / Haiku 5.5 (see docs/AI_PROVIDERS.md):
 - no temperature, top_p or top_k; adaptive thinking only, depth set by

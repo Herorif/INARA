@@ -61,7 +61,11 @@ def mask_display(value):
 
 
 def number_key(value):
-    """Stable non-reversible key for per-number ledgers (no raw numbers stored)."""
+    """Stable non-reversible key for per-number ledgers (no raw numbers stored).
+
+    The salt predates the JARVIS rename and stays: existing cooldown and limit ledgers are
+    keyed by it.
+    """
     return hashlib.sha256(("inara-telephony-number:" + value).encode("utf-8")).hexdigest()[:32]
 
 

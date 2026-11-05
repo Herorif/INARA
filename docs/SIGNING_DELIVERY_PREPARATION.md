@@ -54,7 +54,7 @@ Approval is a reviewer assertion; ledger completeness does not authenticate the 
 
 `scripts/controller-delivery.py readiness` checks the four separate input directories (controller, provenance, ledger, public custody), independent external public-policy pins, custody assertions and controller review completeness. Native Windows signature enforcement runs only after these public prerequisites pass. It uses the existing cache-only native policy checker; missing/incorrect native coverage, signer/timestamp results or trust failures block request creation. No online fallback runs.
 
-`prepare` writes a new unsigned `statement.json` and exact `signing-message.bin` only when those prerequisites pass. The domain is `INARA:controller-delivery:v1`, separate from package, update, lifecycle and grant signatures. A statement binds:
+`prepare` writes a new unsigned `statement.json` and exact `signing-message.bin` only when those prerequisites pass. The domain is `JARVIS:controller-delivery:v1`, separate from package, update, lifecycle and grant signatures. A statement binds:
 
 - Exact controller manifest pin and bootstrap script bytes.
 - Complete provenance, ledger and custody-bundle inventories, plus ledger head and custody-plan pin.

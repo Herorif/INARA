@@ -1,9 +1,9 @@
 """Twilio bidirectional Media Streams: protocol handling and the CallAudioSession.
 
-Twilio -> INARA JSON text frames: ``connected``, ``start`` (streamSid, callSid,
+Twilio -> JARVIS JSON text frames: ``connected``, ``start`` (streamSid, callSid,
 mediaFormat audio/x-mulaw 8000 Hz mono, customParameters), ``media`` (base64
-mu-law, track inbound), ``mark`` (playback reached a mark INARA sent), ``dtmf``
-and ``stop``. INARA -> Twilio: ``media`` (base64 mu-law), ``mark`` and ``clear``.
+mu-law, track inbound), ``mark`` (playback reached a mark JARVIS sent), ``dtmf``
+and ``stop``. JARVIS -> Twilio: ``media`` (base64 mu-law), ``mark`` and ``clear``.
 
 The call agent (C2) only sees ``CallAudioSession``:
 
@@ -153,7 +153,7 @@ class CallAudioSession:
             raise StreamClosed()
         if name is None:
             self._mark_counter += 1
-            name = f"inara-{self._mark_counter}"
+            name = f"jarvis-{self._mark_counter}"
         if not isinstance(name, str) or not 0 < len(name) <= 64 or name in self._marks:
             raise ValueError("Mark names must be unique non-empty strings.")
         future = asyncio.get_running_loop().create_future()

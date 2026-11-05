@@ -19,7 +19,7 @@ def load(name):
 custody, managed = load("signing-readiness"), load("managed-update")
 reviews, signed, trust, windows = custody.reviews, custody.signed, custody.trust, custody.windows
 old, audit = signed.review, signed.audit
-DOMAIN = b"INARA:controller-delivery:v1\n"
+DOMAIN = b"JARVIS:controller-delivery:v1\n"
 DIGESTS = {"controller_manifest_sha256", "bootstrap_sha256", "provenance_inventory_sha256", "ledger_inventory_sha256", "ledger_head_sha256", "enrollment_inventory_sha256", "enrollment_sha256", "policy_sha256", "windows_policy_sha256"}
 FIELDS = {"format", "kind", "purpose", "publisher", "channel", "sequence", "issued_at", "expires_at"} | DIGESTS
 
@@ -82,7 +82,7 @@ def prepare(controller, pin, evidence, ledger, enrollment, enrollment_pin, polic
     for role, threshold in policy["thresholds"].items():
         if sum(k["state"] == "active" and k["role"] == role and trust.stamp(k["not_before"]) <= current and expires <= trust.stamp(k["not_after"]) for k in policy["keys"]) < threshold:
             raise ValueError("Enrolled keys do not cover the full delivery window")
-    value = {"format": 1, "kind": "inara-controller-delivery", "purpose": "production",
+    value = {"format": 1, "kind": "jarvis-controller-delivery", "purpose": "production",
              "publisher": policy["publisher"], "channel": policy["channel"], "sequence": sequence,
              "issued_at": current.strftime("%Y-%m-%dT%H:%M:%SZ"), "expires_at": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),
              "enrollment_sha256": enrollment_pin, "policy_sha256": policy_pin, "windows_policy_sha256": windows_pin,
@@ -104,7 +104,7 @@ def authenticate(controller, pin, evidence, ledger, enrollment, enrollment_pin, 
     old.exact(envelope, {"statement", "signatures"})
     value = envelope["statement"]
     old.exact(value, FIELDS)
-    if type(value["format"]) is not int or value["format"] != 1 or value["kind"] != "inara-controller-delivery" or value["purpose"] != "production":
+    if type(value["format"]) is not int or value["format"] != 1 or value["kind"] != "jarvis-controller-delivery" or value["purpose"] != "production":
         raise ValueError("Unsupported controller delivery statement")
     for key in DIGESTS:
         trust.digest(value[key])

@@ -1,5 +1,7 @@
 # Release readiness and work after the revamp
 
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
+
 Track the owner's [deferred work and standing constraints](DEFERRED_WORK.md) alongside [release gates](RELEASE_GATES.json). Keep deferred configuration, excluded actions and pending real acceptance visible after source milestones complete.
 
 ## Step 5 software complete: controlled one-call workflow, 24 October 2026
@@ -96,7 +98,7 @@ Next: controller-specific distribution provenance/notices and native format-3 st
 
 [Admission and launch](ADMISSION_LAUNCH.md) adds independently signed renewable root/version authorization, exact review/apply and retained grant/head history. The trusted controller verifies current trust/bytes/profile/native signatures before starting the selected isolated resident under manager/file leases and a kill-on-close Job Object. Expiry and controller death terminate its contained tree. Fresh signatures explicitly reauthorize an expired source package; unsigned requests and fixture trust never authorize launch.
 
-**250 focused tests pass**, including 33 new checks, with scoped Ruff and actual isolated-Python process/lease/expiry/tree acceptance. The updated portable controller has 2,670 verified files; [execution evidence](qa/admission-launch-verification.json) records bootstrap status and refusal checks. Production policies remain disabled, all 85 actual reviews remain pending and no real INARA resident or production installation/grant was exercised.
+**250 focused tests pass**, including 33 new checks, with scoped Ruff and actual isolated-Python process/lease/expiry/tree acceptance. The updated portable controller has 2,670 verified files; [execution evidence](qa/admission-launch-verification.json) records bootstrap status and refusal checks. Production policies remain disabled, all 85 actual reviews remain pending and no real JARVIS resident or production installation/grant was exercised.
 
 Next: independently retained update/trust state, reviewed policy/key rotation and transactional signed update/rollback. Current rollback protection relies on the trusted external latest-grant pin, not a hardware counter. Controller-specific notices/provenance, owned signed bootstrap delivery, Electron/job compatibility and native resident/UI clean-machine acceptance remain pending. Legacy unsigned controls remain separate. Android/SIM/personal WhatsApp physical acceptance and providers remain deferred; WhatsApp text/outgoing actions stay off.
 
@@ -104,7 +106,7 @@ Next: independently retained update/trust state, reviewed policy/key rotation an
 
 [Windows controller preparation](WINDOWS_CONTROLLER.md) adds cache-only native Windows verification with external signer/timestamp pins, a separately inventoried isolated controller and a source-trusted bootstrap that checks all bytes before starting its Python. Authenticated install/recovery retains source authorization evidence before registration. The read-only launch contract verifies current signatures/installed bytes/profile ownership, with native checks required by the controller. It grants no execution permit; local root bindings remain unsigned.
 
-**216 focused Python checks pass**, including 33 new checks, with scoped Ruff, actual 2,668-file controller assembly, bootstrap status/refusal and native certificate probing. [Execution evidence](qa/controller-verification.json). Upstream Python's observed signer/timestamp is not enrolled as INARA identity. Both production policies are disabled, all 85 actual reviews are pending, and no production package was installed or signed.
+**216 focused Python checks pass**, including 33 new checks, with scoped Ruff, actual 2,668-file controller assembly, bootstrap status/refusal and native certificate probing. [Execution evidence](qa/controller-verification.json). Upstream Python's observed signer/timestamp is not enrolled as JARVIS identity. Both production policies are disabled, all 85 actual reviews are pending, and no production package was installed or signed.
 
 Next: durable admission/renewal authorization and process-lifetime guarded launch, monotonic update/rollback state and reviewed trust transitions. The controller needs its own distribution notice/provenance review; owned bootstrap signing/delivery and clean-machine acceptance remain pending. One-hour source authorization still expires and legacy unsigned controls remain separate. Android/SIM/personal WhatsApp physical proof and providers remain deferred; WhatsApp text/outgoing actions stay off.
 
@@ -231,4 +233,4 @@ Continue with source-only backlog work while setup remains deferred. Do not call
 
 ## Second post-revamp step completed
 
-[Usage and quality](USAGE_AND_QUALITY.md) implements conservative INARA admission allowances and explicit fixture evaluations. Monitor-only is the default; no live provider pricing or invoice ceiling is claimed. Source acceptance does not close provider-quality, Android, signing, installer or long-run hardware gates. Continue with owned browser/desktop tasks and device-adapter cleanup while setup stays deferred.
+[Usage and quality](USAGE_AND_QUALITY.md) implements conservative JARVIS admission allowances and explicit fixture evaluations. Monitor-only is the default; no live provider pricing or invoice ceiling is claimed. Source acceptance does not close provider-quality, Android, signing, installer or long-run hardware gates. Continue with owned browser/desktop tasks and device-adapter cleanup while setup stays deferred.

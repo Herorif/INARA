@@ -25,7 +25,7 @@ assert '"NOTIFICATION_ACCEPTANCE_ENABLED", "false"' in (android / "app/build.gra
 assert application.find("activity").attrib[namespace + "resizeableActivity"] == "true"
 ET.parse(android / "app/src/main/res/xml/data_extraction_rules.xml")
 for name in ("MainActivity", "CompanionModel", "DeviceSecurity", "CompanionClient", "NotificationVault", "SelectedNotificationListener", "NotificationCard"):
-    assert (android / f"app/src/main/java/com/inara/companion/{name}.kt").is_file()
+    assert (android / f"app/src/main/java/com/jarvis/companion/{name}.kt").is_file()
 sdk = os.getenv("ANDROID_HOME") or os.getenv("ANDROID_SDK_ROOT")
 tools = {name: shutil.which(name) for name in ("java", "javac", "gradle", "adb")}
 print(json.dumps({"source_manifest_guards": "passed", "permissions": permissions,

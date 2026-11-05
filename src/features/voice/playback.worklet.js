@@ -91,4 +91,4 @@ class VoicePlayerProcessor extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor('inara-voice-player', VoicePlayerProcessor);
+registerProcessor('jarvis-voice-player', VoicePlayerProcessor);

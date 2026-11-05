@@ -16,7 +16,7 @@ const setup=()=>{const socket=new Socket();socket.auto=true;const updates=[],ans
 
 test('48k samples become fixed 16k mono PCM16 frames with finite clamped samples',()=>{
  let Processor;const frames=[];
- vm.runInNewContext(readFileSync('src/features/speech/pcm.worklet.js','utf8'),{AudioWorkletProcessor:class{port={postMessage:frame=>frames.push(frame)};},sampleRate:48000,registerProcessor:(name,type)=>{assert.equal(name,'inara-ptt');Processor=type;}});
+ vm.runInNewContext(readFileSync('src/features/speech/pcm.worklet.js','utf8'),{AudioWorkletProcessor:class{port={postMessage:frame=>frames.push(frame)};},sampleRate:48000,registerProcessor:(name,type)=>{assert.equal(name,'jarvis-ptt');Processor=type;}});
  const value=new Processor();value.process([[new Float32Array(960).fill(2)]]);value.process([[new Float32Array(960).fill(NaN)]]);
  assert.deepEqual(frames.map(frame=>frame.byteLength),[640,640]);assert.equal(new DataView(frames[0]).getInt16(0,true),32767);assert.equal(new DataView(frames[1]).getInt16(0,true),0);
 });

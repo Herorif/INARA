@@ -7,7 +7,7 @@ const pipe=fs.readFileSync(0,'utf8'),bootstrap=JSON.parse(pipe),read=fs.readFile
 fs.readFileSync=function(file,...args){return file===0?pipe:read.call(this,file,...args);};
 const output=bootstrap.qaOutput,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const until=async(predicate,label='condition')=>{const deadline=Date.now()+20000;while(Date.now()<deadline){if(await predicate())return;await sleep(100);}throw Error(`Speech workspace ${label} timed out`);};
-const USER_CAPTION='Fixture question - no speech recognition ran',INARA_CAPTION='Fixture spoken answer - no AI provider ran';
+const USER_CAPTION='Fixture question - no speech recognition ran',JARVIS_CAPTION='Fixture spoken answer - no AI provider ran';
 const load=BrowserWindow.prototype.loadFile;
 BrowserWindow.prototype.loadFile=async function(...args){
  const window=this;await load.apply(window,args);const evaluate=source=>window.webContents.executeJavaScript(source),result={},errors=[];
@@ -52,11 +52,11 @@ BrowserWindow.prototype.loadFile=async function(...args){
   await sleep(1200);releaseKey();
   await until(()=>evaluate(`document.querySelector('.quick-assistant').dataset.microphone==='off'`),'microphone off');
   assert.equal(await tracksEnded(),true);result.live_microphone_only_while_held=true;
-  await until(async()=>(await log()).includes(USER_CAPTION)&&(await log()).includes(INARA_CAPTION),'captions');
+  await until(async()=>(await log()).includes(USER_CAPTION)&&(await log()).includes(JARVIS_CAPTION),'captions');
   result.live_captions_in_transcript=true;
   await live('speaking','playback');await screenshot('quick-live-speaking.png');
   result.live_playback_started=true;
-  // Barge-in: holding again interrupts INARA; the core's voice_interrupted flushes playback.
+  // Barge-in: holding again interrupts JARVIS; the core's voice_interrupted flushes playback.
   const flushes=await evaluate('speechQA.flushes');
   await holdKey();await live('listening','interrupted');
   await until(async()=>await evaluate('speechQA.flushes')>=flushes+2,'interruption flush');

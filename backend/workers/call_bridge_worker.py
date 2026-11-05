@@ -31,7 +31,7 @@ async def main(request):
     if mode not in {"offline_fixture", "live"}:
         raise ValueError("Unknown mode")
     os.environ["GEMINI_API_KEY"] = ""
-    os.environ["INARA_CALL_MODEL"] = ""
+    os.environ["JARVIS_CALL_MODEL"] = ""
     if mode == "offline_fixture":
         from calls.fixture import fixture_profile, FixtureAudio, FixtureControl, FixtureVoice
         profile, control, audio, voice = fixture_profile(), FixtureControl(), FixtureAudio(), FixtureVoice().connection

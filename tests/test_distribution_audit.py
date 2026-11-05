@@ -26,7 +26,7 @@ def fixture(tmp_path, monkeypatch):
     write(source, "package-lock.json", lock)
     write(candidate, "package-lock.json", lock)
     write(candidate, "desktop-pilot.json", {"files": [{"path": "LICENSE", "bytes": 7, "sha256": "fixture"}], "electron_version": "44.7.0"})
-    write(candidate, "package.json", {"name": "inara", "version": "1", "license": "MIT"})
+    write(candidate, "package.json", {"name": "jarvis", "version": "1", "license": "MIT"})
     write(candidate, "requirements-core.lock", "fixture-pkg==1.0.0\n")
     write(candidate, "LICENSE", "Project notice\n")
     write(candidate, "runtime/python/runtime-manifest.json", {"python_version": "3.12.10", "dependencies": {"fixture-pkg": "1.0.0"}})

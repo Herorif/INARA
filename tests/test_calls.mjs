@@ -19,7 +19,7 @@ const summary = (extra = {}) => ({
 const detail = (extra = {}) => ({
   ...summary(), fields: { name: 'Aina', reason: 'Lease renewal', urgency: 'urgent', callback_number_masked: '+60 12-•••• 6789', message: 'Please call before 5.' },
   triage: { summary: 'Aina needs a decision on the lease today.', urgency: 'urgent', needs_owner: true, suggested_actions: ['Call Aina back'] },
-  triage_state: 'done', transcript: [{ role: 'inara', text: 'Hello.' }, { role: 'caller', text: 'Hi.' }], outcome: null, related_ids: [], ...extra,
+  triage_state: 'done', transcript: [{ role: 'jarvis', text: 'Hello.' }, { role: 'caller', text: 'Hi.' }], outcome: null, related_ids: [], ...extra,
 });
 const presence = (configured, verified = configured) => ({ configured, verified, source: configured ? 'store' : null });
 const readiness = (extra = {}) => ({
@@ -89,7 +89,7 @@ test('approve failures map to plain sentences', () => {
   assert.equal(approveErrorMessage('quiet_hours', { start: '21:00', end: '09:00' }), "It's quiet hours (21:00–09:00). Try again later or change quiet hours in Call settings.");
   assert.equal(approveErrorMessage('quiet_hours', { start: '22:30', end: '07:00' }), "It's quiet hours (22:30–07:00). Try again later or change quiet hours in Call settings.");
   assert.equal(approveErrorMessage('daily_cap'), 'Daily call limit reached.');
-  assert.equal(approveErrorMessage('cooldown'), 'INARA called this number recently. Try again later.');
+  assert.equal(approveErrorMessage('cooldown'), 'JARVIS called this number recently. Try again later.');
   assert.equal(approveErrorMessage('no_callback_number'), 'No callback number was given.');
   assert.equal(approveErrorMessage('calls_disabled'), 'Calls are off.');
   assert.equal(approveErrorMessage('not_ready'), "Call setup isn't complete.");
@@ -116,7 +116,7 @@ test('callback progress follows call_progress states', () => {
 test('setup checklist rows come from calls_status', () => {
   const status = parseCallsStatus({ ok: true, calls: readiness() });
   assert.deepEqual(setupRows(status).map(row => [row.id, row.label]), [
-    ['twilio', 'VERIFIED'], ['inara_number', 'SAVED'], ['owner_number', 'SAVED'], ['tunnel', 'SAVED'], ['address', 'SET'], ['voice', 'READY'], ['forwarding', 'NOT CONFIRMED'],
+    ['twilio', 'VERIFIED'], ['jarvis_number', 'SAVED'], ['owner_number', 'SAVED'], ['tunnel', 'SAVED'], ['address', 'SET'], ['voice', 'READY'], ['forwarding', 'NOT CONFIRMED'],
   ]);
   assert.equal(setupComplete(status), true, 'forwarding and the mobile number are recommended, not required');
   assert.equal(setupRows(status, true).at(-1).label, 'DONE');
@@ -133,9 +133,9 @@ test('setup checklist rows come from calls_status', () => {
   assert.equal(answeringProblem({ ...status, enabled: true, answering: true }), '');
 });
 
-test('forwarding codes fill in INARA’s number when known', () => {
+test('forwarding codes fill in JARVIS’s number when known', () => {
   assert.deepEqual(forwardingCodes('+60312345678').map(entry => entry.code), ['**67*+60312345678#', '**61*+60312345678**20#', '**62*+60312345678#']);
-  assert.equal(forwardingCodes(null)[0].code, '**67*<INARA number>#');
+  assert.equal(forwardingCodes(null)[0].code, '**67*<JARVIS number>#');
   assert.equal(CANCEL_FORWARDING, '##002#');
 });
 
@@ -167,8 +167,12 @@ test('contract validators accept the documented shapes and refuse others', () =>
   assert.equal(nested.needs_you_count, 0);
   assert.equal(nested.active_call, null);
   assert.equal(nested.briefing_pin_set, null);
-  const flat = parseCallsStatus({ ok: true, ...readiness({ enabled: true, ready: true }), answering: true, needs_you_count: 3, active_call: { id: 'CA1', mode: 'screening', direction: 'inbound', state: 'in_progress' }, briefing_pin_set: true, inara_number: '+60312345678' });
-  assert.deepEqual([flat.answering, flat.needs_you_count, flat.active_call.id, flat.briefing_pin_set, flat.inara_number], [true, 3, 'CA1', true, '+60312345678']);
+  const flat = parseCallsStatus({ ok: true, ...readiness({ enabled: true, ready: true }), answering: true, needs_you_count: 3, active_call: { id: 'CA1', mode: 'screening', direction: 'inbound', state: 'in_progress' }, briefing_pin_set: true, jarvis_number: '+60312345678' });
+  assert.deepEqual([flat.answering, flat.needs_you_count, flat.active_call.id, flat.briefing_pin_set, flat.jarvis_number], [true, 3, 'CA1', true, '+60312345678']);
+  // A core from before the JARVIS rename sends the number as inara_number.
+  const legacy = parseCallsStatus({ ok: true, calls: readiness(), inara_number: '+60312345678' });
+  assert.equal(legacy.jarvis_number, '+60312345678');
+  assert.equal(Object.hasOwn(legacy, 'inara_number'), false);
   assert.equal(parseCallsStatus({ ok: true, calls: readiness(), needs_you_count: 2 }).needs_you_count, 2, 'C3 fields may sit beside the nested report');
   assert.equal(parseCallsStatus({ ok: true, calls: readiness({ enabled: 'yes' }) }), null);
   assert.equal(parseCallsStatus({ ok: true, calls: readiness(), needs_you_count: -1 }), null);
@@ -176,6 +180,7 @@ test('contract validators accept the documented shapes and refuse others', () =>
   assert.equal(parseCallsStatus({ ok: true, calls: { ...readiness(), active_call: { id: 'abc123', mode: null, direction: 'outbound', state: 'dialing' } } }).active_call.state, 'dialing');
   assert.equal(isCallSummary(summary({ mode: null, started_at: null })), true, 'C3a may not know the mode or start time');
   assert.equal(parseCallsStatus({ ok: true, calls: readiness(), active_call: { id: 5 } }), null);
+  assert.equal(parseCallsStatus({ ok: true, calls: readiness(), jarvis_number: '+60312345678; rm' }), null);
   assert.equal(parseCallsStatus({ ok: true, calls: readiness(), inara_number: '+60312345678; rm' }), null);
   assert.equal(isCallSummary(summary()), true);
   assert.equal(isCallSummary(summary({ started_at: '2026-11-04T08:00:00Z' })), true);
@@ -214,8 +219,10 @@ test('calls client sends the documented requests and validates replies', async (
   await assert.rejects(client.list('everything'), { code: 'invalid_arguments' });
   const opened = client.get('rec-1');
   assert.deepEqual(socket.requests[2], { event: 'calls_get', data: { id: 'rec-1' }, ack: socket.requests[2].ack });
-  socket.requests[2].ack({ ok: true, call: detail({ related_ids: undefined }) });
-  assert.deepEqual((await opened).related_ids, []);
+  socket.requests[2].ack({ ok: true, call: detail({ related_ids: undefined, transcript: [{ role: 'inara', text: 'Hello.' }, { role: 'caller', text: 'Hi.' }] }) });
+  const openedCall = await opened;
+  assert.deepEqual(openedCall.related_ids, []);
+  assert.deepEqual(openedCall.transcript.map(turn => turn.role), ['jarvis', 'caller'], 'a pre-rename core role reads as JARVIS');
   const other = client.get('rec-1');
   socket.requests[3].ack({ ok: true, call: detail({ id: 'rec-2' }) });
   await assert.rejects(other, { code: 'invalid_response' }, 'a reply for another record is refused');
@@ -245,7 +252,7 @@ test('calls client sends the documented requests and validates replies', async (
 });
 
 test('telephony secrets share the key row messages', () => {
-  const saved = { name: 'twilio_phone_number', label: "INARA's Twilio number", configured: true, source: 'store', hint: '5678', verified_at: null, last_check: { ok: false, code: 'no_check', at: 'x' } };
+  const saved = { name: 'twilio_phone_number', label: "JARVIS's Twilio number", configured: true, source: 'store', hint: '5678', verified_at: null, last_check: { ok: false, code: 'no_check', at: 'x' } };
   assert.deepEqual(secretChip(saved), { tone: 'ok', label: 'SAVED ··5678', envOverride: false, hint: '5678', prefix: 'SAVED' });
   assert.deepEqual(secretChip({ ...saved, hint: null }), { tone: 'ok', label: 'SAVED', envOverride: false });
   assert.deepEqual(saveResultMessage('twilio_phone_number', saved), { tone: 'ok', text: 'Saved.' });
@@ -260,7 +267,7 @@ test('Calls sits in navigation and the palette without taking Call lab’s searc
   assert.equal(searchCommands('calls')[0].title, 'Calls');
   assert.equal(searchCommands('Call bridge lab')[0].title, 'Call lab');
   assert.equal(featureWorkspace('callsview'), 'callsview');
-  assert.deepEqual(workspaceTitles.callsview, ['Calls', 'Calls INARA answered and made for you']);
+  assert.deepEqual(workspaceTitles.callsview, ['Calls', 'Calls JARVIS answered and made for you']);
 });
 
 test('presence ping: on input at most once a minute, on focus always, only while focused and connected', () => {
@@ -292,14 +299,14 @@ import { createSubscriptions } from '../src/services/subscriptions.js';
 import { registerConversationEvents } from '../src/services/events/conversation.js';
 
 test('a task call approval gets its own readable card', () => {
-  const summary = "Call Marini's at +60322223333 to: Reserve a table on Friday 6 November 2026 20:00-20:30. INARA will say it's an AI assistant and may share only: the booking name, the party size and the time window.";
+  const summary = "Call Marini's at +60322223333 to: Reserve a table on Friday 6 November 2026 20:00-20:30. JARVIS will say it's an AI assistant and may share only: the booking name, the party size and the time window.";
   assert.deepEqual(approvalView({ id: 'a', tool: 'place_task_call', args: { summary, phone_number: '+60322223333' } }),
     { kind: 'task_call', title: 'Outgoing call', summary, approveLabel: 'Approve call', denyLabel: 'Deny', details: null });
   // Without the review sentence it falls back to the generic key/value card.
   const generic = approvalView({ id: 'b', tool: 'place_task_call', args: { goal: 'x' } });
   assert.equal(generic.kind, 'generic'); assert.deepEqual(generic.details, { goal: 'x' });
   assert.deepEqual(approvalView({ id: 'c', tool: 'write_file', args: { path: 'a.txt' } }),
-    { kind: 'generic', title: 'write file', summary: 'INARA continues only after you approve. Denying leaves this action undone.', approveLabel: 'Approve', denyLabel: 'Deny', details: { path: 'a.txt' } });
+    { kind: 'generic', title: 'write file', summary: 'JARVIS continues only after you approve. Denying leaves this action undone.', approveLabel: 'Approve', denyLabel: 'Deny', details: { path: 'a.txt' } });
   assert.equal(approvalView({ id: 'd' }).title, 'Assistant action');
 });
 
@@ -313,15 +320,18 @@ test('task calls always show as ask first unless set to never', () => {
 
 test('a task call outcome arrives live as its own transcript message, once', () => {
   const socket = new EventEmitter(), scope = createSubscriptions(socket);
-  let state = { currentProject: 'temp', conversationId: 'c-1', messages: [{ sender: 'INARA', text: "Calling Marini's now — I'll report back." }] };
+  let state = { currentProject: 'temp', conversationId: 'c-1', messages: [{ sender: 'JARVIS', text: "Calling Marini's now — I'll report back." }] };
   state.addMessage = (sender, text) => { state = { ...state, messages: [...state.messages, { sender, text }] }; };
   state.appendTranscription = (sender, text) => { const last = state.messages.at(-1); state = { ...state, messages: [...state.messages.slice(0, -1), { ...last, text: last.text + text }] }; };
   const store = { getState: () => state, setState: value => { state = { ...state, ...value }; } };
   registerConversationEvents({ onSocket: scope.on, store, unsubs: [], resumeConversation: () => {}, conversationForProject: p => `${p}-id` });
-  const outcome = { sender: 'INARA', text: 'No one answered at Marini\'s, so nothing is booked.', kind: 'task_call_outcome', request_id: 'task-call-1', conversation_id: 'c-1', project: 'temp' };
+  const outcome = { sender: 'JARVIS', text: 'No one answered at Marini\'s, so nothing is booked.', kind: 'task_call_outcome', request_id: 'task-call-1', conversation_id: 'c-1', project: 'temp' };
   socket.emit('transcription', outcome);
   socket.emit('transcription', outcome);
   socket.emit('transcription', { ...outcome, request_id: 'task-call-2', conversation_id: 'other' });
   assert.deepEqual(state.messages.map(m => m.text), ["Calling Marini's now — I'll report back.", "No one answered at Marini's, so nothing is booked."]);
+  // A core from before the JARVIS rename signs messages 'INARA'; they read as JARVIS.
+  socket.emit('transcription', { ...outcome, sender: 'INARA', request_id: 'task-call-3' });
+  assert.deepEqual(state.messages.map(m => m.sender), ['JARVIS', 'JARVIS', 'JARVIS']);
   scope.dispose();
 });

@@ -27,7 +27,7 @@ signed, windows, launcher = (
     module("windows-launch"),
 )
 trust, review = signed.trust, signed.review
-DOMAIN = b"INARA:installation-launch-grant:v1\n"
+DOMAIN = b"JARVIS:installation-launch-grant:v1\n"
 FIELDS = {
     "format",
     "kind",
@@ -57,7 +57,7 @@ def verify_grant(envelope, policy, pin, windows_pin, now=None):
     if (
         type(value["format"]) is not int
         or value["format"] != 1
-        or value["kind"] != "inara-installation-launch-grant"
+        or value["kind"] != "jarvis-installation-launch-grant"
         or policy["mode"] != "production"
         or value["policy_sha256"] != pin
         or value["windows_policy_sha256"] != windows_pin
@@ -138,7 +138,7 @@ def head(service, state, expected):
     if (
         type(value["format"]) is not int
         or value["format"] != 1
-        or value["kind"] != "inara-authorization-head"
+        or value["kind"] != "jarvis-authorization-head"
         or value["installation"] != state["id"]
         or value["grant_sha256"] != expected
     ):
@@ -175,7 +175,7 @@ def source(service, state, policy_path, pin, sequence, statement=None):
     )
     expected = {
         "format": 1,
-        "kind": "inara-admission-evidence",
+        "kind": "jarvis-admission-evidence",
         "root": str(service.root),
         "installation": state["id"],
         "slot": slot,
@@ -233,7 +233,7 @@ def prepare(
         issued = trust.utc(now)
         value = {
             "format": 1,
-            "kind": "inara-installation-launch-grant",
+            "kind": "jarvis-installation-launch-grant",
             "root": str(root),
             "installation": state["id"],
             "slot": state["current"],
@@ -371,7 +371,7 @@ def admit(
             base / "state.json",
             {
                 "format": 1,
-                "kind": "inara-authorization-head",
+                "kind": "jarvis-authorization-head",
                 "installation": state["id"],
                 "grant_sha256": digest,
                 "number": planned["plan"]["number"],
@@ -429,11 +429,11 @@ def launch(
             service.root / "authorizations/state.json",
             service.root / "authorizations" / (expected_head + ".json"),
             service.root / "admissions" / (slot + ".json"),
-            profile / ".inara-data.json",
+            profile / ".jarvis-data.json",
         ]
-        if (profile / ".inara-recovery.json").exists():
+        if (profile / ".jarvis-recovery.json").exists():
             paths += [
-                profile / ".inara-recovery.json",
+                profile / ".jarvis-recovery.json",
                 profile / "desktop-profile/resident-identity.json",
             ]
         with launcher.file_leases(paths):

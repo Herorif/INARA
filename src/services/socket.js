@@ -4,15 +4,16 @@
  */
 import io from 'socket.io-client';
 import { emitConnected } from './subscriptions';
+import { readMigrated } from './storageKeys';
 
-let clientId = window.electronAPI?.clientId || localStorage.getItem('inara_client_id');
+let clientId = window.electronAPI?.clientId || readMigrated(localStorage, 'jarvis_client_id');
 if (!clientId) {
     clientId = crypto.randomUUID();
-    localStorage.setItem('inara_client_id', clientId);
+    localStorage.setItem('jarvis_client_id', clientId);
 }
 // Production renderers get the launch token only from the preload bridge. The Vite dev
 // value is referenced behind import.meta.env.DEV so builds drop it as dead code.
-const devSessionToken = import.meta.env.DEV ? import.meta.env.VITE_INARA_SESSION_TOKEN : '';
+const devSessionToken = import.meta.env.DEV ? import.meta.env.VITE_JARVIS_SESSION_TOKEN : '';
 const socket = io('http://localhost:8000', {
     autoConnect: false,
     auth: { client_id: clientId, token: window.electronAPI?.sessionToken || devSessionToken || '' },

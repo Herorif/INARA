@@ -1,8 +1,9 @@
 import { emitSocket } from '../services/socket';
+import { readMigrated } from '../services/storageKeys';
 
 export const conversationForProject = (project) => {
-    const key = `inara_conversation:${project}`;
-    let id = localStorage.getItem(key);
+    const key = `jarvis_conversation:${project}`;
+    let id = readMigrated(localStorage, key);
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
         id = crypto.randomUUID();
         localStorage.setItem(key, id);
@@ -22,7 +23,7 @@ export const createChatSlice = (set, get) => ({
 
     startNewConversation: () => {
         const id = crypto.randomUUID();
-        localStorage.setItem(`inara_conversation:${get().currentProject}`, id);
+        localStorage.setItem(`jarvis_conversation:${get().currentProject}`, id);
         set({ conversationId: id, messages: [], conversationRestoring: true });
         emitSocket('resume_conversation', { conversation_id: id });
     },
@@ -55,7 +56,7 @@ export const createChatSlice = (set, get) => ({
     /** Live voice caption: one message per utterance, updated as the caption streams. */
     voiceCaption: ({ key, role, text, final }) => {
         if (typeof key !== 'string' || typeof text !== 'string' || !text.trim()) return;
-        const sender = role === 'user' ? 'You' : 'INARA';
+        const sender = role === 'user' ? 'You' : 'JARVIS';
         set(state => {
             const index = state.messages.findIndex(message => message.captionKey === key);
             if (index === -1) {

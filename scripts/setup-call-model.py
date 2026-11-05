@@ -31,7 +31,7 @@ def main():
                 end = min(start + size, item["bytes"]) - 1
                 destination = chunks / str(start)
                 if not destination.exists():
-                    request = urllib.request.Request(item["url"] + f"?download=true&inara_part={start}",
+                    request = urllib.request.Request(item["url"] + f"?download=true&jarvis_part={start}",
                                                      headers={"Range": f"bytes={start}-{end}"})
                     with urllib.request.urlopen(request, timeout=120) as response:
                         if response.status != 206 or response.headers.get("Content-Range") != f"bytes {start}-{end}/{item['bytes']}":

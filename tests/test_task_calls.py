@@ -22,7 +22,7 @@ from telephony.task_calls import PlaceTaskCall
 
 from tests.test_call_agent import (
     CALLER,
-    INARA,
+    JARVIS,
     OWNER,
     SHOP,
     phone as phone_fixture,
@@ -59,9 +59,9 @@ def expected_summary(date=None, start="20:00", end="20:30", goal="Reserve a tabl
     when = dt.date.fromisoformat(date or day())
     text = f"Call Marini's at {SHOP} to: {goal} on {when:%A} {when.day} {when:%B %Y} {start}-{end}. "
     if not extras:
-        return text + ("INARA will say it's an AI assistant and may share only: the booking name, "
+        return text + ("JARVIS will say it's an AI assistant and may share only: the booking name, "
                        "the party size and the time window.")
-    return text + ("INARA will say it's an AI assistant and may share only: the booking name, the "
+    return text + ("JARVIS will say it's an AI assistant and may share only: the booking name, the "
                    f"party size, the time window and the details below. It may also mention: {extras}.")
 
 
@@ -100,7 +100,7 @@ def finish(app, call_id, status, details="", *, confirmed_time=None, state="comp
         "id": record_id, "source": "twilio", "state": state, "direction": "outbound",
         "mode": "task", "counterpart": app.call_agent.records.counterpart(SHOP),
         "started_at": now, "finished_at": now, "duration_seconds": 50.0, "fields": fields,
-        "transcript": [{"role": "assistant", "text": "Hello, this is INARA."}],
+        "transcript": [{"role": "assistant", "text": "Hello, this is JARVIS."}],
         "outcome": {"status": status if state == "completed" else state},
         "triage": None, "triage_state": "skipped",
     })
@@ -196,8 +196,8 @@ def test_schema_is_model_visible_with_its_own_always_ask_permission(phone):
     assert "place_task_call" in app.settings_service.permission_names
 
 
-@pytest.mark.parametrize("number,message", [(OWNER, "own number"), (INARA, "INARA's own number")])
-async def test_owner_and_inara_numbers_are_refused_before_any_card(phone, number, message):
+@pytest.mark.parametrize("number,message", [(OWNER, "own number"), (JARVIS, "JARVIS's own number")])
+async def test_owner_and_jarvis_numbers_are_refused_before_any_card(phone, number, message):
     app = phone
     twilio = ready(app)
     with pytest.raises(ServiceError) as error:
@@ -303,7 +303,7 @@ async def test_approve_issues_a_bound_grant_and_places_one_call(phone, monkeypat
     assert grant.purpose_hash == purpose_hash(expected.purpose()) and grant.consumed
     assert len(twilio.requests) == 1
     form = dict(httpx.QueryParams(twilio.requests[0].content.decode()))
-    assert form["To"] == SHOP and form["From"] == INARA
+    assert form["To"] == SHOP and form["From"] == JARVIS
     pending = app.call_agent.pending[app.call_agent.placed[result["task_call_id"]]]
     assert pending.brief == expected and pending.brief.mode == "task"
     progress = emitted(app, "call_progress")[-1]
@@ -371,7 +371,7 @@ async def test_confirmed_outcome_is_reported_once_with_a_reminder_at_local_time(
     when = dt.date.fromisoformat(args["date"])
     text = (f'Marini\'s confirmed: "Table for 4 at 8:15 pm under Hiro, ref 88". I\'ve set a reminder '
             f"for 20:15 on {when:%A} {when.day} {when:%B}.")
-    assert shown["text"] == text and shown["sender"] == "INARA"
+    assert shown["text"] == text and shown["sender"] == "JARVIS"
     assert shown["conversation_id"] == str(conversation_id)
     assert shown["project"] == app.projects.get_current_project_path().name
     assert shown["request_id"] == f"task-call-{call_id}"

@@ -20,7 +20,14 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     if (Path(__file__).resolve().parents[1] / "desktop-pilot.json").exists():
         sys.dont_write_bytecode = True
-    profile = Path(os.getenv("INARA_DESKTOP_DATA_DIR") or (Path(os.environ["APPDATA"]) / "inara"))
+    from services import env
+    from services.data_migration import desktop_has_data, product_folder
+
+    # Default desktop profile: %APPDATA%\jarvis, moved once from the pre-rename %APPDATA%\inara.
+    override = env.getenv("DESKTOP_DATA_DIR")
+    profile = Path(override) if override else product_folder(
+        Path(os.environ["APPDATA"]), legacy="inara", current="jarvis", has_data=desktop_has_data
+    )
     from resident.host import NativeHost
 
     try:
@@ -32,8 +39,8 @@ def main():
 
         ctypes.windll.user32.MessageBoxW(
             None,
-            "INARA could not start. Preserve your profile and run scripts/bootstrap.ps1 to repair setup. If resident-identity.json is damaged, recover it before retrying.",
-            "INARA startup",
+            "JARVIS could not start. Preserve your profile and run scripts/bootstrap.ps1 to repair setup. If resident-identity.json is damaged, recover it before retrying.",
+            "JARVIS startup",
             0x10,
         )
         return 1

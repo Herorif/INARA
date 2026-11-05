@@ -86,7 +86,7 @@ class LifecycleTransport:
                 sid,
                 ServiceError(
                     "lifecycle_failed",
-                    "Resource cleanup could not finish; restart INARA before heavy work.",
+                    "Resource cleanup could not finish; restart JARVIS before heavy work.",
                 ),
             )
 

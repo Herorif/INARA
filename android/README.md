@@ -1,4 +1,4 @@
-# INARA Android companion (debug pilot)
+# JARVIS Android companion (debug pilot)
 
 Native Kotlin/Compose companion for pairing, laptop status, scoped job previews and separately granted tool-free chat. **A clean strict offline debug build is accepted, 23 October 2026**, with real Kotlin/Java compilation, one passing JVM protocol test and APK signature verification. No phone/emulator installation or runtime acceptance has occurred. [Build evidence and preserved APK location](../docs/qa/android-build-verification.json).
 

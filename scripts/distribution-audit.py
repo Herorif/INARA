@@ -299,7 +299,7 @@ def collect(candidate, source=ROOT):
     ]
     report = {
         "format": 1,
-        "kind": "inara-distribution-audit",
+        "kind": "jarvis-distribution-audit",
         "collector_sha256": digest(Path(__file__).read_bytes()),
         "candidate_manifest_sha256": digest(read(candidate, "desktop-pilot.json", 4_194_304)),
         "candidate_inventory_sha256": digest(canonical(pilot["files"]).encode()),
@@ -335,7 +335,7 @@ def artifacts(report, blobs):
             lines.append(value)
 
     append(
-        "INARA THIRD-PARTY NOTICE EVIDENCE",
+        "JARVIS THIRD-PARTY NOTICE EVIDENCE",
         "Collected verbatim from the bound candidate/local inputs; review pending.",
         "This inventory is not redistribution clearance or publisher authentication.",
         "",

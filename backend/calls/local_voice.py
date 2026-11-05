@@ -103,7 +103,7 @@ class LocalVoice:
             await self.queue.put({"kind": "audio", "data": data[offset:offset + 9600]})
 
     async def greet(self):
-        await self.say("Hello, I am INARA, an AI assistant taking a message for the owner. " + QUESTIONS[0])
+        await self.say("Hello, I am JARVIS, an AI assistant taking a message for the owner. " + QUESTIONS[0])
 
     async def send(self, pcm):
         if self.closed or len(pcm) != 640:

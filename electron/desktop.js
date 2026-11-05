@@ -32,12 +32,22 @@ const {
 } = require('socket.io-client');
 const {
   ResidentController,
+  desktopProfile,
   waitForBackend
 } = require('./resident');
 const root = path.join(__dirname, '..');
-const token = process.env.INARA_SESSION_TOKEN || randomBytes(32).toString('hex');
+// Product variables were renamed from INARA_* to JARVIS_*; the pre-rename name is read as a
+// fallback for one release with one warning per variable (never its value).
+function productEnv(suffix) {
+  const value = process.env[`JARVIS_${suffix}`];
+  if (value !== undefined) return value;
+  const legacy = process.env[`INARA_${suffix}`];
+  if (legacy !== undefined) console.warn(`INARA_${suffix} is deprecated; rename it to JARVIS_${suffix}.`);
+  return legacy;
+}
+const token = productEnv('SESSION_TOKEN') || randomBytes(32).toString('hex');
 const instanceId = randomUUID();
-const dev = process.env.INARA_DEV_SERVER === '1';
+const dev = productEnv('DEV_SERVER') === '1';
 const appPage = { dev, indexUrl: pathToFileURL(path.join(root, 'dist/index.html')).href };
 let mainWindow,
   backend,
@@ -55,7 +65,16 @@ function setQuickMode(value) {
   mainWindow.webContents.send('quick-assistant', value);
 }
 const notificationIds = new Set();
-app.setAppUserModelId('INARA.Desktop');
+// Until the one-time INARA -> JARVIS profile move has run, the default profile may still be the
+// pre-rename folder; desktopProfile (electron/resident.js) decides, and keeps any caller's choice.
+const profile = desktopProfile({
+  userData: app.getPath('userData'),
+  appData: app.getPath('appData'),
+  name: app.getName(),
+  hasIdentity: folder => fs.existsSync(path.join(folder, 'resident-identity.json'))
+});
+if (profile !== app.getPath('userData')) app.setPath('userData', profile);
+app.setAppUserModelId('JARVIS.Desktop');
 const ownsInstance = app.requestSingleInstanceLock();
 if (!ownsInstance) app.quit();
 function publish(state) {
@@ -67,9 +86,9 @@ function publish(state) {
     state: state.gaming ? 'gaming' : state.visible ? 'chat' : 'resident'
   });
   if (tray) {
-    tray.setToolTip(`INARA · ${state.phase === 'failed' ? 'Backend unavailable' : state.gaming ? 'Gaming mode' : state.visible ? 'Workspace open' : 'Resident'}`);
+    tray.setToolTip(`JARVIS · ${state.phase === 'failed' ? 'Backend unavailable' : state.gaming ? 'Gaming mode' : state.visible ? 'Workspace open' : 'Resident'}`);
     tray.setContextMenu(Menu.buildFromTemplate([{
-      label: 'Open INARA',
+      label: 'Open JARVIS',
       click: () => controller.open()
     }, {
       label: 'Gaming mode',
@@ -83,7 +102,7 @@ function publish(state) {
     }, {
       type: 'separator'
     }, {
-      label: 'Quit INARA',
+      label: 'Quit JARVIS',
       click: quit
     }]));
   }
@@ -97,7 +116,7 @@ function openWindow() {
   }
   if (!dev && !fs.existsSync(path.join(root, 'dist/index.html'))) {
     controller.fail('Frontend missing. Run npm run build.');
-    dialog.showErrorBox('INARA frontend missing', controller.state.error);
+    dialog.showErrorBox('JARVIS frontend missing', controller.state.error);
     return;
   }
   mainWindow = new BrowserWindow({
@@ -105,11 +124,11 @@ function openWindow() {
     height: quickRequested ? 740 : 940,
     minWidth: 390,
     minHeight: 560,
-    title: 'INARA · Command deck',
+    title: 'JARVIS · Command deck',
     frame: false,
     show: false,
     backgroundColor: '#05080c',
-    icon: path.join(root, 'assets/icons/inara.png'),
+    icon: path.join(root, 'assets/icons/jarvis.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -136,7 +155,7 @@ function openWindow() {
     }
   }).catch(() => {
     controller.fail('The workspace could not load. Rebuild and reopen from the tray.');
-    dialog.showErrorBox('INARA workspace unavailable', controller.state.error);
+    dialog.showErrorBox('JARVIS workspace unavailable', controller.state.error);
     window.destroy();
   });
 }
@@ -222,14 +241,14 @@ function startResidentSocket() {
     };
     if (process.platform === 'win32' && tray) {
       tray.displayBalloon({
-        title: 'INARA reminder',
+        title: 'JARVIS reminder',
         content: 'A reminder is ready. Open your command deck to view it.',
         respectQuietTime: true
       });
       acknowledge();
     } else if (Notification.isSupported()) {
       const notice = new Notification({
-        title: 'INARA reminder',
+        title: 'JARVIS reminder',
         body: 'Open your command deck to view it.'
       });
       notice.on('show', acknowledge);
@@ -266,15 +285,15 @@ async function startBackend() {
     phase: 'starting',
     error: null
   });
-  const python = process.env.INARA_PYTHON || path.join(root, '.venv', 'Scripts', 'python.exe');
+  const python = productEnv('PYTHON') || path.join(root, '.venv', 'Scripts', 'python.exe');
   backend = spawn(python, [path.join(root, 'backend/server.py')], {
     cwd: root,
     windowsHide: true,
     env: {
       ...process.env,
       PYTHONUNBUFFERED: '1',
-      INARA_SESSION_TOKEN: token,
-      INARA_INSTANCE_ID: instanceId
+      JARVIS_SESSION_TOKEN: token,
+      JARVIS_INSTANCE_ID: instanceId
     }
   });
   const child = backend;
@@ -313,7 +332,7 @@ if (ownsInstance) app.whenReady().then(() => {
   }
   if (identity) controller.mode(identity.gaming);
   security.installPermissionHandlers(session.defaultSession, () => mainWindow, appPage);
-  tray = new Tray(nativeImage.createFromPath(path.join(root, 'assets/icons/inara.png')));
+  tray = new Tray(nativeImage.createFromPath(path.join(root, 'assets/icons/jarvis.png')));
   tray.on('click', () => controller.open());
   tray.on('balloon-click', () => controller.open());
   hotkeyReady = globalShortcut.register('CommandOrControl+Shift+Space', () => { quickRequested = true; controller.open(); if (!mainWindow?.webContents.isLoading()) setQuickMode(true); });

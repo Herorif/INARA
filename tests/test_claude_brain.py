@@ -120,9 +120,9 @@ def router(setting=None, anthropic="sk-ant-offline", gemini="AIza-offline"):
 
 
 def test_router_auto_prefers_claude_and_falls_back_to_gemini(monkeypatch):
-    monkeypatch.delenv("INARA_BRAIN_MODEL", raising=False)
-    monkeypatch.delenv("INARA_FAST_MODEL", raising=False)
-    monkeypatch.delenv("INARA_TEXT_MODEL", raising=False)
+    monkeypatch.delenv("JARVIS_BRAIN_MODEL", raising=False)
+    monkeypatch.delenv("JARVIS_FAST_MODEL", raising=False)
+    monkeypatch.delenv("JARVIS_TEXT_MODEL", raising=False)
     chat, fast = router().route("chat"), router().route("fast")
     assert (chat.provider, chat.model, chat.label) == ("claude", "claude-sonnet-5-5",
                                                        "Claude Sonnet 5.5")
@@ -140,8 +140,8 @@ def test_router_auto_prefers_claude_and_falls_back_to_gemini(monkeypatch):
 
 
 def test_router_env_overrides_and_explicit_settings(monkeypatch):
-    monkeypatch.setenv("INARA_BRAIN_MODEL", "claude-sonnet-5-5-custom")
-    monkeypatch.setenv("INARA_FAST_MODEL", "claude-haiku-custom")
+    monkeypatch.setenv("JARVIS_BRAIN_MODEL", "claude-sonnet-5-5-custom")
+    monkeypatch.setenv("JARVIS_FAST_MODEL", "claude-haiku-custom")
     assert router().route("chat").model == "claude-sonnet-5-5-custom"
     assert router().route("fast").model == "claude-haiku-custom"
     assert router("gemini").route("chat").provider == "gemini"

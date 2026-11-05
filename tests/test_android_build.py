@@ -53,7 +53,7 @@ def outputs(root, identifier):
             archive.writestr(name, b"synthetic fixture, not compiled Android data")
     tests = (
         root
-        / "android/app/build/test-results/testDebugUnitTest/TEST-com.inara.companion.MobileProtocolTest.xml"
+        / "android/app/build/test-results/testDebugUnitTest/TEST-com.jarvis.companion.MobileProtocolTest.xml"
     )
     tests.parent.mkdir(parents=True)
     tests.write_text(

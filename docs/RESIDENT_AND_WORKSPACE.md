@@ -4,7 +4,7 @@ Implemented 13 October 2026. This records the original Electron resident control
 
 ## Using it
 
-Run `scripts/start.ps1`. The workspace opens with command, Studio and connection views. The close button exits the workspace's Electron process tree and leaves the native core and tray running. Reopen from the tray or **Ctrl+Shift+Space**; if the hotkey is unavailable, the interface says to use the tray. **Quit INARA** in navigation or the tray ends the backend. OS startup installation is not enabled. The remaining controller-specific descriptions below document the retained legacy fallback.
+Run `scripts/start.ps1`. The workspace opens with command, Studio and connection views. The close button exits the workspace's Electron process tree and leaves the native core and tray running. Reopen from the tray or **Ctrl+Shift+Space**; if the hotkey is unavailable, the interface says to use the tray. **Quit JARVIS** in navigation or the tray ends the backend. OS startup installation is not enabled. The remaining controller-specific descriptions below document the retained legacy fallback.
 
 The tray retains the same client identity as the original desktop, preserving session ownership. First launch adopts the existing renderer UUID; subsequent launches supply it through the preload bridge. Only metadata UUID/gaming preferences are saved in the resident identity file. Private session/reminder payloads retain the protected persistence contract.
 

@@ -59,13 +59,18 @@ class WindowsProtection:
 
 
 def user_data_directory():
-    override = os.getenv("INARA_DATA_DIR")
+    """JARVIS_DATA_DIR, else %LOCALAPPDATA%/JARVIS/data-v1 (moved from the INARA folder once)."""
+    # Imported here: setup tools load this file on its own just for WindowsProtection.
+    from services import env
+    from services.data_migration import product_folder
+
+    override = env.getenv("DATA_DIR")
     if override:
         return Path(override).expanduser().resolve()
     local = os.getenv("LOCALAPPDATA")
     if not local:
-        raise StorageError("Set INARA_DATA_DIR to an OS-protected data directory.")
-    return Path(local) / "INARA" / "data-v1"
+        raise StorageError("Set JARVIS_DATA_DIR to an OS-protected data directory.")
+    return product_folder(Path(local)) / "data-v1"
 
 
 def scope_hash(value):

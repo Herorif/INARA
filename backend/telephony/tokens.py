@@ -4,8 +4,8 @@
   the Media Stream ``start`` message. Each is bound to one CallSid and one
   direction, expires after two minutes and can be redeemed once, so a leaked
   stream URL or captured handshake cannot be replayed.
-* Outbound tickets ride in the query of the TwiML URL INARA gives Twilio when it
-  places a call. They bind the TwiML fetch to INARA's own call record.
+* Outbound tickets ride in the query of the TwiML URL JARVIS gives Twilio when it
+  places a call. They bind the TwiML fetch to JARVIS's own call record.
 
 The secret never leaves memory; a core restart invalidates every token.
 """
@@ -93,7 +93,7 @@ class Signer:
 
 
 class StreamTokens:
-    purpose = "inara-media-stream-v1"
+    purpose = "jarvis-media-stream-v1"
 
     def __init__(self, signer, ttl=STREAM_TTL):
         self.signer, self.ttl = signer, ttl
@@ -106,7 +106,7 @@ class StreamTokens:
 
 
 class OutboundTickets:
-    purpose = "inara-outbound-twiml-v1"
+    purpose = "jarvis-outbound-twiml-v1"
 
     def __init__(self, signer, ttl=TICKET_TTL):
         self.signer, self.ttl = signer, ttl

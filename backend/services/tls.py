@@ -5,7 +5,7 @@ Windows trusts but certifi does not, so provider calls verify against the OS
 certificate store through an explicit ``truststore.SSLContext``.
 
 Nothing global is patched (``truststore.inject_into_ssl`` is deliberately not
-used): INARA's own pinned contexts, such as the mobile companion's
+used): JARVIS's own pinned contexts, such as the mobile companion's
 ``ssl.create_default_context(cadata=...)`` and its TLS listener, keep standard
 behaviour.
 
@@ -39,7 +39,7 @@ def provider_ssl_context():
                     "System certificate store unavailable (%s); provider HTTPS uses "
                     "Python's bundled roots." % type(exc).__name__
                 )
-                logging.getLogger("inara.tls").warning(message)
+                logging.getLogger("jarvis.tls").warning(message)
                 print(f"[TLS] {message}", file=sys.stderr)
                 context = ssl.create_default_context()
                 _cache["system_store"] = False

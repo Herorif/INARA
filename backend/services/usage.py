@@ -1,7 +1,7 @@
 """Durable owner-wide admission budgets and private, content-free invocation receipts.
 
 Allowances are retained even when provider billing is unknown. These limits govern
-INARA authorizations; they cannot guarantee a provider-side invoice ceiling.
+JARVIS authorizations; they cannot guarantee a provider-side invoice ceiling.
 """
 
 from contextlib import contextmanager
@@ -15,7 +15,7 @@ from llm.pricing import estimate_microusd
 from services.storage import scope_hash
 from services.tools import ServiceError
 
-CURRENT_USAGE = ContextVar("inara_usage", default=None)
+CURRENT_USAGE = ContextVar("jarvis_usage", default=None)
 UNMETERED_TOOLS = frozenset(
     {
         "prompt_web_agent",

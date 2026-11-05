@@ -12,9 +12,9 @@ key is a configuration error, never a silent fallback. Nothing here touches an
 SDK or the network; providers are created on request.
 """
 
-import os
 from dataclasses import dataclass
 
+from services import env
 from services.capability_profiles import anthropic_key, model_id, provider_key
 from services.tools import ServiceError
 
@@ -30,11 +30,11 @@ MODEL_LABELS = {
 
 
 def brain_model():
-    return os.getenv("INARA_BRAIN_MODEL", "").strip() or BRAIN_MODEL
+    return env.getenv("BRAIN_MODEL", "").strip() or BRAIN_MODEL
 
 
 def fast_model():
-    return os.getenv("INARA_FAST_MODEL", "").strip() or FAST_MODEL
+    return env.getenv("FAST_MODEL", "").strip() or FAST_MODEL
 
 
 def model_label(model):

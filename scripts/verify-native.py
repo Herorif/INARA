@@ -24,10 +24,10 @@ args = parser.parse_args()
 output = ROOT / ".runtime/native-qa" / f"run-{uuid.uuid4()}"
 output.mkdir(parents=True)
 for key, directory in [
-    ("INARA_DATA_DIR", "database"),
-    ("INARA_SETTINGS_FILE", "settings.json"),
-    ("INARA_PROJECT_ROOT", "workspace"),
-    ("INARA_LEGACY_DATA_DIR", "legacy"),
+    ("JARVIS_DATA_DIR", "database"),
+    ("JARVIS_SETTINGS_FILE", "settings.json"),
+    ("JARVIS_PROJECT_ROOT", "workspace"),
+    ("JARVIS_LEGACY_DATA_DIR", "legacy"),
 ]:
     os.environ[key] = str(output / directory)
 os.environ.pop("ELECTRON_RUN_AS_NODE", None)
@@ -232,7 +232,7 @@ def verify():
             else:
                 secondary = Tray(
                     host.tray.name.rsplit(".", 1)[-1],
-                    ROOT / "assets/icons/inara.ico",
+                    ROOT / "assets/icons/jarvis.ico",
                     lambda _: None,
                     lambda: None,
                 )

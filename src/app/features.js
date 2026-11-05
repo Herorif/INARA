@@ -7,7 +7,7 @@ export const features = [
   { id: 'tasks', title: 'Tasks', group: 'Organize', keywords: 'task queue workflow plan approval steps receipts reviewed tasks', flag: 'showTaskQueue' },
   { id: 'usage', title: 'Usage', group: 'System', keywords: 'budget spending tokens costs limits evaluations quality usage & quality', flag: 'showUsageCenter' },
   { id: 'memory', title: 'Project memory', group: 'Organize', keywords: 'remember preferences facts decisions search forget export', flag: 'showProjectMemory' },
-  { id: 'quick', title: 'Quick assistant', group: 'Assist', keywords: 'voice push talk microphone hotkey compact chat' },
+  { id: 'quick', title: 'Quick assistant', group: 'Assist', keywords: 'voice push talk microphone hotkey compact chat assistant jarvis' },
   { id: 'capabilities', title: 'Capabilities', group: 'System', keywords: 'setup diagnostics hardware resources queue readiness capability center', flag: 'showCapabilities' },
   { id: 'activity', title: 'Activity', group: 'Organize', keywords: 'history exports revisions jobs activity & artifacts' },
   { id: 'cad', title: '3D studio', group: 'Create', keywords: 'model mesh stl glb blender scene', heavy: true, flag: 'showCadWindow' },

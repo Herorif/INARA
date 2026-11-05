@@ -26,7 +26,7 @@ def module(name):
 
 admission, protection = module("admission"), module("protected-state")
 signed, trust, review = admission.signed, admission.trust, admission.review
-DOMAIN = b"INARA:managed-change:v1\n"
+DOMAIN = b"JARVIS:managed-change:v1\n"
 ACTIONS = {"enroll", "renew", "rotate", "update", "rollback"}
 FIELDS = {
     "format",
@@ -187,7 +187,7 @@ def roles(signatures, policy, value, now, domain=None):
 
 
 def verify_change(envelope, before, after, now=None):
-    if isinstance(envelope, dict) and isinstance(envelope.get("statement"), dict) and envelope["statement"].get("kind") == "inara-managed-lifecycle":
+    if isinstance(envelope, dict) and isinstance(envelope.get("statement"), dict) and envelope["statement"].get("kind") == "jarvis-managed-lifecycle":
         return module("managed-lifecycle").verify(envelope, before, after, now)
     review.exact(envelope, {"statement", "signatures_before", "signatures_after"})
     value = envelope["statement"]
@@ -195,7 +195,7 @@ def verify_change(envelope, before, after, now=None):
     if (
         type(value["format"]) is not int
         or value["format"] != 1
-        or value["kind"] != "inara-managed-change"
+        or value["kind"] != "jarvis-managed-change"
         or value["action"] not in ACTIONS
     ):
         raise ValueError("Unsupported managed change")
@@ -263,7 +263,7 @@ def read_node(root, anchor, expected):
     if (
         type(node["format"]) is not int
         or node["format"] != 1
-        or node["kind"] != "inara-managed-checkpoint"
+        or node["kind"] != "jarvis-managed-checkpoint"
         or node["root"] != str(root)
         or node["anchor"] != str(anchor)
         or node["installation"] != value["installation"]
@@ -328,7 +328,7 @@ def archives(value):
 def pointer(node, digest):
     return {
         "format": 1,
-        "kind": "inara-checkpoint-head",
+        "kind": "jarvis-checkpoint-head",
         "root": node["root"],
         "installation": node["installation"],
         "anchor_id": node["anchor_id"],
@@ -483,7 +483,7 @@ def grant_request(cfg, action, target, sequence, output, package=None, hours=24,
         current = trust.utc(now)
         value = {
             "format": 1,
-            "kind": "inara-installation-launch-grant",
+            "kind": "jarvis-installation-launch-grant",
             "root": str(service.root),
             "installation": state["id"],
             "slot": target,
@@ -600,7 +600,7 @@ def build(service, state, cfg, action, grant_path, package, issued, expires, now
     grant_sha = trust.sha(grant_raw)
     authorization = {
         "format": 1,
-        "kind": "inara-authorization-head",
+        "kind": "jarvis-authorization-head",
         "installation": state["id"],
         "grant_sha256": grant_sha,
         "number": grant["number"],
@@ -619,7 +619,7 @@ def build(service, state, cfg, action, grant_path, package, issued, expires, now
     archives(history)
     value = {
         "format": 1,
-        "kind": "inara-managed-change",
+        "kind": "jarvis-managed-change",
         "root": str(service.root),
         "installation": state["id"],
         "anchor": str(cfg["anchor"]),
@@ -677,7 +677,7 @@ def prepare(cfg, action, grant, output, package=None, minutes=30, now=None, *, _
 def node_for(value, envelope, history, metadata):
     return {
         "format": 1,
-        "kind": "inara-managed-checkpoint",
+        "kind": "jarvis-managed-checkpoint",
         "root": value["root"],
         "installation": value["installation"],
         "anchor": value["anchor"],
@@ -785,7 +785,7 @@ def change(
         retain(service.root / "authorizations" / (value["grant_sha256"] + ".json"), grant_raw)
         journal = {
             "format": 1,
-            "kind": "inara-update-transaction",
+            "kind": "jarvis-update-transaction",
             "checkpoint": checkpoint,
             "previous": cfg["expected"],
             "root": str(service.root),
@@ -899,7 +899,7 @@ def pending(service, current, anchor, expected, previous):
     if (
         type(journal["format"]) is not int
         or journal["format"] != 1
-        or journal["kind"] != "inara-update-transaction"
+        or journal["kind"] != "jarvis-update-transaction"
         or journal["root"] != str(root)
         or journal["anchor"] != str(anchor)
         or journal["checkpoint"] != expected
@@ -957,7 +957,7 @@ def pending(service, current, anchor, expected, previous):
 
 
 def resume(root, anchor, expected, previous, expected_review=None, now=None, *, _native_check=None, confirmation=""):
-    if read_node(*separate(root, anchor), expected)["change"]["statement"]["kind"] == "inara-managed-lifecycle":
+    if read_node(*separate(root, anchor), expected)["change"]["statement"]["kind"] == "jarvis-managed-lifecycle":
         return module("managed-lifecycle").recover(root, anchor, expected, previous, expected_review, confirmation=confirmation)
     root, anchor = separate(root, anchor)
     service = signed.manager.Installation(root, authenticated=True, pending_update=True)
@@ -1028,7 +1028,7 @@ def resume(root, anchor, expected, previous, expected_review=None, now=None, *, 
 def abort(root, anchor, expected, previous, expected_review=None):
     """Cancel only a prepared change whose three committed metadata files are untouched."""
     root, anchor = separate(root, anchor)
-    if read_node(root, anchor, expected)["change"]["statement"]["kind"] == "inara-managed-lifecycle":
+    if read_node(root, anchor, expected)["change"]["statement"]["kind"] == "jarvis-managed-lifecycle":
         return module("managed-lifecycle").recover(root, anchor, expected, previous, expected_review, cancel=True)
     service = signed.manager.Installation(root, authenticated=True, pending_update=True)
     with service.locked() as state, anchor_lock(anchor):
@@ -1112,13 +1112,13 @@ def launch(root, anchor, expected, resident_only=False, now=None, *, _native_che
             root / "authorizations/state.json",
             root / "authorizations" / (node["grant"] + ".json"),
             root / "admissions" / (grant["slot"] + ".json"),
-            profile / ".inara-data.json",
+            profile / ".jarvis-data.json",
             anchor / "head.json",
             anchor / "checkpoints" / (expected + ".bin"),
         ]
-        if (profile / ".inara-recovery.json").exists():
+        if (profile / ".jarvis-recovery.json").exists():
             paths += [
-                profile / ".inara-recovery.json",
+                profile / ".jarvis-recovery.json",
                 profile / "desktop-profile/resident-identity.json",
             ]
         with admission.launcher.file_leases(paths):

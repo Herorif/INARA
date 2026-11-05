@@ -35,7 +35,7 @@ Stop the resident first. Use a verified control candidate containing the new too
 $control = 'C:/path/to/verified-control-candidate'
 $installation = 'C:/path/to/managed-installation'
 $slot = '<exact registered source slot>'
-$file = 'C:/path/to/private-backups/profile.inara'
+$file = 'C:/path/to/private-backups/profile.jarvis'
 $profile = [guid]::NewGuid().ToString('N')
 & "$control/runtime/python/python.exe" -I -B "$control/scripts/desktop-recovery.py" preview --root $installation --slot $slot --file $file --profile $profile
 # Review the owner, mapping, destination and format upgrade, then copy its review digest.
@@ -43,7 +43,7 @@ $review = '<review_sha256 returned by preview>'
 & "$control/runtime/python/python.exe" -I -B "$control/scripts/desktop-recovery.py" prepare --root $installation --slot $slot --file $file --profile $profile --expected-review $review
 & "$control/runtime/python/python.exe" -I -B "$control/scripts/desktop-recovery.py" activate --root $installation --slot $slot --profile $profile --expected-review $review
 & "$installation/versions/$slot/runtime/python/python.exe" -I -B "$control/scripts/desktop-install.py" launch --root $installation --resident-only
-# After quitting INARA, explicitly return to the previous profile.
+# After quitting JARVIS, explicitly return to the previous profile.
 & "$control/runtime/python/python.exe" -I -B "$control/scripts/desktop-recovery.py" rollback --root $installation --slot $slot
 ```
 

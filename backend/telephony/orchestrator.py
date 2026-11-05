@@ -57,7 +57,7 @@ BLOCKED = {
 BLOCKED_TEXT = {
     "quiet_hours": "Callback not placed: it is quiet hours.",
     "daily_cap": "Callback not placed: today's limit for calls to other people is reached.",
-    "cooldown": "Callback not placed: INARA called this number recently.",
+    "cooldown": "Callback not placed: JARVIS called this number recently.",
 }
 TWILIO_STATES = {
     "queued": "dialing",
@@ -151,7 +151,7 @@ def resolved(record):
 
 
 def missed(record):
-    """An incoming call INARA did not screen (voicemail because the budget ran out, or the
+    """An incoming call JARVIS did not screen (voicemail because the budget ran out, or the
     agent failed): the owner must see it until it is marked done."""
     return record.get("direction") != "outbound" and record.get("state") in (
         "missed", "failed", "uncertain"
@@ -159,7 +159,7 @@ def missed(record):
 
 
 def task_unconfirmed(record):
-    """A task call INARA made that did not end with a confirmation (declined, needs the
+    """A task call JARVIS made that did not end with a confirmation (declined, needs the
     owner, no answer or no outcome). A failed call shows as failed instead."""
     outcome = record.get("outcome") if isinstance(record.get("outcome"), dict) else {}
     return (record.get("mode") == "task" and record.get("direction") == "outbound"
@@ -199,7 +199,7 @@ def call_status(record):
     if record.get("triage_state") == "pending":
         return "in_progress"
     if record.get("state") in ("failed", "uncertain"):
-        return "failed"  # a call INARA placed that failed
+        return "failed"  # a call JARVIS placed that failed
     return "needs_you" if needs_you(record) else "done"
 
 
@@ -252,7 +252,7 @@ def detail_item(record, known_ids):
     message = _message(record)
     number = callback_number(record)
     triage = _triage(record)
-    roles = {"assistant": "inara", "caller": "owner" if record.get("mode") == "owner_briefing" else "caller"}
+    roles = {"assistant": "jarvis", "caller": "owner" if record.get("mode") == "owner_briefing" else "caller"}
     outcome = record.get("outcome") if isinstance(record.get("outcome"), dict) else None
     return {
         **item,
@@ -504,7 +504,7 @@ class CallOrchestrator:
         if number is None:
             return _refused("no_callback_number", "There is no callback number for this call.")
         if record_id in self.inflight or self.telephony.sessions:
-            return _refused("busy", "INARA is on another call. Try again when it ends.")
+            return _refused("busy", "JARVIS is on another call. Try again when it ends.")
         telephony = self.telephony
         if (telephony.credentials() is None or telephony.public_base_url() is None
                 or not telephony.agent_ready()):
@@ -551,7 +551,7 @@ class CallOrchestrator:
                 or not telephony.agent_ready()):
             return refused("not_ready", "Call setup isn't complete. Check the Calls view")
         if telephony.sessions or self.task_calls:
-            return refused("busy", "INARA is on another call. Ask again when it ends")
+            return refused("busy", "JARVIS is on another call. Ask again when it ends")
         number = brief.counterpart
         try:
             telephony.limits.check(number, settings)
@@ -640,7 +640,7 @@ class CallOrchestrator:
         if not sessions.authenticated(owner):
             return  # restored from the conversation history after unlocking
         payload = {
-            "sender": "INARA", "text": text, "kind": "task_call_outcome",
+            "sender": "JARVIS", "text": text, "kind": "task_call_outcome",
             "request_id": f"task-call-{call_id}",
             **({"conversation_id": conversation_id} if conversation_id else {}),
             **({"project": project.name} if project is not None else {}),
@@ -703,8 +703,8 @@ class CallOrchestrator:
             "active_call": {key: active[key] for key in ("id", "mode", "direction", "state")}
             if active else None,
             "briefing_pin_set": self.briefing_pin_set(),
-            # INARA's own Twilio number in E.164, for the carrier forwarding codes (owner-only).
-            "inara_number": normalize(self.telephony.secret("twilio_phone_number")),
+            # JARVIS's own Twilio number in E.164, for the carrier forwarding codes (owner-only).
+            "jarvis_number": normalize(self.telephony.secret("twilio_phone_number")),
         }
 
     # --- progress ------------------------------------------------------------------------------

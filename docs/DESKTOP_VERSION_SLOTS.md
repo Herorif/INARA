@@ -30,7 +30,7 @@ $slot = '<full slot identifier returned by install>'
 & "$installation/versions/$slot/runtime/python/python.exe" -I -B "$control/scripts/desktop-install.py" launch --root $installation
 ```
 
-`launch --resident-only` starts the tray without opening the workspace. Quit INARA normally before management operations.
+`launch --resident-only` starts the tray without opening the workspace. Quit JARVIS normally before management operations.
 
 ```powershell
 # Explicitly return to the previous version and its separate data.

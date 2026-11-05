@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import org.junit.Assert.assertThrows
 import org.junit.Test

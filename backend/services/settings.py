@@ -110,7 +110,7 @@ def load_settings_file(path, settings):
             _recovery_paths[_path_key(path)] = backup
         logger.warning(
             "Settings file %s could not be loaded (%s). Running with default settings; "
-            "a copy was saved to %s. Settings changes will NOT be saved until INARA is "
+            "a copy was saved to %s. Settings changes will NOT be saved until JARVIS is "
             "restarted with a repaired settings file.",
             path, exc, backup or "(backup failed)",
         )
@@ -132,7 +132,7 @@ class EmptyRequest(BaseModel):
 
 
 class AssistantSettings(EmptyRequest):
-    """``assistant.*``: which AI is the brain, and how INARA addresses the owner."""
+    """``assistant.*``: which AI is the brain, and how JARVIS addresses the owner."""
 
     brain: Literal["auto", "claude", "gemini"] | None = None
     # Printable text only: the name is placed in the system prompt.
@@ -300,7 +300,7 @@ class SettingsStore:
                 "Settings file could not be loaded at startup, so changes are not saved "
                 "to protect it. Repair or restore it"
                 + (f" (a copy is at {backup.name})" if backup else "")
-                + " and restart INARA.",
+                + " and restart JARVIS.",
             )
         temporary = None
         try:

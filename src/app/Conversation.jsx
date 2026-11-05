@@ -19,7 +19,7 @@ export const shortTime = value => {
   if (match[3]) hour = (hour % 12) + (match[3].toLowerCase() === 'p' ? 12 : 0);
   return `${String(hour).padStart(2, '0')}:${match[2]}`;
 };
-const speaker = sender => sender === 'You' ? 'YOU' : sender === 'System' ? 'SYSTEM' : 'INARA';
+const speaker = sender => sender === 'You' ? 'YOU' : sender === 'System' ? 'SYSTEM' : 'JARVIS';
 
 export default function Conversation() {
   const messages = useStore(state => state.messages);
@@ -145,7 +145,7 @@ export default function Conversation() {
           <div className="conversation-column">
             {messages.length === 0 ? (
               <div className="chat-welcome conversation-welcome">
-                <span className="monogram monogram--md" aria-hidden="true">I</span>
+                <span className="monogram monogram--md" aria-hidden="true">J</span>
                 <h3>Start a conversation</h3>
                 <p>Ask a question, plan your day, or hand over a task.</p>
                 <div className="conversation-starters">
@@ -158,7 +158,7 @@ export default function Conversation() {
               <>
                 {messages.length > 30 && <p className="conversation-history-note">Showing the latest 30 messages.</p>}
                 {messages.slice(-30).map((message, index) => (
-                  <article key={`${conversationId}:${Math.max(messages.length - 30, 0) + index}`} className={`chat-message ${message.sender === 'You' ? 'from-you' : message.sender === 'System' ? 'from-system' : 'from-inara'}`}>
+                  <article key={`${conversationId}:${Math.max(messages.length - 30, 0) + index}`} className={`chat-message ${message.sender === 'You' ? 'from-you' : message.sender === 'System' ? 'from-system' : 'from-jarvis'}`}>
                     <div className="message-content">
                       <header className="message-meta hud-label">{speaker(message.sender)}{message.time && <> · <time>{shortTime(message.time)}</time></>}</header>
                       <p>{message.text}</p>
@@ -170,7 +170,7 @@ export default function Conversation() {
                 ))}
               </>
             )}
-            {(processing || restoring) && <div className="processing-line" role="status"><HudLabel>{restoring ? 'RESTORING CONVERSATION' : 'INARA · WORKING'}</HudLabel><span className="progress-line" aria-hidden="true" /></div>}
+            {(processing || restoring) && <div className="processing-line" role="status"><HudLabel>{restoring ? 'RESTORING CONVERSATION' : 'JARVIS · WORKING'}</HudLabel><span className="progress-line" aria-hidden="true" /></div>}
           </div>
         </div>
         {showLatest && <button type="button" className="conversation-latest btn btn--secondary btn--sm" onClick={scrollToLatest}><ArrowDown size={14} aria-hidden="true" />Latest messages</button>}
@@ -181,9 +181,9 @@ export default function Conversation() {
           <textarea
             ref={inputRef}
             rows={1}
-            aria-label="Message INARA"
+            aria-label="Message JARVIS"
             aria-describedby="conversation-input-help"
-            placeholder={restoring ? 'Restoring your conversation…' : !connected ? 'Connect the core to start a conversation' : 'Ask INARA anything'}
+            placeholder={restoring ? 'Restoring your conversation…' : !connected ? 'Connect the core to start a conversation' : 'Ask JARVIS anything'}
             value={input}
             onChange={event => useStore.setState({ inputValue: event.target.value })}
             disabled={disabled}

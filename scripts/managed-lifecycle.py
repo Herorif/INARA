@@ -21,16 +21,16 @@ def module(name):
 
 managed, recovery = module("managed-update"), module("desktop-recovery")
 signed, trust, review, backup = managed.signed, managed.trust, managed.review, recovery.backup
-DOMAIN = b"INARA:managed-lifecycle:v1\n"
+DOMAIN = b"JARVIS:managed-lifecycle:v1\n"
 ACTIONS = {"activate-profile", "rollback-profile", "remove-software", "erase-data"}
-ERASE = "ERASE INARA DATA"
+ERASE = "ERASE JARVIS DATA"
 
 
 def verify(envelope, before, after, now=None):
     review.exact(envelope, {"statement", "signatures_before", "signatures_after"})
     value = envelope["statement"]
     review.exact(value, managed.FIELDS | {"details"})
-    if type(value["format"]) is not int or value["format"] != 1 or value["kind"] != "inara-managed-lifecycle" or value["action"] not in ACTIONS:
+    if type(value["format"]) is not int or value["format"] != 1 or value["kind"] != "jarvis-managed-lifecycle" or value["action"] not in ACTIONS:
         raise ValueError("Unsupported lifecycle authorization")
     issued, expires, current = trust.stamp(value["issued_at"]), trust.stamp(value["expires_at"]), trust.utc(now)
     if not issued <= current < expires or not timedelta(0) < expires - issued <= timedelta(hours=1):
@@ -134,7 +134,7 @@ def inventory(service, state, action):
             if parent.exists():
                 for path in parent.iterdir():
                     path = signed.plain(path, True)
-                    marker = signed.manager.read(path / ".inara-data.json")
+                    marker = signed.manager.read(path / ".jarvis-data.json")
                     if marker.get("format") != 1 or marker.get("installation") != state["id"]:
                         raise ValueError("Foreign profile ownership; preserve it")
                     signed.manager.identifier(marker.get("slot"))
@@ -225,7 +225,7 @@ def build(service, state, node, expected, action, slot, profile, issued, expires
     trust.integer(details["files"], 0, 100000)
     trust.integer(details["bytes"], 0, 2_147_483_648)
     old_value = node["change"]["statement"]
-    value = {**old_value, "kind": "inara-managed-lifecycle", "action": action, "number": node["number"] + 1,
+    value = {**old_value, "kind": "jarvis-managed-lifecycle", "action": action, "number": node["number"] + 1,
              "previous_checkpoint": expected, "previous_head": node["grant"], "before_floor": node["floor"],
              "policy_before": node["policy"], "policy_after": node["policy"], "windows_before": node["windows"], "windows_after": node["windows"],
              "installation_before": signed.digest_file(service.root / "installation.json"), "installation_after": review.hashed(after),
@@ -273,7 +273,7 @@ def apply(root, anchor, expected, envelope_path, expected_review=None, confirmat
         if records:
             protected_retain(Path(anchor) / "lifecycle-inventories" / (value["details"]["inventory_sha256"] + ".bin"), review.encoded(records))
         protected_retain(Path(anchor) / "checkpoints" / (checkpoint + ".bin"), review.encoded(checkpoint_node))
-        journal = {"format": 1, "kind": "inara-update-transaction", "checkpoint": checkpoint, "previous": expected, "root": str(service.root), "anchor": str(anchor), **metadata, "package": None}
+        journal = {"format": 1, "kind": "jarvis-update-transaction", "checkpoint": checkpoint, "previous": expected, "root": str(service.root), "anchor": str(anchor), **metadata, "package": None}
         verify(envelope, policy, policy, now)
         managed.retain(service.root / "update-pending.json", review.encoded(journal))
         delete(service.root, records, value["action"])
@@ -354,7 +354,7 @@ def recover(root, anchor, expected, previous, expected_review=None, cancel=False
     service = signed.manager.Installation(root, authenticated=True, pending_update=True)
     with service.locked() as state, managed.anchor_lock(anchor):
         journal, raw, node, value, before, after, hashes, _ = managed.pending(service, state, anchor, expected, previous)
-        if value["kind"] != "inara-managed-lifecycle":
+        if value["kind"] != "jarvis-managed-lifecycle":
             raise ValueError("Not a lifecycle transaction")
         records = []
         digest = value["details"]["inventory_sha256"]

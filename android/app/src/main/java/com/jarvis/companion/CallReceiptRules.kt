@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import java.util.UUID
 

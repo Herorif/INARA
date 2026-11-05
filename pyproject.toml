@@ -2,7 +2,7 @@
 # range (CI and packaging use 3.12; 3.13 works for development). Ruff's
 # target-version below stays pinned to the oldest supported version.
 [project]
-name = "inara"
+name = "jarvis"
 version = "1.0.0"
 requires-python = ">=3.12,<3.14"
 

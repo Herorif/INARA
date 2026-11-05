@@ -25,7 +25,7 @@ function Open-Locked([string]$Path) {
     Assert-Local $Path
     $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
     $handles.Add($stream)
-    $info = [InaraBootstrap.Native]::Information($stream.SafeFileHandle)
+    $info = [JarvisBootstrap.Native]::Information($stream.SafeFileHandle)
     if ($info.NumberOfLinks -ne 1) { throw 'Shared controller file' }
     return $stream
 }
@@ -37,13 +37,13 @@ function Hash-Stream([IO.FileStream]$Stream) {
     return $digest
 }
 try {
-    if (-not ('InaraBootstrap.Native' -as [type])) {
+    if (-not ('JarvisBootstrap.Native' -as [type])) {
         Add-Type -TypeDefinition @'
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-namespace InaraBootstrap {
+namespace JarvisBootstrap {
  [StructLayout(LayoutKind.Sequential)] public struct FileInformation {
   public uint Attributes; public System.Runtime.InteropServices.ComTypes.FILETIME Creation, Access, Write;
   public uint Volume, SizeHigh, SizeLow, NumberOfLinks, IndexHigh, IndexLow;
@@ -69,7 +69,7 @@ namespace InaraBootstrap {
     $reader = [IO.StreamReader]::new($manifestStream, [Text.Encoding]::UTF8, $true, 4096, $true)
     try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json }
     finally { $reader.Dispose() }
-    if ($manifest.format -ne 1 -or $manifest.kind -cne 'inara-trusted-controller' -or
+    if ($manifest.format -ne 1 -or $manifest.kind -cne 'jarvis-trusted-controller' -or
         $manifest.files.Count -lt 1 -or $manifest.files.Count -gt 15000) { throw 'Controller format' }
     $expected = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     [void]$expected.Add('controller-manifest.json')

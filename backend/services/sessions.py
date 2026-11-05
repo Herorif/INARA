@@ -128,9 +128,10 @@ class SessionStore:
             for record in records:
                 if not isinstance(record, dict) or not isinstance(record.get("text"), str):
                     raise ValueError("Invalid history")
-                role = {"You": "user", "User": "user", "INARA": "assistant"}.get(
-                    record.get("sender")
-                )
+                # "INARA": the assistant's sender in transcripts from before the JARVIS rename.
+                role = {
+                    "You": "user", "User": "user", "JARVIS": "assistant", "INARA": "assistant"
+                }.get(record.get("sender"))
                 if role:
                     history.append({"role": role, "content": record["text"]})
         except (ValueError, TypeError, UnicodeError) as exc:

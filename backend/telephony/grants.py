@@ -145,7 +145,7 @@ class OutboundLimits:
         last = ledger["numbers"].get(number_key(number))
         cooldown = settings["number_cooldown_minutes"] * 60
         if isinstance(last, (int, float)) and self.clock() - last < cooldown:
-            raise ServiceError("call_number_cooldown", "INARA called this number recently. Try later.")
+            raise ServiceError("call_number_cooldown", "JARVIS called this number recently. Try later.")
 
     def record(self, number):
         now = self.clock()

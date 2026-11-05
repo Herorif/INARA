@@ -19,14 +19,14 @@ TOOLS = ROOT / ".tools/local-setup"
 # A per-workspace user-temp cache passed the real build without security changes.
 # Temporary storage can be cleared by the OS; explicit recording then restores it.
 GRADLE_CACHE = Path(tempfile.gettempdir()) / (
-    "inara-gradle-" + hashlib.sha256(str(ROOT).encode("utf-8")).hexdigest()[:12]
+    "jarvis-gradle-" + hashlib.sha256(str(ROOT).encode("utf-8")).hexdigest()[:12]
 )
 
 
 def fetch(url, limit=8_388_608):
     if not url.startswith("https://"):
         raise ValueError("HTTPS required")
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 INARA-LocalSetup"}), timeout=120) as stream:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 JARVIS-LocalSetup"}), timeout=120) as stream:
         raw = stream.read(limit + 1)
     if len(raw) > limit:
         raise ValueError("Metadata exceeded bound")
@@ -51,7 +51,7 @@ def download(item):
     else:
         partial = destination.with_suffix(destination.suffix + ".part")
         # Never silently replace a previous interrupted attempt.
-        with urllib.request.urlopen(urllib.request.Request(item["url"], headers={"User-Agent": "Mozilla/5.0 INARA-LocalSetup"}), timeout=120) as source, partial.open("xb") as target:
+        with urllib.request.urlopen(urllib.request.Request(item["url"], headers={"User-Agent": "Mozilla/5.0 JARVIS-LocalSetup"}), timeout=120) as source, partial.open("xb") as target:
             total = 0
             while block := source.read(1_048_576):
                 total += len(block)
@@ -65,7 +65,7 @@ def download(item):
 
 
 def extract(archive, output):
-    marker = output / ".inara-extraction.json"
+    marker = output / ".jarvis-extraction.json"
     digest = sha(archive)
     if output.exists():
         if marker.is_file() and json.loads(marker.read_text())["archive_sha256"] == digest:

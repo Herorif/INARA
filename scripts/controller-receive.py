@@ -35,9 +35,9 @@ def attested_base(evidence, ledger, pin, inventory):
     report, raw = signed.read(Path(evidence) / "controller-provenance.json")
     queue, _ = signed.read(Path(evidence) / "controller-review-queue.json")
     old.exact(queue, {"format", "kind", "controller_manifest_sha256", "report_sha256", "subjects", "decisions_recorded", "release_authorized", "note"})
-    if type(queue["format"]) is not int or queue["format"] != 1 or queue["kind"] != "inara-controller-review-queue" or queue["controller_manifest_sha256"] != pin or queue["report_sha256"] != trust.sha(raw) or queue["decisions_recorded"] != 0 or queue["release_authorized"] is not False:
+    if type(queue["format"]) is not int or queue["format"] != 1 or queue["kind"] != "jarvis-controller-review-queue" or queue["controller_manifest_sha256"] != pin or queue["report_sha256"] != trust.sha(raw) or queue["decisions_recorded"] != 0 or queue["release_authorized"] is not False:
         raise ValueError("Unsupported attested review queue")
-    if type(report["format"]) is not int or report["format"] != 1 or report["kind"] != "inara-controller-provenance" or report["controller_manifest_sha256"] != pin:
+    if type(report["format"]) is not int or report["format"] != 1 or report["kind"] != "jarvis-controller-provenance" or report["controller_manifest_sha256"] != pin:
         raise ValueError("Unsupported attested provenance")
     expected = []
 
@@ -63,7 +63,7 @@ def attested_base(evidence, ledger, pin, inventory):
     tool = next((e for e in report["external_delivery_inputs"] if e["path"] == "scripts/controller-review.py"), None)
     if tool is None or tool["sha256"] != tool_pin:
         raise ValueError("Producer review tool not covered by provenance")
-    return {"format": 1, "kind": "inara-controller-review", "controller_manifest_sha256": pin,
+    return {"format": 1, "kind": "jarvis-controller-review", "controller_manifest_sha256": pin,
             "provenance_inventory_sha256": inventory, "review_tool_sha256": tool_pin,
             "subjects": [{k: v for k, v in s.items() if k != "status"} for s in expected]}
 
@@ -117,7 +117,7 @@ def inventory(controller, evidence, ledger, enrollment, envelope):
 
 
 def acceptance(statement_pin):
-    return {"format": 1, "kind": "inara-clean-machine-acceptance-plan", "statement_sha256": statement_pin,
+    return {"format": 1, "kind": "jarvis-clean-machine-acceptance-plan", "statement_sha256": statement_pin,
             "clean_machine_accepted": False, "checks": [{"id": key, "status": "pending", "evidence": []} for key in CHECKS],
             "instructions": "Run only after independently trusted verification and explicit real signing/device setup. Record actual machine, operator, UTC times, commands, expected/observed outcomes and redacted evidence hashes separately. This plan grants no execution or release authority."}
 
@@ -125,7 +125,7 @@ def acceptance(statement_pin):
 def plan(controller, pin, evidence, ledger, enrollment, enrollment_pin, policy, policy_pin, windows, windows_pin, sequence, envelope, output, now=None, *, _native_check=None):
     output = delivery.custody.destination(output, (controller, evidence, ledger, enrollment, envelope, policy, windows))
     result = verify(controller, pin, evidence, ledger, enrollment, enrollment_pin, policy, policy_pin, windows, windows_pin, sequence, envelope, now, _native_check=_native_check)
-    body = {"format": 1, "kind": "inara-receiving-copy-plan", "output": str(output),
+    body = {"format": 1, "kind": "jarvis-receiving-copy-plan", "output": str(output),
             "statement_sha256": result["statement_sha256"], "files": inventory(controller, evidence, ledger, enrollment, envelope),
             "acceptance": acceptance(result["statement_sha256"])}
     return {"plan_sha256": old.hashed(body), "plan": body, "copied": False}
@@ -175,7 +175,7 @@ def verify_package(package, pin, enrollment_pin, policy, policy_pin, windows, wi
     old.exact(receipt, {"plan_sha256", "plan", "copied"})
     body = receipt["plan"]
     old.exact(body, {"format", "kind", "output", "statement_sha256", "files", "acceptance"})
-    if type(body["format"]) is not int or body["format"] != 1 or body["kind"] != "inara-receiving-copy-plan" or receipt["copied"] is not False or receipt["plan_sha256"] != old.hashed(body) or body["statement_sha256"] != result["statement_sha256"]:
+    if type(body["format"]) is not int or body["format"] != 1 or body["kind"] != "jarvis-receiving-copy-plan" or receipt["copied"] is not False or receipt["plan_sha256"] != old.hashed(body) or body["statement_sha256"] != result["statement_sha256"]:
         raise ValueError("Receiving completion marker differs")
     actual = inventory(*(package / s for s in SECTIONS), package / "envelope.json")
     if body["files"] != actual or body["acceptance"] != acceptance(result["statement_sha256"]) or delivery.audit.read(package, "acceptance.json", 65536) != old.encoded(body["acceptance"]):

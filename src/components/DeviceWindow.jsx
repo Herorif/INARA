@@ -129,7 +129,7 @@ const DeviceWindow = () => {
           className="py-10"
           icon={<Cpu />}
           title={allDevices.length === 0 ? 'No devices listed' : 'No devices in this category'}
-          body={allDevices.length === 0 ? 'Ask INARA to list devices, or discover them now.' : null}
+          body={allDevices.length === 0 ? 'Ask JARVIS to list devices, or discover them now.' : null}
           action={allDevices.length === 0 &&
           <button type="button" onClick={handleRefresh} className="btn btn--secondary btn--sm">
                                 Discover devices

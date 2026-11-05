@@ -27,7 +27,7 @@ def fixture(tmp_path, monkeypatch):
         path,
         {
             "format": 1,
-            "kind": "inara-windows-signing-policy",
+            "kind": "jarvis-windows-signing-policy",
             "mode": "production",
             "targets": [
                 {
@@ -230,7 +230,7 @@ def test_launch_holds_manager_and_file_leases_after_old_package_expiry(fixture):
         calls.append(True)
         assert executable == directory / "runtime/python/python.exe"
         assert arguments[:2] == ["-I", "-B"] and arguments[-1] == "--resident-only"
-        assert environment["INARA_DESKTOP_DATA_DIR"] == str(
+        assert environment["JARVIS_DESKTOP_DATA_DIR"] == str(
             fixture["root"] / "data" / fixture["slot"] / "desktop-profile"
         )
         with pytest.raises(ValueError, match="busy"):

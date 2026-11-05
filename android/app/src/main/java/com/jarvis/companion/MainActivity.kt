@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -108,7 +108,7 @@ private fun LinkCard(state: CompanionState, importInvitation: () -> Unit, refres
         drawCircle(Cyan.copy(alpha = .15f), 45.dp.toPx(), center, style = Stroke(1.dp.toPx()))
         drawLine(Cyan, center.copy(y = center.y - 13.dp.toPx()), center.copy(y = center.y + 13.dp.toPx()), 3.dp.toPx())
     }
-    Text("INARA / COMPANION", style = MaterialTheme.typography.labelMedium, color = Cyan)
+    Text("JARVIS / COMPANION", style = MaterialTheme.typography.labelMedium, color = Cyan)
     Text(if (state.phase == "paired") "Within reach." else "Your laptop. Your link.", style = MaterialTheme.typography.headlineMedium)
     Text(state.message, style = MaterialTheme.typography.bodyMedium)
     if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -130,7 +130,7 @@ private fun ChatCard(state: CompanionState, model: CompanionModel) {
             Text("Direct channel", style = MaterialTheme.typography.titleLarge)
             if ("chat:ask" !in state.grants) Text("Tool-free AI chat needs a separately approved pairing grant. Provider setup remains on the laptop.")
             state.messages.forEach { (sender, text) -> Text("$sender\n$text", style = MaterialTheme.typography.bodyMedium) }
-            OutlinedTextField(value = state.draft, onValueChange = model::draft, label = { Text("Message INARA") },
+            OutlinedTextField(value = state.draft, onValueChange = model::draft, label = { Text("Message JARVIS") },
                 modifier = Modifier.fillMaxWidth(), enabled = !state.busy && "chat:ask" in state.grants && !state.pending, maxLines = 5)
             Button(onClick = model::send, enabled = !state.busy && !state.pending && state.draft.isNotBlank() && "chat:ask" in state.grants) { Text("Send once") }
             if (state.pending) {

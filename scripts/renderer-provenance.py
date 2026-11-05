@@ -90,7 +90,7 @@ def verify(directory, source=None):
     value = json.loads(manifest.read_text(encoding="utf-8"))
     if (
         value.get("format") != 1
-        or value.get("kind") != "inara-renderer-build"
+        or value.get("kind") != "jarvis-renderer-build"  # written by renderer-provenance.cjs
         or value.get("coverage") != "observed-rollup-graph"
         or value.get("redistribution_cleared") is not False
         or value.get("reproducible_build_claimed") is not False

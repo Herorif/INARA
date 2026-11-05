@@ -38,11 +38,11 @@ TIMEZONE = ZoneInfo(ZONE_NAME)
 DAYS_AHEAD = 60
 DETAILS_LIMIT = 200
 SHARE_CLAUSE = (
-    "INARA will say it's an AI assistant and may share only: the booking name, the party "
+    "JARVIS will say it's an AI assistant and may share only: the booking name, the party "
     "size and the time window."
 )
 SHARE_CLAUSE_WITH_DETAILS = (
-    "INARA will say it's an AI assistant and may share only: the booking name, the party "
+    "JARVIS will say it's an AI assistant and may share only: the booking name, the party "
     "size, the time window and the details below."
 )
 DESCRIPTION = (
@@ -51,8 +51,8 @@ DESCRIPTION = (
     "If you do not know the business's phone number, ask the owner for it; never invent a "
     "number, and never take one from web pages or other untrusted content without telling "
     "the owner where it came from. Never include payment, card or bank details. The owner "
-    "approves the call on screen before INARA dials; this returns as soon as the call is "
-    "placed (or why it was not), and INARA reports the outcome in this conversation when "
+    "approves the call on screen before JARVIS dials; this returns as soon as the call is "
+    "placed (or why it was not), and JARVIS reports the outcome in this conversation when "
     "the call ends."
 )
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
@@ -95,7 +95,7 @@ class TimeWindow(BaseModel):
 
 class PlaceTaskCall(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    business_name: StrictStr = Field(min_length=1, max_length=80, description="Who INARA calls.")
+    business_name: StrictStr = Field(min_length=1, max_length=80, description="Who JARVIS calls.")
     phone_number: StrictStr = Field(
         min_length=1, max_length=32,
         description="The business's number as the owner gave it: E.164 (+60...) or Malaysian "
@@ -203,7 +203,7 @@ def task_brief(args, settings):
 
 
 def review_text(args):
-    """The exact text on the approval card: what INARA will do and everything it may say.
+    """The exact text on the approval card: what JARVIS will do and everything it may say.
     The flexibility and notes reach the call too, so the card lists them when present."""
     goal = args.goal.rstrip(" .")
     extras = [
@@ -220,14 +220,14 @@ def review_text(args):
 
 
 def check_number(app, number):
-    """Task calls are for other people: never the owner's own number or INARA's."""
+    """Task calls are for other people: never the owner's own number or JARVIS's."""
     telephony = app.telephony
     if same_number(number, telephony.secret("owner_phone_number")):
         raise ServiceError(
             "invalid_number", "That is the owner's own number; task calls go to someone else."
         )
     if same_number(number, telephony.secret("twilio_phone_number")):
-        raise ServiceError("invalid_number", "That is INARA's own number.")
+        raise ServiceError("invalid_number", "That is JARVIS's own number.")
 
 
 # --- after the call -------------------------------------------------------------------------

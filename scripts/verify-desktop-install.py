@@ -37,7 +37,7 @@ from resident.state import Identity  # noqa: E402
 
 Identity(data / "desktop-profile").register(str(uuid.uuid4()))
 os.environ["GEMINI_API_KEY"] = "changeme"
-os.environ["INARA_IMAGE_MODEL_DIR"] = ""
+os.environ["JARVIS_IMAGE_MODEL_DIR"] = ""
 original_init = NativeHost.__init__
 original_run = NativeHost.run
 result = {"passed": False}
@@ -60,8 +60,8 @@ def run(self):
             import application
 
             assert Path(application.__file__).resolve().is_relative_to(slot)
-            assert Path(os.environ["INARA_DATA_DIR"]) == data / "database"
-            assert Path(os.environ["INARA_DESKTOP_DATA_DIR"]) == data / "desktop-profile"
+            assert Path(os.environ["JARVIS_DATA_DIR"]) == data / "database"
+            assert Path(os.environ["JARVIS_DESKTOP_DATA_DIR"]) == data / "desktop-profile"
             try:
                 manager.deactivate()
             except ValueError as exc:

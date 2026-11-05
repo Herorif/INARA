@@ -214,7 +214,7 @@ const ReminderWindow = () => {
           onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
           placeholder='e.g. "Remind me at 3pm to call the dentist"'
           className="min-w-0 flex-1 px-3 text-sm"
-          aria-label="Ask INARA for a reminder or routine" />
+          aria-label="Ask JARVIS for a reminder or routine" />
 
                 <button
           type="button"
@@ -249,7 +249,7 @@ const ReminderWindow = () => {
             <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto">
                 {tab === 'reminders' && (
         pendingReminders.length === 0 ?
-        <EmptyState className="py-10" icon={<BellOff />} title="No reminders" body="Ask INARA to set a reminder for you." /> :
+        <EmptyState className="py-10" icon={<BellOff />} title="No reminders" body="Ask JARVIS to set a reminder for you." /> :
 
         pendingReminders.
         sort((a, b) => a.trigger_at - b.trigger_at).
@@ -258,7 +258,7 @@ const ReminderWindow = () => {
 
                 {tab === 'routines' && (
         routines.length === 0 ?
-        <EmptyState className="py-10" icon={<Repeat />} title="No routines" body="Ask INARA to create a routine for you." /> :
+        <EmptyState className="py-10" icon={<Repeat />} title="No routines" body="Ask JARVIS to create a routine for you." /> :
 
         routines.map((r) => <RoutineRow key={r.name} routine={r} />))
         }

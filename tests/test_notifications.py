@@ -211,7 +211,7 @@ def test_native_notification_source_is_closed_and_action_free():
 
     root = Path(__file__).resolve().parents[1]
     listener = (
-        root / "android/app/src/main/java/com/inara/companion/SelectedNotificationListener.kt"
+        root / "android/app/src/main/java/com/jarvis/companion/SelectedNotificationListener.kt"
     ).read_text()
     for forbidden in (
         "getActiveNotifications",

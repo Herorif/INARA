@@ -1,9 +1,9 @@
-"""Manage INARA's provider API keys in the profile's DPAPI-protected store.
+"""Manage JARVIS's provider API keys in the profile's DPAPI-protected store.
 
 Keys are read from standard input only (never the command line) and are never
 printed. Output is one JSON object on stdout.
 
-  inara-secrets.py [--data-dir DIR | --installation-root ROOT [--slot SLOT]] COMMAND
+  jarvis-secrets.py [--data-dir DIR | --installation-root ROOT [--slot SLOT]] COMMAND
     status                     configured/source/last-four hint for every key
     set NAME [--verify]        read the key from stdin and store it
                                (--verify tests it first; a rejected key is not saved)
@@ -11,8 +11,8 @@ printed. Output is one JSON object on stdout.
     clear NAME                 delete the saved key
 
 Data directory: --data-dir, else --installation-root (the selected version's
-profile, ROOT/data/<slot>/database, as the launcher passes INARA_DATA_DIR), else
-INARA_DATA_DIR, else %LOCALAPPDATA%/INARA/data-v1 (developer default).
+profile, ROOT/data/<slot>/database, as the launcher passes JARVIS_DATA_DIR), else
+JARVIS_DATA_DIR, else %LOCALAPPDATA%/JARVIS/data-v1 (developer default).
 
 Exit codes: 0 ok, 2 invalid input, 3 test failed, 4 storage error.
 """
@@ -80,13 +80,13 @@ def read_secret():
 
 @contextmanager
 def installation_data(root, slot=None):
-    """The data directory the launcher passes as INARA_DATA_DIR for this version.
+    """The data directory the launcher passes as JARVIS_DATA_DIR for this version.
 
     The installation's manager lock is held for the whole command, so Setup
-    removal/recovery cannot run concurrently (a running INARA also holds it).
+    removal/recovery cannot run concurrently (a running JARVIS also holds it).
     """
     spec = importlib.util.spec_from_file_location(
-        "inara_secrets_install", ROOT / "scripts/desktop-install.py"
+        "jarvis_secrets_install", ROOT / "scripts/desktop-install.py"
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -196,9 +196,9 @@ def execute(args, store, value):
 
 
 def parser():
-    root = Parser(prog="inara-secrets.py", description="Manage INARA provider API keys.")
+    root = Parser(prog="jarvis-secrets.py", description="Manage JARVIS provider API keys.")
     where = root.add_mutually_exclusive_group()
-    where.add_argument("--data-dir", help="Profile database directory (INARA_DATA_DIR).")
+    where.add_argument("--data-dir", help="Profile database directory (JARVIS_DATA_DIR).")
     where.add_argument("--installation-root", help="Managed installation folder.")
     root.add_argument("--slot", help="Installed version (defaults to the selected one).")
     commands = root.add_subparsers(dest="command", required=True, parser_class=Parser)
@@ -234,7 +234,7 @@ def main(argv=None):
         from services.storage import StorageError
 
         # Never print a traceback: it is the one place a value could leak.
-        print(f"inara-secrets: {type(exc).__name__}", file=sys.stderr)
+        print(f"jarvis-secrets: {type(exc).__name__}", file=sys.stderr)
         storage = isinstance(exc, (StorageError, OSError, sqlite3.Error))
         code, result = EXIT_STORAGE, {
             "ok": False,

@@ -5,17 +5,30 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import provenance from './scripts/renderer-provenance.cjs'
 const renderer = provenance.rendererProvenance()
-const TOKEN = 'import.meta.env.VITE_INARA_SESSION_TOKEN'
+const TOKEN = 'import.meta.env.VITE_JARVIS_SESSION_TOKEN'
 const devTokenFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '.runtime', 'dev-session-token')
 
 // Dev only: the token of the running `npm run backend:dev` core (written per launch). An
-// explicit VITE_INARA_SESSION_TOKEN wins. Builds always blank it; production renderers
+// explicit VITE_JARVIS_SESSION_TOKEN wins. Builds always blank it; production renderers
 // receive the token only from the Electron preload bridge.
 const readDevToken = () => {
     try { return fs.readFileSync(devTokenFile, 'ascii').trim() } catch { return '' }
 }
+// Renamed from INARA on 5 Nov 2026: the pre-rename variable still works for one release, with
+// one deprecation warning (the value is never printed).
+const LEGACY_TOKEN_ENV = 'VITE_INARA_SESSION_TOKEN'
+let warnedLegacyToken = false
+const explicitDevToken = () => {
+    if (process.env.VITE_JARVIS_SESSION_TOKEN) return process.env.VITE_JARVIS_SESSION_TOKEN
+    const legacy = process.env[LEGACY_TOKEN_ENV]
+    if (legacy && !warnedLegacyToken) {
+        warnedLegacyToken = true
+        console.warn(`${LEGACY_TOKEN_ENV} is deprecated; set VITE_JARVIS_SESSION_TOKEN instead.`)
+    }
+    return legacy || ''
+}
 const devSessionToken = () => ({
-    name: 'inara-dev-session-token',
+    name: 'jarvis-dev-session-token',
     apply: 'serve',
     configureServer(server) {
         // A restarted dev core writes a new token; restart so clients reload with it.
@@ -45,7 +58,7 @@ const CONTENT_SECURITY_POLICY = [
     "form-action 'none'",
 ].join('; ')
 const contentSecurityPolicy = () => ({
-    name: 'inara-content-security-policy',
+    name: 'jarvis-content-security-policy',
     apply: 'build',
     transformIndexHtml: {
         order: 'post',
@@ -67,7 +80,7 @@ export default defineConfig(({ command }) => ({
     base: './', // Important for Electron
     define: {
         [TOKEN]: JSON.stringify(command === 'serve'
-            ? process.env.VITE_INARA_SESSION_TOKEN || readDevToken()
+            ? explicitDevToken() || readDevToken()
             : ''),
     },
     build: {

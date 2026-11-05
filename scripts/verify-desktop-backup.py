@@ -67,7 +67,7 @@ def command(name, *extra):
             "--slot",
             slot,
             "--file",
-            str(output / "profile.inara"),
+            str(output / "profile.jarvis"),
             *extra,
         ],
         capture_output=True,
@@ -79,7 +79,7 @@ def command(name, *extra):
 
 
 created = command("backup")
-raw = (output / "profile.inara").read_bytes()
+raw = (output / "profile.jarvis").read_bytes()
 assert all(
     value not in raw
     for value in (b"SYNTHETIC_PRIVATE_RECORD", b"SYNTHETIC_PRIVATE_PROJECT", b"fixture.json")

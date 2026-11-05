@@ -203,7 +203,7 @@ class ModelDialogue:
             if decision.intent == "answer" and decision.value.strip() and decision.value in text[:1000]:
                 return self.controller.reply(decision.value)
             if decision.intent == "identity":
-                return "I am INARA, an AI assistant taking a message for the owner. " + QUESTIONS[index]
+                return "I am JARVIS, an AI assistant taking a message for the owner. " + QUESTIONS[index]
             if decision.intent == "decline":
                 return "That is fine. You may hang up without leaving a message."
             if decision.intent == "unrelated":

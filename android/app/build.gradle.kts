@@ -8,11 +8,11 @@ dependencyLocking {
     lockMode.set(org.gradle.api.artifacts.dsl.LockMode.STRICT)
 }
 android {
-    namespace = "com.inara.companion"
+    namespace = "com.jarvis.companion"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
     defaultConfig {
-        applicationId = "com.inara.companion"
+        applicationId = "com.jarvis.companion"
         minSdk = 28
         targetSdk = 35
         versionCode = 2

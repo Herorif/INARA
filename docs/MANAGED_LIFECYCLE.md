@@ -4,7 +4,7 @@ Step 3 adds original-account encrypted backups, typed recovery-copy preparation,
 
 ## Backups and recovery copies
 
-Stop the resident first. Enter the protected installation, separate checkpoint directory and independently retained latest checkpoint pin. On Profiles, enter the exact installed version identifier and a new external `.inara` file. Review encrypted backup, then confirm. The review binds the selected profile's file/directory digest, version, output path and checkpoint. Creation validates the bounded profile/database and rechecks source bytes. A changed source invalidates the review. Encryption uses a fresh AES-GCM key wrapped for the original Windows account; no plaintext archive or key is written to disk.
+Stop the resident first. Enter the protected installation, separate checkpoint directory and independently retained latest checkpoint pin. On Profiles, enter the exact installed version identifier and a new external `.jarvis` file. Review encrypted backup, then confirm. The review binds the selected profile's file/directory digest, version, output path and checkpoint. Creation validates the bounded profile/database and rechecks source bytes. A changed source invalidates the review. Encryption uses a fresh AES-GCM key wrapped for the original Windows account; no plaintext archive or key is written to disk.
 
 To restore, choose the existing backup and generate a new recovery profile identifier. **Review recovery copy** checks the original installation/version/account/owner and runs the existing typed rebind adapters. Confirm prepares a separate profile with an incomplete/prepared receipt; it leaves the current profile and signed metadata unchanged. Unknown records, unsupported migrations, active jobs, incompatible project/session scopes and altered artifacts refuse. Incomplete copies remain for inspection and are never silently adopted or overwritten. Use another new identifier for a new attempt.
 
@@ -19,11 +19,11 @@ The actions are:
 - `activate-profile`: select a complete prepared copy while keeping the previous profile. Current and target resident owners must match. Activation rechecks receipt generation/selection, every prepared file/directory and typed database compatibility. Rewriting an unsigned receipt cannot bypass the typed check.
 - `rollback-profile`: return to the previous compatible profile without deleting the current copy or original data.
 - `remove-software`: remove every verified registered version and clear version/profile selections. Retain original/recovery profiles, external backups, admission capsules, signatures, grant history, sequence floor, checkpoints and policy history.
-- `erase-data`: after software is removed and no unresolved versions/transactions remain, delete only installation-owned original/recovery profile files. It requires the separate exact phrase `ERASE INARA DATA` at apply and again at erasure resumption.
+- `erase-data`: after software is removed and no unresolved versions/transactions remain, delete only installation-owned original/recovery profile files. It requires the separate exact phrase `ERASE JARVIS DATA` at apply and again at erasure resumption.
 
 All changes keep format 3, increment generation/checkpoint number and retain the sequence floor and current grant head. Lifecycle changes cannot rotate trust or replace launch grants. A removed installation can report protected metadata status, but has no selected payload to launch. Reinstallation needs a fresh signed package/update above the retained sequence floor; retained profiles are not automatically rebound or activated.
 
-Lifecycle authorization uses `INARA:managed-lifecycle:v1` plus canonical statement bytes, with both `signatures_before` and `signatures_after` meeting the same current enrolled policy's publisher/reviewer thresholds. The statement binds root/installation/anchor, old checkpoint/head, policy history, exact before/after metadata images, action, profile binding and deletion inventory digest/counts. Its live apply window is at most one hour. Managed-change signatures from the update domain cannot authorize a lifecycle action. Historical checkpoints revalidate lifecycle signatures at their issuance time, retaining the existing historical-trust model.
+Lifecycle authorization uses `JARVIS:managed-lifecycle:v1` plus canonical statement bytes, with both `signatures_before` and `signatures_after` meeting the same current enrolled policy's publisher/reviewer thresholds. The statement binds root/installation/anchor, old checkpoint/head, policy history, exact before/after metadata images, action, profile binding and deletion inventory digest/counts. Its live apply window is at most one hour. Managed-change signatures from the update domain cannot authorize a lifecycle action. Historical checkpoints revalidate lifecycle signatures at their issuance time, retaining the existing historical-trust model.
 
 ## Trusted command workflow
 
@@ -34,11 +34,11 @@ Common inputs:
   --root <protected installation> --anchor <separate checkpoint directory>
   --expected-state <independently retained latest checkpoint>
 
-review-profile-copy <common> --copy-operation backup --slot <version> --file <NEW external .inara>
+review-profile-copy <common> --copy-operation backup --slot <version> --file <NEW external .jarvis>
 apply-profile-copy <same> --expected-review <copy review>
 
 review-profile-copy <common> --copy-operation prepare-profile --slot <version>
-  --file <existing external .inara> --profile <new UUID hex>
+  --file <existing external .jarvis> --profile <new UUID hex>
 apply-profile-copy <same> --expected-review <copy review>
 
 prepare-lifecycle <common> --action activate-profile --slot <version>
@@ -50,13 +50,13 @@ prepare-lifecycle <common> --action activate-profile --slot <version>
 
 review-lifecycle <common> --change <signed lifecycle envelope>
 apply-lifecycle <same> --expected-review <lifecycle review>
-# Erasure additionally requires --confirmation "ERASE INARA DATA".
+# Erasure additionally requires --confirmation "ERASE JARVIS DATA".
 # Independently retain the returned checkpoint; it is never automatically adopted.
 
 review-resume --root ... --anchor ... --expected-state <prepared checkpoint>
   --previous-state <previous committed checkpoint>
 resume-change <same> --expected-review <recovery review>
-# Erasure resumption additionally requires --confirmation "ERASE INARA DATA".
+# Erasure resumption additionally requires --confirmation "ERASE JARVIS DATA".
 review-abort/abort-change use the same exact pins and require a fresh abort review.
 ```
 

@@ -46,5 +46,5 @@ An actual 329-file pilot was staged from existing local components at `.runtime/
 
 1. Assemble and validate an isolated portable Python/core dependency runtime from reviewed, explicitly supplied local inputs. Do not relabel/copy a venv as portable or silently download models/toolchains. Exercise the packaged core without development Python paths.
 2. Define the install/version-slot/data layout and recovery behavior; test clean Windows installation/uninstallation while preserving explicitly selected owner data. No automatic production activation or profile migration is implemented here.
-3. Complete dependency/license review, owned signing identity, signed desktop/mobile artifacts and explicit interrupted-update rollback. Local hashes and Electron vendor binaries do not sign INARA's application package.
+3. Complete dependency/license review, owned signing identity, signed desktop/mobile artifacts and explicit interrupted-update rollback. Local hashes and Electron vendor binaries do not sign JARVIS's application package.
 4. Android compilation remains blocked by missing toolchain/dependency records; actual phone/capability/call tests remain separate. [Android build tooling](ANDROID_BUILD_ACCEPTANCE.md), [call bridge gate](CALL_LAB.md), [release gates](RELEASE_GATES.json). The real-game benchmark remains deferred.

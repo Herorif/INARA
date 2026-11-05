@@ -127,7 +127,7 @@ class VoiceSession:
     in_seq: int = -1
     out_seq: int = 0
     user_text: str = ""
-    inara_text: str = ""
+    jarvis_text: str = ""
     brain_turn: bool = False
     brain: dict = field(default_factory=dict)
     ending: float | None = None
@@ -501,28 +501,28 @@ class VoiceService:
                         session, "voice_audio_out", {"seq": session.out_seq, "pcm": data.data}
                     )
         if content.output_transcription and content.output_transcription.text:
-            session.inara_text = (session.inara_text + content.output_transcription.text)[
+            session.jarvis_text = (session.jarvis_text + content.output_transcription.text)[
                 -CAPTION_LIMIT:
             ]
             await self.emit(
-                session, "voice_caption", {"role": "inara", "text": session.inara_text, "final": False}
+                session, "voice_caption", {"role": "jarvis", "text": session.jarvis_text, "final": False}
             )
         if content.turn_complete:
             await self.complete_turn(session)
 
     async def complete_turn(self, session, final=False):
-        user, inara = session.user_text.strip(), session.inara_text.strip()
-        session.user_text = session.inara_text = ""
+        user, jarvis = session.user_text.strip(), session.jarvis_text.strip()
+        session.user_text = session.jarvis_text = ""
         brain = session.brain_turn
         if not session.brain:  # the answer after a hand-off belongs to the same exchange
             session.brain_turn = False
         if user:
             await self.emit(session, "voice_caption", {"role": "user", "text": user, "final": True})
-        if inara:
-            await self.emit(session, "voice_caption", {"role": "inara", "text": inara, "final": True})
+        if jarvis:
+            await self.emit(session, "voice_caption", {"role": "jarvis", "text": jarvis, "final": True})
         # A brain hand-off already recorded its own request and answer.
-        if (user or inara) and not brain:
-            task = asyncio.create_task(self.record(session, user, inara))
+        if (user or jarvis) and not brain:
+            task = asyncio.create_task(self.record(session, user, jarvis))
             session.tasks.add(task)
             task.add_done_callback(session.tasks.discard)
         if final:
@@ -542,14 +542,14 @@ class VoiceService:
         self.ending.add(task)
         task.add_done_callback(self.ending.discard)
 
-    async def record(self, session, user, inara):
+    async def record(self, session, user, jarvis):
         async with session.history_lock:
             try:
                 await self.app.conversation.append_turns(
                     session.owner,
                     session.conversation_id,
                     session.project,
-                    [{"role": "user", "content": user}, {"role": "assistant", "content": inara}],
+                    [{"role": "user", "content": user}, {"role": "assistant", "content": jarvis}],
                 )
             except Exception:
                 logger.warning("Voice turn could not be added to the conversation", exc_info=True)
@@ -616,7 +616,7 @@ class VoiceService:
             await self.app.sio.emit(
                 "transcription",
                 {
-                    "sender": "INARA",
+                    "sender": "JARVIS",
                     "text": result.text,
                     **(
                         {

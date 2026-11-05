@@ -87,8 +87,8 @@
 .conversation-workspace .chat-message { margin: 0 0 1.5rem; max-width: 100%; }
 .conversation-workspace .message-content { min-width: 0; }
 .conversation-workspace .message-meta { display: block; margin: 0 0 .375rem; }
-.conversation-workspace .from-inara .message-content { padding-left: .75rem; border-left: 2px solid var(--accent); border-radius: 0; }
-.conversation-workspace .from-inara .message-meta { color: var(--accent); }
+.conversation-workspace .from-jarvis .message-content { padding-left: .75rem; border-left: 2px solid var(--accent); border-radius: 0; }
+.conversation-workspace .from-jarvis .message-meta { color: var(--accent); }
 .conversation-workspace .chat-message p {
   margin: 0;
   color: var(--text-1);

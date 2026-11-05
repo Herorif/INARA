@@ -5,7 +5,7 @@ from ctypes import wintypes as w
 import sys
 
 MAX_BYTES = 1_048_576
-ENTROPY = b"INARA:managed-checkpoint:v1"
+ENTROPY = b"JARVIS:managed-checkpoint:v1"
 
 
 class Blob(c.Structure):

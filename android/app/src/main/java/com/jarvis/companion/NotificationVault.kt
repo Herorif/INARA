@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import android.app.NotificationManager
 import android.content.ComponentName
@@ -9,7 +9,7 @@ import java.security.MessageDigest
 
 /** One cross-instance lock; independent encrypted file/key. No network or idle polling. */
 class NotificationVault(private val context: Context) {
-    private val storage = DeviceSecurity(context, "notification-queue.enc", "inara-notifications-v1")
+    private val storage = DeviceSecurity(context, "notification-queue.enc", "jarvis-notifications-v1")
     fun access(): Boolean = context.getSystemService(NotificationManager::class.java)
         .isNotificationListenerAccessGranted(ComponentName(context, SelectedNotificationListener::class.java))
     private fun load(): JSONObject {

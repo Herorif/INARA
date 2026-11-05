@@ -212,7 +212,7 @@ async def test_socket_text_contract_no_audio(monkeypatch, tmp_path, application_
     await runtime.conversation_transport.user_input("client", {"text": "Hello"})
     assert (
         "transcription",
-        {"sender": "INARA", "text": "Text is ready.", "request_id": emitted[1][1]["request_id"], "conversation_id": emitted[1][1]["conversation_id"], "project": tmp_path.name},
+        {"sender": "JARVIS", "text": "Text is ready.", "request_id": emitted[1][1]["request_id"], "conversation_id": emitted[1][1]["conversation_id"], "project": tmp_path.name},
         "client",
     ) in emitted
     assert emitted[0][1]["state"] == "processing"
@@ -245,7 +245,7 @@ async def test_direct_app_action_uses_shared_policy(monkeypatch, application_fac
 async def test_socket_rejects_missing_auth_token(monkeypatch):
     import server
 
-    monkeypatch.setenv("INARA_SESSION_TOKEN", "test-only-token")
+    monkeypatch.setenv("JARVIS_SESSION_TOKEN", "test-only-token")
     assert await server.connect("client", {}, {"client_id": str(uuid.uuid4())}) is False
 
 

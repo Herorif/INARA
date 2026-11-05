@@ -14,15 +14,15 @@ export const BRAIN_OPTIONS = [
 ];
 
 export const ENV_NOTE = 'Set by a developer environment variable';
-export const REMOVE_CONFIRM = 'Remove this key? INARA will stop using it.';
+export const REMOVE_CONFIRM = 'Remove this key? JARVIS will stop using it.';
 export const AUTO_HELP = 'Claude when an Anthropic key is set, otherwise Gemini.';
-export const NAME_HELP = 'INARA uses it sparingly.';
+export const NAME_HELP = 'JARVIS uses it sparingly.';
 export const CLAUDE_WITHOUT_KEY = 'The assistant is set to use Claude, but no Anthropic API key is saved. Add one under AI providers, or choose Auto.';
 
 // Other stored secrets that share the key row (Calls setup and settings).
 const OTHER_PROVIDERS = {
   twilio_account_sid: 'Twilio', twilio_auth_token: 'Twilio', twilio_phone_number: 'Twilio',
-  owner_phone_number: 'Twilio', cloudflare_tunnel_token: 'Cloudflare', call_briefing_pin: 'INARA',
+  owner_phone_number: 'Twilio', cloudflare_tunnel_token: 'Cloudflare', call_briefing_pin: 'JARVIS',
 };
 
 export function providerFor(name) {
@@ -49,7 +49,7 @@ export function secretChip(status) {
 /** Plain sentence for a transport failure (no Studio/revision wording from the shared RPC scope). */
 export function rpcFailureMessage(error) {
   const code = error && typeof error === 'object' ? error.code : undefined;
-  if (code === 'offline' || code === 'disconnected') return 'INARA core is offline. Reconnect and try again.';
+  if (code === 'offline' || code === 'disconnected') return 'JARVIS core is offline. Reconnect and try again.';
   if (code === 'timeout') return 'The core did not answer in time. Check the key status before trying again.';
   if (code === 'invalid_response' || code === 'send_failed' || code === 'scope_closed') return 'The request did not finish. Reopen Preferences and try again.';
   const message = error && typeof error === 'object' && typeof error.message === 'string' ? error.message : '';

@@ -201,14 +201,19 @@ def run(executable, arguments, directory, environment, expires):
 def environment(data):
     values = dict(os.environ)
     for key in list(values):
-        if key.upper() in {"PYTHONPATH", "PYTHONHOME", "ELECTRON_RUN_AS_NODE", "INARA_DEV_SERVER"}:
+        if key.upper() in {"PYTHONPATH", "PYTHONHOME", "ELECTRON_RUN_AS_NODE", "JARVIS_DEV_SERVER"}:
+            del values[key]
+        # The core still reads pre-rename INARA_* names as a fallback for one release, so
+        # an inherited legacy value for anything set here must not reach the child either.
+        elif key.upper() in {"INARA_DEV_SERVER", "INARA_DATA_DIR", "INARA_SETTINGS_FILE",
+                             "INARA_PROJECT_ROOT", "INARA_LEGACY_DATA_DIR", "INARA_DESKTOP_DATA_DIR"}:
             del values[key]
     for key, name in {
-        "INARA_DATA_DIR": "database",
-        "INARA_SETTINGS_FILE": "settings.json",
-        "INARA_PROJECT_ROOT": "projects",
-        "INARA_LEGACY_DATA_DIR": "legacy",
-        "INARA_DESKTOP_DATA_DIR": "desktop-profile",
+        "JARVIS_DATA_DIR": "database",
+        "JARVIS_SETTINGS_FILE": "settings.json",
+        "JARVIS_PROJECT_ROOT": "projects",
+        "JARVIS_LEGACY_DATA_DIR": "legacy",
+        "JARVIS_DESKTOP_DATA_DIR": "desktop-profile",
     }.items():
         for old in list(values):
             if old.upper() == key:

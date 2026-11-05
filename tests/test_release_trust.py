@@ -45,7 +45,7 @@ def setup(tmp_path, monkeypatch):
         )
     policy = {
         "format": 1,
-        "kind": "inara-release-trust-policy",
+        "kind": "jarvis-release-trust-policy",
         "mode": "fixture",
         "policy_sequence": 1,
         "publisher": "TEST ONLY",
@@ -80,7 +80,7 @@ def setup(tmp_path, monkeypatch):
     def signed(statement=statement):
         return {
             "format": 1,
-            "kind": "inara-detached-attestation",
+            "kind": "jarvis-detached-attestation",
             "statement": deepcopy(statement),
             "signatures": [
                 {

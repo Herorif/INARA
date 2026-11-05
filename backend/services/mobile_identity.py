@@ -25,7 +25,7 @@ def decode_key(value):
 def signing_bytes(path, device_id, request_id, timestamp, payload):
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     return (
-        f"INARA-MOBILE-1\nPOST\n{path}\n{device_id}\n{request_id}\n{timestamp}\n{digest}".encode()
+        f"JARVIS-MOBILE-1\nPOST\n{path}\n{device_id}\n{request_id}\n{timestamp}\n{digest}".encode()
     )
 
 

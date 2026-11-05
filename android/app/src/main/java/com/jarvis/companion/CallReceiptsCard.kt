@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -33,7 +33,7 @@ fun CallReceiptsCard(state: CompanionState, model: CompanionModel) {
                 val transcript = receipt.getJSONArray("transcript")
                 for (index in 0 until transcript.length()) {
                     val segment = transcript.getJSONObject(index)
-                    Text(if (segment.getString("role") == "caller") "Caller" else "INARA", style = MaterialTheme.typography.labelMedium)
+                    Text(if (segment.getString("role") == "caller") "Caller" else "JARVIS", style = MaterialTheme.typography.labelMedium)
                     Text(segment.getString("text"))
                 }
                 if (transcript.length() == 0) Text("No transcript was saved before this attempt ended.")

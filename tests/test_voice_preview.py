@@ -220,7 +220,7 @@ def test_tts_price_table_and_cutover():
 
 
 def test_preview_line_is_fixed():
-    assert PREVIEW_LINE == "Hello, I'm INARA. How can I help?"
+    assert PREVIEW_LINE == "Hello, I'm JARVIS. How can I help?"
 
 
 def test_renderer_voice_descriptors_match_live_config():

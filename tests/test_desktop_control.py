@@ -123,7 +123,7 @@ def test_removal_preflight_refuses_without_deleting_any_owned_payload(panel, kin
             service.review({"action": "erase_data", "root": str(manager.root)})
     elif kind == "foreign_data":
         perform(service, "uninstall", manager.root)
-        marker = data / ".inara-data.json"
+        marker = data / ".jarvis-data.json"
         value = json.loads(marker.read_text())
         value["installation"] = "other"
         marker.write_text(json.dumps(value))
@@ -229,10 +229,10 @@ def test_same_build_reinstall_restores_explicitly_reviewed_recovery_selection(pa
     target = manager.root / "recovery-profiles" / profile
     (target / "desktop-profile").mkdir(parents=True)
     (target / "desktop-profile/resident-identity.json").write_text(json.dumps({"id": owner}))
-    (target / ".inara-data.json").write_text(
+    (target / ".jarvis-data.json").write_text(
         json.dumps({"format": 1, "installation": manager.load()["id"], "slot": slot})
     )
-    (target / ".inara-recovery.json").write_text(
+    (target / ".jarvis-recovery.json").write_text(
         json.dumps(
             {
                 "status": "prepared",

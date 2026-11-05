@@ -41,7 +41,7 @@ class ConversationTransport:
             principal = self.sessions.principals.get(sid)
             if principal is None or not self.dispatcher.authenticated(principal):
                 raise ServiceError(
-                    "authentication_required", "Unlock INARA before restoring conversation."
+                    "authentication_required", "Unlock JARVIS before restoring conversation."
                 )
             context = self.sessions.context(sid)
             messages = self.service.restore(
@@ -105,7 +105,7 @@ class ConversationTransport:
             await self.sio.emit(
                 "transcription",
                 {
-                    "sender": "INARA",
+                    "sender": "JARVIS",
                     "text": result.text,
                     **(
                         {

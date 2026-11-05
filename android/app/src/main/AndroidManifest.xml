@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
-    <application android:label="INARA Companion" android:allowBackup="false"
+    <application android:label="JARVIS Companion" android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
         <service android:name=".SelectedNotificationListener" android:exported="false"

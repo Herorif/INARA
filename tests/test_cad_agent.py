@@ -6,7 +6,7 @@ stream) and ``runner`` (a fake child-process runner), so they never reach the
 network and never execute model-written Python.
 
 Tests marked ``live_api`` call the real Gemini API, spend money and run the
-generated script; they are skipped unless INARA_LIVE_API_TESTS=1.
+generated script; they are skipped unless JARVIS_LIVE_API_TESTS=1.
 """
 import base64
 import os
@@ -228,12 +228,12 @@ class TestIteratePrototype:
 
 @pytest.mark.live_api
 class TestLiveCadGeneration:
-    """Real Gemini calls that execute AI-written Python. Opt in with INARA_LIVE_API_TESTS=1."""
+    """Real Gemini calls that execute AI-written Python. Opt in with JARVIS_LIVE_API_TESTS=1."""
 
     @pytest.fixture
     def agent(self):
         if not os.getenv("GEMINI_API_KEY"):
-            pytest.fail("INARA_LIVE_API_TESTS=1 requires a real GEMINI_API_KEY")
+            pytest.fail("JARVIS_LIVE_API_TESTS=1 requires a real GEMINI_API_KEY")
         pytest.importorskip("build123d", reason="build123d is needed to run the generated script")
         return CadAgent()
 

@@ -7,13 +7,14 @@ import SecretKeyRow from '../settings/SecretKeyRow';
 import { PROVIDERS, rpcFailureMessage } from '../settings/aiSettingsModel';
 import { createSecretsClient } from '../../transport/secretsClient.ts';
 import { CANCEL_FORWARDING, FORWARDING_STORAGE_KEY, forwardingCodes, setupRows } from './callsModel';
+import { readMigrated } from '../../services/storageKeys';
 
-const number = { inputType: 'tel', inputMode: 'tel', noun: 'number', checkable: false, removedText: 'Number removed.', removeConfirm: 'Remove this number? INARA will stop using it.', emptyText: 'Enter the number first.' };
+const number = { inputType: 'tel', inputMode: 'tel', noun: 'number', checkable: false, removedText: 'Number removed.', removeConfirm: 'Remove this number? JARVIS will stop using it.', emptyText: 'Enter the number first.' };
 export const CALL_KEYS = {
   twilio_account_sid: { name: 'twilio_account_sid', title: 'Account SID', provider: 'Twilio', inputLabel: 'Twilio Account SID', noun: 'SID', purpose: 'Starts with AC.', removedText: 'SID removed.', emptyText: 'Paste the Account SID first.' },
-  twilio_auth_token: { name: 'twilio_auth_token', title: 'Auth Token', provider: 'Twilio', inputLabel: 'Twilio Auth Token', noun: 'token', purpose: 'Twilio signs every request to INARA with it.', removedText: 'Token removed.', emptyText: 'Paste the Auth Token first.' },
-  twilio_phone_number: { name: 'twilio_phone_number', title: 'INARA number', provider: 'Twilio', inputLabel: 'INARA number, for example +60312345678', purpose: 'Your Malaysian Twilio number in +60 format.', ...number },
-  owner_phone_number: { name: 'owner_phone_number', title: 'Your mobile', provider: 'Twilio', inputLabel: 'Your mobile number, for example +60123456789', purpose: 'INARA phones you here with briefings.', ...number },
+  twilio_auth_token: { name: 'twilio_auth_token', title: 'Auth Token', provider: 'Twilio', inputLabel: 'Twilio Auth Token', noun: 'token', purpose: 'Twilio signs every request to JARVIS with it.', removedText: 'Token removed.', emptyText: 'Paste the Auth Token first.' },
+  twilio_phone_number: { name: 'twilio_phone_number', title: 'JARVIS number', provider: 'Twilio', inputLabel: 'JARVIS number, for example +60312345678', purpose: 'Your Malaysian Twilio number in +60 format.', ...number },
+  owner_phone_number: { name: 'owner_phone_number', title: 'Your mobile', provider: 'Twilio', inputLabel: 'Your mobile number, for example +60123456789', purpose: 'JARVIS phones you here with briefings.', ...number },
   cloudflare_tunnel_token: { name: 'cloudflare_tunnel_token', title: 'Tunnel token', provider: 'Cloudflare', inputLabel: 'Cloudflare tunnel token', noun: 'token', checkable: false, purpose: "Only the token from the tunnel's install command.", removedText: 'Token removed.', emptyText: 'Paste the tunnel token first.' },
 };
 const GEMINI = PROVIDERS.find(entry => entry.name === 'gemini_api_key');
@@ -28,7 +29,7 @@ const STEPS = [
   'Turn answering on and make a test call.',
 ];
 
-const readForwarding = () => { try { return localStorage.getItem(FORWARDING_STORAGE_KEY) === '1'; } catch { return false; } };
+const readForwarding = () => { try { return readMigrated(localStorage, FORWARDING_STORAGE_KEY) === '1'; } catch { return false; } };
 const writeForwarding = value => { try { localStorage.setItem(FORWARDING_STORAGE_KEY, value ? '1' : '0'); } catch { /* per-viewer convenience only */ } };
 
 function CopyCode({ code, label }) {
@@ -87,7 +88,7 @@ export default function CallsSetup({ status, onStatusChange, onOpenSettings, onB
   const tunnelHelp = rows.tunnel.label === 'CLOUDFLARED MISSING'
     ? <>Install cloudflared, then restart answering: <code className="calls-inline-code">winget install --id Cloudflare.cloudflared</code></>
     : rows.tunnel.label === 'FAILED' ? 'The tunnel stopped. Check the token and your internet connection.'
-      : 'A secure link from the internet to INARA’s phone gateway only. INARA starts it while answering is on.';
+      : 'A secure link from the internet to JARVIS’s phone gateway only. JARVIS starts it while answering is on.';
 
   return <div className="calls-setup" aria-labelledby="calls-setup-title">
     <div className="calls-setup__top">
@@ -95,8 +96,8 @@ export default function CallsSetup({ status, onStatusChange, onOpenSettings, onB
       {onBack && <button type="button" className="btn btn--ghost btn--sm" onClick={onBack}>Back to calls</button>}
     </div>
     {loadError && <p className="calls-error" role="alert">{loadError}</p>}
-    <Row row={rows.twilio} help="Twilio Console home → Account info. INARA checks both values with Twilio.">{key('twilio_account_sid')}{key('twilio_auth_token')}</Row>
-    <Row row={rows.inara_number}>{key('twilio_phone_number')}</Row>
+    <Row row={rows.twilio} help="Twilio Console home → Account info. JARVIS checks both values with Twilio.">{key('twilio_account_sid')}{key('twilio_auth_token')}</Row>
+    <Row row={rows.jarvis_number}>{key('twilio_phone_number')}</Row>
     <Row row={rows.owner_number}>{key('owner_phone_number')}</Row>
     <Row row={rows.tunnel} help={tunnelHelp}>{key('cloudflare_tunnel_token')}</Row>
     <Row row={rows.address} help="The https address of your tunnel’s published route, for example https://calls.example.com.">
@@ -106,12 +107,12 @@ export default function CallsSetup({ status, onStatusChange, onOpenSettings, onB
       </div>
     </Row>
     <Row row={rows.voice} help="The phone voice uses your Gemini key.">{key('gemini_api_key')}</Row>
-    <Row row={rows.forwarding} help="Dial these on your phone so your carrier passes missed calls to INARA.">
+    <Row row={rows.forwarding} help="Dial these on your phone so your carrier passes missed calls to JARVIS.">
       <div className="calls-codes">
-        {forwardingCodes(status?.inara_number).map(entry => <CopyCode key={entry.id} label={entry.label} code={entry.code} />)}
+        {forwardingCodes(status?.jarvis_number).map(entry => <CopyCode key={entry.id} label={entry.label} code={entry.code} />)}
         <CopyCode label="Cancel all forwarding" code={CANCEL_FORWARDING} />
       </div>
-      {!status?.inara_number && <p className="calls-setup__help">Replace &lt;INARA number&gt; with your Twilio number, in +60 or 0 form, whichever your carrier accepts.</p>}
+      {!status?.jarvis_number && <p className="calls-setup__help">Replace &lt;JARVIS number&gt; with your Twilio number, in +60 or 0 form, whichever your carrier accepts.</p>}
       <label className="calls-check">
         <input type="checkbox" checked={forwarding} onChange={event => { setForwarding(event.target.checked); writeForwarding(event.target.checked); }} />
         <span>I’ve set up call forwarding</span>
@@ -120,7 +121,7 @@ export default function CallsSetup({ status, onStatusChange, onOpenSettings, onB
     <section className="calls-setup__guide hud-panel" aria-labelledby="calls-setup-guide">
       <HudLabel as="h3" id="calls-setup-guide">SETUP STEPS</HudLabel>
       <ol>{STEPS.map(step => <li key={step}>{step}</li>)}</ol>
-      <p className="calls-setup__help">See CALLS_SETUP.md in the INARA folder for the full guide.</p>
+      <p className="calls-setup__help">See CALLS_SETUP.md in the JARVIS folder for the full guide.</p>
     </section>
   </div>;
 }

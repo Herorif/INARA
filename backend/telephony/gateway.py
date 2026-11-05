@@ -3,8 +3,8 @@ through the Cloudflare tunnel. It is never mounted on the core's port.
 
 Exactly four paths exist; anything else (including other methods) is 404:
 
-* ``POST /telephony/voice/inbound``  - TwiML for calls to INARA's number
-* ``POST /telephony/voice/outbound`` - TwiML for calls INARA placed
+* ``POST /telephony/voice/inbound``  - TwiML for calls to JARVIS's number
+* ``POST /telephony/voice/outbound`` - TwiML for calls JARVIS placed
 * ``POST /telephony/status``         - call status callbacks
 * ``WS   /telephony/media``          - bidirectional Media Streams
 
@@ -24,6 +24,7 @@ from starlette.applications import Starlette
 from starlette.responses import Response
 from starlette.routing import Route, WebSocketRoute
 
+from services import env
 from services.log import get_logger
 from services.tools import ServiceError
 from telephony import twiml
@@ -47,7 +48,7 @@ PATHS = (INBOUND, OUTBOUND, STATUS, MEDIA)
 
 def configured_port(environ=None):
     environ = os.environ if environ is None else environ
-    raw = (environ.get("INARA_TELEPHONY_PORT") or "").strip()
+    raw = (env.getenv("TELEPHONY_PORT", environ=environ) or "").strip()
     if not raw:
         return DEFAULT_PORT
     try:

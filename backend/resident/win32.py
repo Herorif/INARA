@@ -414,7 +414,7 @@ class Tray:
     OPEN, QUIT, CALL, NOTIFY = 0x8001, 0x8002, 0x8003, 0x8004
 
     def __init__(self, key, icon, on_action, on_tick, suppress_notifications=False):
-        self.name = f"INARA.Native.{key}"
+        self.name = f"JARVIS.Native.{key}"
         self.on_action, self.on_tick = on_action, on_tick
         self.calls = queue.Queue()
         self.suppress_notifications = suppress_notifications
@@ -478,7 +478,7 @@ class Tray:
         self.data = NotifyData()
         self.data.size, self.data.window, self.data.id = C.sizeof(NotifyData), self.window, 1
         self.data.flags, self.data.message, self.data.icon = 1 | 2 | 4, self.NOTIFY, self.icon
-        self.data.tip = "INARA · Resident starting"
+        self.data.tip = "JARVIS · Resident starting"
         self._add_icon()
         self.hotkey = bool(
             api(user, "RegisterHotKey", [W.HWND, C.c_int, W.UINT, W.UINT], W.BOOL)(
@@ -512,7 +512,7 @@ class Tray:
         self.data.tip, self.data.flags = value[:127], 4
         shell.Shell_NotifyIconW(1, C.byref(self.data))
 
-    def notify(self, title="INARA reminder",
+    def notify(self, title="JARVIS reminder",
                info="A reminder is ready. Open the command deck to view it."):
         if self.suppress_notifications:
             self.notification_count += 1
@@ -529,7 +529,7 @@ class Tray:
         menu = checked(api(user, "CreatePopupMenu", [], W.HMENU)())
         append = api(user, "AppendMenuW", [W.HMENU, W.UINT, C.c_size_t, W.LPCWSTR], W.BOOL)
         for index, text in enumerate(
-            ("Open INARA", "Toggle gaming mode", "Retry backend", "Quit INARA"), 1
+            ("Open JARVIS", "Toggle gaming mode", "Retry backend", "Quit JARVIS"), 1
         ):
             checked(append(menu, 0, index, text))
         position = W.POINT()

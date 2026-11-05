@@ -126,7 +126,7 @@ def test_safe_extraction_and_incomplete_output_preservation(tmp_path):
     tool.extract(archive, output)
     assert (output / "folder/file.txt").read_bytes() == b"inert"
     tool.extract(archive, output)
-    (output / ".inara-extraction.json").unlink()
+    (output / ".jarvis-extraction.json").unlink()
     with pytest.raises(ValueError):
         tool.extract(archive, output)
     assert (output / "folder/file.txt").is_file()
@@ -162,7 +162,7 @@ async def test_live_worker_refuses_implicit_or_cloud_voice_before_devices(tmp_pa
     spec.loader.exec_module(worker)
     monkeypatch.setattr(worker, "ROOT", tmp_path)
     monkeypatch.setenv("GEMINI_API_KEY", "INERT_NOT_A_KEY")
-    monkeypatch.setenv("INARA_CALL_MODEL", "INERT_MODEL")
+    monkeypatch.setenv("JARVIS_CALL_MODEL", "INERT_MODEL")
     directory = tmp_path / ".runtime/call-bridge-runs/run-fixture"
     directory.mkdir(parents=True)
     request = {"directory": str(directory), "mode": "live"}

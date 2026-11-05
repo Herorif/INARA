@@ -23,7 +23,7 @@ def module(name, file):
 trust = module("signed_trust", "release-trust.py")
 manager = module("signed_manager", "desktop-install.py")
 review, audit = trust.review, trust.review.audit
-DOMAIN = b"INARA:authenticated-package:v1\n"
+DOMAIN = b"JARVIS:authenticated-package:v1\n"
 MANIFEST = "package-manifest.json"
 ENVELOPE = "attestation.json"
 FIELDS = {
@@ -99,7 +99,7 @@ def inventory(items):
 def statement_for(manifest, raw):
     return {
         "format": 1,
-        "kind": "inara-package-statement",
+        "kind": "jarvis-package-statement",
         "manifest_sha256": trust.sha(raw),
         **{
             key: manifest[key]
@@ -125,7 +125,7 @@ def verify_signatures(manifest, raw, envelope, policy, pin, sequence, now=None):
     if (
         type(envelope["format"]) is not int
         or envelope["format"] != 1
-        or envelope["kind"] != "inara-package-attestation"
+        or envelope["kind"] != "jarvis-package-attestation"
     ):
         raise ValueError("Unsupported package attestation")
     statement = statement_for(manifest, raw)
@@ -271,7 +271,7 @@ def verify_evidence(root, manifest, payload=None):
     if (
         type(base["format"]) is not int
         or base["format"] != 1
-        or base["kind"] != "inara-distribution-review"
+        or base["kind"] != "jarvis-distribution-review"
         or base["candidate_manifest_sha256"] != manifest["candidate_manifest_sha256"]
         or base["audit_report_sha256"] != manifest["audit_report_sha256"]
         or base["subjects"] != expected_subjects(report)
@@ -366,7 +366,7 @@ def prepare(
     inventory(records)
     manifest = {
         "format": 1,
-        "kind": "inara-authenticated-package",
+        "kind": "jarvis-authenticated-package",
         "purpose": policy["mode"],
         "policy_sha256": pin,
         "publisher": policy["publisher"],
@@ -426,7 +426,7 @@ def verify(package, policy_path, pin, sequence, fixture=False, now=None, *, _pay
     if (
         type(manifest["format"]) is not int
         or manifest["format"] != 1
-        or manifest["kind"] != "inara-authenticated-package"
+        or manifest["kind"] != "jarvis-authenticated-package"
     ):
         raise ValueError("Unsupported authenticated package format")
     records = inventory(manifest["files"])
@@ -584,7 +584,7 @@ def retain_admission(
     }
     binding = {
         "format": 1,
-        "kind": "inara-admission-evidence",
+        "kind": "jarvis-admission-evidence",
         "root": str(service.root),
         "installation": state["id"],
         "slot": slot,
@@ -651,7 +651,7 @@ def launch_check(root, policy_path, pin, sequence, now=None, *, windows_check=No
         if (
             type(binding["format"]) is not int
             or binding["format"] != 1
-            or binding["kind"] != "inara-admission-evidence"
+            or binding["kind"] != "jarvis-admission-evidence"
             or binding["root"] != str(service.root)
             or binding["installation"] != state["id"]
             or binding["slot"] != slot

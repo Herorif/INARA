@@ -17,10 +17,10 @@ sys.path.insert(0, str(ROOT))
 output = ROOT / ".runtime/speech-qa" / f"run-{uuid.uuid4()}"
 output.mkdir(parents=True)
 for key, name in [
-    ("INARA_DATA_DIR", "database"),
-    ("INARA_SETTINGS_FILE", "settings.json"),
-    ("INARA_PROJECT_ROOT", "workspace"),
-    ("INARA_LEGACY_DATA_DIR", "legacy"),
+    ("JARVIS_DATA_DIR", "database"),
+    ("JARVIS_SETTINGS_FILE", "settings.json"),
+    ("JARVIS_PROJECT_ROOT", "workspace"),
+    ("JARVIS_LEGACY_DATA_DIR", "legacy"),
 ]:
     os.environ[key] = str(output / name)
 os.environ["GEMINI_API_KEY"] = "changeme"  # Never use a real key in this verification.
@@ -140,7 +140,7 @@ def verify():
 
         app.speech.transcriber = transcribe
         app.conversation.provider_factory = Provider
-        from services.voice_fixture import FixtureLive, INARA_CAPTION, USER_CAPTION
+        from services.voice_fixture import FixtureLive, JARVIS_CAPTION, USER_CAPTION
 
         voice_events = []
         relay = app.voice.emit
@@ -177,7 +177,7 @@ def verify():
             for key in list(app.conversation.conversations)
             for item in app.conversation.restore(app.sessions.local_owner, key, project)
         ]
-        assert USER_CAPTION in history and INARA_CAPTION in history, history
+        assert USER_CAPTION in history and JARVIS_CAPTION in history, history
         result["live_voice_fixture"] = {
             "connections": len(live.sessions),
             "client_messages": {kind: sent.count(kind) for kind in set(sent)},

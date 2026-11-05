@@ -82,7 +82,7 @@ export default function ModelPreview({
 }) {
   const cameraRef=useRef(null),savedView=useRef(null);
   const [view,setView]=useState({kind:'perspective'}),[hasView,setHasView]=useState(false),[viewMessage,setViewMessage]=useState('');
-  const viewKey=job?.project && job?.request_id ? `inara:cad-view:${job.project}:${job.request_id}` : null;
+  const viewKey=job?.project && job?.request_id ? `jarvis:cad-view:${job.project}:${job.request_id}` : null;
   useEffect(()=>{savedView.current=viewKey ? loadView(undefined,viewKey) : null;setHasView(!!savedView.current);setViewMessage('');setView({kind:'perspective'});},[viewKey]);
   const connected = useStore(state => state.backendConnected);
   const [geometry, setGeometry] = useState(null),

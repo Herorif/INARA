@@ -1,6 +1,6 @@
 """Per-process desktop session token; the core never runs without one.
 
-Native/production launches pass ``INARA_SESSION_TOKEN`` (the native host generates it and
+Native/production launches pass ``JARVIS_SESSION_TOKEN`` (the native host generates it and
 hands it to the workspace over an inherited pipe). A bare development start
 (``python backend/server.py``) generates a fresh token for that process and writes it to a
 user-only file under the gitignored ``.runtime/`` folder so the Vite dev client can use it.
@@ -12,13 +12,15 @@ import os
 from pathlib import Path
 import secrets
 
-ENV_NAME = "INARA_SESSION_TOKEN"
+from services import env
+
+ENV_NAME = "JARVIS_SESSION_TOKEN"
 DEV_TOKEN_FILE = Path(__file__).resolve().parents[2] / ".runtime" / "dev-session-token"
 
 
 def current_token(environ=None):
     """The token this process requires, or None (which rejects every connection)."""
-    value = (os.environ if environ is None else environ).get(ENV_NAME)
+    value = env.getenv(ENV_NAME, environ=environ)
     return value if isinstance(value, str) and value else None
 
 

@@ -15,14 +15,14 @@ sys.path.insert(0, str(ROOT / "backend"))
 output = ROOT / ".runtime/command-qa" / f"run-{uuid.uuid4()}"
 output.mkdir(parents=True)
 for key, name in [
-    ("INARA_DATA_DIR", "database"),
-    ("INARA_SETTINGS_FILE", "settings.json"),
-    ("INARA_PROJECT_ROOT", "workspace"),
-    ("INARA_LEGACY_DATA_DIR", "legacy"),
+    ("JARVIS_DATA_DIR", "database"),
+    ("JARVIS_SETTINGS_FILE", "settings.json"),
+    ("JARVIS_PROJECT_ROOT", "workspace"),
+    ("JARVIS_LEGACY_DATA_DIR", "legacy"),
 ]:
     os.environ[key] = str(output / name)
 os.environ["GEMINI_API_KEY"] = "changeme"
-os.environ["INARA_IMAGE_MODEL_DIR"] = ""
+os.environ["JARVIS_IMAGE_MODEL_DIR"] = ""
 os.environ.pop("ELECTRON_RUN_AS_NODE", None)
 (output / "settings.json").write_text(
     json.dumps({"tool_permissions": {"write_file": False, "read_file": False, "launch_app": False}})

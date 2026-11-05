@@ -18,12 +18,12 @@ fs.mkdirSync(output, {
   recursive: true
 });
 app.setPath('userData', output);
-process.env.INARA_DATA_DIR = path.join(output, 'database');
-process.env.INARA_SETTINGS_FILE = path.join(output, 'settings.json');
-process.env.INARA_PROJECT_ROOT = path.join(output, 'workspace');
-process.env.INARA_LEGACY_DATA_DIR = path.join(output, 'legacy');
-process.env.INARA_PYTHON = path.join(root, '.venv/Scripts/python.exe');
-process.env.INARA_DEV_SERVER = '0';
+process.env.JARVIS_DATA_DIR = path.join(output, 'database');
+process.env.JARVIS_SETTINGS_FILE = path.join(output, 'settings.json');
+process.env.JARVIS_PROJECT_ROOT = path.join(output, 'workspace');
+process.env.JARVIS_LEGACY_DATA_DIR = path.join(output, 'legacy');
+process.env.JARVIS_PYTHON = path.join(root, '.venv/Scripts/python.exe');
+process.env.JARVIS_DEV_SERVER = '0';
 BrowserWindow.prototype.show = function () {};
 let balloons = 0;
 Tray.prototype.displayBalloon = function () {
@@ -71,7 +71,7 @@ app.whenReady().then(async () => {
       pid: metric.pid,
       memoryMB: metric.memory.workingSetSize / 1024
     }));
-    const python = code => execFileSync(process.env.INARA_PYTHON, ['-c', code], {
+    const python = code => execFileSync(process.env.JARVIS_PYTHON, ['-c', code], {
       cwd: root,
       env: {
         ...process.env,
@@ -80,7 +80,7 @@ app.whenReady().then(async () => {
       encoding: 'utf8',
       windowsHide: true
     });
-    python("import time; from core.reminder_store import ReminderStore; ReminderStore().add_reminder('INARA lifecycle QA',time.time()-1)");
+    python("import time; from core.reminder_store import ReminderStore; ReminderStore().add_reminder('JARVIS lifecycle QA',time.time()-1)");
     await until(() => balloons > 0);
     const deliveries = JSON.parse(python(`import json; from core.reminder_store import ReminderStore; print(json.dumps(ReminderStore().open_deliveries('${identity.id}')))`));
     assert.equal(deliveries.length, 1);

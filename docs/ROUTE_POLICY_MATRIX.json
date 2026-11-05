@@ -940,7 +940,7 @@
       "schema": "EmptyRequest",
       "caller": "Authenticated unlocked owner renderer",
       "context": "Telephony gateway, tunnel supervisor and calls.* settings; telephony secrets reported as configured/verified/source only",
-      "effects": "Read readiness: kill switch, public URL, secrets present/verified, gateway listening, tunnel state, agent, active calls, today's third-party call count; C3 adds answering (calls.enabled), needs_you_count, active_call {id, mode, direction, state} | null and briefing_pin_set (configured yes/no only) and inara_number (INARA's own Twilio number in E.164, or null; owner-only, for the carrier forwarding codes); never a secret value",
+      "effects": "Read readiness: kill switch, public URL, secrets present/verified, gateway listening, tunnel state, agent, active calls, today's third-party call count; C3 adds answering (calls.enabled), needs_you_count, active_call {id, mode, direction, state} | null and briefing_pin_set (configured yes/no only) and inara_number (JARVIS's own Twilio number in E.164, or null; owner-only, for the carrier forwarding codes); never a secret value",
       "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
       "response": "Origin ACK with status only; secret values and pydantic details are never echoed",
       "lifetime": "Request-only snapshot; no network",
@@ -1215,7 +1215,7 @@
       "schema": "VoicePreviewRequest (name: one of live_config.PREBUILT_VOICES; extra fields forbidden)",
       "caller": "Authenticated unlocked owner renderer",
       "context": "Captured owner and current project for the usage receipt; Gemini key from the profile secret store",
-      "effects": "Admit a voice_preview usage step and make one Gemini text-to-speech request (model_id('tts'), 30s timeout) for the fixed line \"Hello, I'm INARA. How can I help?\" in the named prebuilt voice; cached in memory per model and voice for the process, so a repeat preview makes no request",
+      "effects": "Admit a voice_preview usage step and make one Gemini text-to-speech request (model_id('tts'), 30s timeout) for the fixed line \"Hello, I'm JARVIS. How can I help?\" in the named prebuilt voice; cached in memory per model and voice for the process, so a repeat preview makes no request",
       "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; no Gemini key -> provider_not_configured before any request",
       "response": "Origin ACK {ok, name, cached, sample_rate, pcm_base64 (PCM16 mono)}; provider errors mapped to plain codes, SDK text never echoed",
       "lifetime": "Request-only; one in-flight request per voice; audio kept only in process memory, never stored",
@@ -1431,7 +1431,7 @@
     },
     "place_task_call": {
       "schema": "PlaceTaskCall",
-      "policy": "Own permissions[place_task_call]; always asks the owner on screen (ToolSpec.always_ask, enforced in dispatch: True, False and allow_within_scope all ask); deny rejects. Review facts carry the exact approval sentence; owner's and INARA's numbers refused before the card",
+      "policy": "Own permissions[place_task_call]; always asks the owner on screen (ToolSpec.always_ask, enforced in dispatch: True, False and allow_within_scope all ask); deny rejects. Review facts carry the exact approval sentence; owner's and JARVIS's numbers refused before the card",
       "context": "Authenticated desktop owner; conversation id and project captured for the outcome report",
       "lifetime": "Returns once the call is placed or refused; the approved card issues one 10-minute grant bound to the number and the task brief hash; the outcome is appended to the conversation when the call ends (CallOrchestrator, 45-minute result cap)",
       "replacement": "C4 task calls (telephony/task_calls.py)",
@@ -1725,17 +1725,17 @@
     "/telephony/voice/inbound": {
       "method": "POST",
       "authentication": "Separate 127.0.0.1 gateway (default port 8790, never the core port) reached only through the Cloudflare named tunnel; X-Twilio-Signature (HMAC-SHA1 with the Twilio Auth Token) over calls.public_base_url + exact path and query + sorted form params, constant-time; AccountSid must match; 403 otherwise",
-      "effects": "Loop guard first (INARA's own number or withheld caller forwarded from the owner -> <Reject/> and internal owner_unreachable event); kill switch / no call agent -> voicemail or hang up per calls.when_disabled; otherwise <Connect><Stream> with a 2-minute single-use stream token bound to the CallSid"
+      "effects": "Loop guard first (JARVIS's own number or withheld caller forwarded from the owner -> <Reject/> and internal owner_unreachable event); kill switch / no call agent -> voicemail or hang up per calls.when_disabled; otherwise <Connect><Stream> with a 2-minute single-use stream token bound to the CallSid"
     },
     "/telephony/voice/outbound": {
       "method": "POST",
-      "authentication": "Separate 127.0.0.1 gateway (default port 8790, never the core port) reached only through the Cloudflare named tunnel; X-Twilio-Signature (HMAC-SHA1 with the Twilio Auth Token) over calls.public_base_url + exact path and query + sorted form params, constant-time; AccountSid must match; 403 otherwise; plus a single-use 2-minute ticket in the query bound to INARA's own outbound call record (To/From/CallSid rechecked)",
-      "effects": "<Connect><Stream> for a call INARA placed (owner, or a third party under a consumed one-use grant); hang up when calls are off"
+      "authentication": "Separate 127.0.0.1 gateway (default port 8790, never the core port) reached only through the Cloudflare named tunnel; X-Twilio-Signature (HMAC-SHA1 with the Twilio Auth Token) over calls.public_base_url + exact path and query + sorted form params, constant-time; AccountSid must match; 403 otherwise; plus a single-use 2-minute ticket in the query bound to JARVIS's own outbound call record (To/From/CallSid rechecked)",
+      "effects": "<Connect><Stream> for a call JARVIS placed (owner, or a third party under a consumed one-use grant); hang up when calls are off"
     },
     "/telephony/status": {
       "method": "POST",
       "authentication": "Separate 127.0.0.1 gateway (default port 8790, never the core port) reached only through the Cloudflare named tunnel; X-Twilio-Signature (HMAC-SHA1 with the Twilio Auth Token) over calls.public_base_url + exact path and query + sorted form params, constant-time; AccountSid must match; 403 otherwise",
-      "effects": "Record call status for INARA's outbound calls and emit an internal telephony.call_status event; 204"
+      "effects": "Record call status for JARVIS's outbound calls and emit an internal telephony.call_status event; 204"
     },
     "/telephony/media": {
       "method": "WebSocket",

@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import android.content.Intent
 import android.provider.Settings
@@ -30,7 +30,7 @@ fun NotificationCard(state: CompanionState, model: CompanionModel) {
                     Text("${rule.getString("package")} / ${if (rule.optBoolean("all_conversations")) "ALL conversations explicitly selected" else rule.getJSONArray("conversations").toString()}", style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Text("System notification access can expose all notifications to this app. INARA filters locally before queuing; select packages/conversations on the laptop first. Turning off system access stops collection and clears the local queue when detected. An offline phone learns laptop revocation on its next manual refresh/sync.", style = MaterialTheme.typography.bodySmall)
+            Text("System notification access can expose all notifications to this app. JARVIS filters locally before queuing; select packages/conversations on the laptop first. Turning off system access stops collection and clears the local queue when detected. An offline phone learns laptop revocation on its next manual refresh/sync.", style = MaterialTheme.typography.bodySmall)
             Button(onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
                 enabled = !state.busy && BuildConfig.NOTIFICATION_ACCEPTANCE_ENABLED) { Text("Open system access settings") }
             Row {

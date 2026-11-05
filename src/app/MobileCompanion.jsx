@@ -79,7 +79,7 @@ export default function MobileCompanion() {
       url = URL.createObjectURL(blob),
       link = document.createElement("a");
     link.href = url;
-    link.download = "inara-invitation.inara-pair.json";
+    link.download = "jarvis-invitation.jarvis-pair.json";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };

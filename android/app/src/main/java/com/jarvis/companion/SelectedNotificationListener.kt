@@ -1,4 +1,4 @@
-package com.inara.companion
+package com.jarvis.companion
 
 import android.app.Notification
 import android.service.notification.NotificationListenerService

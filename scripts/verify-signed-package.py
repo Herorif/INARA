@@ -46,7 +46,7 @@ def main():
         )
     policy = {
         "format": 1,
-        "kind": "inara-release-trust-policy",
+        "kind": "jarvis-release-trust-policy",
         "mode": "fixture",
         "policy_sequence": 1,
         "publisher": "EPHEMERAL TEST ONLY - NOT A RELEASE IDENTITY",
@@ -82,7 +82,7 @@ def main():
     statement = json.loads((output / "request/statement.json").read_text())
     envelope = {
         "format": 1,
-        "kind": "inara-package-attestation",
+        "kind": "jarvis-package-attestation",
         "statement": statement,
         "signatures": [
             {

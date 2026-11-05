@@ -19,7 +19,7 @@ if (-not (Test-Path -LiteralPath '.venv\Scripts\python.exe')) {
     } catch { $pythonVersion = $null }
     if (-not $pythonVersion -or $LASTEXITCODE -ne 0) { throw 'Python was not found. Install Python 3.12, then run this script again.' }
     if ($pythonVersion -ne '3.12') {
-        Write-Warning ("Python $pythonVersion found, but INARA is built and tested on Python 3.12. " +
+        Write-Warning ("Python $pythonVersion found, but JARVIS is built and tested on Python 3.12. " +
             '3.13 works for development, but packaging and some runtime tests expect 3.12. Install Python 3.12 for the supported setup.')
     }
     & $pythonExe @pythonArgs -m venv .venv
@@ -35,7 +35,7 @@ if ($ConfigureKeys) {
         if ($secure.Length -eq 0) { continue }
         $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
         try { $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
-        $reply = $plain | & '.\.venv\Scripts\python.exe' -I -B 'scripts\inara-secrets.py' set $key[0] --verify
+        $reply = $plain | & '.\.venv\Scripts\python.exe' -I -B 'scripts\jarvis-secrets.py' set $key[0] --verify
         $code = $LASTEXITCODE
         $plain = $null
         try { $message = ($reply | Select-Object -Last 1 | ConvertFrom-Json).message } catch { $message = 'The key tool did not answer.' }
@@ -73,4 +73,4 @@ if (-not (Test-Path -LiteralPath 'node_modules/electron/dist/electron.exe')) {
 }
 npm.cmd run build
 if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
-Write-Output 'INARA is ready. Run scripts/start.ps1. Local reminders work now; add AI keys with scripts/bootstrap.ps1 -ConfigureKeys or scripts/inara-secrets.py (see docs/AI_PROVIDERS.md).'
+Write-Output 'JARVIS is ready. Run scripts/start.ps1. Local reminders work now; add AI keys with scripts/bootstrap.ps1 -ConfigureKeys or scripts/jarvis-secrets.py (see docs/AI_PROVIDERS.md).'

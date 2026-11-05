@@ -18,7 +18,7 @@ spec = importlib.util.spec_from_file_location(
 recovery = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(recovery)
 install, backup = recovery.install, recovery.backup
-ERASE = "ERASE INARA DATA"
+ERASE = "ERASE JARVIS DATA"
 ACTIONS = {
     "install",
     "add_version",
@@ -68,7 +68,7 @@ def owned_tree(root, target, kind, installation):
     else:
         recovery.profile_id(relative.parts[1])
     if kind == "data":
-        marker = install.read(target / ".inara-data.json")
+        marker = install.read(target / ".jarvis-data.json")
         if marker.get("installation") != installation or marker.get("format") != 1:
             raise ValueError("Data ownership is incompatible; preserve this directory")
         install.identifier(marker.get("slot"))
@@ -455,9 +455,9 @@ class Control:
                     if type(request.get("resident_only", True)) is not bool:
                         raise ValueError("Invalid workspace preference")
                     plan.update(
-                        result="Start INARA in the tray"
+                        result="Start JARVIS in the tray"
                         if request.get("resident_only", True)
-                        else "Start INARA and open the workspace",
+                        else "Start JARVIS and open the workspace",
                         version=state["current"][:12],
                     )
         if action == "prepare_recovery":
@@ -557,7 +557,7 @@ class Control:
             return {
                 "launch_requested": True,
                 "pid": process.pid,
-                "message": "Starting INARA. Check its tray icon; this request is not a readiness confirmation.",
+                "message": "Starting JARVIS. Check its tray icon; this request is not a readiness confirmation.",
             }
         raise ValueError("Unsupported action")
 

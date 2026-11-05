@@ -88,7 +88,7 @@ def main():
         raise AssertionError("Unconfigured Windows identity accepted")
     value = {
         "format": 1,
-        "kind": "inara-controller-development-acceptance",
+        "kind": "jarvis-controller-development-acceptance",
         "controller": verified,
         "bootstrap_policy_status": status,
         "refusals": {
@@ -102,7 +102,7 @@ def main():
             "disabled_windows_policy": disabled_refused,
         },
         "unsigned_source_probe": unsigned,
-        "upstream_python_probe": {**upstream, "inara_identity_enrolled": False},
+        "upstream_python_probe": {**upstream, "jarvis_identity_enrolled": False},
         "resident_launched": False,
         "production_installation_created": False,
         "certificate_store_configured": False,

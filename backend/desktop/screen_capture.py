@@ -1,8 +1,8 @@
 """
-Screen capture and vision analysis for INARA.
+Screen capture and vision analysis for JARVIS.
 
 Grabs the desktop screenshot, downscales it, and optionally sends it
-to Gemini for a natural-language description. This gives INARA "eyes"
+to Gemini for a natural-language description. This gives JARVIS "eyes"
 on whatever the user is looking at.
 """
 
@@ -13,7 +13,7 @@ from typing import Optional
 
 
 _VISION_PROMPT = (
-    "You are INARA, an AI assistant. The user has asked you to look at their screen. "
+    "You are JARVIS, an AI assistant. The user has asked you to look at their screen. "
     "Describe what you see clearly and specifically: any application windows, text content, "
     "error messages, UI elements, or anything noteworthy. "
     "Be concise but accurate. If you see an error or problem, highlight it."

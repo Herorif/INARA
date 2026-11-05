@@ -15,7 +15,7 @@ function processor(rate=24000,options={}){
  let Processor;const posted=[];
  vm.runInNewContext(readFileSync('src/features/voice/playback.worklet.js','utf8'),{
   AudioWorkletProcessor:class{port={postMessage:value=>posted.push(value)};},sampleRate:rate,
-  registerProcessor:(name,type)=>{assert.equal(name,'inara-voice-player');Processor=type;}});
+  registerProcessor:(name,type)=>{assert.equal(name,'jarvis-voice-player');Processor=type;}});
  const node=new Processor({processorOptions:{inputRate:24000,primeMs:10,...options}});
  return {node,posted,render:(frames=128)=>{const out=new Float32Array(frames);node.process([], [[out]]);return out;}};
 }
@@ -78,6 +78,8 @@ test('event guards accept only well-formed voice events and copy PCM to even len
  assert.equal(chunk.pcm.byteLength,4);assert.notEqual(chunk.pcm,source.buffer);
  assert.equal(voiceAudioOut({session_id:SESSION,seq:0,pcm:source.buffer}),null);
  assert.equal(voiceAudioOut({session_id:SESSION,seq:1,pcm:'AAAA'}),null);
+ assert.equal(isVoiceCaption({session_id:SESSION,role:'jarvis',text:'Hi',final:false}),true);
+ // A core from before the JARVIS rename sends the role 'inara'; the controller reads it as 'jarvis'.
  assert.equal(isVoiceCaption({session_id:SESSION,role:'inara',text:'Hi',final:false}),true);
  assert.equal(isVoiceCaption({session_id:SESSION,role:'system',text:'Hi',final:false}),false);
 });
@@ -146,6 +148,10 @@ test('server audio plays, interruption flushes, captions stream with stable keys
  socket.emit('voice_caption',{session_id:SESSION,role:'user',text:'Hello',final:true});
  socket.emit('voice_caption',{session_id:SESSION,role:'user',text:'Again',final:false});
  assert.deepEqual(captions.map(item=>[item.key.endsWith(':user:0')||item.key.endsWith(':user:1')?item.key.split(':').at(-1):'?',item.text,item.final]),[['0','Hel',false],['0','Hello',true],['1','Again',false]]);
+ // JARVIS captions keep their own counter; the wire role 'inara' joins the same utterance.
+ socket.emit('voice_caption',{session_id:SESSION,role:'jarvis',text:'Hi',final:false});
+ socket.emit('voice_caption',{session_id:SESSION,role:'inara',text:'Hi there',final:true});
+ assert.deepEqual(captions.slice(-2).map(item=>[item.role,item.key.split(':').slice(-2).join(':'),item.text]),[['jarvis','jarvis:0','Hi'],['jarvis','jarvis:0','Hi there']]);
  await controller.dispose();
 });
 

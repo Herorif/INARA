@@ -19,7 +19,7 @@ from telephony.service import TelephonyService
 from telephony.signature import compute_signature
 
 from tests.test_telephony import (
-    ACCOUNT, BASE, CALL, INARA, STREAM, TOKEN, FakeApp, Tunnel, inbound_params, make_service,
+    ACCOUNT, BASE, CALL, JARVIS, STREAM, TOKEN, FakeApp, Tunnel, inbound_params, make_service,
     media_message, start_message,
 )
 
@@ -77,7 +77,7 @@ async def test_webhooks_require_a_valid_signature_over_the_public_url(gateway):
         {"Content-Type": "application/x-www-form-urlencoded"},
         {**signed(path, params), "X-Twilio-Signature": "bogus"},
         signed(path, params, url=local + path),  # signed over the local URL
-        signed(path, {**params, "From": INARA}),  # signed over different params
+        signed(path, {**params, "From": JARVIS}),  # signed over different params
         {**signed(path, params), "Content-Type": "application/json"},
     ):
         response = await post(local, path, params, headers)
@@ -155,8 +155,8 @@ async def test_gateway_never_uses_the_core_port():
     with pytest.raises(ServiceError) as error:
         await service.gateway.start()
     assert error.value.code == "telephony_port"
-    assert configured_port({"INARA_TELEPHONY_PORT": "8000"}) == 8790
-    assert configured_port({"INARA_TELEPHONY_PORT": "9123"}) == 9123
+    assert configured_port({"JARVIS_TELEPHONY_PORT": "8000"}) == 8790
+    assert configured_port({"JARVIS_TELEPHONY_PORT": "9123"}) == 9123
     assert configured_port({}) == 8790
 
 
@@ -178,8 +178,8 @@ def test_route_matrix_lists_the_gateway_routes():
 
 @pytest.fixture
 def owner_app(application_factory, monkeypatch):
-    for name in ("INARA_TWILIO_ACCOUNT_SID", "INARA_TWILIO_AUTH_TOKEN", "INARA_TWILIO_PHONE_NUMBER",
-                 "INARA_OWNER_PHONE_NUMBER", "INARA_CLOUDFLARE_TUNNEL_TOKEN"):
+    for name in ("JARVIS_TWILIO_ACCOUNT_SID", "JARVIS_TWILIO_AUTH_TOKEN", "JARVIS_TWILIO_PHONE_NUMBER",
+                 "JARVIS_OWNER_PHONE_NUMBER", "JARVIS_CLOUDFLARE_TUNNEL_TOKEN"):
         monkeypatch.delenv(name, raising=False)
     app = application_factory()
     owner, other = str(uuid.uuid4()), str(uuid.uuid4())

@@ -57,7 +57,7 @@ if args.repeat_from is None:
     settings = {"face_auth_enabled": False, "tool_permissions": {}, "kasa_devices": []}
     (original / "settings.json").write_text(json.dumps(settings))
     os.environ["GEMINI_API_KEY"] = "changeme"
-    os.environ["INARA_IMAGE_MODEL_DIR"] = ""
+    os.environ["JARVIS_IMAGE_MODEL_DIR"] = ""
     with manager.locked():
         database = Database(original / "database")
         app = create_application(
@@ -129,13 +129,13 @@ else:
     raw = (project / relative / "model.stl").read_bytes()
     literal = "Keep this literal historical path: " + str(project)
     os.environ["GEMINI_API_KEY"] = "changeme"
-    os.environ["INARA_IMAGE_MODEL_DIR"] = ""
+    os.environ["JARVIS_IMAGE_MODEL_DIR"] = ""
 source_hashes = {
     name: module.backup.digest(path.read_bytes())
     for name, path in module.backup.inventory(original)[0].items()
 }
 service = module.Activation(manager)
-archive = output / "profile.inara"
+archive = output / "profile.jarvis"
 service.recovery.backup(slot, archive)
 pid = uuid.uuid4().hex
 review = service.preview(slot, archive, pid)

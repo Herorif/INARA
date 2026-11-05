@@ -6,21 +6,21 @@ Implemented 21 October 2026. A native WPF interface now fronts the [version slot
 
 ## Open Setup
 
-From a verified extracted bundled candidate, double-click **INARA Setup.cmd**. The adjacent PowerShell entry opens the dark cyan INARA setup window. Keep this control candidate **outside** the managed installation: it must remain available to launch and manage versions and to remove their executable files. The copy inside an installed version is not a replacement for that external control entry.
+From a verified extracted bundled candidate, double-click **JARVIS Setup.cmd**. The adjacent PowerShell entry opens the dark cyan JARVIS setup window. Keep this control candidate **outside** the managed installation: it must remain available to launch and manage versions and to remove their executable files. The copy inside an installed version is not a replacement for that external control entry.
 
 The command wrapper uses a process-only execution-policy argument. No persistent execution policy, registry app registration, Windows startup entry, file association, Start menu/desktop shortcut or MSI service is configured. This is a native interface for the directory-based local pilot, not a signed EXE/MSI installer or Windows Apps registration. Windows distribution and clean-machine acceptance remain separate gates.
 
-The default installation location is shown as text; no directory is created until the owner reviews and confirms installation. Use **New...** to choose a parent for a new INARA folder, or **Existing...** to inspect a managed installation. **Check** refreshes its state.
+The default installation location is shown as text; no directory is created until the owner reviews and confirms installation. Use **New...** to choose a parent for a new JARVIS folder, or **Existing...** to inspect a managed installation. **Check** refreshes its state.
 
 ## Owner workflows
 
-**Installation** reviews a bundled package and a new/existing target folder, installs without launching or selecting it, lists builds, reviews version selection/rollback, and launches the selected version. The tray is the default launch mode; opening the full workspace is a separate unchecked preference. Startup remains manual. A launch request means the process was requested, not proof that the core reached ready state. Use INARA's tray controls to open/quit a running resident; management changes require it to stop.
+**Installation** reviews a bundled package and a new/existing target folder, installs without launching or selecting it, lists builds, reviews version selection/rollback, and launches the selected version. The tray is the default launch mode; opening the full workspace is a separate unchecked preference. Startup remains manual. A launch request means the process was requested, not proof that the core reached ready state. Use JARVIS's tray controls to open/quit a running resident; management changes require it to stop.
 
 **Recovery** selects an encrypted file and the installed build, reviews an original-account backup or compatible recovery copy, prepares without activating, then separately reviews activation or previous-profile rollback. It retains the existing typed adapter limits: unknown records, incompatible owners/scopes and stale/changed prepared copies refuse. It does not convert accounts, substitute versions or discard unsupported data.
 
 **Remove** separates software removal from personal data erasure. Removing software clears registered version/profile selections and deletes only verified installed version payloads. Original data, prepared/live recovery profiles and external encrypted backups remain. Exact-build reinstall explicitly reviews reuse of retained original data or the retained selected recovery profile, including owner checks; reinstall still does not select or launch by itself.
 
-**Permanent data erasure** is available after software removal. It is a separate review and requires typing `ERASE INARA DATA` exactly. Only installation-owned `data/<slot>` and `recovery-profiles/<uuid>` trees are eligible. External encrypted backups remain. Installation/audit metadata remains so the controls can recognize the empty managed location; no private file names/content are kept in completed removal receipts.
+**Permanent data erasure** is available after software removal. It is a separate review and requires typing `ERASE JARVIS DATA` exactly. Only installation-owned `data/<slot>` and `recovery-profiles/<uuid>` trees are eligible. External encrypted backups remain. Installation/audit metadata remains so the controls can recognize the empty managed location; no private file names/content are kept in completed removal receipts.
 
 ## Review and interruption contract
 
@@ -28,7 +28,7 @@ A single private stdin/stdout worker is verified once when the native window ope
 
 Each mutation has a five-minute, single-use, in-memory review token binding its exact arguments, candidate identity and installation-state fingerprint. Editing inputs invalidates the UI review. A newer/failed review replaces the old token. Apply consumes it even on failure, so an uncertain response cannot be replayed. Expired/state-changed/package-changed reviews refuse; refresh status before reviewing again.
 
-The UI remains responsive while the worker reads/copies/verifies files. Conflicting actions and fields are disabled, progress remains visible, and closing an active operation is blocked until its result arrives. Closing an idle setup window discards pending reviews. An explicitly launched resident is independent of Setup; closing Setup does not stop INARA. Its existing OS lease still blocks installation/recovery/removal while it runs.
+The UI remains responsive while the worker reads/copies/verifies files. Conflicting actions and fields are disabled, progress remains visible, and closing an active operation is blocked until its result arrives. Closing an idle setup window discards pending reviews. An explicitly launched resident is independent of Setup; closing Setup does not stop JARVIS. Its existing OS lease still blocks installation/recovery/removal while it runs.
 
 Removal first inventories and checks every owned path and writes a bounded `removal-pending.json` journal. All remaining files are rechecked before deletion; extra/changed/linked/foreign files refuse. Directory removal uses empty-directory operations, not blind recursive deletion. Every resolved target is checked against its fixed version/data root. Interruption preserves the journal and blocks ordinary management/launch. **Resume interrupted removal** reviews and finishes that same operation, skipping already removed entries and atomically committing metadata. Data-erasure resumption requires the exact phrase again. Completed receipts keep only operation identity/counts/retained recovery selection, never private file names or record contents.
 

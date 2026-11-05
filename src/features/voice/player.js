@@ -32,7 +32,7 @@ export class VoicePlayer {
     }
     try {
       await context.audioWorklet.addModule(new URL('./playback.worklet.js', import.meta.url));
-      const node = new this.WorkletNode(context, 'inara-voice-player', {
+      const node = new this.WorkletNode(context, 'jarvis-voice-player', {
         numberOfInputs: 0,
         numberOfOutputs: 1,
         outputChannelCount: [1],

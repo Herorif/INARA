@@ -513,7 +513,7 @@ class CreativeJobService:
         raw = read_export(path, metadata)
         return {
             "format": args.format,
-            "filename": f"inara-{self.artifact_label(value['recipe'])}-{value['request_id'][:8]}.{args.format}",
+            "filename": f"jarvis-{self.artifact_label(value['recipe'])}-{value['request_id'][:8]}.{args.format}",
             "data": base64.b64encode(raw).decode(),
             **metadata,
         }

@@ -117,7 +117,7 @@ def main():
             dll.CloseHandle(handle)
     value = {
         "format": 1,
-        "kind": "inara-guarded-process-development-acceptance",
+        "kind": "jarvis-guarded-process-development-acceptance",
         "portable_python": True,
         "finite_process": finite,
         "expired_process": expiry,

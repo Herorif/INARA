@@ -38,7 +38,7 @@ class Worker:
 
 @pytest.fixture
 def connection(application_factory, monkeypatch):
-    monkeypatch.setenv("INARA_SESSION_TOKEN", TOKEN)
+    monkeypatch.setenv("JARVIS_SESSION_TOKEN", TOKEN)
     app = application_factory()
     workers = []
 

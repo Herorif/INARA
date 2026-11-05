@@ -63,10 +63,10 @@ def test_bounded_image_contract(patch):
 
 
 def test_config_missing_invalid_or_unavailable_never_imports_tensors(monkeypatch, tmp_path):
-    monkeypatch.delenv("INARA_IMAGE_MODEL_DIR", raising=False)
+    monkeypatch.delenv("JARVIS_IMAGE_MODEL_DIR", raising=False)
     before = set(sys.modules)
     assert not image_backend()["available"]
-    monkeypatch.setenv("INARA_IMAGE_MODEL_DIR", str(tmp_path))
+    monkeypatch.setenv("JARVIS_IMAGE_MODEL_DIR", str(tmp_path))
     assert not image_backend()["available"]
     (tmp_path / "model_index.json").write_text("[]")
     assert not image_backend()["available"]
@@ -97,14 +97,14 @@ def test_model_contract_rejects_custom_code_and_metadata(monkeypatch, tmp_path):
     with pytest.raises(ValueError):
         inspect_model(tmp_path)
     model_index(tmp_path)
-    monkeypatch.setenv("INARA_IMAGE_MODEL_DIR", str(tmp_path))
+    monkeypatch.setenv("JARVIS_IMAGE_MODEL_DIR", str(tmp_path))
     monkeypatch.setattr("services.image_config.importlib.util.find_spec", lambda _: None)
     assert not image_backend()["available"]
 
 
 @pytest.mark.asyncio
 async def test_unconfigured_backend_rejects_without_claim_or_worker(monkeypatch, tmp_path):
-    monkeypatch.delenv("INARA_IMAGE_MODEL_DIR", raising=False)
+    monkeypatch.delenv("JARVIS_IMAGE_MODEL_DIR", raising=False)
     fixture, context = service(tmp_path)
     instance = ImageService(
         fixture.database, fixture.governor, process_factory=lambda *_: pytest.fail("Worker started")

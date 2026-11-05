@@ -1,4 +1,6 @@
-# INARA revival implementation status
+# JARVIS revival implementation status
+
+> Renamed from INARA on 5 Nov 2026; data and settings migrate automatically.
 
 Standing owner instruction: preserve [deferred work and exclusions](DEFERRED_WORK.md) across implementations and handoffs; cross-check [release gates](RELEASE_GATES.json). Continuing source work does not automatically resume deferred setup or real-device acceptance.
 
@@ -188,11 +190,11 @@ Encrypted detached full-profile recovery is now complete in the milestone above.
 
 Next independent milestone: explicit installation/version slots, isolated data ownership, recovery and rollback preparation. Signing/license review, clean-machine acceptance, Android tooling/device tests and physical SIM/personal WhatsApp duplex audio remain open. No provider/device/account configuration or WhatsApp text/outgoing action was enabled.
 
-Updated 20 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](INARA_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap. Read the newest section first; older "next" statements are historical checkpoints.
+Updated 20 October 2026. This records the completed core/persistence milestones, JARVIS workspace, native resident, offline CAD, typed scene assembly, Image atelier and Vision studio v2 from [Implementation handoff](IMPLEMENTATION_HANDOFF.md). Read [Persistence](PERSISTENCE.md) for storage, migration and recovery contracts. The broader [architecture](JARVIS_REVAMP_PLAN.md) and [JARVIS interface plan](UI_AND_CODE_CLEANUP_PLAN.md) remain the roadmap. Read the newest section first; older "next" statements are historical checkpoints.
 
 ## Current requested priority: personal incoming-call assistant
 
-The owner requests INARA to speak with incoming SIM and personal WhatsApp callers and take a message, then explicitly requires carrier independence and the existing personal account. These requirements supersede the earlier next-source order; message replies/sends and outgoing calls remain excluded. **A supervised desktop-bridge prototype and offline Command OS Call bridge lab are implemented; end-to-end live answering remains unverified.** The supported resident/UI runtime exposes synthetic checks only; the archived server was not revived. Android tooling was not found on PATH; no APK or connected call/audio route was validated.
+The owner requests JARVIS to speak with incoming SIM and personal WhatsApp callers and take a message, then explicitly requires carrier independence and the existing personal account. These requirements supersede the earlier next-source order; message replies/sends and outgoing calls remain excluded. **A supervised desktop-bridge prototype and offline Command OS Call bridge lab are implemented; end-to-end live answering remains unverified.** The supported resident/UI runtime exposes synthetic checks only; the archived server was not revived. Android tooling was not found on PATH; no APK or connected call/audio route was validated.
 
 The feasibility review checked official Android call/audio restrictions, Meta's business calling boundary, Microsoft Phone Link/Bluetooth and WhatsApp Windows human calling, plus documented HFP roles. These establish candidate experiments, not a working unattended AI bridge. The next gate is to prove exact incoming-call control and isolated two-way audio for both requested channels on real devices, through a hands-free device or a scoped desktop-client bridge. Carrier forwarding and Business-account conversion are not the selected solution. Universal coverage cannot be inferred from one working device, and a laptop bridge cannot answer while the laptop sleeps.
 
@@ -200,7 +202,7 @@ Implemented `backend/calls/` with strict enrollment, a compiled .NET UI Automati
 
 Latest acceptance: **103 call/lab/route-policy Python checks and 98 frontend checks pass**, plus types/contracts/lint/build. Actual Windows workers pass completion, Stop and stalled process-tree termination. Native Command OS acceptance passes readiness, synthetic record review, panel-close cancellation and 390px layout, with no physical media/provider/network requests. The optional audio adapter and explicit voice model/key are unconfigured. The broad core run reports 1,103 passes, 30 skips and three archived CAD-agent failures due to an unconfigured key, after excluding authenticator collection because NumPy is absent. [Current behavior, evidence and limits](CALL_LAB.md). Offline owner/project/session/resource integration and worker supervision are complete; live enrollment, usage admission, physical proof and phone receipt delivery remain pending. Missing call views do not establish termination; conservative UI fingerprints can reject legitimate repeat calls and do not supply an atomic platform call ID. This remains a source pilot with synthetic UI diagnostics, not production unattended answering or an Android call feature.
 
-[Call-first handoff and remaining sequence](IMPLEMENTATION_HANDOFF.md#current-priority-incoming-call-answering-and-message-taking); [bridge experiment, architecture and acceptance](INARA_REVAMP_PLAN.md#call-only-completion-plan-20-october-2026). No driver, provider, account link, forwarding setting, permission, live call or WhatsApp action was enabled.
+[Call-first handoff and remaining sequence](IMPLEMENTATION_HANDOFF.md#current-priority-incoming-call-answering-and-message-taking); [bridge experiment, architecture and acceptance](JARVIS_REVAMP_PLAN.md#call-only-completion-plan-20-october-2026). No driver, provider, account link, forwarding setting, permission, live call or WhatsApp action was enabled.
 
 ## Completed post-revamp milestone: reviewed creative handoffs
 
@@ -256,7 +258,7 @@ Offline support diagnostics, dependency/license metadata inventory, source-pilot
 
 ## Completed behavior
 
-The supported `backend/server.py` now starts with the lean core environment and serves typed conversation without an `AudioLoop`, microphone permission, camera or voice connection. Google SDK clients initialize on a text request and are closed afterwards. `INARA_TEXT_MODEL` selects the text model; the initial default is `gemini-3.8-flash`.
+The supported `backend/server.py` now starts with the lean core environment and serves typed conversation without an `AudioLoop`, microphone permission, camera or voice connection. Google SDK clients initialize on a text request and are closed afterwards. `JARVIS_TEXT_MODEL` selects the text model; the initial default is `gemini-3.8-flash`.
 
 Requests and results are validated and carry UUID conversation/request IDs. Durable encrypted conversation history is scoped to the desktop client and project, with bounded restored context and serialized turns. Duplicate request IDs return the prior result or error without replaying the provider work; conflicting payloads are rejected. Missing credentials, invalid input, provider failure and timeout have structured, sanitized errors.
 
@@ -266,7 +268,7 @@ Temporary projects and the selected project survive startup. Reminder claiming, 
 
 Optional audio, camera, CAD, browser, Kasa and printer implementations are imported on demand. Printer hydration/monitoring starts on printer or voice activation; semantic camera watches run when requested frames and watches are present. The FastAPI lifespan owns background-task cleanup. Legacy socket names remain available through the supported server.
 
-The native desktop supplies stable client identity and a random launch token over an inherited pipe and trusted preload IPC. Explicitly configured manual-development tokens are supported. Allowed browser origins are restricted. The chat input shows processing/disconnected states, and duplicate typed response events do not append the same reply twice. The development command sets `INARA_DEV_SERVER=1` correctly.
+The native desktop supplies stable client identity and a random launch token over an inherited pipe and trusted preload IPC. Explicitly configured manual-development tokens are supported. Allowed browser origins are restricted. The chat input shows processing/disconnected states, and duplicate typed response events do not append the same reply twice. The development command sets `JARVIS_DEV_SERVER=1` correctly.
 
 ## Development baseline
 
@@ -348,7 +350,7 @@ CAD/image lifetimes and authenticated RPCs now share services, preserving old CA
 
 ## Roadmap reconciliation (14 October 2026)
 
-A planning-only review against `5f79902` now defines R1 Vision, R2 core/policy cleanup, R3 typed shared UI/activity, R4 capabilities/resources, R5 creative workflows, R6 voice/quick panel, R7 Android pairing and R8 notification summaries. Source ownership, follow-on tracks and acceptance gates are recorded in [the architecture roadmap](INARA_REVAMP_PLAN.md#current-baseline-and-implementation-sequence-14-october-2026) and [refactor map](UI_AND_CODE_CLEANUP_PLAN.md#remaining-refactor-work-tied-to-the-implementation-sequence). These are planned changes, not completed runtime features. Configuration and real-game benchmarking remain deferred, personal WhatsApp replies remain excluded, and live model/Blender/phone acceptance remains pending.
+A planning-only review against `5f79902` now defines R1 Vision, R2 core/policy cleanup, R3 typed shared UI/activity, R4 capabilities/resources, R5 creative workflows, R6 voice/quick panel, R7 Android pairing and R8 notification summaries. Source ownership, follow-on tracks and acceptance gates are recorded in [the architecture roadmap](JARVIS_REVAMP_PLAN.md#current-baseline-and-implementation-sequence-14-october-2026) and [refactor map](UI_AND_CODE_CLEANUP_PLAN.md#remaining-refactor-work-tied-to-the-implementation-sequence). These are planned changes, not completed runtime features. Configuration and real-game benchmarking remain deferred, personal WhatsApp replies remain excluded, and live model/Blender/phone acceptance remains pending.
 
 
 ## Vision studio v2 verification (14 October 2026)

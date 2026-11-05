@@ -1,33 +1,33 @@
 """Fixed launch/configuration profiles, safe to inspect without loading adapters."""
 
-import os
+from services import env
 
 
 RAM_HEADROOM_MB = 1024
 
 # Gemini model ids. ``None`` follows the text model. Claude (the brain) model ids live
-# in llm/router.py (INARA_BRAIN_MODEL / INARA_FAST_MODEL).
+# in llm/router.py (JARVIS_BRAIN_MODEL / JARVIS_FAST_MODEL).
 MODEL_DEFAULTS = {
-    "speech": ("INARA_TRANSCRIPTION_MODEL", None),
-    "text": ("INARA_TEXT_MODEL", "gemini-3.8-flash"),
+    "speech": ("JARVIS_TRANSCRIPTION_MODEL", None),
+    "text": ("JARVIS_TEXT_MODEL", "gemini-3.8-flash"),
     # Live API voice: Google's stable default Live model (the model id in
     # https://ai.google.dev/gemini-api/docs/live-api/get-started-sdk, checked 26 Oct 2026).
-    "voice": ("INARA_VOICE_MODEL", "gemini-3.8-live"),
+    "voice": ("JARVIS_VOICE_MODEL", "gemini-3.8-live"),
     # Voice previews in Preferences: the stable text-to-speech model from the "Supported
     # models" table of https://ai.google.dev/gemini-api/docs/speech-generation (checked
     # 27 Oct 2026).
-    "tts": ("INARA_TTS_MODEL", "gemini-3.8-flash-tts"),
+    "tts": ("JARVIS_TTS_MODEL", "gemini-3.8-flash-tts"),
     # gemini-2.0-flash and gemini-3-pro-preview are shut down, and Google's model list
     # (https://ai.google.dev/gemini-api/docs/models, checked 26 Oct 2026) has no stable
     # Pro model, so vision and legacy CAD follow the text model.
-    "vision": ("INARA_VISION_MODEL", None),
-    "legacy_cad": ("INARA_LEGACY_CAD_MODEL", None),
+    "vision": ("JARVIS_VISION_MODEL", None),
+    "legacy_cad": ("JARVIS_LEGACY_CAD_MODEL", None),
 }
 
 
 def model_id(capability):
     variable, default = MODEL_DEFAULTS[capability]
-    return os.getenv(variable) or (model_id("text") if default is None else default)
+    return env.getenv(variable) or (model_id("text") if default is None else default)
 
 
 # Admission estimates, not measured peaks or an OS memory sandbox. No automatic

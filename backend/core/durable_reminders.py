@@ -257,6 +257,8 @@ class DurableReminderStore:
                 self._save(db, current)
 
     def _enqueue(self, db, reminder):
+        # The "inara:" namespace predates the JARVIS rename and stays: changing it would
+        # re-queue reminders already delivered from existing profiles.
         key = str(
             uuid.uuid5(
                 uuid.NAMESPACE_URL, f"inara:{reminder.id}:{reminder.revision}:{reminder.trigger_at}"

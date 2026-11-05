@@ -20,10 +20,10 @@ async def main():
         if key.endswith("_API_KEY") or key.endswith("_TOKEN"):
             os.environ.pop(key, None)
     os.environ.update(
-        INARA_DATA_DIR=str(directory / "private"),
-        INARA_PROJECT_ROOT=str(directory / "projects"),
-        INARA_LEGACY_DATA_DIR=str(directory / "legacy"),
-        INARA_SETTINGS_FILE=str(directory / "settings.json"),
+        JARVIS_DATA_DIR=str(directory / "private"),
+        JARVIS_PROJECT_ROOT=str(directory / "projects"),
+        JARVIS_LEGACY_DATA_DIR=str(directory / "legacy"),
+        JARVIS_SETTINGS_FILE=str(directory / "settings.json"),
         GEMINI_API_KEY="changeme",
     )
 

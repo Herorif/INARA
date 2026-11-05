@@ -1,8 +1,8 @@
 // Approval card content for one pending tool request. Outgoing task calls (C4,
 // place_task_call) get their own layout: the core's review sentence says exactly who
-// INARA will call, on which number, for what, and what it may share.
+// JARVIS will call, on which number, for what, and what it may share.
 
-const GENERIC_SUMMARY = 'INARA continues only after you approve. Denying leaves this action undone.';
+const GENERIC_SUMMARY = 'JARVIS continues only after you approve. Denying leaves this action undone.';
 
 export function approvalView(request) {
   const args = request && typeof request.args === 'object' && request.args ? request.args : {};

@@ -2,7 +2,7 @@
 
 The harness selects it explicitly (``app.voice.connector = FixtureLive()``). A finished
 push-to-talk hold, or enough hands-free audio, produces one scripted exchange: a user
-caption, a soft 24 kHz tone streamed in 100 ms chunks, an INARA caption, usage counts and
+caption, a soft 24 kHz tone streamed in 100 ms chunks, a JARVIS caption, usage counts and
 turn completion. A new push-to-talk hold while the tone is streaming interrupts it.
 """
 
@@ -12,7 +12,7 @@ import math
 import struct
 
 USER_CAPTION = "Fixture question - no speech recognition ran"
-INARA_CAPTION = "Fixture spoken answer - no AI provider ran"
+JARVIS_CAPTION = "Fixture spoken answer - no AI provider ran"
 CHUNK_SAMPLES = 2400  # 100 ms at 24 kHz
 
 
@@ -92,7 +92,7 @@ class FixtureLiveSession:
             )
             if index == 0:
                 self.messages.put_nowait(
-                    self.content(output_transcription=types.Transcription(text=INARA_CAPTION))
+                    self.content(output_transcription=types.Transcription(text=JARVIS_CAPTION))
                 )
             await asyncio.sleep(self.pace)
         self.messages.put_nowait(

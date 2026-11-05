@@ -331,10 +331,10 @@ async def test_transcription_adapter_wraps_wav_streams_and_closes(monkeypatch):
 def test_speech_model_override_is_independent_and_falls_back_to_text(monkeypatch):
     from services.capability_profiles import model_id
 
-    monkeypatch.setenv("INARA_TEXT_MODEL", "fixture-text")
-    monkeypatch.delenv("INARA_TRANSCRIPTION_MODEL", raising=False)
+    monkeypatch.setenv("JARVIS_TEXT_MODEL", "fixture-text")
+    monkeypatch.delenv("JARVIS_TRANSCRIPTION_MODEL", raising=False)
     assert model_id("speech") == "fixture-text"
-    monkeypatch.setenv("INARA_TRANSCRIPTION_MODEL", "fixture-transcriber")
+    monkeypatch.setenv("JARVIS_TRANSCRIPTION_MODEL", "fixture-transcriber")
     assert model_id("speech") == "fixture-transcriber"
     assert model_id("text") == "fixture-text"
 

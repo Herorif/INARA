@@ -28,14 +28,14 @@ output.mkdir(parents=True)
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(package / "backend"))
 for key, name in [
-    ("INARA_DATA_DIR", "database"),
-    ("INARA_SETTINGS_FILE", "settings.json"),
-    ("INARA_PROJECT_ROOT", "projects"),
-    ("INARA_LEGACY_DATA_DIR", "legacy"),
+    ("JARVIS_DATA_DIR", "database"),
+    ("JARVIS_SETTINGS_FILE", "settings.json"),
+    ("JARVIS_PROJECT_ROOT", "projects"),
+    ("JARVIS_LEGACY_DATA_DIR", "legacy"),
 ]:
     os.environ[key] = str(output / name)
 os.environ["GEMINI_API_KEY"] = "changeme"
-os.environ["INARA_IMAGE_MODEL_DIR"] = ""
+os.environ["JARVIS_IMAGE_MODEL_DIR"] = ""
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 os.environ.pop("ELECTRON_RUN_AS_NODE", None)
 (output / "settings.json").write_text(json.dumps({"face_auth_enabled": False}))

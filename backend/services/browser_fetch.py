@@ -110,7 +110,7 @@ def inspect_page(url):
                 headers={
                     "Accept": "text/html,text/plain",
                     "Accept-Encoding": "identity",
-                    "User-Agent": "INARA-ReadOnly/1",
+                    "User-Agent": "JARVIS-ReadOnly/1",
                 },
             )
             response = connection.getresponse()
