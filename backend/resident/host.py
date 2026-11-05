@@ -108,6 +108,8 @@ class NativeHost:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
             server.runtime.sessions.native_desktop = self
+            # Tray voice reports its state here (called on the core loop).
+            server.runtime.voice.local_observer = self.voice_changed
             server.ACTIVE_RUNTIME = "native-resident-core"
             server.ACTIVE_ENTRYPOINT = "backend/resident_main.py"
             self.server = server.uvicorn.Server(
@@ -204,20 +206,12 @@ class NativeHost:
         self.tray.post(execute)
         return await asyncio.wait_for(asyncio.wrap_future(result), 5)
 
-    def publish(self):
+    def show_tooltip(self):
         if self.tray.window:
-            self.tray.tooltip(
-                "JARVIS · "
-                + (
-                    "Core unavailable"
-                    if self.state.phase == "failed"
-                    else "Gaming mode"
-                    if self.state.identity.gaming
-                    else "Workspace open"
-                    if self.state.visible
-                    else "Native resident"
-                )
-            )
+            self.tray.tooltip(self.state.tooltip())
+
+    def publish(self):
+        self.show_tooltip()
         if not self.loop or not self.loop.is_running():
             return
 
@@ -319,6 +313,8 @@ class NativeHost:
             return
         if self.server and self.server.started and self.state.phase == "starting":
             self.state.phase = "ready"
+            if self.state.voice and not self.state.voice.get("active"):
+                self.state.voice = None  # e.g. "still starting" from an early Talk click
             self.publish()
         elif self.state.phase == "starting" and time.monotonic() - self.started_at > 20:
             self.state.phase, self.state.error = (
@@ -358,9 +354,42 @@ class NativeHost:
             self._submit(disconnect(), "disconnect stale workspace")
         self.publish()
 
+    # --- tray voice (J2) -------------------------------------------------------------------
+
+    def voice_changed(self, status):
+        """Core loop -> tray thread: the local voice session's state for the tooltip/menu."""
+        self.tray.post(lambda: self.show_voice(status))
+
+    def show_voice(self, status):
+        self.state.voice = status
+        self.tray.talking = bool(status.get("active"))
+        self.show_tooltip()
+
+    def talk(self, start):
+        """Tray "Talk to JARVIS" / "Stop talking": the core decides and reports back."""
+        application = getattr(self.runtime, "runtime", None)
+        voice = getattr(application, "voice", None)
+        if self.state.phase != "ready" or voice is None or not self.loop or not self.loop.is_running():
+            if start:
+                self.show_voice(
+                    {
+                        "active": False,
+                        "state": "off",
+                        "microphone": "off",
+                        "notice": "JARVIS is still starting. Try again in a moment.",
+                    }
+                )
+            return None
+        return self._submit(
+            voice.start_local() if start else voice.stop_local(),
+            "start tray voice" if start else "stop tray voice",
+        )
+
     def action(self, action):
         if action in {"open", "quick"}:
             self.open_workspace(quick=action == "quick")
+        elif action in {"talk", "stop_talking"}:
+            self.talk(action == "talk")
         elif action == "gaming":
             self.state.mode(not self.state.identity.gaming)
             self.publish()

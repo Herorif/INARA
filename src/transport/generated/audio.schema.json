@@ -1,0 +1,197 @@
+{
+  "AudioDeviceChoice": {
+    "additionalProperties": false,
+    "description": "A specific microphone or speaker, as saved in ``voice.local_microphone`` / ``local_speaker``.",
+    "properties": {
+      "name": {
+        "maxLength": 200,
+        "minLength": 1,
+        "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+        "title": "Name",
+        "type": "string"
+      },
+      "host_api": {
+        "maxLength": 64,
+        "minLength": 1,
+        "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+        "title": "Host Api",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "host_api"
+    ],
+    "title": "AudioDeviceChoice",
+    "type": "object"
+  },
+  "AudioDevicesRequest": {
+    "additionalProperties": false,
+    "description": "``audio_devices`` takes no fields.",
+    "properties": {},
+    "title": "AudioDevicesRequest",
+    "type": "object"
+  },
+  "AudioDeviceEntry": {
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "maxLength": 200,
+        "minLength": 1,
+        "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+        "title": "Name",
+        "type": "string"
+      },
+      "host_api": {
+        "maxLength": 64,
+        "minLength": 1,
+        "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+        "title": "Host Api",
+        "type": "string"
+      },
+      "default": {
+        "type": "boolean",
+        "title": "Default"
+      },
+      "channels": {
+        "maximum": 64,
+        "minimum": 1,
+        "title": "Channels",
+        "type": "integer"
+      },
+      "sample_rate": {
+        "maximum": 384000,
+        "minimum": 8000,
+        "title": "Sample Rate",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "name",
+      "host_api",
+      "default",
+      "channels",
+      "sample_rate"
+    ],
+    "title": "AudioDeviceEntry",
+    "type": "object"
+  },
+  "AudioDevicesReport": {
+    "$defs": {
+      "AudioDeviceEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+            "title": "Name",
+            "type": "string"
+          },
+          "host_api": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[^\\x00-\\x1f\\x7f]+$",
+            "title": "Host Api",
+            "type": "string"
+          },
+          "default": {
+            "type": "boolean",
+            "title": "Default"
+          },
+          "channels": {
+            "maximum": 64,
+            "minimum": 1,
+            "title": "Channels",
+            "type": "integer"
+          },
+          "sample_rate": {
+            "maximum": 384000,
+            "minimum": 8000,
+            "title": "Sample Rate",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "host_api",
+          "default",
+          "channels",
+          "sample_rate"
+        ],
+        "title": "AudioDeviceEntry",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "The core's device list for the tray voice Preferences section.",
+    "properties": {
+      "available": {
+        "title": "Available",
+        "type": "boolean"
+      },
+      "code": {
+        "anyOf": [
+          {
+            "maxLength": 64,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Code"
+      },
+      "message": {
+        "anyOf": [
+          {
+            "maxLength": 500,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Message"
+      },
+      "host_api": {
+        "anyOf": [
+          {
+            "maxLength": 64,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Host Api"
+      },
+      "inputs": {
+        "items": {
+          "$ref": "#/$defs/AudioDeviceEntry"
+        },
+        "maxItems": 64,
+        "title": "Inputs",
+        "type": "array"
+      },
+      "outputs": {
+        "items": {
+          "$ref": "#/$defs/AudioDeviceEntry"
+        },
+        "maxItems": 64,
+        "title": "Outputs",
+        "type": "array"
+      }
+    },
+    "required": [
+      "available",
+      "code",
+      "message",
+      "host_api",
+      "inputs",
+      "outputs"
+    ],
+    "title": "AudioDevicesReport",
+    "type": "object"
+  }
+}

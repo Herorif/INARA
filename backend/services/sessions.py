@@ -6,6 +6,8 @@ from pathlib import Path
 from services.storage import StorageError, scope_hash
 from services.tools import ServiceError
 
+POINTER_KIND = "shown_conversation"
+
 
 class SessionStore:
     def __init__(self, database):
@@ -107,6 +109,50 @@ class SessionStore:
         with self.database.transaction() as db:
             history = self._load(db, key, owner, project) or []
             self._save(db, key, owner, project, change(history)[-20:])
+
+    # --- which conversation the workspace shows (tray voice joins it) ------------------------
+
+    @staticmethod
+    def _pointer_key(owner, project):
+        return f"{scope_hash(owner)}:{scope_hash(project)}"
+
+    def current(self, owner, project, new_id):
+        """The conversation tray voice joins: the one the workspace last showed for this
+        project, else the project's most recent conversation, else ``new_id``."""
+        key = self._pointer_key(owner, project)
+        with self.database.transaction() as db:
+            pointer = self.database.get(db, POINTER_KIND, key)
+            if isinstance(pointer, dict) and isinstance(pointer.get("conversation_id"), str):
+                return pointer["conversation_id"]
+            row = db.execute(
+                "SELECT id FROM sessions WHERE owner=? AND project=? ORDER BY rowid DESC LIMIT 1",
+                (scope_hash(owner), scope_hash(project)),
+            ).fetchone()
+            chosen = row["id"] if row else str(new_id)
+            # "local": chosen without the workspace; it switches to this one when it opens.
+            self.database.put(
+                db, POINTER_KIND, key, {"conversation_id": chosen, "origin": "local"}
+            )
+            return chosen
+
+    def shown(self, owner, project, conversation_id):
+        """The workspace shows ``conversation_id``. Returns a conversation tray voice chose
+        meanwhile (for the workspace to switch to), else None."""
+        key = self._pointer_key(owner, project)
+        conversation_id = str(conversation_id)
+        with self.database.transaction() as db:
+            pointer = self.database.get(db, POINTER_KIND, key)
+            if (
+                isinstance(pointer, dict)
+                and pointer.get("origin") == "local"
+                and isinstance(pointer.get("conversation_id"), str)
+                and pointer["conversation_id"] != conversation_id
+            ):
+                return pointer["conversation_id"]
+            self.database.put(
+                db, POINTER_KIND, key, {"conversation_id": conversation_id, "origin": "renderer"}
+            )
+            return None
 
     def migrate_history(self, key, owner, project, source):
         """Import legacy project chat once, without mutating or executing its content."""

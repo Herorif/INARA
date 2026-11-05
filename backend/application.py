@@ -59,6 +59,8 @@ from transport.contracts import UI_CONTRACT_VERSION
 from transport.confirmations import ConfirmationTransport
 from transport.local_actions import LocalActionTransport
 from services.resources import ResourceGovernor
+from services.audio_devices import AudioDevices
+from transport.audio_devices import AudioDevicesTransport
 from services.speech import SpeechService, SpeechTransport
 from services.voice import VoiceService, VoiceTransport
 from services.voice_preview import VoicePreviewService
@@ -166,6 +168,9 @@ class Application:
         self.mobile_transport = MobileTransport(self)
         self.speech = SpeechService(self)
         self.speech_transport = SpeechTransport(self)
+        # This PC's microphone/speaker for tray voice; the audio library loads on first use.
+        self.audio_devices = AudioDevices()
+        self.audio_devices_transport = AudioDevicesTransport(self)
         self.voice = VoiceService(self)
         self.voice_transport = VoiceTransport(self)
         self.voice_preview = VoicePreviewService(self)
@@ -404,6 +409,7 @@ class Application:
         finally:
             await _isolated("call_orchestrator", self.call_orchestrator.close)
             await _isolated("call_agent", self.call_agent.close)
+            await _isolated("audio_devices", self.audio_devices.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:
                 await self.bus.drain()

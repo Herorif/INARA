@@ -41,6 +41,8 @@ class CapabilityCenter:
             for name in ("torch", "diffusers", "transformers", "safetensors", "PIL")
         )
         blender = bool(blender_executable())
+        # Tray voice: whether the audio library is installed, never importing or opening it.
+        local_audio = self.app.audio_devices.status()
         descriptors = [
             ("cad_offline", "Parametric 3D", True, True, "Fixed offline geometry worker.", None),
             (
@@ -80,6 +82,17 @@ class CapabilityCenter:
                 model_id("voice"),
             ),
             (
+                "voice_local",
+                "Tray voice",
+                provider_installed and local_audio["installed"],
+                key,
+                local_audio["reason"]
+                or "Talk to JARVIS from the tray through this PC's microphone and speaker, "
+                "with the workspace closed. The microphone pauses while JARVIS speaks. "
+                "Real microphone and speaker acceptance deferred.",
+                model_id("voice"),
+            ),
+            (
                 "camera",
                 "Camera tracking",
                 True,
@@ -102,6 +115,10 @@ class CapabilityCenter:
             blocked = None
             if governor.fault:
                 blocked = governor.fault
+            elif identifier == "voice_local":
+                # Tray voice is meant for resident mode; only gaming mode pauses it.
+                if governor.state == "gaming":
+                    blocked = "Voice pauses in gaming mode."
             elif identifier != "text" and governor.state in ("resident", "gaming"):
                 blocked = "Heavy work is paused in this resource mode."
             elif profile and configured:

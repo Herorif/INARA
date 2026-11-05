@@ -47,12 +47,17 @@ class ConversationTransport:
             messages = self.service.restore(
                 context.principal, request.conversation_id, context.project_path
             )
+            # Tray voice may have started a conversation while the workspace was closed.
+            latest = self.service.shown(
+                context.principal, context.project_path, request.conversation_id
+            )
             await self.sio.emit(
                 "conversation_restored",
                 {
                     "conversation_id": str(request.conversation_id),
                     "project": context.project,
                     "messages": messages,
+                    **({"latest_conversation_id": latest} if latest else {}),
                 },
                 room=sid,
             )

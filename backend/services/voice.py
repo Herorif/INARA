@@ -1,10 +1,20 @@
-"""Real-time spoken voice: one Gemini Live session per owner, relayed over the owner's renderer.
+"""Real-time spoken voice: one Gemini Live session per owner, from one of two endpoints.
 
-The renderer owns the microphone and playback; the core relays PCM between the renderer
-socket and Live and never stores audio. Captions become text turns of the same desktop
+``renderer``: the owner's renderer owns the microphone and playback; the core relays PCM
+between the renderer socket and Live. Gaming/resident mode, lock, project change,
+disconnect and quit stop the session.
+
+``local`` (J2, tray voice): the resident core itself captures this PC's microphone and
+plays through its speaker (services/audio_devices.py), hands-free with Gemini server VAD
+and half-duplex echo control: microphone frames are not sent while JARVIS is audible and
+for a short tail after. It runs with the workspace closed (resident state) for the local
+owner; gaming mode, lock, project change, a lost device, the tray Stop action, silence and
+quit stop it. Turns join the conversation the workspace shows for the current project.
+
+Either way the core never stores audio. Captions become text turns of the desktop
 conversation. Anything that needs tools is handed to the brain through the ``ask_brain``
 function, which runs a normal ConversationService turn, so ToolDispatcher approvals apply
-unchanged. Gaming/resident mode, lock, project change, disconnect and quit stop the session.
+unchanged. One live session per owner across both endpoints.
 """
 
 import asyncio
@@ -34,6 +44,8 @@ QUEUED_AUDIO_LIMIT = 100  # frames buffered while connecting or resuming (2-10 s
 RECONNECT_ATTEMPTS = 3
 CAPTION_LIMIT = 12_000
 PCM_MIME = f"audio/pcm;rate={INPUT_RATE}"
+# Ends the owner asked for (or expected); anything else stays visible on the tray.
+QUIET_ENDS = frozenset({"stopped", "conversation_ended", "silence_timeout"})
 
 
 class VoiceStart(BaseModel):
@@ -140,10 +152,16 @@ class VoiceSession:
     history_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     runner: object = None
     watchdog: object = None
+    # "renderer" (sid is the owner's renderer) or "local" (sid is None; audio is this PC's).
+    endpoint: str = "renderer"
+    audio: object = None
+    notice: str | None = None
 
 
 class VoiceService:
-    def __init__(self, app, connector=None, preflight=None, clock=time.monotonic):
+    def __init__(
+        self, app, connector=None, preflight=None, clock=time.monotonic, audio_factory=None
+    ):
         self.app = app
         self.connector = connector or connect_live
         self.preflight = preflight or ready
@@ -153,15 +171,35 @@ class VoiceService:
         self.ending = set()  # end() calls spawned from inside a session's own handlers
         self.tick = 1.0
         self.retry_delay = 0.5
+        # Local endpoint: the PC's devices, and the tray's view of the session.
+        self.audio_factory = audio_factory or self.local_audio
+        self.local_observer = None  # set by the native host: callable(status dict)
+        self.local_published = None
 
     # --- authority -------------------------------------------------------------------
 
-    def require_resources(self):
+    def require_resources(self, endpoint="renderer"):
         state = self.app.resources.state
         if state == "gaming":
             raise ServiceError("gaming_mode", "Voice pauses in gaming mode. Typed input is available.")
-        if state == "resident":
+        # Tray voice exists for the resident state; renderer voice needs the workspace.
+        if state == "resident" and endpoint != "local":
             raise ServiceError("resource_policy", "Open the workspace to use voice.")
+
+    def local_owner(self):
+        sessions = self.app.sessions
+        native = getattr(sessions, "native_desktop", None)
+        return native.state.identity.owner if native else sessions.local_owner
+
+    def require_local_owner(self, owner):
+        """The renderer check's equivalent for tray voice: the registered, unlocked owner."""
+        sessions = self.app.sessions
+        if owner is None or owner != self.local_owner() or not sessions.is_owner(owner):
+            raise ServiceError("permission_denied", "Register the desktop owner first.")
+        if not sessions.authenticated(owner):
+            raise ServiceError(
+                "authentication_required", "Unlock JARVIS in the workspace to use voice."
+            )
 
     def require_permission(self):
         if any(
@@ -173,13 +211,24 @@ class VoiceService:
     def authorize(self, session):
         if session.closed or self.sessions.get(session.owner) is not session:
             raise ServiceError("voice_stopped", "This voice session has stopped.")
-        owner = self.app.sessions.require_owner(session.sid, {"renderer"})
-        if owner != session.owner:
-            raise ServiceError("voice_stopped", "The voice connection changed.")
+        if session.endpoint == "local":
+            self.require_local_owner(session.owner)
+        else:
+            owner = self.app.sessions.require_owner(session.sid, {"renderer"})
+            if owner != session.owner:
+                raise ServiceError("voice_stopped", "The voice connection changed.")
         if self.app.projects.get_current_project_path().resolve() != session.project:
             raise ServiceError("voice_scope", "The project changed. Start voice again.")
-        self.require_resources()
+        self.require_resources(session.endpoint)
         self.require_permission()
+
+    @staticmethod
+    def busy(current):
+        if current.endpoint == "local":
+            return ServiceError(
+                "voice_busy", "Voice is already on from the tray. Stop it there first."
+            )
+        return ServiceError("voice_busy", "Voice is already on. Stop it before starting again.")
 
     def find(self, sid, session_id):
         session = next(
@@ -195,7 +244,7 @@ class VoiceService:
         self.require_permission()
         current = self.sessions.get(owner)
         if current and not current.closed:
-            raise ServiceError("voice_busy", "Voice is already on. Stop it before starting again.")
+            raise self.busy(current)
         self.preflight()
         now = self.clock()
         session = VoiceSession(
@@ -270,15 +319,206 @@ class VoiceService:
 
     async def restrict(self):
         gaming = self.app.resources.state == "gaming"
-        await self.stop_sid(
-            code="gaming_mode" if gaming else "resource_policy",
-            message="Voice stopped for gaming mode." if gaming else "Voice stopped.",
+        code = "gaming_mode" if gaming else "resource_policy"
+        message = "Voice stopped for gaming mode." if gaming else "Voice stopped."
+        # Resident state is where tray voice lives; gaming mode stops every session.
+        for session in tuple(self.sessions.values()):
+            if gaming or session.endpoint != "local":
+                await self.end(session, "ended", code, message)
+
+    # --- tray requests (local endpoint) -------------------------------------------------
+
+    def local_audio(self, **callbacks):
+        from services.audio_devices import LocalAudio
+
+        return LocalAudio(self.app.audio_devices, **callbacks)
+
+    async def start_local(self):
+        """Tray "Talk to JARVIS": hands-free voice through this PC's microphone and speaker.
+
+        Returns an ACK-shaped result and never raises a refusal: the tray shows the message.
+        """
+        try:
+            return {"ok": True, **await self._start_local()}
+        except asyncio.CancelledError:
+            raise
+        except ServiceError as exc:
+            if exc.code != "voice_stopped":  # else whatever stopped it already said why
+                self.publish_local(self.local_status(notice=str(exc)))
+            return {"ok": False, "code": exc.code, "message": str(exc)}
+
+    async def _start_local(self):
+        owner = self.local_owner()
+        self.require_local_owner(owner)
+        self.require_resources("local")
+        self.require_permission()
+        current = self.sessions.get(owner)
+        if current and not current.closed:
+            if current.endpoint == "local":
+                raise ServiceError("voice_busy", "Voice is already on.")
+            raise ServiceError(
+                "voice_busy", "Voice is already on in the workspace. Stop it there first."
+            )
+        self.preflight()
+        project = self.app.projects.get_current_project_path().resolve()
+        conversation_id = self.app.conversation.current_conversation(owner, project)
+        now = self.clock()
+        session = VoiceSession(
+            id=str(uuid.uuid4()),
+            sid=None,
+            owner=owner,
+            project=project,
+            conversation_id=str(conversation_id),
+            mode="conversation",
+            started=now,
+            last_activity=now,
+            endpoint="local",
         )
+        # Hold the one-per-owner slot while the devices open.
+        self.sessions[owner] = session
+        self.publish_local(self.local_status(session))
+        try:
+            from services.audio_devices import local_choices
+
+            session.audio = self.audio_factory(
+                on_frame=lambda pcm: self.local_frame(session, pcm),
+                on_lost=lambda kind: self.local_lost(session, kind),
+                on_change=lambda: self.publish_local(self.local_status(session)),
+            )
+            notices = await session.audio.open(*local_choices(self.app.settings))
+            session.notice = " ".join(notices) or None
+            self.authorize(session)  # opening took a moment: still the owner's, same project
+            session.usage = self.app.usage.operation(owner, project, "voice_live", session.id)
+            # Admission before any provider connection: budget caps apply per Live turn.
+            session.ticket, session.ticket_started = (
+                session.usage.begin(model_id("voice")),
+                self.clock(),
+            )
+        except ServiceError as exc:
+            await self.end(session, "error", exc.code, str(exc))
+            raise
+        except BaseException:
+            await self.end(session, "error", "voice_failed", "Voice could not start.")
+            raise
+        session.runner = asyncio.create_task(self.run(session), name="voice-live")
+        session.watchdog = asyncio.create_task(self.watch(session), name="voice-watchdog")
+        self.publish_local(self.local_status(session))
+        logger.info("Tray voice started")
+        return {
+            "session_id": session.id,
+            "conversation_id": session.conversation_id,
+            "notices": notices,
+        }
+
+    async def stop_local(self, code="stopped", message="Voice is off."):
+        """Tray "Stop talking": a safety stop, always allowed."""
+        for session in tuple(self.sessions.values()):
+            if session.endpoint == "local":
+                await self.end(session, "ended", code, message)
+        if not any(item.endpoint == "local" for item in self.sessions.values()):
+            self.publish_local(self.local_status())
+        return {"ok": True}
+
+    def local_frame(self, session, pcm):
+        """One 40 ms 16 kHz microphone frame; half-duplex: dropped while JARVIS is audible."""
+        if session.closed or session.audio is None:
+            return
+        if session.audio.speaking():
+            session.audio.gated += 1
+            return
+        if session.queued_audio >= QUEUED_AUDIO_LIMIT:
+            session.audio.backlog_dropped += 1
+            return
+        session.queued_audio += 1
+        session.outbound.put_nowait(("audio", pcm))
+
+    def local_lost(self, session, kind):
+        if not session.closed:
+            self.spawn_end(
+                session, "error", "audio_device_lost", f"The {kind} was disconnected. Voice is off."
+            )
+
+    def local_status(self, session=None, notice=None):
+        """What the tray shows: state, microphone (on / paused while JARVIS speaks / off)."""
+        if session is None or session.closed:
+            return {"active": False, "state": "off", "microphone": "off", "notice": notice}
+        opened = session.audio is not None and getattr(session.audio, "ready", False)
+        audible = opened and session.audio.speaking()
+        state = "speaking" if audible and session.state != "connecting" else session.state
+        if state == "idle":
+            state = "listening"
+        return {
+            "active": True,
+            "state": state,
+            "microphone": "paused" if audible else "on" if opened else "off",
+            "notice": session.notice,
+        }
+
+    def publish_local(self, status):
+        if status == self.local_published:
+            return
+        self.local_published = status
+        observer = self.local_observer
+        if observer is None:
+            return
+        try:
+            observer(dict(status))
+        except Exception:
+            logger.warning("Tray voice status could not be delivered", exc_info=True)
+
+    def renderer_rooms(self, session):
+        return self.app.sessions.rooms(session.owner, "renderer")
+
+    async def show_in_workspace(self, session):
+        """Refresh an open workspace showing this conversation (tray voice only)."""
+        rooms = self.renderer_rooms(session)
+        transport = getattr(self.app, "conversation_transport", None)
+        typing = set(getattr(transport, "running", {}).values())
+        # A typed turn in flight shows its own result; the next refresh catches up.
+        if not rooms or typing & set(rooms):
+            return
+        try:
+            messages = self.app.conversation.restore(
+                session.owner, session.conversation_id, session.project
+            )
+        except Exception:
+            logger.warning("Voice turns could not be shown in the workspace", exc_info=True)
+            return
+        payload = {
+            "conversation_id": session.conversation_id,
+            "project": self.app.projects.current_project,
+            "messages": messages,
+        }
+        for room in rooms:
+            await self.app.sio.emit("conversation_restored", payload, room=room)
 
     # --- core -> renderer ------------------------------------------------------------
 
     async def emit(self, session, event, payload):
+        if session.endpoint == "local":
+            self.deliver_local(session, event, payload)
+            return
         await self.app.sio.emit(event, {"session_id": session.id, **payload}, room=session.sid)
+
+    def deliver_local(self, session, event, payload):
+        """The local endpoint's renderer: the PC's speaker and the tray."""
+        audio = session.audio
+        if event == "voice_audio_out":
+            if audio is not None and not session.closed:
+                audio.play(payload["pcm"])
+        elif event == "voice_interrupted":
+            if audio is not None:
+                audio.flush()
+        elif event == "voice_state":
+            if session.closed:
+                code = payload.get("code")
+                quiet = payload.get("state") == "ended" and code in QUIET_ENDS
+                self.publish_local(
+                    self.local_status(notice=None if quiet else payload.get("message"))
+                )
+            else:
+                self.publish_local(self.local_status(session))
+        # Captions are recorded as conversation turns when each turn completes.
 
     async def set_state(self, session, state, code=None, message=None):
         if session.state == state and code is None:
@@ -439,6 +679,14 @@ class VoiceService:
         while not session.outbound.empty():
             session.outbound.get_nowait()
         session.queued_audio = 0
+        if session.audio is not None:
+            # The microphone closes with the session, before anything else can wait.
+            try:
+                await session.audio.close()
+            except Exception:
+                logger.warning("Local audio did not close cleanly", exc_info=True)
+            if code:
+                logger.info("Tray voice ended (%s)", code)
         try:
             await self.complete_turn(session, final=True)
             pending = [task for task in session.tasks if task is not current]
@@ -553,6 +801,9 @@ class VoiceService:
                 )
             except Exception:
                 logger.warning("Voice turn could not be added to the conversation", exc_info=True)
+                return
+        if session.endpoint == "local":
+            await self.show_in_workspace(session)
 
     # --- tools -------------------------------------------------------------------------
 
@@ -595,11 +846,24 @@ class VoiceService:
 
             async def approve(payload):
                 self.authorize(session)
-                await self.app.sio.emit(
-                    "tool_confirmation_request",
-                    {**payload, "voice_session_id": session.id, "project": session.project.name},
-                    room=session.sid,
-                )
+                request = {
+                    **payload,
+                    "voice_session_id": session.id,
+                    "project": session.project.name,
+                }
+                if session.endpoint != "local":
+                    await self.app.sio.emit("tool_confirmation_request", request, room=session.sid)
+                    return
+                # Tray voice: approvals still happen on screen, in an open workspace.
+                rooms = self.renderer_rooms(session)
+                if not rooms:
+                    raise ServiceError(
+                        "approval_unavailable",
+                        "This needs your approval on screen. Open the JARVIS workspace, "
+                        "then ask again.",
+                    )
+                for room in rooms:
+                    await self.app.sio.emit("tool_confirmation_request", request, room=room)
 
             turn = ConversationRequest(text=request.strip(), conversation_id=session.conversation_id)
             result = await self.app.conversation.reply(
@@ -612,6 +876,10 @@ class VoiceService:
                 usage_feature="voice_brain",
             )
             self.authorize(session)
+            if session.endpoint == "local":
+                # The brain recorded the exchange; an open workspace shows it.
+                await self.show_in_workspace(session)
+                return await self.answered(session, call, {"result": result.text})
             # The full answer goes on screen through the existing transcript event.
             await self.app.sio.emit(
                 "transcription",
@@ -641,6 +909,9 @@ class VoiceService:
         except Exception:
             logger.exception("Voice brain hand-off failed")
             response = {"error": "brain_failed", "message": "The brain could not finish this."}
+        await self.answered(session, call, response)
+
+    async def answered(self, session, call, response):
         self.respond(session, call, response)
         if not session.closed:
             session.last_activity = self.clock()

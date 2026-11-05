@@ -195,6 +195,49 @@ class ConversationService:
         self.instructions = instructions
         self.instructions_suffix = instructions_suffix
         self.clock = clock
+        self.pointers = {}  # (owner, project) -> pointer, without a durable store
+
+    def current_conversation(self, owner, project):
+        """The conversation tray voice joins for ``project``: the one the workspace last
+        showed, else the project's most recent conversation, else a new one."""
+        path = str(project.resolve())
+        if self.store is not None:
+            return self.store.current(owner, path, uuid.uuid4())
+        pointer = self.pointers.get((owner, path))
+        if pointer:
+            return pointer["conversation_id"]
+        chosen = next(
+            (
+                key
+                for key, conversation in reversed(self.conversations.items())
+                if conversation.owner == owner and conversation.project == path
+            ),
+            str(uuid.uuid4()),
+        )
+        self.pointers[(owner, path)] = {"conversation_id": chosen, "origin": "local"}
+        return chosen
+
+    def shown(self, owner, project, conversation_id):
+        """The workspace restored ``conversation_id``. Returns the conversation tray voice
+        chose without the workspace (for it to switch to), else None. Never raises."""
+        path = str(project.resolve())
+        try:
+            if self.store is not None:
+                return self.store.shown(owner, path, conversation_id)
+            pointer = self.pointers.get((owner, path))
+            if (
+                pointer
+                and pointer["origin"] == "local"
+                and pointer["conversation_id"] != str(conversation_id)
+            ):
+                return pointer["conversation_id"]
+            self.pointers[(owner, path)] = {
+                "conversation_id": str(conversation_id),
+                "origin": "renderer",
+            }
+        except Exception:
+            logger.warning("The shown conversation could not be recorded", exc_info=True)
+        return None
 
     def system_prompt(self):
         if self.instructions:

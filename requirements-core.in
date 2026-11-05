@@ -15,3 +15,5 @@ cryptography==50.0.2
 dateparser==1.4.3
 # Verify HTTPS against the Windows certificate store (proxies/antivirus roots).
 truststore>=0.10,<1
+# Tray voice through this PC's microphone and speaker (services/audio_devices.py; imported lazily).
+sounddevice==0.5.6

@@ -28,6 +28,14 @@ export const createChatSlice = (set, get) => ({
         emitSocket('resume_conversation', { conversation_id: id });
     },
 
+    /** Show the conversation tray voice used while the workspace was closed. */
+    adoptConversation: (id) => {
+        if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id) || id === get().conversationId) return;
+        localStorage.setItem(`jarvis_conversation:${get().currentProject}`, id);
+        set({ conversationId: id, messages: [], conversationRestoring: true });
+        emitSocket('resume_conversation', { conversation_id: id });
+    },
+
     addMessage: (sender, text, memory_sources = []) => {
         set(state => ({
             messages: [...state.messages, { sender, text, time: new Date().toLocaleTimeString(), memory_sources }]

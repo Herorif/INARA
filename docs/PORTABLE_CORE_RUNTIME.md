@@ -34,6 +34,8 @@ The final local candidate is `.runtime/releases/desktop-core-20261021-v2`: 2,982
 - The real packaged binary passes native extension imports, all dependency versions, SQLite, TLS context creation and AES-GCM. Pip, pytest, NumPy, Torch and sounddevice are absent. With conflicting PYTHONHOME/PYTHONPATH and a working-directory sentinel, all import paths remain inside the runtime, even without command-line `-I`. [Sanitized binary/isolation evidence](qa/portable-core-isolation.json).
 - Native workspace acceptance runs the packaged core/Python/Electron, visits five destinations at 390/1440px and performs one owned offline CAD build. The CAD subprocess uses bundled Python and exits. Shutdown leaves the package unchanged. No model/device worker, media capture or external request starts. [Native acceptance](qa/portable-core-verification.json), [Studio](qa/portable-core-studio.png), [narrow Assistant](qa/portable-core-assistant-390.png).
 
+Since J2 (tray voice), `sounddevice==0.5.6` is part of the core lock, so the packaged runtime includes it. The runtime probe no longer treats it as an escaped optional module and never imports it (importing starts PortAudio). The packaged runtime has not been rebuilt or re-verified with it yet.
+
 ## Next implementation
 
 [Version slots and interrupted-install recovery](DESKTOP_VERSION_SLOTS.md) are now implemented with separate data ownership and explicit rollback. Next: original-account protected full-profile backup/restore and recovery validation. Preserve current pilots and real profiles. Then complete signing/license review, clean-machine install/uninstall and sustained Legion acceptance. No updater or production activation is claimed here.

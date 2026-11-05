@@ -416,6 +416,7 @@ class Tray:
     def __init__(self, key, icon, on_action, on_tick, suppress_notifications=False):
         self.name = f"JARVIS.Native.{key}"
         self.on_action, self.on_tick = on_action, on_tick
+        self.talking = False  # a tray voice session is on: the menu offers Stop talking
         self.calls = queue.Queue()
         self.suppress_notifications = suppress_notifications
         self.notification_count = 0
@@ -525,12 +526,21 @@ class Tray:
             self.notification_count += 1
         return result
 
+    def menu_items(self):
+        talk = ("stop_talking", "Stop talking") if self.talking else ("talk", "Talk to JARVIS")
+        return (
+            ("open", "Open JARVIS"),
+            talk,
+            ("gaming", "Toggle gaming mode"),
+            ("retry", "Retry backend"),
+            ("quit", "Quit JARVIS"),
+        )
+
     def menu(self):
         menu = checked(api(user, "CreatePopupMenu", [], W.HMENU)())
         append = api(user, "AppendMenuW", [W.HMENU, W.UINT, C.c_size_t, W.LPCWSTR], W.BOOL)
-        for index, text in enumerate(
-            ("Open JARVIS", "Toggle gaming mode", "Retry backend", "Quit JARVIS"), 1
-        ):
+        items = self.menu_items()
+        for index, (_, text) in enumerate(items, 1):
             checked(append(menu, 0, index, text))
         position = W.POINT()
         api(user, "GetCursorPos", [C.POINTER(W.POINT)], W.BOOL)(C.byref(position))
@@ -542,9 +552,8 @@ class Tray:
             W.UINT,
         )(menu, 0x100 | 2, position.x, position.y, 0, self.window, None)
         api(user, "DestroyMenu", [W.HMENU], W.BOOL)(menu)
-        action = {1: "open", 2: "gaming", 3: "retry", 4: "quit"}.get(choice)
-        if action:
-            self.on_action(action)
+        if 1 <= choice <= len(items):
+            self.on_action(items[choice - 1][0])
 
     def _message(self, window, message, wparam, lparam):
         try:

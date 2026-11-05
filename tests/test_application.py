@@ -38,7 +38,7 @@ def test_import_has_no_runtime_or_server_side_effects(tmp_path):
             "import application,sys; "
             "assert 'server' not in sys.modules; "
             "assert not any(x in sys.modules for x in "
-            "['inara','cv2','torch','pyaudio','build123d','diffusers'])",
+            "['inara','cv2','torch','pyaudio','sounddevice','build123d','diffusers'])",
         ],
         cwd=Path(__file__).resolve().parents[1],
         env=env,

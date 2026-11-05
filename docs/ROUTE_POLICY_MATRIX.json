@@ -1221,6 +1221,17 @@
       "lifetime": "Request-only; one in-flight request per voice; audio kept only in process memory, never stored",
       "replacement": "VoicePreviewTransport / VoicePreviewService (Gemini TTS)",
       "status": "migrated"
+    },
+    "audio_devices": {
+      "schema": "AudioDevicesRequest (no fields; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "This PC's audio host APIs and devices (names, host API, default flag, channel count, native rate) read through PortAudio on the core's single audio control thread",
+      "effects": "List the preferred host API's (Windows WASAPI) microphones and speakers without opening any device; re-reads the system's devices when no tray voice stream is open; loads the sounddevice library on first use",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; the choice itself is saved through update_settings voice.local_microphone / voice.local_speaker (\"default\" or {name, host_api})",
+      "response": "Origin ACK {ok, available, code, message, host_api, inputs[], outputs[]}; a missing audio library or unreadable audio system is available=false with a plain message, not an error",
+      "lifetime": "Request-only (15s client budget, 10s core control-call deadline); no audio captured, nothing stored",
+      "replacement": "AudioDevicesTransport / AudioDevices (services/audio_devices.py)",
+      "status": "migrated"
     }
   },
   "http_routes": {

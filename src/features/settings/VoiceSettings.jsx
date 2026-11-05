@@ -3,6 +3,7 @@ import { Loader2, Play, Square } from 'lucide-react';
 import {
   PREVIEW_NO_KEY, PreviewPlayer, SUGGESTED_VOICES, VOICE_MODES, modeHelp, voiceChoice, voiceGroups,
 } from './voiceSettingsModel';
+import TrayVoiceDevices from './TrayVoiceDevices';
 
 const ROW = 'flex flex-col gap-2 rounded-md border border-line bg-raised px-3 py-2';
 const HELP = 'text-[0.75rem] leading-relaxed text-ink-2';
@@ -100,6 +101,7 @@ export default function VoiceSettings({ voice, client, previewAvailable, patch }
       </div>
       <p className={HELP} data-mode-help>{modeHelp(choice.mode)}</p>
     </div>
+    <TrayVoiceDevices voice={voice} patch={patch} />
     <p aria-live="polite" className="min-h-0 text-[0.75rem] leading-snug text-danger">{failure}</p>
   </div>;
 }

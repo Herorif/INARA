@@ -20,6 +20,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from services.audio_contracts import DeviceSelection
 from services.live_config import PREBUILT_VOICES, VOICE_DEFAULTS, VOICE_MODES
 from services.tools import DEFAULT_DENY_PERMISSIONS, ServiceError
 
@@ -163,12 +164,20 @@ ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": ""}
 
 
 class VoiceSettings(EmptyRequest):
-    """``voice.*``: the Live prebuilt voice and the default talk mode."""
+    """``voice.*``: the Live prebuilt voice, the default talk mode and the tray voice devices.
+
+    ``local_microphone`` / ``local_speaker`` (J2) are ``"default"`` (the system default
+    device) or ``{"name", "host_api"}``; an absent or stale saved value reads as
+    ``"default"`` (services/audio_contracts.local_devices), and a saved device that is
+    not connected falls back to the default when tray voice starts.
+    """
 
     name: Literal[PREBUILT_VOICES] | None = None
     mode: Literal[VOICE_MODES] | None = None
+    local_microphone: DeviceSelection | None = None
+    local_speaker: DeviceSelection | None = None
 
-    @field_validator("name", "mode", mode="before")
+    @field_validator("name", "mode", "local_microphone", "local_speaker", mode="before")
     @classmethod
     def reject_null(cls, value):
         if value is None:

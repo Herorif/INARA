@@ -18,6 +18,10 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
         useStore.setState({ conversationRestoring: false, messages: data.messages.map(m => ({
             sender: m.role === 'user' ? 'You' : 'JARVIS', text: m.content, time: '', memory_sources: safeMemorySources(m.memory_sources),
         })) });
+        // Tray voice talked in another conversation while the workspace was closed: show that one.
+        if (data.latest_conversation_id && data.latest_conversation_id !== data.conversation_id) {
+            s().adoptConversation?.(data.latest_conversation_id);
+        }
     }));
     unsubs.push(onSocket('conversation_restore_failed', data => {
         if (data.conversation_id && data.conversation_id !== s().conversationId) return;

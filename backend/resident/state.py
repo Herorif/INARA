@@ -45,12 +45,48 @@ class Identity:
             temporary.unlink(missing_ok=True)
 
 
+VOICE_STATES = {
+    "connecting": "Connecting",
+    "listening": "Listening",
+    "thinking": "Thinking",
+    "working": "Working",
+    "speaking": "Speaking",
+}
+MICROPHONE = {"on": "mic on", "paused": "mic paused while JARVIS speaks", "off": "mic off"}
+
+
 class State:
     def __init__(self, identity):
         self.identity = identity
         self.phase, self.visible, self.error = "starting", False, None
         self.hotkey = False
         self.quitting = False
+        # Tray voice, as the core reports it: {"active", "state", "microphone", "notice"}.
+        self.voice = None
+
+    def tooltip(self):
+        """The tray tooltip: resident status, or tray voice state with the microphone."""
+        base = (
+            "Core unavailable"
+            if self.phase == "failed"
+            else "Gaming mode"
+            if self.identity.gaming
+            else "Workspace open"
+            if self.visible
+            else "Native resident"
+        )
+        voice = self.voice or {}
+        notice = voice.get("notice")
+        if voice.get("active"):
+            parts = [
+                VOICE_STATES.get(voice.get("state"), "Listening"),
+                MICROPHONE.get(voice.get("microphone"), "mic on"),
+            ]
+        else:
+            parts = [base]
+        if notice:
+            parts.append(notice)
+        return "JARVIS · " + " · ".join(parts)
 
     def snapshot(self):
         return {

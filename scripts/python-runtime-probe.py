@@ -39,7 +39,9 @@ def main():
         distribution = metadata.distribution(name)
         assert distribution.version == version
         assert Path(distribution.locate_file("")).resolve().is_relative_to(root)
-    for name in ("pip", "pytest", "numpy", "torch", "sounddevice", "jarvis_contamination_probe"):
+    # sounddevice is a core dependency since J2 (tray voice); it is listed in the manifest
+    # and never imported here: importing it starts PortAudio, and this probe uses no device.
+    for name in ("pip", "pytest", "numpy", "torch", "jarvis_contamination_probe"):
         try:
             importlib.import_module(name)
         except ModuleNotFoundError:
