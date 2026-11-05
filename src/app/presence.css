@@ -19,3 +19,12 @@
 }
 .command-deck[data-ui-visible="false"] .presence-ring__arc,
 .command-deck[data-ui-visible="false"] .presence-ring__dot { animation-play-state: paused; }
+/* Live core (src/app/JarvisCore.jsx): a transparent canvas over the panel; the flat ring shows
+   until its first frame, then crossfades out while the canvas fades in. */
+.presence-stage { position: relative; display: inline-block; flex-shrink: 0; }
+.presence-stage .presence-ring { position: absolute; inset: 0; }
+.presence-fallback { position: absolute; inset: 0; transition: opacity 160ms ease-out; }
+.presence-fallback[data-fading="true"] { opacity: 0; }
+.presence-core-host { position: absolute; inset: 0; pointer-events: none; }
+.presence-core { display: block; pointer-events: none; opacity: 0; transition: opacity 160ms ease-out; }
+.presence-core[data-ready="true"] { opacity: 1; }

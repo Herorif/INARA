@@ -78,6 +78,7 @@ export default defineConfig(({ command }) => ({
     plugins: [renderer.plugin, react(), devSessionToken(), contentSecurityPolicy()],
     worker: { plugins: () => [renderer.workerPlugin()] },
     base: './', // Important for Electron
+    assetsInclude: ['**/*.glb'],
     define: {
         [TOKEN]: JSON.stringify(command === 'serve'
             ? explicitDevToken() || readDevToken()

@@ -40,6 +40,14 @@
       "owner": null,
       "license_evidence": [],
       "decision": "pending"
+    },
+    {
+      "path": "src/assets/models/jarvis-core.glb",
+      "sha256": "01f7174a520543f378c7f987d6ce19ccb585f3901cafeedb84f47ad0642705b8",
+      "origin": "owner-generated: art/blender/jarvis-core.py (sha256 6393a8b85d206100153c14cacbeb0a18d8d38d70f94706fc94af5cce1027a22a), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
     }
   ]
 }

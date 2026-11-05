@@ -60,7 +60,7 @@ Publishing does not run Blender. It copies the reviewed bytes as they are, and o
 outputs listed in `publish.json`:
 
 ```json
-{ "format": 1, "scenes": { "jarvis-core": { "jarvis-core.glb": "public/models/jarvis-core.glb" } } }
+{ "format": 1, "scenes": { "jarvis-core": { "jarvis-core.glb": "src/assets/models/jarvis-core.glb" } } }
 ```
 
 Destinations must be relative paths under `public/`, `assets/` or `src/assets/`.
@@ -72,7 +72,7 @@ Publishing is refused when:
 - a reviewed output is missing or its hash differs from the manifest;
 - the manifest's Blender version is not 5.2.x.
 
-`publish.json` is empty at the moment. Nothing is published yet.
+`publish.json` approves one output: `jarvis-core.glb` to `src/assets/models/jarvis-core.glb`.
 
 ## Determinism rules
 
@@ -118,7 +118,7 @@ So an entry for a generated asset must contain exactly these values:
 
 | Field | Value |
 | --- | --- |
-| `path` | Repository path of the published file, for example `public/models/jarvis-core.glb`. |
+| `path` | Repository path of the published file, for example `src/assets/models/jarvis-core.glb`. |
 | `sha256` | SHA-256 of the published output. It equals the hash in the review manifest. |
 | `origin` | `"owner-generated: art/blender/<scene>.py (sha256 <generator sha256>), Blender <x.y.z>"`. This records the **generator script**, its hash and the **Blender version**. |
 | `owner` | `null` |
@@ -181,10 +181,12 @@ ellipse: at small sizes, a ring with a dot inside reads as an eye.
 
 **Level of detail (for the app).**
 
-- **64 px or less:** show `ring_outer`, `ring_mid`, `beads`, `core_faces` and `core_edges`.
-  Draw `core_edges` at secondary strength (35% opacity), so the core reads as a dim faceted
-  crystal, never a bright dot.
-- **128 px or more:** show every node, with `core_edges` at primary strength.
+- **Small, below 96 px:** show `ring_outer`, `ring_mid`, `beads`, `core_faces` and
+  `core_edges`. Draw `core_edges` at secondary strength (35% opacity), so the core reads as a
+  dim faceted crystal, never a bright dot. Frame the outer ring (r = 1.0) to 88% of the
+  canvas: `d = 1.0 / (0.88 * tan(fov / 2))`.
+- **Full, 96 px and up:** show every node, with `core_edges` at primary strength, and use the
+  default framing above.
 
 **States.** The review stills are posed with the `STATES` table in the script:
 
@@ -196,4 +198,35 @@ ellipse: at small sizes, a ring with a dot inside reads as an eye.
 | working | Arc band spun 40°; inner dashes spun half a dash |
 | offline | Every line steel at 50%; core faces dark neutral; rest pose |
 
-The app animates these states later. The stills only show one phase of each.
+The stills only show one phase of each; the app animates them (see "In the app").
+
+## In the app
+
+`PresenceRing` (`src/app/PresenceRing.jsx`) renders the published GLB live with three.js
+(`src/app/JarvisCore.jsx`, loaded lazily so three.js stays out of the main chunk) wherever
+presence is shown at 64 px or more: the quick assistant and the context inspector. The GLB
+is inlined into that chunk and parsed in memory (`src/app/coreAsset.js`), so the file://
+renderer needs no fetch and no CSP change. Lines are 1 CSS px at every display scale.
+
+The flat SVG ring stays in use:
+
+- below 64 px;
+- when the system asks for reduced motion;
+- in low power: gaming mode, or the battery discharging at 20% or less;
+- when WebGL is unavailable, the model cannot be parsed or the WebGL context is lost (one
+  console warning, no retry for that mount).
+
+At the small LOD (the 64 px quick assistant and inspector) the arc band and inner ring are
+hidden, so each state has its own cue:
+
+- **listening:** the rings tilt to face you;
+- **speaking:** the crystal glows and swells with the voice (the voice level, or a slow
+  synthetic pulse when no level arrives);
+- **working:** arcs sweep the dial;
+- **offline:** everything turns steel.
+
+The state targets, easing time constants, level envelope, voice and sweep mappings, frame
+rates, LOD rule and camera framing live in `src/app/coreModel.js`; `src/app/coreScene.js`
+applies them to the scene. The loop runs at 15 fps when idle (its motion is a few pixels a
+second, and the inspector can stay open all day) and 60 fps while live or easing, pauses
+while the window is hidden or the core is off-screen, and stops once offline has settled.

@@ -20,8 +20,8 @@ export default function WorkspaceInspector({ connected, processing, voice, gamin
   return <aside id="workspace-inspector" className="workspace-inspector" aria-label="Workspace context">
     <div className="inspector-heading"><HudLabel>CONTEXT</HudLabel><button type="button" className="btn btn--ghost btn--icon btn--sm" aria-label="Close context inspector" onClick={onClose}><X size={14} aria-hidden="true"/></button></div>
     <section className="inspector-panel inspector-presence hud-panel hud-frame" aria-label="Assistant presence">
-      <PresenceRing size={36} state={presence}/>
-      <div className="inspector-presence__copy"><strong className="presence-status hud-label" data-presence={presence}>{presenceLabel(presence)}</strong><span className="inspector-presence__hint"><Kbd>Ctrl Shift Space</Kbd> to talk</span></div>
+      <PresenceRing size={64} state={presence} level={voice?.level ?? 0} lowPower={gaming}/>
+      <div className="inspector-presence__copy"><strong className="presence-status hud-label" data-presence={presence}>{presenceLabel(presence)}</strong><span className="inspector-presence__hint"><Kbd>Ctrl Shift Space</Kbd> to&nbsp;talk</span></div>
     </section>
     <section className="inspector-panel hud-panel" aria-labelledby="inspector-system">
       <HudLabel as="h2" id="inspector-system" className="inspector-panel__title">SYSTEM</HudLabel>

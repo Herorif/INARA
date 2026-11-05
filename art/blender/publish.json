@@ -1,4 +1,8 @@
 {
   "format": 1,
-  "scenes": {}
+  "scenes": {
+    "jarvis-core": {
+      "jarvis-core.glb": "src/assets/models/jarvis-core.glb"
+    }
+  }
 }
