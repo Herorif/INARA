@@ -4,6 +4,7 @@ import {
   PREVIEW_NO_KEY, PreviewPlayer, SUGGESTED_VOICES, VOICE_MODES, modeHelp, voiceChoice, voiceGroups,
 } from './voiceSettingsModel';
 import SegmentedControl from './SegmentedControl';
+import OverlaySettings from './OverlaySettings';
 import TrayVoiceDevices from './TrayVoiceDevices';
 import WakeWordSettings from './WakeWordSettings';
 
@@ -94,6 +95,7 @@ export default function VoiceSettings({ voice, client, previewAvailable, patch }
       <p className={HELP} data-mode-help>{modeHelp(choice.mode)}</p>
     </div>
     <WakeWordSettings voice={voice} patch={patch} />
+    <OverlaySettings voice={voice} patch={patch} />
     <TrayVoiceDevices voice={voice} patch={patch} />
     <p aria-live="polite" className="min-h-0 text-[0.75rem] leading-snug text-danger">{failure}</p>
   </div>;
