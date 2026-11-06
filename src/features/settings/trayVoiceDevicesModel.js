@@ -7,7 +7,7 @@ export const DEVICE_KINDS = [
   { kind: 'microphone', label: 'Microphone', list: 'inputs', setting: 'local_microphone' },
   { kind: 'speaker', label: 'Speaker', list: 'outputs', setting: 'local_speaker' },
 ];
-export const TRAY_VOICE_HELP = 'Used when you talk to JARVIS from the tray. The microphone is open only while you talk, and pauses while JARVIS speaks.';
+export const TRAY_VOICE_HELP = 'Used when you talk to JARVIS from the tray or say "Hey Jarvis". The microphone pauses while JARVIS speaks.';
 
 const SAVED = 'saved';
 const kindOf = kind => DEVICE_KINDS.find(item => item.kind === kind) || DEVICE_KINDS[0];

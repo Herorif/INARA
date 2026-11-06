@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import {
-  createAudioDevicesClient, devicePatch, isAudioDeviceSelection, parseAudioDevices,
+  createAudioDevicesClient, devicePatch, isAudioDeviceSelection, parseAudioDevices, parseWakeWordStatus,
 } from '../src/transport/audioDevicesClient.ts';
 import {
-  DEVICE_KINDS, deviceNote, deviceOptions, savedDevice, selectedValue, selectionFor,
+  DEVICE_KINDS, TRAY_VOICE_HELP, deviceNote, deviceOptions, savedDevice, selectedValue, selectionFor,
 } from '../src/features/settings/trayVoiceDevicesModel.js';
 import { createSubscriptions } from '../src/services/subscriptions.js';
 import { registerConversationEvents } from '../src/services/events/conversation.js';
@@ -60,6 +60,42 @@ test('the client lists devices over one RPC and rejects an incomplete reply', as
   socket.requests.at(-1).ack({ ok: false, code: 'authentication_required', message: 'Use the authorized desktop channel.' });
   await assert.rejects(refused, { code: 'authentication_required' });
   client.dispose();
+});
+
+test('the "Hey Jarvis" status is validated before the UI sees it', () => {
+  assert.deepEqual(parseWakeWordStatus({ ok: true, state: 'listening', message: null }), { state: 'listening', message: null });
+  assert.deepEqual(parseWakeWordStatus({ ok: true, state: 'unavailable', message: 'No microphone.' }),
+    { state: 'unavailable', message: 'No microphone.' });
+  for (const bad of [
+    null, [], {}, { state: 'listening' }, { state: 'on', message: null }, { state: 'paused', message: 3 },
+    { state: 'unavailable', message: 'x'.repeat(501) }, { state: ['off'], message: null },
+  ]) assert.equal(parseWakeWordStatus(bad), null, JSON.stringify(bad));
+});
+
+test('the client reads the "Hey Jarvis" status over one RPC and rejects a malformed reply', async () => {
+  const socket = new Socket();
+  const client = createAudioDevicesClient(socket);
+  const reading = client.wakeWordStatus();
+  const request = socket.requests.at(-1);
+  assert.equal(request.event, 'wake_word_status');
+  assert.deepEqual(request.data, {});
+  request.ack({ ok: true, state: 'paused', message: null });
+  assert.deepEqual(await reading, { state: 'paused', message: null });
+  const broken = client.wakeWordStatus();
+  socket.requests.at(-1).ack({ ok: true, state: 'sleeping', message: null });
+  await assert.rejects(broken, { code: 'invalid_response' });
+  const refused = client.wakeWordStatus();
+  socket.requests.at(-1).ack({ ok: false, code: 'authentication_required', message: 'Use the authorized desktop channel.' });
+  await assert.rejects(refused, { code: 'authentication_required' });
+  client.dispose();
+  await assert.rejects(client.wakeWordStatus(), { code: 'scope_closed' });
+  const offline = createAudioDevicesClient(Object.assign(new Socket(), { connected: false }));
+  await assert.rejects(offline.wakeWordStatus(), { code: 'offline' });
+  offline.dispose();
+});
+
+test('tray voice help mentions "Hey Jarvis"', () => {
+  assert.equal(TRAY_VOICE_HELP, 'Used when you talk to JARVIS from the tray or say "Hey Jarvis". The microphone pauses while JARVIS speaks.');
 });
 
 test('a device is saved by name and host API, or as the system default', () => {

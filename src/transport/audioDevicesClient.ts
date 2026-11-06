@@ -1,5 +1,5 @@
 import { createRpcScope, RpcError, type RpcSocket } from './rpc.ts';
-import type { AudioDeviceChoice, AudioDeviceEntry, AudioDevicesReport } from './generated/audio.ts';
+import type { AudioDeviceChoice, AudioDeviceEntry, AudioDevicesReport, WakeWordStatus } from './generated/audio.ts';
 
 /**
  * Owner-only tray voice devices (J2): the core's microphones and speakers, listed without
@@ -53,6 +53,15 @@ export function parseAudioDevices(response: unknown): AudioDevicesReport | null 
   };
 }
 
+const WAKE_STATES: ReadonlyArray<WakeWordStatus['state']> = ['off', 'listening', 'paused', 'unavailable'];
+
+/** The `wake_word_status` ACK body, or null when a field is missing or mistyped. */
+export function parseWakeWordStatus(response: unknown): WakeWordStatus | null {
+  if (!isObject(response) || !WAKE_STATES.includes(response.state as WakeWordStatus['state'])) return null;
+  if (!optionalText(response.message, 500)) return null;
+  return { state: response.state as WakeWordStatus['state'], message: response.message as string | null };
+}
+
 export function createAudioDevicesClient(socket: RpcSocket) {
   const scope = createRpcScope(socket);
   return {
@@ -63,6 +72,12 @@ export function createAudioDevicesClient(socket: RpcSocket) {
       const report = parseAudioDevices(await scope.call('audio_devices', {}, 15000));
       if (!report) throw new RpcError('The core returned an incomplete device list. Reopen Preferences to try again.', 'invalid_response');
       return report;
+    },
+    /** Whether the tray is listening for "Hey Jarvis" (J3b); never opens a device. */
+    async wakeWordStatus(): Promise<WakeWordStatus> {
+      const status = parseWakeWordStatus(await scope.call('wake_word_status', {}));
+      if (!status) throw new RpcError('The core returned an incomplete "Hey Jarvis" status. Reopen Preferences to try again.', 'invalid_response');
+      return status;
     },
   };
 }

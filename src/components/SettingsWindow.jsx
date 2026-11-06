@@ -3,6 +3,7 @@ import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import { PERMISSION_OPTIONS, permissionOption, permissionValue } from './toolPermissions';
 import AiSettings from '../features/settings/AiSettings';
+import Switch from '../features/settings/Switch';
 
 const TOOLS = [
 { id: 'generate_cad', label: 'Generate CAD' },
@@ -23,12 +24,6 @@ const TOOLS = [
 
 const ROW = 'flex items-center justify-between gap-3 rounded-md border border-line bg-raised px-3 py-2 text-sm text-ink-1';
 const SELECT = 'w-full rounded-md border border-line-strong bg-raised px-2 py-2 text-sm text-ink-1';
-
-const Switch = ({ checked, label, onClick }) =>
-<button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onClick}
-className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-150 ${checked ? 'border-transparent bg-accent' : 'border-line-strong bg-panel'}`}>
-    <span aria-hidden="true" className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ${checked ? 'translate-x-4 bg-[var(--text-on-accent)]' : 'translate-x-0 bg-ink-2'}`} />
-</button>;
 
 const PermissionControl = ({ tool, option, onChange }) =>
 <div role="radiogroup" aria-label={`${tool.label} permission`} className="inline-flex shrink-0 rounded-md border border-line-strong bg-panel p-0.5">

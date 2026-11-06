@@ -3,24 +3,16 @@ import { Loader2, Play, Square } from 'lucide-react';
 import {
   PREVIEW_NO_KEY, PreviewPlayer, SUGGESTED_VOICES, VOICE_MODES, modeHelp, voiceChoice, voiceGroups,
 } from './voiceSettingsModel';
+import SegmentedControl from './SegmentedControl';
 import TrayVoiceDevices from './TrayVoiceDevices';
+import WakeWordSettings from './WakeWordSettings';
 
 const ROW = 'flex flex-col gap-2 rounded-md border border-line bg-raised px-3 py-2';
 const HELP = 'text-[0.75rem] leading-relaxed text-ink-2';
 const IDLE = { playing: null, loading: null, error: null };
 
 const ModeControl = ({ value, onChange }) =>
-  <div role="radiogroup" aria-label="Default voice mode" className="inline-flex shrink-0 rounded-md border border-line-strong bg-panel p-0.5">
-    {VOICE_MODES.map((entry) =>
-      <label key={entry.id} className="relative cursor-pointer">
-        <input type="radio" className="peer sr-only" name="voice-mode" value={entry.id}
-          checked={value === entry.id} onChange={() => onChange(entry.id)} />
-        <span className="flex min-h-[1.75rem] items-center rounded px-2.5 text-[0.6875rem] text-ink-2 transition-colors hover:text-ink-1 peer-checked:bg-[var(--accent-subtle)] peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-[color:var(--accent)] [@media(pointer:coarse)]:min-h-[2.75rem]">
-          {entry.label}
-        </span>
-      </label>
-    )}
-  </div>;
+  <SegmentedControl name="voice-mode" options={VOICE_MODES} value={value} onChange={onChange} aria-label="Default voice mode" />;
 
 function VoiceRow({ voice, selected, preview, previewAvailable, onChoose, onPreview }) {
   const playing = preview.playing === voice.name;
@@ -101,6 +93,7 @@ export default function VoiceSettings({ voice, client, previewAvailable, patch }
       </div>
       <p className={HELP} data-mode-help>{modeHelp(choice.mode)}</p>
     </div>
+    <WakeWordSettings voice={voice} patch={patch} />
     <TrayVoiceDevices voice={voice} patch={patch} />
     <p aria-live="polite" className="min-h-0 text-[0.75rem] leading-snug text-danger">{failure}</p>
   </div>;
