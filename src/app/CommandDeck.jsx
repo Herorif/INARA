@@ -90,13 +90,20 @@ export default function CommandDeck() {
   const closeCommands = useCallback(() => setCommands(false), []);
   const closeDialog = useCallback(() => useStore.setState(clearedFeatures('dialog')), []);
   const closeFeature = useCallback(() => { setCamera(false); useStore.setState(clearedFeatures('workspace')); }, []);
-  const setQuick = useCallback(value => {
-    if (value && useStore.getState().isLockScreenVisible) return;
+  // Shows or hides the quick assistant in this page only; false when the lock screen refuses it.
+  const applyQuick = useCallback(value => {
+    if (value && useStore.getState().isLockScreenVisible) return false;
     if (value) { setCamera(false); setCommands(false); useStore.setState(clearedFeatures()); }
     useStore.setState(value && !useStore.getState().showQuickAssistant ? { showQuickAssistant:value, quickOpenedAt:performance.now() } : { showQuickAssistant:value });
-    window.electronAPI?.setQuickMode?.(value);
+    return true;
   }, []);
-  useEffect(() => window.electronAPI?.onQuickAssistant?.(setQuick), [setQuick]);
+  // A switch started here also resizes the window.
+  const setQuick = useCallback(value => { if (applyQuick(value)) window.electronAPI?.setQuickMode?.(value); }, [applyQuick]);
+  // The window already switched (tray hotkey): follow it, never echo it back. If the lock
+  // screen refuses quick mode, ask the window to return to its full size.
+  useEffect(() => window.electronAPI?.onQuickAssistant?.(value => {
+    if (!applyQuick(value) && value) window.electronAPI?.setQuickMode?.(false);
+  }), [applyQuick]);
   useEffect(() => {
     let live = true;
     const api = window.electronAPI;

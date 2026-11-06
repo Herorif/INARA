@@ -13,6 +13,7 @@ const {
   session
 } = require('electron');
 const { bindCaptureLifecycle } = require('./capture-lifecycle.cjs');
+const { createQuickMode } = require('./quick-mode.cjs');
 const security = require('./security.cjs');
 const path = require('path');
 const {
@@ -56,13 +57,11 @@ let mainWindow,
   identity,
   preferencesPath,
   booting = false;
-let hotkeyReady = false, quickRequested = false;
+let hotkeyReady = false, quickRequested = false, quickWindow = null;
 function setQuickMode(value) {
   quickRequested = value;
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  if (mainWindow.isMaximized()) mainWindow.unmaximize();
-  mainWindow.setSize(value ? 520 : 1440, value ? 740 : 940);
-  mainWindow.webContents.send('quick-assistant', value);
+  quickWindow?.set(value);
 }
 const notificationIds = new Set();
 // Until the one-time INARA -> JARVIS profile move has run, the default profile may still be the
@@ -137,6 +136,13 @@ function openWindow() {
     }
   });
   const window = mainWindow;
+  // Applied only on a real change: the page reports switches too, and an echo must not loop.
+  quickWindow = createQuickMode(quickRequested, value => {
+    if (window.isDestroyed()) return;
+    if (window.isMaximized()) window.unmaximize();
+    window.setSize(value ? 520 : 1440, value ? 740 : 940);
+    window.webContents.send('quick-assistant', value);
+  });
   bindCaptureLifecycle(window, powerMonitor);
   window.webContents.setWindowOpenHandler(() => ({
     action: 'deny'

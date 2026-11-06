@@ -5,6 +5,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { io } = require('socket.io-client');
 const { bindCaptureLifecycle } = require('./capture-lifecycle.cjs');
+const { createQuickMode } = require('./quick-mode.cjs');
 const security = require('./security.cjs');
 const root = path.resolve(__dirname, '..');
 const bootstrap = JSON.parse(fs.readFileSync(0, 'utf8'));
@@ -13,7 +14,9 @@ app.setPath('userData', bootstrap.profile);
 let window, control, state = bootstrap.state, closing = false;
 const appPage = { dev: !!bootstrap.dev, indexUrl: pathToFileURL(path.join(root, 'dist/index.html')).href };
 const trusted = event => security.trustedSender(event, window, appPage);
-const quickMode = value => { if (!window || window.isDestroyed()) return; if(window.isMaximized())window.unmaximize(); window.setSize(value ? 520 : 1440, value ? 740 : 940); window.webContents.send('quick-assistant', !!value); };
+// Applied only on a real change: the page reports switches too, and an echo must not loop.
+const quick = createQuickMode(bootstrap.quick === true, value => { if (!window || window.isDestroyed()) return; if(window.isMaximized())window.unmaximize(); window.setSize(value ? 520 : 1440, value ? 740 : 940); window.webContents.send('quick-assistant', value); });
+const quickMode = value => quick.set(value);
 const publish = value => {
   state = value;
   if (window && !window.isDestroyed()) window.webContents.send('resident-state', state);
