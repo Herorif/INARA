@@ -19,10 +19,15 @@ def pytest_configure(config):
     config._jarvis_test_data = tempfile.TemporaryDirectory(prefix="jarvis-tests-")
     os.environ["JARVIS_DATA_DIR"] = config._jarvis_test_data.name
     config._jarvis_previous_isolation = {key: os.environ.get(key) for key in
-                                       ("JARVIS_PROJECT_ROOT", "JARVIS_LEGACY_DATA_DIR", "JARVIS_SETTINGS_FILE")}
+                                       ("JARVIS_PROJECT_ROOT", "JARVIS_LEGACY_DATA_DIR", "JARVIS_SETTINGS_FILE",
+                                        "JARVIS_WAKE_WORD_DIR")}
     os.environ["JARVIS_PROJECT_ROOT"] = config._jarvis_test_data.name
     os.environ["JARVIS_LEGACY_DATA_DIR"] = config._jarvis_test_data.name
     os.environ["JARVIS_SETTINGS_FILE"] = str(Path(config._jarvis_test_data.name) / "settings.json")
+    # An empty model folder: no test ever sees the real wake-word models (the opt-in
+    # live_wake tests name the real folder explicitly).
+    config._jarvis_wake_models = tempfile.TemporaryDirectory(prefix="jarvis-wake-tests-")
+    os.environ["JARVIS_WAKE_WORD_DIR"] = config._jarvis_wake_models.name
 
 
 # Opt-in markers (registered in pytest.ini): marker -> environment switch.
@@ -30,6 +35,7 @@ OPT_IN_MARKERS = {
     "live_api": "JARVIS_LIVE_API_TESTS",
     "live_hardware": "JARVIS_LIVE_HARDWARE_TESTS",
     "live_blender": "JARVIS_LIVE_BLENDER_TESTS",
+    "live_wake": "JARVIS_LIVE_WAKE_TESTS",
 }
 
 
@@ -57,6 +63,7 @@ def pytest_unconfigure(config):
     else:
         os.environ["JARVIS_DATA_DIR"] = config._jarvis_previous_data
     config._jarvis_test_data.cleanup()
+    config._jarvis_wake_models.cleanup()
 
 # Settings file path
 SETTINGS_FILE = BACKEND_DIR / "settings.json"

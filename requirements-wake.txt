@@ -1,0 +1,12 @@
+# Optional "Hey Jarvis" wake-word detector (backend/services/wake_word.py; docs/WAKE_WORD.md).
+# onnxruntime runs the openWakeWord models on the CPU; the models themselves are not a
+# Python package and are fetched separately (scripts/fetch-wake-word-models.py).
+# The core lock stays numpy-free: tray voice works without this set.
+# Pinned on Windows with Python 3.13 against requirements-core.lock; install with
+#   .\.venv\Scripts\python.exe -m pip install -r requirements-wake.txt
+-r requirements-core.lock
+onnxruntime==1.31.0
+numpy==2.5.4
+# Resolved dependencies
+flatbuffers==25.12.19
+protobuf==7.36.2

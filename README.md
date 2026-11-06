@@ -56,8 +56,9 @@ The backend starts without an API key; AI requests return a clear configuration
 error until a valid key is supplied. Set `JARVIS_TEXT_MODEL` to select the text
 model. Optional integrations install from pinned extras on top of the core lock:
 `requirements-devices.txt` (Kasa, printers, Home Assistant, desktop tools),
-`requirements-vision.txt` (face verification) and `requirements-cad.txt` (legacy
-build123d CAD); `requirements.txt` now lists these files and installs the core only.
+`requirements-vision.txt` (face verification), `requirements-wake.txt` (the local
+"Hey Jarvis" wake-word detector, see [docs/WAKE_WORD.md](docs/WAKE_WORD.md)) and
+`requirements-cad.txt` (legacy build123d CAD); `requirements.txt` now lists these files and installs the core only.
 The new JARVIS command deck includes command, Studio and connection views. Closing
 its window leaves JARVIS in the system tray; Ctrl+Shift+Space reopens it, and Quit
 JARVIS ends the resident. Local reminders can be created without an AI key.
@@ -222,7 +223,7 @@ source .venv/bin/activate
 # Windows:
 .venv\Scripts\activate
 
-# Dependencies (exact pins; add -r requirements-devices.txt / -vision.txt / -cad.txt as needed)
+# Dependencies (exact pins; add -r requirements-devices.txt / -vision.txt / -wake.txt / -cad.txt as needed)
 pip install -r requirements-core.lock
 
 # Frontend

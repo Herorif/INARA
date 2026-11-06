@@ -3,6 +3,7 @@
 #   requirements-dev.lock       core plus pytest and ruff
 #   requirements-devices.txt    Kasa, printers, Home Assistant, app/clipboard/screen tools
 #   requirements-vision.txt     face verification (MediaPipe, OpenCV)
+#   requirements-wake.txt       local "Hey Jarvis" wake-word detector (onnxruntime, numpy)
 #   requirements-cad.txt        legacy AI-written build123d CAD scripts
 #   requirements-call-*.txt     optional call lab adapters
 #   requirements-mobile.txt     optional offline invitation QR
