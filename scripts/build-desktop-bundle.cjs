@@ -14,22 +14,26 @@ async function main() {
   }
   const output = path.join(root, '.runtime/desktop-bundles', crypto.randomUUID());
   fs.mkdirSync(output, {recursive:true});
-  const result = await esbuild.build({
-    absWorkingDir:root, entryPoints:['electron/native-main.cjs'],
-    outfile:path.join(output,'native-main.cjs'), bundle:true, platform:'node', format:'cjs',
+  // The workspace and the talking overlay: each entry bundles its local modules and socket.io-client.
+  const entries = ['native-main.cjs', 'overlay-main.cjs'];
+  const preloads = ['preload.js', 'overlay-preload.js'];
+  const results = [];
+  for (const entry of entries) results.push(await esbuild.build({
+    absWorkingDir:root, entryPoints:[`electron/${entry}`],
+    outfile:path.join(output,entry), bundle:true, platform:'node', format:'cjs',
     external:['electron'], legalComments:'eof', metafile:true, write:true,
-  });
+  }));
   const allowed = new Set(['electron', 'bufferutil', 'utf-8-validate', ...builtinModules, ...builtinModules.map(name=>`node:${name}`)]);
-  const imports = Object.values(result.metafile.outputs).flatMap(value=>value.imports).filter(value=>value.external).map(value=>value.path);
+  const imports = results.flatMap(result=>Object.values(result.metafile.outputs).flatMap(value=>value.imports)).filter(value=>value.external).map(value=>value.path);
   if (imports.some(name=>!allowed.has(name))) throw Error('Unbundled workspace dependency');
-  fs.copyFileSync(path.join(root,'electron/preload.js'),path.join(output,'preload.js'));
-  const inputs = [...new Set([...Object.keys(result.metafile.inputs), 'electron/preload.js'])].sort();
+  for (const name of preloads) fs.copyFileSync(path.join(root,'electron',name),path.join(output,name));
+  const inputs = [...new Set([...results.flatMap(result=>Object.keys(result.metafile.inputs)), ...preloads.map(name=>`electron/${name}`)])].sort();
   const manifest = {
     format:1, kind:'native-workspace-bundle', electron_version:require('../node_modules/electron/package.json').version,
     esbuild_version:esbuild.version, node_runtime_required:false,
     optional_native_modules:['bufferutil','utf-8-validate'], external_imports:[...new Set(imports)].sort(),
     inputs:inputs.map(name=>({path:name,sha256:hash(path.join(root,name))})),
-    files:['native-main.cjs','preload.js'].map(name=>({path:name,bytes:fs.statSync(path.join(output,name)).size,sha256:hash(path.join(output,name))})),
+    files:[...entries, ...preloads].map(name=>({path:name,bytes:fs.statSync(path.join(output,name)).size,sha256:hash(path.join(output,name))})),
   };
   fs.writeFileSync(path.join(output,'bundle-manifest.json'),JSON.stringify(manifest,null,2));
   console.log(JSON.stringify({directory:path.relative(root,output),files:manifest.files.length,node_runtime_required:false}));

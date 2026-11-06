@@ -35,6 +35,8 @@ def source(tmp_path):
         "scripts/pilot-start.ps1",
         "electron/native-main.cjs",
         "electron/preload.js",
+        "electron/overlay-main.cjs",
+        "electron/overlay-preload.js",
     ):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -42,7 +44,7 @@ def source(tmp_path):
     bundle = root / ".runtime/desktop-bundles/fixture"
     bundle.mkdir(parents=True)
     records = []
-    for name in ("native-main.cjs", "preload.js"):
+    for name in package.BUNDLE_FILES:
         path = bundle / name
         path.write_text("bundled fixture")
         records.append(
@@ -70,6 +72,9 @@ def source(tmp_path):
         path = runtime / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("44.7.0" if name == "version" else "runtime fixture")
+    # The talking overlay page is a second build output next to dist/index.html.
+    (root / "dist").mkdir(exist_ok=True)
+    (root / "dist/overlay.html").write_text("compiled overlay fixture")
     fixture_build(root)
     return root, bundle
 
@@ -195,5 +200,43 @@ def test_new_package_cannot_drop_its_renderer_binding(source):
     value = json.loads(marker.read_text())
     del value["renderer_provenance_sha256"]
     marker.write_text(json.dumps(value))
+    with pytest.raises(ValueError):
+        package.verify(destination)
+
+
+def test_bundle_lists_the_talking_overlay_entry_and_preload():
+    assert package.BUNDLE_FILES == (
+        "native-main.cjs",
+        "preload.js",
+        "overlay-main.cjs",
+        "overlay-preload.js",
+    )
+
+
+@pytest.mark.parametrize("name", ["overlay-main.cjs", "overlay-preload.js"])
+def test_staging_rejects_a_bundle_without_the_overlay(source, name):
+    root, bundle = source
+    manifest = bundle / "bundle-manifest.json"
+    value = json.loads(manifest.read_text())
+    value["files"] = [entry for entry in value["files"] if entry["path"] != name]
+    manifest.write_text(json.dumps(value))
+    (bundle / name).unlink()
+    target = root / ".runtime/releases/no-overlay"
+    with pytest.raises(ValueError):
+        package.stage(target, bundle, root)
+    assert not target.exists()
+
+
+@pytest.mark.parametrize(
+    "name", ["electron/overlay-main.cjs", "electron/overlay-preload.js", "dist/overlay.html"]
+)
+def test_pilot_requires_the_overlay_files(source, name):
+    destination, result = stage(source)
+    assert (destination / name).is_file()
+    manifest = destination / "desktop-pilot.json"
+    value = json.loads(manifest.read_text())
+    value["files"] = [entry for entry in value["files"] if entry["path"] != name]
+    manifest.write_text(json.dumps(value))
+    (destination / name).unlink()
     with pytest.raises(ValueError):
         package.verify(destination)

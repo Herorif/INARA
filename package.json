@@ -13,6 +13,7 @@
     "test:client": "node --experimental-require-module --experimental-strip-types --test \"tests/*.mjs\" \"tests/*.cjs\"",
     "test:py": ".venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider",
     "lint:py": ".venv\\Scripts\\python.exe -m ruff check",
+    "verify:overlay": "electron scripts/verify-overlay.cjs",
     "lint:js": "eslint --max-warnings 0 --report-unused-disable-directives src electron tests scripts *.config.js"
   },
   "engines": {

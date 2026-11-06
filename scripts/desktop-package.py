@@ -24,6 +24,9 @@ RUNTIME_REQUIRED = {
     "locales/en-US.pak",
 }
 
+# The workspace entry and preload, and the talking overlay's (docs/VOICE_OVERLAY.md).
+BUNDLE_FILES = ("native-main.cjs", "preload.js", "overlay-main.cjs", "overlay-preload.js")
+
 
 def read_json(path, limit=4_194_304):
     if path.resolve() != path.absolute() or not path.is_file() or path.stat().st_size > limit:
@@ -73,10 +76,7 @@ def bundle_files(directory, root):
         if path.resolve() != path or release.sha256(path) != item["sha256"]:
             raise ValueError("Bundle inputs changed; rebuild the native bundle")
     records = value.get("files", [])
-    if len(records) != 2 or {entry["path"] for entry in records} != {
-        "native-main.cjs",
-        "preload.js",
-    }:
+    if len(records) != len(BUNDLE_FILES) or {entry["path"] for entry in records} != set(BUNDLE_FILES):
         raise ValueError("Unexpected bundle outputs")
     for entry in records:
         path = directory / entry["path"]
@@ -153,7 +153,7 @@ def stage(destination, bundle, root=ROOT, runtime_directory=None):
     ]
     mapping += [
         (bundle / name, "electron/" + name)
-        for name in ("native-main.cjs", "preload.js", "bundle-manifest.json")
+        for name in (*BUNDLE_FILES, "bundle-manifest.json")
     ]
     mapping += [
         (root / "scripts" / name, "scripts/" + name)
@@ -263,8 +263,11 @@ def verify(directory):
         "backend/resident/layout.py",
         "electron/native-main.cjs",
         "electron/preload.js",
+        "electron/overlay-main.cjs",
+        "electron/overlay-preload.js",
         "electron/bundle-manifest.json",
         "dist/index.html",
+        "dist/overlay.html",
         "requirements-core.lock",
         "scripts/pilot-start.ps1",
         "scripts/desktop-package.py",

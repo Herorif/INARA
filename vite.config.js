@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 import provenance from './scripts/renderer-provenance.cjs'
 const renderer = provenance.rendererProvenance()
 const TOKEN = 'import.meta.env.VITE_JARVIS_SESSION_TOKEN'
-const devTokenFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '.runtime', 'dev-session-token')
+const ROOT = path.dirname(fileURLToPath(import.meta.url))
+const devTokenFile = path.join(ROOT, '.runtime', 'dev-session-token')
 
 // Dev only: the token of the running `npm run backend:dev` core (written per launch). An
 // explicit VITE_JARVIS_SESSION_TOKEN wins. Builds always blank it; production renderers
@@ -57,18 +58,28 @@ const CONTENT_SECURITY_POLICY = [
     "base-uri 'none'",
     "form-action 'none'",
 ].join('; ')
+// The talking overlay (overlay.html) never opens a socket: the main process relays validated
+// snapshots over IPC, so its policy drops the core from connect-src.
+const OVERLAY_CONTENT_SECURITY_POLICY = CONTENT_SECURITY_POLICY
+    .replace("connect-src 'self' http://localhost:8000 ws://localhost:8000", "connect-src 'self'")
+if (OVERLAY_CONTENT_SECURITY_POLICY === CONTENT_SECURITY_POLICY) throw Error('Overlay CSP did not narrow connect-src')
+const PAGE_POLICIES = { 'index.html': CONTENT_SECURITY_POLICY, 'overlay.html': OVERLAY_CONTENT_SECURITY_POLICY }
 const contentSecurityPolicy = () => ({
     name: 'jarvis-content-security-policy',
     apply: 'build',
     transformIndexHtml: {
         order: 'post',
-        handler(html) {
+        handler(html, context) {
+            // Every built page needs its own policy; an unknown page fails the build.
+            const page = path.basename(context.filename)
+            const policy = PAGE_POLICIES[page]
+            if (!policy) throw Error(`No Content-Security-Policy for ${page}`)
             // Scripts and styles must be external 'self' files (the <html> background attribute is
             // parsed before the meta exists, so it is not subject to the policy).
-            if (/<script(?![^>]*\ssrc=)[^>]*>|<style[\s>]/i.test(html)) throw Error('Inline <script>/<style> in index.html would need a weaker CSP')
+            if (/<script(?![^>]*\ssrc=)[^>]*>|<style[\s>]/i.test(html)) throw Error(`Inline <script>/<style> in ${page} would need a weaker CSP`)
             const charset = /<meta charset="UTF-8" \/>/i
             if (!charset.test(html) || /Content-Security-Policy/i.test(html)) throw Error('Cannot place the Content-Security-Policy meta')
-            return html.replace(charset, match => `${match}\n    <meta http-equiv="Content-Security-Policy" content="${CONTENT_SECURITY_POLICY}" />`)
+            return html.replace(charset, match => `${match}\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`)
         },
     },
 })
@@ -88,6 +99,13 @@ export default defineConfig(({ command }) => ({
         // Keep small scripts (the speech AudioWorklet) as 'self' files: a data: URL would be
         // blocked by script-src 'self'. Other assets keep Vite's default inlining.
         assetsInlineLimit: file => (/\.[cm]?js$/i.test(file) ? false : undefined),
+        // Two pages share one dist/: the workspace and the talking overlay (electron/overlay-app.cjs).
+        rollupOptions: {
+            input: {
+                main: path.join(ROOT, 'index.html'),
+                overlay: path.join(ROOT, 'overlay.html'),
+            },
+        },
     },
     server: {
         port: 5173,

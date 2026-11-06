@@ -1,0 +1,120 @@
+/* Talking overlay (overlay.html): the approved panel. Tokens come from src/app/tokens.css.
+   The window is 608 x 156 (narrow work areas: their width - 32); the panel sits 16 px above
+   its bottom edge with 24 px side and top margins, and grows upward. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+body {
+  font-family: var(--font-sans);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+#root {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 24px 24px 16px;
+}
+
+.overlay-panel {
+  box-sizing: border-box;
+  width: min(560px, 100%);
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-panel) 96%, transparent);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-sans);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+.overlay-panel[data-visible="true"] { opacity: 1; transform: translateY(0); }
+.overlay-panel > .presence { flex-shrink: 0; }
+
+.overlay-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.overlay-top {
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* At most 3 lines, newest at the bottom: older lines overflow off the top and are clipped. */
+.overlay-main {
+  font-size: 16px;
+  line-height: 23px;
+  max-height: 69px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.overlay-main__text { display: block; flex-shrink: 0; overflow-wrap: anywhere; }
+.overlay-main[data-clipped="true"] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px);
+}
+
+[data-tone="primary"] { color: var(--text-1); }
+[data-tone="secondary"] { color: var(--text-2); }
+[data-tone="tertiary"] { color: var(--text-3); }
+[data-tone="warn"] { color: var(--warn); }
+
+.overlay-actions {
+  align-self: flex-start;
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+}
+.overlay-button {
+  box-sizing: border-box;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-1);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.overlay-button:hover { background: var(--bg-hover); }
+.overlay-button:focus { outline: none; }
+.overlay-button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.overlay-button--icon { width: 28px; }
+.overlay-button--text {
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay-panel,
+  .overlay-panel[data-visible="true"] { transform: none; transition: opacity 180ms var(--ease-out); }
+}

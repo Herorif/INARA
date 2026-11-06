@@ -12,7 +12,7 @@ function fixture(t) {
     fs.rmSync(root,{recursive:true});
   });
   const put = (name, value='fixture') => { const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);return file; };
-  for(const name of ['index.html','package.json','package-lock.json','vite.config.js','postcss.config.js','tailwind.config.js','scripts/renderer-provenance.cjs','src/main.js']) put(name);
+  for(const name of ['index.html','overlay.html','package.json','package-lock.json','vite.config.js','postcss.config.js','tailwind.config.js','scripts/renderer-provenance.cjs','src/main.js']) put(name);
   put('docs/ASSET_OWNERSHIP.json','{"format":1,"entries":[]}');
   for(const name of ['vite','rollup']) put(`node_modules/${name}/package.json`,'{"version":"fixture"}');
   fs.mkdirSync(path.join(root,'public'));

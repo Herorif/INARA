@@ -65,7 +65,7 @@ function rendererProvenance() {
     buildStart() {
       inputs.clear(); graph = null; chunks = null; workerGraphs.length = 0; workerChunks.length = 0; workerCount = 0;
       for (const folder of ['src', 'public', 'assets']) for (const file of files(path.join(root, folder))) record(file);
-      for (const name of ['index.html', 'package.json', 'package-lock.json', 'vite.config.js', 'postcss.config.js', 'tailwind.config.js', 'scripts/renderer-provenance.cjs', 'docs/ASSET_OWNERSHIP.json']) record(path.join(root, name));
+      for (const name of ['index.html', 'overlay.html', 'package.json', 'package-lock.json', 'vite.config.js', 'postcss.config.js', 'tailwind.config.js', 'scripts/renderer-provenance.cjs', 'docs/ASSET_OWNERSHIP.json']) record(path.join(root, name));
       for (const name of ['vite', 'rollup']) record(path.join(root, 'node_modules', name, 'package.json'));
     },
     load(id) { const file = physical(id); if (file) record(file); return null; },
