@@ -29,7 +29,9 @@ def main():
         Path(os.environ["APPDATA"]), legacy="inara", current="jarvis", has_data=desktop_has_data
     )
     from resident.host import NativeHost
+    from resident.win32 import enable_dpi_awareness
 
+    enable_dpi_awareness()  # before any window: crisp tray icons above 100% scaling
     try:
         NativeHost(
             Path(__file__).resolve().parent.parent, profile, resident_only=args.resident_only

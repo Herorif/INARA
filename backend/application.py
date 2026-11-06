@@ -359,6 +359,7 @@ class Application:
     async def settings_changed(self, patch):
         await self.connection.settings_changed(patch)
         if "calls" in patch:
+            self.telephony.settings_changed()
             await self.telephony.reconcile()
         if "voice" in patch:
             self.voice_overlay.settings_changed()

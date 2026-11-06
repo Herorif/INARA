@@ -36,8 +36,9 @@ for key, directory in [
 os.environ.pop("ELECTRON_RUN_AS_NODE", None)
 from resident.host import NativeHost  # noqa: E402 - isolate before importing the runtime
 from resident.state import Identity  # noqa: E402
-from resident.win32 import api, kernel, user, Tray, WPARAM, LPARAM  # noqa: E402
+from resident.win32 import api, enable_dpi_awareness, kernel, user, Tray, WPARAM, LPARAM  # noqa: E402
 
+enable_dpi_awareness()  # as backend/resident_main.py does, before the tray window
 owner = str(uuid.uuid4())
 if not args.fresh_identity:
     Identity(output / "profile").register(owner)
@@ -235,7 +236,7 @@ def verify():
             else:
                 secondary = Tray(
                     host.tray.name.rsplit(".", 1)[-1],
-                    ROOT / "assets/icons/jarvis.ico",
+                    ROOT / "assets/icons",
                     lambda _: None,
                     lambda: None,
                 )

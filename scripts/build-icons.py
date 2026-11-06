@@ -6,9 +6,12 @@ frames (16, 20, 24 and the 32 px tray frames) on the pixel grid, and writes the 
 files into a freshly emptied ``.runtime/icons/review/`` with a ``manifest.json`` (each
 output's path, byte size, SHA-256 and pixel sizes). The same inputs give the same bytes.
 
-Nothing reaches the repository: publishing and integration are a separate step.
+Nothing reaches the repository unless ``--publish`` is given: that copies the reviewed
+bytes, without rebuilding, to the destinations approved in ``art/icons/publish.json`` and
+prints the ``docs/ASSET_OWNERSHIP.json`` entries for the renderer assets among them.
 
     python scripts/build-icons.py
+    python scripts/build-icons.py --publish
 """
 
 import argparse
@@ -16,13 +19,14 @@ from functools import lru_cache
 import hashlib
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import shutil
 import struct
 import sys
 import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
+GENERATOR = Path(__file__).resolve()
 SCENE = "jarvis-emblem"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -36,6 +40,13 @@ ICO_SIZES = (16, 20, 24, 32, 40, 48, 64, 96, 128, 256)
 ANDROID_DENSITIES = (("mdpi", 108), ("hdpi", 162), ("xhdpi", 216), ("xxhdpi", 324),
                      ("xxxhdpi", 432))
 ANDROID_BACKGROUND = "#05080C"
+# In-app brand mark (src/assets/icons): 24 is the ready pixel frame, 32 the simplified
+# render, 48 and up the full renders (24/32/48 at 1x, with 48/64/96 as their 2x).
+UI_MARKS = (24, 32, 48, 64, 96)
+# Publishing: approved destinations must sit under one of these repository folders.
+PUBLISH_PREFIXES = ("assets/", "src/assets/", "android/app/src/main/res/", "native/setup/")
+# Renderer assets (docs/ASSET_OWNERSHIP.json covers these only).
+RENDERER_PREFIXES = ("assets/", "public/", "src/")
 
 # J pixel frames: origin (left column, top row), then one string per row.
 # "L" is the light (left) stem column(s), "M" the rest of the J, "." empty.
@@ -390,14 +401,14 @@ def outputs(renders):
     files = {
         "jarvis.ico": encode_ico(app_frames),
         "jarvis.png": emblem[256],
-        "jarvis-mark-20.png": frames[(20, "ready")],
-        "jarvis-mark-40.png": emblem[40],
         "setup/emblem-64.png": emblem[64],
         "setup/emblem-128.png": emblem[128],
         "android/res/mipmap-anydpi-v26/ic_launcher.xml": ADAPTIVE_ICON.encode(),
         "android/res/mipmap-anydpi-v26/ic_launcher_round.xml": ADAPTIVE_ICON.encode(),
         "android/res/values/ic_launcher_background.xml": BACKGROUND_XML.encode(),
     }
+    for size in UI_MARKS:
+        files[f"ui/mark-{size}.png"] = frames[(size, "ready")] if size in PIXEL_SIZES else emblem[size]
     for state in STATES:
         files[f"tray/jarvis-{state}.ico"] = encode_ico(
             [(size, frames[(size, state)]) for size in TRAY_SIZES])
@@ -434,11 +445,10 @@ def build(root):
         target = out / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-    generator = Path(__file__).resolve()
     manifest = {
         "format": 1,
         "generator": "scripts/build-icons.py",
-        "generator_sha256": sha256_bytes(generator.read_bytes()),
+        "generator_sha256": sha256_bytes(GENERATOR.read_bytes()),
         "source": source,
         "outputs": {name: describe(name, data) for name, data in sorted(files.items())},
     }
@@ -448,11 +458,140 @@ def build(root):
     return manifest
 
 
+# --- publish ----------------------------------------------------------------------------
+def safe_name(value, prefixes=None):
+    """A plain relative POSIX path (no drive, backslash, empty, '.' or '..' part)."""
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > 512
+        or "\\" in value
+        or ":" in value
+        or any(ord(c) < 32 for c in value)
+        or PurePosixPath(value).is_absolute()
+        or any(part in ("", ".", "..") for part in value.split("/"))
+    ):
+        return False
+    return prefixes is None or value.startswith(prefixes)
+
+
+def linked(base, relative):
+    """True when any existing component from ``base`` down to ``relative`` is a link."""
+    current = base
+    for part in relative.split("/"):
+        current = current / part
+        if current.is_symlink() or current.is_junction():
+            return True
+        if not current.exists():
+            return False
+    return False
+
+
+def publish_targets(root):
+    approvals = root / "art" / "icons" / "publish.json"
+    if linked(root, "art/icons/publish.json"):
+        raise IconError("art/icons/publish.json must not be a link")
+    try:
+        value = json.loads(approvals.read_text(encoding="utf-8"))
+    except FileNotFoundError as error:
+        raise IconError("No art/icons/publish.json: nothing is approved to publish") from error
+    except (OSError, ValueError) as error:
+        raise IconError(f"art/icons/publish.json is unreadable ({error})") from error
+    if not isinstance(value, dict) or value.get("format") != 1 \
+            or not isinstance(value.get("outputs"), dict) or not value["outputs"]:
+        raise IconError("art/icons/publish.json is not a format 1 approvals file")
+    targets, folded = value["outputs"], set()
+    for output, target in targets.items():
+        if not safe_name(output) or output == "manifest.json" \
+                or not safe_name(target, PUBLISH_PREFIXES):
+            raise IconError(f"Unsupported publish destination for {output!r}: {target!r}")
+        if target.casefold() in folded:
+            raise IconError(f"Two outputs are approved for {target}")
+        folded.add(target.casefold())
+    return targets
+
+
+def publish(root):
+    """Copy reviewed icon bytes, unchanged and without a rebuild, to approved destinations."""
+    root = Path(root)
+    base = root.resolve()
+    where = paths(root)
+    out = where["out"]
+    targets = publish_targets(root)
+    if linked(root, ".runtime/icons/review/manifest.json"):
+        raise IconError("The icon review folder must not contain links")
+    try:
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise IconError(f"Nothing reviewed: run scripts/build-icons.py first ({error})") from error
+    if not isinstance(manifest, dict) or manifest.get("format") != 1 \
+            or manifest.get("generator") != "scripts/build-icons.py" \
+            or not isinstance(manifest.get("outputs"), dict) \
+            or not isinstance(manifest.get("source"), dict):
+        raise IconError("The icon review manifest is not a format 1 build-icons manifest")
+    if manifest.get("generator_sha256") != sha256_bytes(GENERATOR.read_bytes()):
+        raise IconError("scripts/build-icons.py changed since the review build: rebuild and "
+                        "review again")
+    source = manifest["source"]
+    try:
+        scene_hash = sha256_bytes(where["scene"].read_bytes())
+    except OSError as error:
+        raise IconError(f"Missing scene script art/blender/{SCENE}.py") from error
+    if source.get("generator") != f"art/blender/{SCENE}.py" \
+            or source.get("generator_sha256") != scene_hash:
+        raise IconError(f"art/blender/{SCENE}.py changed since the review build: rebuild and "
+                        "review again")
+    if not str(source.get("blender_version", "")).startswith("5.2."):
+        raise IconError("The reviewed renders were not made with Blender 5.2.x")
+    # Check everything before copying anything.
+    plan = []
+    for output, target in sorted(targets.items()):
+        record = manifest["outputs"].get(output)
+        review = f".runtime/icons/review/{output}"
+        if not isinstance(record, dict) or linked(root, review):
+            raise IconError(f"Reviewed output {output} is missing or linked")
+        path = root / review
+        if not path.is_file() or not path.resolve().is_relative_to(out.resolve()):
+            raise IconError(f"Reviewed output {output} is missing or outside the review folder")
+        data = path.read_bytes()
+        if sha256_bytes(data) != record.get("sha256") or len(data) != record.get("bytes"):
+            raise IconError(f"Reviewed output {output} changed since review")
+        destination = root / target
+        if linked(root, target):
+            raise IconError(f"Publish destination {target} goes through a link")
+        if destination.resolve() != base / target or destination.is_dir():
+            raise IconError(f"Publish destination {target} escapes the repository")
+        plan.append((output, target, destination, data, record["sha256"]))
+    entries = []
+    origin = (f"owner-generated: scripts/build-icons.py (sha256 {manifest['generator_sha256']}) "
+              f"from {source['generator']} (sha256 {source['generator_sha256']}), "
+              f"Blender {source['blender_version']}")
+    for output, target, destination, data, digest in plan:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if linked(root, target):
+            raise IconError(f"Publish destination {target} goes through a link")
+        destination.write_bytes(data)
+        if sha256_bytes(destination.read_bytes()) != digest:
+            raise IconError(f"Copy of {output} does not match its reviewed hash")
+        print(f"published {output} -> {target}")
+        if target.startswith(RENDERER_PREFIXES):
+            entries.append({"path": target, "sha256": digest, "origin": origin, "owner": None,
+                            "license_evidence": [], "decision": "pending"})
+    print("Add to docs/ASSET_OWNERSHIP.json once the owner confirms:")
+    print(json.dumps(entries, indent=2))
+    return entries
+
+
 def main(argv=None, root=ROOT):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.parse_args(list(sys.argv[1:] if argv is None else argv))
+    parser.add_argument("--publish", action="store_true",
+                        help="copy reviewed icons to their approved repository locations")
+    args = parser.parse_args(list(sys.argv[1:] if argv is None else argv))
     try:
-        build(root)
+        if args.publish:
+            publish(root)
+        else:
+            build(root)
     except IconError as error:
         print(f"build-icons: {error}", file=sys.stderr)
         return 1

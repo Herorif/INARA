@@ -9,7 +9,17 @@ import subprocess
 import time
 from pathlib import Path
 
+from resident.state import TRAY_ICONS
+from services.log import get_logger
+
 MF_CHECKED = 0x8
+# Tray icons: LoadImageW(IMAGE_ICON, LR_LOADFROMFILE) at the small-icon size SM_CXSMICON.
+IMAGE_ICON, LR_LOADFROMFILE, SM_CXSMICON = 1, 0x10, 49
+NIM_ADD, NIM_MODIFY, NIM_DELETE, NIM_SETVERSION = 0, 1, 2, 4
+NIF_MESSAGE, NIF_ICON, NIF_TIP = 1, 2, 4
+WM_SETTINGCHANGE, WM_DISPLAYCHANGE = 0x1A, 0x7E
+# DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2: the shell gets crisp icons at every scale.
+PER_MONITOR_AWARE_V2 = -4
 LRESULT = C.c_ssize_t
 WPARAM = C.c_size_t
 LPARAM = C.c_ssize_t
@@ -17,6 +27,7 @@ WNDPROC = C.WINFUNCTYPE(LRESULT, W.HWND, W.UINT, WPARAM, LPARAM)
 kernel = C.WinDLL("kernel32", use_last_error=True)
 user = C.WinDLL("user32", use_last_error=True)
 shell = C.WinDLL("shell32", use_last_error=True)
+logger = get_logger(__name__)
 
 
 def api(library, name, arguments, result):
@@ -32,6 +43,28 @@ def checked(result):
 
 
 close_handle = api(kernel, "CloseHandle", [W.HANDLE], W.BOOL)
+
+
+def enable_dpi_awareness():
+    """Make the process per-monitor DPI aware (v2) before it creates any window, so Windows
+    does not stretch its tray icon above 100% scaling. False, silently, where unsupported."""
+    try:
+        function = api(user, "SetProcessDpiAwarenessContext", [C.c_ssize_t], W.BOOL)
+        return bool(function(PER_MONITOR_AWARE_V2))
+    except Exception:
+        return False
+
+
+def small_icon_size():
+    """The small-icon size (SM_CXSMICON) at the system DPI, for both dimensions."""
+    try:
+        dpi = api(user, "GetDpiForSystem", [], W.UINT)()
+        size = api(user, "GetSystemMetricsForDpi", [C.c_int, W.UINT], C.c_int)(SM_CXSMICON, dpi)
+    except (AttributeError, OSError):
+        size = 0
+    if size <= 0:
+        size = api(user, "GetSystemMetrics", [C.c_int], C.c_int)(SM_CXSMICON)
+    return size if size > 0 else 16
 
 
 class Security(C.Structure):
@@ -414,7 +447,10 @@ class NotifyData(C.Structure):
 class Tray:
     OPEN, QUIT, CALL, NOTIFY = 0x8001, 0x8002, 0x8003, 0x8004
 
-    def __init__(self, key, icon, on_action, on_tick, suppress_notifications=False):
+    def __init__(self, key, icons, on_action, on_tick, suppress_notifications=False,
+                 icon_state="paused"):
+        """``icons``: the assets/icons folder (tray/jarvis-<state>.ico, jarvis.ico fallback);
+        ``icon_state``: the first state icon shown (resident/state.py's ``tray_icon``)."""
         self.name = f"JARVIS.Native.{key}"
         self.on_action, self.on_tick = on_action, on_tick
         self.talking = False  # a tray voice session is on: the menu offers Stop talking
@@ -423,6 +459,9 @@ class Tray:
         self.suppress_notifications = suppress_notifications
         self.notification_count = 0
         self.window = self.icon = None
+        self.icon_folder = Path(icons)
+        self.icons = {}
+        self.icon_state = icon_state if icon_state in TRAY_ICONS else "ready"
         self.mutex = checked(
             api(kernel, "CreateMutexW", [W.LPVOID, W.BOOL, W.LPCWSTR], W.HANDLE)(
                 None, False, f"Local\\{self.name}"
@@ -438,14 +477,8 @@ class Tray:
             return
         self.procedure = WNDPROC(self._message)
         instance = api(kernel, "GetModuleHandleW", [W.LPCWSTR], W.HMODULE)(None)
-        self.icon = checked(
-            api(
-                user,
-                "LoadImageW",
-                [W.HINSTANCE, W.LPCWSTR, W.UINT, C.c_int, C.c_int, W.UINT],
-                W.HANDLE,
-            )(None, str(Path(icon).resolve()), 1, 32, 32, 0x10)
-        )
+        self.icons = self.load_icons()
+        self.icon = self.icons[self.icon_state]
         self.window_class = WindowClass()
         self.window_class.size, self.window_class.instance = C.sizeof(WindowClass), instance
         self.window_class.procedure, self.window_class.name = self.procedure, self.name
@@ -480,7 +513,9 @@ class Tray:
         )
         self.data = NotifyData()
         self.data.size, self.data.window, self.data.id = C.sizeof(NotifyData), self.window, 1
-        self.data.flags, self.data.message, self.data.icon = 1 | 2 | 4, self.NOTIFY, self.icon
+        self.data.flags, self.data.message, self.data.icon = (
+            NIF_MESSAGE | NIF_ICON | NIF_TIP, self.NOTIFY, self.icon
+        )
         self.data.tip = "JARVIS · Resident starting"
         self._add_icon()
         self.hotkey = bool(
@@ -497,11 +532,72 @@ class Tray:
     def _add_icon(self):
         checked(
             api(shell, "Shell_NotifyIconW", [W.DWORD, C.POINTER(NotifyData)], W.BOOL)(
-                0, C.byref(self.data)
+                NIM_ADD, C.byref(self.data)
             )
         )
         self.data.version = 4
-        checked(shell.Shell_NotifyIconW(4, C.byref(self.data)))
+        checked(shell.Shell_NotifyIconW(NIM_SETVERSION, C.byref(self.data)))
+
+    # --- state icons -----------------------------------------------------------------------
+
+    def load_icons(self):
+        """{state: HICON} for the five state icons at the small-icon size. If any fails to
+        load, every state uses assets/icons/jarvis.ico instead (logged in one line)."""
+        size = small_icon_size()
+        load = api(
+            user, "LoadImageW", [W.HINSTANCE, W.LPCWSTR, W.UINT, C.c_int, C.c_int, W.UINT], W.HANDLE
+        )
+
+        def image(path):
+            return checked(load(None, str(path.resolve()), IMAGE_ICON, size, size, LR_LOADFROMFILE))
+
+        icons = {}
+        try:
+            for name in TRAY_ICONS:
+                icons[name] = image(self.icon_folder / "tray" / f"jarvis-{name}.ico")
+            return icons
+        except OSError as exc:
+            self.destroy_icons(icons)
+            logger.warning("Tray state icons could not load (%s); using jarvis.ico", type(exc).__name__)
+        fallback = image(self.icon_folder / "jarvis.ico")
+        return dict.fromkeys(TRAY_ICONS, fallback)
+
+    @staticmethod
+    def destroy_icons(icons):
+        destroy = api(user, "DestroyIcon", [W.HICON], W.BOOL)
+        for handle in set(icons.values()):
+            if handle:
+                destroy(handle)
+
+    def show_icon(self, name):
+        """Switch to the ``name`` state icon; NIM_MODIFY (NIF_ICON) only when it changes."""
+        if name not in TRAY_ICONS or name == self.icon_state or not self.icons:
+            return False
+        self.icon_state, self.icon = name, self.icons[name]
+        self.data.icon, self.data.flags = self.icon, NIF_ICON
+        shell.Shell_NotifyIconW(NIM_MODIFY, C.byref(self.data))
+        return True
+
+    def reload_icons(self, add=False):
+        """Reload the icons at the current small-icon size (display or DPI change, or a new
+        taskbar), show the current state's, then destroy the old handles. ``add``: the
+        taskbar was recreated, so the icon is added again rather than modified."""
+        old, reloaded = self.icons, True
+        try:
+            self.icons = self.load_icons()
+        except OSError:
+            logger.warning("Tray icons could not reload; keeping the current ones")
+            old, reloaded = {}, False
+        self.icon = self.icons[self.icon_state]
+        self.data.icon = self.icon
+        if add:
+            self.data.flags = NIF_MESSAGE | NIF_ICON | NIF_TIP
+            self._add_icon()
+        else:
+            self.data.flags = NIF_ICON
+            shell.Shell_NotifyIconW(NIM_MODIFY, C.byref(self.data))
+        self.destroy_icons(old)
+        return reloaded
 
     def post(self, callback):
         self.calls.put(callback)
@@ -580,8 +676,9 @@ class Tray:
             elif message == 0x113:
                 self.on_tick()
             elif message == getattr(self, "taskbar_message", None):
-                self.data.flags = 1 | 2 | 4
-                self._add_icon()
+                self.reload_icons(add=True)
+            elif message in (WM_DISPLAYCHANGE, WM_SETTINGCHANGE):
+                self.reload_icons()
             elif message == 0x10:
                 self.on_action("quit")
             elif message == 0x2:
@@ -611,12 +708,12 @@ class Tray:
         if self.window:
             api(user, "UnregisterHotKey", [W.HWND, C.c_int], W.BOOL)(self.window, 1)
             api(user, "KillTimer", [W.HWND, C.c_size_t], W.BOOL)(self.window, 1)
-            shell.Shell_NotifyIconW(2, C.byref(self.data))
+            shell.Shell_NotifyIconW(NIM_DELETE, C.byref(self.data))
             api(user, "DestroyWindow", [W.HWND], W.BOOL)(self.window)
             self.window = None
-        if self.icon:
-            api(user, "DestroyIcon", [W.HICON], W.BOOL)(self.icon)
-            self.icon = None
+        if self.icons:
+            self.destroy_icons(self.icons)
+            self.icons, self.icon = {}, None
         if self.mutex:
             close_handle(self.mutex)
             self.mutex = None

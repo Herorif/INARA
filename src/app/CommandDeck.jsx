@@ -14,6 +14,7 @@ import PanelState from './PanelState';
 import StatusChip from '../shared/ui/StatusChip';
 import HudLabel from '../shared/ui/HudLabel';
 import Kbd from '../shared/ui/Kbd';
+import BrandMark from '../shared/ui/BrandMark';
 import { UI_CONTRACT_VERSION } from '../transport/generated/version.ts';
 import { flags, heavyFeatures } from './features';
 import { voiceChip } from '../features/voice/status.js';
@@ -174,7 +175,7 @@ export default function CommandDeck() {
     {quick && !locked && <Suspense fallback={<PanelState kind="loading" title="Preparing quick assistant"/>}><QuickAssistant gaming={gaming} onExpand={() => setQuick(false)} onClose={() => window.electronAPI ? window.electronAPI.close() : setQuick(false)}/></Suspense>}
     {!quick && !locked && <><a href="#main-workspace" className="skip-link">Skip to workspace</a>
       <header className="titlebar">
-        <div className="titlebar-brand brand"><span className="monogram brand-mark" aria-hidden="true">J</span><span className="brand-word">JARVIS</span></div>
+        <div className="titlebar-brand brand"><BrandMark size={24} /><span className="brand-word">JARVIS</span></div>
         <div className="titlebar-main">
           <button type="button" className="command-trigger btn btn--secondary" aria-label="Open command palette" onClick={() => setCommands(true)}><Search size={14} aria-hidden="true"/><span className="command-trigger__text">Find a tool or action</span><Kbd>Ctrl K</Kbd></button>
         </div>

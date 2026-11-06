@@ -3,16 +3,56 @@
   "entries": [
     {
       "path": "assets/icons/jarvis.ico",
-      "sha256": "e88a17444691ddab4158442c532c7b51095bf35744e0ab78428ef9f619236f44",
-      "origin": "unverified-local-asset",
+      "sha256": "8741f827f2a59febd4293d508de2993e5664100d8981a0d4807ac2f4cf0e045b",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
       "owner": null,
       "license_evidence": [],
       "decision": "pending"
     },
     {
       "path": "assets/icons/jarvis.png",
-      "sha256": "112bcb592ee927f9e1c7ad97f270345395e931bf256e58c2d61195544ebcc696",
-      "origin": "unverified-local-asset",
+      "sha256": "2bfde7ae0d4fb949b8b115f8579041acf807a94274746df1022ebe24d11f936e",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "assets/icons/tray/jarvis-attention.ico",
+      "sha256": "ed4bca70196ea67a7f3b025eb540f22ed7949797c098f74ad2eff6da306e6c60",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "assets/icons/tray/jarvis-calls.ico",
+      "sha256": "0858c09aace254421648a75367ca3f433005e6abfa4b1291db8482ad70f685b8",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "assets/icons/tray/jarvis-paused.ico",
+      "sha256": "5974ee737ee379f643bc12554e2d4138697be28e440f513f4f09236bc6f516bf",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "assets/icons/tray/jarvis-ready.ico",
+      "sha256": "01af1c2054c05e8cabb92e36dcfd447ee6df62bbedc7c2dfda1159fd759b3d76",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "assets/icons/tray/jarvis-talking.ico",
+      "sha256": "da89856514d45d1364eadddf2662c8cfd4abe670fc82fc3e50cfe311cf967800",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
       "owner": null,
       "license_evidence": [],
       "decision": "pending"
@@ -37,6 +77,46 @@
       "path": "public/hand_landmarker.task",
       "sha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1",
       "origin": "unverified-local-asset",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "src/assets/icons/mark-24.png",
+      "sha256": "f5fda67d76c92fcf39f3741fbea0eef42ae4b5029788716cce67de739fddc205",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "src/assets/icons/mark-32.png",
+      "sha256": "fc392567b42462a906ad146476a96622093b297092edb4799519a3d6926a4c83",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "src/assets/icons/mark-48.png",
+      "sha256": "310b4ea20b3b0432ee77d7ebd78a6e57cf6b0d779c5a14b12c1d48ba03a89283",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "src/assets/icons/mark-64.png",
+      "sha256": "20acccd9b564be2307e580a8db292c6a7d80812b5471ff6d681b3f6c6b80defe",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "src/assets/icons/mark-96.png",
+      "sha256": "106534c6c88c3c189b0c40ce98a099011b45aef121f2a1c800d1f4991fcdf4d5",
+      "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
       "owner": null,
       "license_evidence": [],
       "decision": "pending"

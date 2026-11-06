@@ -22,6 +22,22 @@ foreach ($taskElement in $taskXaml.SelectNodes('//*')) {
     $taskName = $taskElement.GetAttribute('Name','http://schemas.microsoft.com/winfx/2006/xaml')
     if ($taskName) { $script:ui[$taskName] = $script:window.FindName($taskName) }
 }
+# Header emblem: the packaged 128 px render, decoded now so the file is not held open. A
+# missing or unreadable file leaves the Image empty; Setup still opens.
+function Set-SetupEmblem {
+    $path = Join-Path $script:controlRoot 'native/setup/emblem-128.png'
+    if (!$script:ui.Emblem -or !(Test-Path -LiteralPath $path -PathType Leaf)) {return}
+    try {
+        $image = New-Object Windows.Media.Imaging.BitmapImage
+        $image.BeginInit()
+        $image.CacheOption = [Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+        $image.UriSource = New-Object Uri ([IO.Path]::GetFullPath($path), [UriKind]::Absolute)
+        $image.EndInit()
+        $image.Freeze()
+        $script:ui.Emblem.Source = $image
+    } catch {$script:ui.Emblem.Source = $null}
+}
+Set-SetupEmblem
 $script:reviewToken = $null; $script:lastStatus = $null; $script:busy = $false; $script:currentOp = $null
 $script:worker = $null; $script:readTask = $null; $script:eraseRequired = $false
 $script:actionButtons = @('InstallButton','SelectButton','RollbackButton','LaunchButton','BackupButton','PrepareButton','ActivateRecovery','RollbackRecovery','UninstallButton','EraseButton','ResumeButton')

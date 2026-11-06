@@ -128,7 +128,7 @@ function openWindow() {
     frame: false,
     show: false,
     backgroundColor: '#05080c',
-    icon: path.join(root, 'assets/icons/jarvis.png'),
+    icon: path.join(root, process.platform === 'win32' ? 'assets/icons/jarvis.ico' : 'assets/icons/jarvis.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -332,7 +332,7 @@ if (ownsInstance) app.whenReady().then(() => {
   }
   if (identity) controller.mode(identity.gaming);
   security.installPermissionHandlers(session.defaultSession, () => mainWindow, appPage);
-  tray = new Tray(nativeImage.createFromPath(path.join(root, 'assets/icons/jarvis.png')));
+  tray = new Tray(nativeImage.createFromPath(path.join(root, 'assets/icons/tray/jarvis-ready.ico')));
   tray.on('click', () => controller.open());
   tray.on('balloon-click', () => controller.open());
   hotkeyReady = globalShortcut.register('CommandOrControl+Shift+Space', () => { quickRequested = true; controller.open(); if (!mainWindow?.webContents.isLoading()) setQuickMode(true); });

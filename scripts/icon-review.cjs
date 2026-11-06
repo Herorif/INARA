@@ -63,7 +63,7 @@ function page() {
   const foreground = dataUrl(file('android/res/mipmap-xhdpi/ic_launcher_foreground.png'));
   const monochrome = dataUrl(file('android/res/mipmap-xhdpi/ic_launcher_monochrome.png'));
   const setup64 = dataUrl(file('setup/emblem-64.png'));
-  const mark20 = dataUrl(file('jarvis-mark-20.png'));
+  const mark24 = dataUrl(file('ui/mark-24.png'));
   const manifest = JSON.parse(file('manifest.json').toString('utf8'));
 
   const img = (src, size, scale = 1, extra = '') =>
@@ -166,7 +166,7 @@ ${bar(true, 16)}${bar(false, 16)}${bar(true, 24)}${bar(false, 24)}
 <h2>In place: Setup header and workspace title bar</h2>
 <div class="pair">
   <div class="tile dark"><div class="setup">${img(setup64, 64)}<div><div class="word">JARVIS</div><div class="sub">YOUR DESKTOP COMPANION</div></div></div></div>
-  <div class="tile dark"><div class="title">${img(mark20, 20)}<b>JARVIS</b><span class="ctl">&#8211;&#9633;&#215;</span></div></div>
+  <div class="tile dark"><div class="title">${img(mark24, 24)}<b>JARVIS</b><span class="ctl">&#8211;&#9633;&#215;</span></div></div>
 </div>
 
 <footer>Renders: ${sources.generator} (sha256 ${String(sources.generator_sha256).slice(0, 12)}&hellip;), Blender ${sources.blender_version}. Icons: ${manifest.generator} (sha256 ${String(manifest.generator_sha256).slice(0, 12)}&hellip;).</footer>

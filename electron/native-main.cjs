@@ -47,7 +47,8 @@ async function register(id) {
 app.whenReady().then(async () => {
   window = new BrowserWindow({ width: bootstrap.quick ? 520 : 1440, height: bootstrap.quick ? 740 : 940, minWidth: 390, minHeight: 560,
     frame: false, show: false, title: 'JARVIS · Command deck', backgroundColor: '#05080c',
-    icon: path.join(root, 'assets/icons/jarvis.png'),
+    // jarvis.ico's 16-256 frames keep the taskbar and Alt-Tab icon crisp at every scale.
+    icon: path.join(root, process.platform === 'win32' ? 'assets/icons/jarvis.ico' : 'assets/icons/jarvis.png'),
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: !bootstrap.hide, offscreen: !!bootstrap.hide, preload: path.join(__dirname, 'preload.js') } });
   bindCaptureLifecycle(window, powerMonitor);
   security.installPermissionHandlers(window.webContents.session, () => window, appPage);

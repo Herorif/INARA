@@ -59,6 +59,23 @@ WAKE = {
     "unavailable": '"Hey Jarvis" unavailable',
 }
 TOOLTIP_LIMIT = 127  # NOTIFYICONDATA's tip holds 128 characters with the terminator
+# The tray's state icons: assets/icons/tray/jarvis-<state>.ico.
+TRAY_ICONS = ("ready", "talking", "calls", "attention", "paused")
+
+
+def tray_icon(phase, error, gaming, talking, calls):
+    """The tray icon for the resident's state, highest priority first: "attention" (the core
+    failed or an error is shown), "paused" (gaming mode, starting or stopping), "talking"
+    (tray voice is active), "calls" (calls.enabled), otherwise "ready"."""
+    if phase == "failed" or error:
+        return "attention"
+    if gaming or phase in ("starting", "stopping"):
+        return "paused"
+    if talking:
+        return "talking"
+    if calls:
+        return "calls"
+    return "ready"
 
 
 class State:
@@ -71,6 +88,8 @@ class State:
         self.voice = None
         # "Hey Jarvis", as the core reports it: {"setting", "state", "message"}.
         self.wake = None
+        # calls.enabled, as the core reports it (off until it does).
+        self.calls = False
 
     def tooltip(self):
         """The tray tooltip: resident status (with "Hey Jarvis" while that setting is on),
@@ -99,6 +118,16 @@ class State:
         if notice:
             parts.append(notice)
         return ("JARVIS · " + " · ".join(parts))[:TOOLTIP_LIMIT]
+
+    def icon(self):
+        """The tray icon name for the current state (see ``tray_icon``)."""
+        return tray_icon(
+            self.phase,
+            self.error,
+            self.identity.gaming,
+            bool((self.voice or {}).get("active")),
+            self.calls,
+        )
 
     def snapshot(self):
         return {

@@ -167,27 +167,14 @@
 .empty-state__action { margin-top: .5rem; }
 
 /*
- * Chamfered monogram: the one deliberate HUD signature (brand mark, empty states, lock screen).
- * Size with --monogram-size; flat, no gradient or glow.
+ * Brand mark (shared/ui/BrandMark.jsx): the crystal J emblem at 24, 32 or 48 px, sized by its
+ * width/height attributes. The emblem carries its own ring, so no border.
  */
-.monogram {
-  --monogram-size: 1.5rem;
-  display: inline-grid;
-  place-items: center;
+.brand-mark {
+  display: block;
   flex-shrink: 0;
-  width: var(--monogram-size);
-  height: var(--monogram-size);
-  border: 1px solid var(--line-accent);
-  border-radius: 6px 2px 6px 2px;
-  font-family: var(--font-sans);
-  font-size: calc(var(--monogram-size) * .5);
-  font-weight: 600;
-  line-height: 1;
-  color: var(--accent);
   user-select: none;
 }
-.monogram--md { --monogram-size: 2rem; }
-.monogram--lg { --monogram-size: 3rem; border-radius: 10px 4px 10px 4px; }
 
 /* Indeterminate progress hairline (real in-flight work only). Static at 40% under reduced motion. */
 .progress-line {

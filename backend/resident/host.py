@@ -71,10 +71,11 @@ class NativeHost:
         self.notice_shown = {}  # notice kind -> monotonic time last shown
         self.tray = (tray_factory or Tray)(
             hashlib.sha256(str(self.profile.resolve()).encode()).hexdigest()[:24],
-            self.root / "assets/icons/jarvis.ico",
+            self.root / "assets/icons",
             self.action,
             self.tick,
             suppress_notifications=suppress_notifications,
+            icon_state=self.state.icon(),
         )
         self.state.hotkey = getattr(self.tray, "hotkey", False)
 
@@ -90,6 +91,7 @@ class NativeHost:
         os.environ["JARVIS_SESSION_TOKEN"] = self.token
         os.environ["JARVIS_INSTANCE_ID"] = self.instance_id
         self.state.phase, self.state.error = "starting", None
+        self.show_tooltip()
         self.started_at = time.monotonic()
         self.server = None
         # Load the supported facade before starting its application loop.
@@ -127,6 +129,9 @@ class NativeHost:
             server.runtime.voice_overlay.observer = self.overlay_changed
             # "Hey Jarvis" listens only here, in the native resident.
             server.runtime.wake.activate(observer=self.wake_changed, notice=self.voice_notice)
+            # calls.enabled picks the tray icon: its value now, then on each settings change.
+            server.runtime.telephony.observer = self.calls_changed
+            server.runtime.telephony.settings_changed()
             server.ACTIVE_RUNTIME = "native-resident-core"
             server.ACTIVE_ENTRYPOINT = "backend/resident_main.py"
             self.server = server.uvicorn.Server(
@@ -180,6 +185,11 @@ class NativeHost:
                     "failed",
                     "The core stopped. Retry from the tray.",
                 )
+            if not self.state.quitting:
+                try:
+                    self.tray.post(self.show_tooltip)  # core thread -> tray: attention icon
+                except Exception:
+                    pass
 
     def _attach_identity(self):
         if self.runtime and self.state.identity.owner:
@@ -227,8 +237,10 @@ class NativeHost:
         return await asyncio.wait_for(asyncio.wrap_future(result), 5)
 
     def show_tooltip(self):
+        """Tray thread: the tooltip and the state icon (switched only when it changes)."""
         if self.tray.window:
             self.tray.tooltip(self.state.tooltip())
+            self.tray.show_icon(self.state.icon())
 
     def publish(self):
         self.show_tooltip()
@@ -485,6 +497,16 @@ class NativeHost:
         if self.overlay_ended is not None and now - self.overlay_ended >= OVERLAY_CLOSE_SECONDS:
             self.close_overlay()
 
+    # --- calls -----------------------------------------------------------------------------
+
+    def calls_changed(self, enabled):
+        """Core loop -> tray thread: calls.enabled, for the tray's calls icon."""
+        self.tray.post(lambda: self.show_calls(enabled))
+
+    def show_calls(self, enabled):
+        self.state.calls = enabled is True
+        self.show_tooltip()
+
     # --- "Hey Jarvis" ----------------------------------------------------------------------
 
     def wake_changed(self, status):
@@ -546,6 +568,10 @@ class NativeHost:
             self.tray.close()
         elif action == "failed":
             self.state.error = "A native desktop action failed. Retry from the tray."
+            try:
+                self.show_tooltip()
+            except Exception:
+                pass  # called from the window procedure's error path: never raise again
 
     def run(self):
         if self.tray.secondary:

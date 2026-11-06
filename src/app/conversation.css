@@ -60,7 +60,7 @@
   padding: 1rem 0;
   text-align: center;
 }
-.conversation-workspace .conversation-welcome .monogram { margin-bottom: .5rem; }
+.conversation-workspace .conversation-welcome .brand-mark { margin-bottom: .5rem; }
 .conversation-workspace .conversation-welcome h3 {
   margin: 0;
   color: var(--text-1);

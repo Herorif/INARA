@@ -75,8 +75,26 @@ def source(tmp_path):
     # The talking overlay page is a second build output next to dist/index.html.
     (root / "dist").mkdir(exist_ok=True)
     (root / "dist/overlay.html").write_text("compiled overlay fixture")
+    # Window, tray and Setup icons; the assets/ ones are renderer inputs with provenance.
+    for name in package.ICON_FILES:
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"icon fixture " + name.encode())
     fixture_build(root)
+    record_assets(root, [name for name in package.ICON_FILES if name.startswith("assets/")])
     return root, bundle
+
+
+def record_assets(root, names):
+    """Add source assets to the fixture renderer provenance (inputs and asset inventory)."""
+    manifest = root / "dist/renderer-provenance.json"
+    value = json.loads(manifest.read_text())
+    for name in names:
+        path = root / name
+        record = {"path": name, "bytes": path.stat().st_size, "sha256": package.release.sha256(path)}
+        value["inputs"].append(record)
+        value["assets"].append(record)
+    manifest.write_text(json.dumps(value))
 
 
 def stage(source):
@@ -227,10 +245,49 @@ def test_staging_rejects_a_bundle_without_the_overlay(source, name):
     assert not target.exists()
 
 
+def test_icon_files_are_the_published_window_tray_and_setup_icons():
+    assert package.ICON_FILES == (
+        "assets/icons/jarvis.ico",
+        "assets/icons/jarvis.png",
+        "assets/icons/tray/jarvis-ready.ico",
+        "assets/icons/tray/jarvis-talking.ico",
+        "assets/icons/tray/jarvis-calls.ico",
+        "assets/icons/tray/jarvis-attention.ico",
+        "assets/icons/tray/jarvis-paused.ico",
+        "native/setup/emblem-128.png",
+    )
+    root = Path(__file__).resolve().parents[1]
+    assert all((root / name).is_file() for name in package.ICON_FILES)
+
+
+def test_staged_pilot_ships_the_icons(source):
+    root, _ = source
+    destination, _ = stage(source)
+    for name in package.ICON_FILES:
+        assert (destination / name).read_bytes() == (root / name).read_bytes(), name
+
+
+def test_staging_refuses_a_missing_setup_emblem(source):
+    root, bundle = source
+    (root / "native/setup/emblem-128.png").unlink()
+    target = root / ".runtime/releases/no-emblem"
+    with pytest.raises((ValueError, OSError)):  # the payload size check stats every input
+        package.stage(target, bundle, root)
+    assert not target.exists()
+
+
 @pytest.mark.parametrize(
-    "name", ["electron/overlay-main.cjs", "electron/overlay-preload.js", "dist/overlay.html"]
+    "name",
+    [
+        "electron/overlay-main.cjs",
+        "electron/overlay-preload.js",
+        "dist/overlay.html",
+        "assets/icons/jarvis.ico",
+        "assets/icons/tray/jarvis-calls.ico",
+        "native/setup/emblem-128.png",
+    ],
 )
-def test_pilot_requires_the_overlay_files(source, name):
+def test_pilot_requires_the_overlay_and_icon_files(source, name):
     destination, result = stage(source)
     assert (destination / name).is_file()
     manifest = destination / "desktop-pilot.json"

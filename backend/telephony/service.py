@@ -104,6 +104,8 @@ class TelephonyService:
         self.sessions = {}
         self.failure = None
         self.lock = asyncio.Lock()
+        # The native host: callable(enabled) on the core loop, for the tray's calls icon.
+        self.observer = None
 
     # --- configuration ------------------------------------------------------------
     def set_agent(self, agent, input_rate=16000):
@@ -119,6 +121,16 @@ class TelephonyService:
 
     def calls_settings(self):
         return calls_settings(self.app.settings)
+
+    def settings_changed(self):
+        """Tell the native host calls.enabled (at its startup and on each calls change)."""
+        observer = self.observer
+        if observer is None:
+            return
+        try:
+            observer(self.calls_settings()["enabled"])
+        except Exception:
+            logger.warning("The tray could not be told calls.enabled", exc_info=True)
 
     def public_base_url(self):
         return self.calls_settings()["public_base_url"] or None

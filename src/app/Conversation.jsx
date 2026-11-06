@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, AudioWaveform, BookOpen, Mic, Plus } from 'lucide-react';
 import useStore from '../store';
 import HudLabel from '../shared/ui/HudLabel';
+import BrandMark from '../shared/ui/BrandMark';
 import { liveVoice, voiceTarget } from '../features/voice';
 import './conversation.css';
 
@@ -145,7 +146,7 @@ export default function Conversation() {
           <div className="conversation-column">
             {messages.length === 0 ? (
               <div className="chat-welcome conversation-welcome">
-                <span className="monogram monogram--md" aria-hidden="true">J</span>
+                <BrandMark size={32} />
                 <h3>Start a conversation</h3>
                 <p>Ask a question, plan your day, or hand over a task.</p>
                 <div className="conversation-starters">

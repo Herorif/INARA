@@ -333,11 +333,23 @@ def test_manifest_lists_every_output_with_its_hash(built):
         assert record["sha256"] == hashlib.sha256(data).hexdigest()
         assert record["bytes"] == len(data)
     assert manifest["outputs"]["jarvis.ico"]["frames"] == list(bi.ICO_SIZES)
-    assert manifest["outputs"]["jarvis-mark-20.png"]["pixels"] == [20, 20]
-    expected = {"jarvis.ico", "jarvis.png", "jarvis-mark-20.png", "jarvis-mark-40.png",
-                "setup/emblem-64.png", "setup/emblem-128.png"} \
-        | {f"tray/jarvis-{s}.ico" for s in ("ready", "talking", "paused", "calls", "attention")}
+    expected = {"jarvis.ico", "jarvis.png", "setup/emblem-64.png", "setup/emblem-128.png"} \
+        | {f"tray/jarvis-{s}.ico" for s in ("ready", "talking", "paused", "calls", "attention")} \
+        | {f"ui/mark-{size}.png" for size in (24, 32, 48, 64, 96)}
     assert expected <= set(manifest["outputs"])
+    assert not {"jarvis-mark-20.png", "jarvis-mark-40.png"} & set(manifest["outputs"])
+
+
+def test_ui_marks_are_the_ready_frame_and_the_reviewed_renders(built):
+    root, out, manifest = built
+    renders = root / ".runtime" / "blender" / "review"
+    ready = {e["w"]: e["png"] for e in ico_entries((out / "tray" / "jarvis-ready.ico").read_bytes())}
+    assert (out / "ui" / "mark-24.png").read_bytes() == ready[24]
+    for size in (32, 48, 64, 96):
+        assert (out / "ui" / f"mark-{size}.png").read_bytes() \
+            == (renders / f"emblem-{size}.png").read_bytes()
+    for size in bi.UI_MARKS:
+        assert manifest["outputs"][f"ui/mark-{size}.png"]["pixels"] == [size, size]
 
 
 def test_builds_are_byte_identical_and_empty_the_folder_first(tmp_path):
@@ -379,3 +391,257 @@ def test_refuses_a_render_that_changed_since_review(tmp_path):
 def test_refuses_a_missing_manifest(tmp_path):
     assert bi.main([], root=tmp_path) == 1
     assert not (tmp_path / ".runtime" / "icons").exists()
+
+
+# --- publish -------------------------------------------------------------------------------
+REPO = Path(__file__).resolve().parents[1]
+APPROVALS = json.loads((REPO / "art" / "icons" / "publish.json").read_text(encoding="utf-8"))
+
+
+def approve(root, outputs=None):
+    path = root / "art" / "icons" / "publish.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    value = APPROVALS if outputs is None else {"format": 1, "outputs": outputs}
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+
+@pytest.fixture
+def reviewed(tmp_path):
+    root = fake_root(tmp_path)
+    bi.build(root)
+    approve(root)
+    return root
+
+
+def published(root):
+    return {name: (root / target).read_bytes() for name, target in APPROVALS["outputs"].items()
+            if (root / target).exists()}
+
+
+def test_publish_copies_the_reviewed_bytes_to_every_approved_destination(reviewed, capsys):
+    out = reviewed / ".runtime" / "icons" / "review"
+    before = snapshot(out)
+    entries = bi.publish(reviewed)
+    for name, target in APPROVALS["outputs"].items():
+        assert (reviewed / target).read_bytes() == (out / name).read_bytes(), name
+    assert snapshot(out) == before        # no rebuild: the review folder is untouched
+    printed = capsys.readouterr().out
+    assert "Add to docs/ASSET_OWNERSHIP.json" in printed
+    assert json.loads(printed.split("confirms:\n", 1)[1]) == entries
+
+
+def test_publish_prints_ownership_entries_for_renderer_assets_only(reviewed):
+    manifest = json.loads((reviewed / ".runtime/icons/review/manifest.json").read_text())
+    entries = bi.publish(reviewed)
+    renderer = sorted(t for t in APPROVALS["outputs"].values()
+                      if t.startswith(("assets/", "public/", "src/")))
+    assert sorted(e["path"] for e in entries) == renderer and len(renderer) == 12
+    source = manifest["source"]
+    origin = (f"owner-generated: scripts/build-icons.py (sha256 {manifest['generator_sha256']}) "
+              f"from art/blender/jarvis-emblem.py (sha256 {source['generator_sha256']}), "
+              "Blender 5.2.3")
+    by_target = {t: n for n, t in APPROVALS["outputs"].items()}
+    for entry in entries:
+        assert entry == {"path": entry["path"],
+                         "sha256": manifest["outputs"][by_target[entry["path"]]]["sha256"],
+                         "origin": origin, "owner": None, "license_evidence": [],
+                         "decision": "pending"}
+
+
+def test_approved_destinations_are_the_agreed_set():
+    targets = set(APPROVALS["outputs"].values())
+    res = "android/app/src/main/res/"
+    expected = {"assets/icons/jarvis.ico", "assets/icons/jarvis.png",
+                "native/setup/emblem-128.png",
+                res + "mipmap-anydpi-v26/ic_launcher.xml",
+                res + "mipmap-anydpi-v26/ic_launcher_round.xml",
+                res + "values/ic_launcher_background.xml"} \
+        | {f"assets/icons/tray/jarvis-{s}.ico" for s in bi.STATES} \
+        | {f"src/assets/icons/mark-{n}.png" for n in bi.UI_MARKS} \
+        | {f"{res}mipmap-{d}/ic_launcher_{layer}.png" for d, _ in bi.ANDROID_DENSITIES
+           for layer in ("foreground", "monochrome")}
+    assert targets == expected and len(APPROVALS["outputs"]) == len(expected)
+
+
+def refused(root, match):
+    with pytest.raises(bi.IconError, match=match):
+        bi.publish(root)
+    assert published(root) == {}
+    assert bi.main(["--publish"], root=root) == 1
+
+
+def test_publish_refuses_without_approvals(tmp_path):
+    root = fake_root(tmp_path)
+    bi.build(root)
+    refused(root, "nothing is approved")
+    approve(root, {})
+    refused(root, "not a format 1")
+
+
+def test_publish_refuses_without_a_review(tmp_path):
+    root = fake_root(tmp_path)
+    approve(root)
+    refused(root, "Nothing reviewed")
+
+
+def test_publish_refuses_a_reviewed_file_whose_hash_changed(reviewed):
+    (reviewed / ".runtime/icons/review/tray/jarvis-calls.ico").write_bytes(b"tampered")
+    refused(reviewed, "changed since review")
+
+
+def test_publish_refuses_a_missing_reviewed_file(reviewed):
+    (reviewed / ".runtime/icons/review/ui/mark-48.png").unlink()
+    refused(reviewed, "missing")
+
+
+def test_publish_refuses_when_the_scene_script_changed(reviewed):
+    (reviewed / "art/blender/jarvis-emblem.py").write_text("# edited after review\n")
+    refused(reviewed, "jarvis-emblem.py changed since the review build")
+
+
+def test_publish_refuses_when_build_icons_changed(reviewed, tmp_path, monkeypatch):
+    edited = tmp_path / "build-icons-edited.py"
+    edited.write_bytes(bi.GENERATOR.read_bytes() + b"\n# edited after review\n")
+    monkeypatch.setattr(bi, "GENERATOR", edited)
+    refused(reviewed, "build-icons.py changed since the review build")
+
+
+@pytest.mark.parametrize("target", [
+    "dist/jarvis.ico", "public/jarvis.ico", "backend/jarvis.ico", "android/app/jarvis.ico",
+    "../outside/jarvis.ico", "assets/../backend/jarvis.ico", "assets/./jarvis.ico",
+    "assets//jarvis.ico", "assets\\icons\\jarvis.ico", "C:/assets/jarvis.ico",
+    "/assets/jarvis.ico", "src/app/jarvis.ico", "native/jarvis.ico", "", 7,
+])
+def test_publish_refuses_unapproved_destinations(reviewed, target):
+    approve(reviewed, {"jarvis.ico": target})
+    with pytest.raises(bi.IconError, match="Unsupported publish destination"):
+        bi.publish(reviewed)
+    assert not (reviewed / "assets").exists() and not (reviewed.parent / "outside").exists()
+
+
+@pytest.mark.parametrize("output", ["../review/jarvis.ico", "manifest.json", "tray\\x.ico"])
+def test_publish_refuses_unsafe_output_names(reviewed, output):
+    approve(reviewed, {output: "assets/icons/jarvis.ico"})
+    refused(reviewed, "Unsupported publish destination")
+
+
+def junction(link, target):
+    winapi = pytest.importorskip("_winapi")
+    target.mkdir(parents=True, exist_ok=True)
+    link.parent.mkdir(parents=True, exist_ok=True)
+    winapi.CreateJunction(str(target), str(link))
+    assert link.is_junction()
+
+
+def test_publish_refuses_a_destination_through_a_junction(reviewed, tmp_path):
+    outside = tmp_path / "outside"
+    junction(reviewed / "assets" / "icons", outside)
+    refused(reviewed, "goes through a link")
+    assert not any(outside.iterdir())
+
+
+def test_publish_refuses_a_symlinked_destination(reviewed, tmp_path):
+    outside = tmp_path / "outside.ico"
+    outside.write_bytes(b"not ours")
+    link = reviewed / "assets" / "icons" / "jarvis.ico"
+    link.parent.mkdir(parents=True)
+    try:
+        link.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks need Developer Mode or elevation on this machine")
+    with pytest.raises(bi.IconError, match="goes through a link"):
+        bi.publish(reviewed)
+    assert outside.read_bytes() == b"not ours"
+
+
+def test_publish_refuses_a_linked_review_folder(reviewed, tmp_path):
+    review = reviewed / ".runtime/icons/review"
+    moved = tmp_path / "elsewhere"
+    (review / "tray").rename(moved)
+    junction(review / "tray", moved)
+    refused(reviewed, "missing or linked")
+
+
+def test_publish_refuses_linked_approvals(reviewed, tmp_path):
+    elsewhere = tmp_path / "approvals"
+    (reviewed / "art/icons").rename(elsewhere)
+    junction(reviewed / "art/icons", elsewhere)
+    refused(reviewed, "must not be a link")
+
+
+def test_publish_checks_everything_before_copying_anything(reviewed):
+    # ui/mark-96 is checked last (sorted); nothing may be copied before that refusal.
+    (reviewed / ".runtime/icons/review/ui/mark-96.png").write_bytes(b"tampered")
+    refused(reviewed, "changed since review")
+
+
+# --- the published files are the approved bytes ------------------------------------------
+# sha256 of each published output in the owner-approved review build (commit a75a43e).
+# Publishing and every later review build must keep these bytes.
+APPROVED = {
+    "android/res/mipmap-anydpi-v26/ic_launcher.xml":
+        "5bef67e3eba5c56f6ca0f96173c76e654977bce5ea91f0161fce94c5f52bbef7",
+    "android/res/mipmap-anydpi-v26/ic_launcher_round.xml":
+        "5bef67e3eba5c56f6ca0f96173c76e654977bce5ea91f0161fce94c5f52bbef7",
+    "android/res/mipmap-hdpi/ic_launcher_foreground.png":
+        "cd7b1d2d89eea2f269406a31774d1cca3ada116a91598fd1ab3b7cc0ec36edf8",
+    "android/res/mipmap-hdpi/ic_launcher_monochrome.png":
+        "804079ea1eed7e4117125159db9aa5c55efc00978a0000b6126e0e768846af7f",
+    "android/res/mipmap-mdpi/ic_launcher_foreground.png":
+        "e38c8379895db7d617f0ae474a5a9f5130a5bcc24b1e4b78a61bff0d54fceb5d",
+    "android/res/mipmap-mdpi/ic_launcher_monochrome.png":
+        "47fd376541c477d6b2f4e3503267e4f2062edf001a38f96dd62ac8730c9dfce4",
+    "android/res/mipmap-xhdpi/ic_launcher_foreground.png":
+        "794dc6d86df7878f669ccb4f602967b23c6b024f51e3df77aaf8db4beec35dc5",
+    "android/res/mipmap-xhdpi/ic_launcher_monochrome.png":
+        "81ad24274409d47ba8915d02ee03b11c9f98812d1eac9a30ad048bb6dba78be9",
+    "android/res/mipmap-xxhdpi/ic_launcher_foreground.png":
+        "ad2ba220c3d4b5fa1889b75da5133fd1938b744a36e02e0c87c850205954096c",
+    "android/res/mipmap-xxhdpi/ic_launcher_monochrome.png":
+        "3bd55eb30c7003590dc71850ee963945eda04f370b15dca0b046055ebc33e94f",
+    "android/res/mipmap-xxxhdpi/ic_launcher_foreground.png":
+        "7c14896a40309043171eebd518e17ca4b629233cca09bf033e5bb0d4f0c28e70",
+    "android/res/mipmap-xxxhdpi/ic_launcher_monochrome.png":
+        "2a7f45f995e62ebc46b77221f29dc3042a02b88b5cfbaa62102691f314f56da2",
+    "android/res/values/ic_launcher_background.xml":
+        "9e639b4aa15b683edefd02c889fdb45867eb937348395077aaf9a18fabb2f754",
+    "jarvis.ico": "8741f827f2a59febd4293d508de2993e5664100d8981a0d4807ac2f4cf0e045b",
+    "jarvis.png": "2bfde7ae0d4fb949b8b115f8579041acf807a94274746df1022ebe24d11f936e",
+    "setup/emblem-128.png": "66ae0d8f600bb72df418b8a9bea37ddd01da8095e6f7b96cd8e497c593d46279",
+    "tray/jarvis-attention.ico":
+        "ed4bca70196ea67a7f3b025eb540f22ed7949797c098f74ad2eff6da306e6c60",
+    "tray/jarvis-calls.ico": "0858c09aace254421648a75367ca3f433005e6abfa4b1291db8482ad70f685b8",
+    "tray/jarvis-paused.ico": "5974ee737ee379f643bc12554e2d4138697be28e440f513f4f09236bc6f516bf",
+    "tray/jarvis-ready.ico": "01af1c2054c05e8cabb92e36dcfd447ee6df62bbedc7c2dfda1159fd759b3d76",
+    "tray/jarvis-talking.ico": "da89856514d45d1364eadddf2662c8cfd4abe670fc82fc3e50cfe311cf967800",
+}
+
+
+def test_published_files_are_byte_identical_to_the_approved_review():
+    outputs = APPROVALS["outputs"]
+    assert set(APPROVED) == set(outputs) - {f"ui/mark-{n}.png" for n in bi.UI_MARKS}
+    for name, digest in APPROVED.items():
+        data = (REPO / outputs[name]).read_bytes()
+        if name.endswith(".xml"):     # core.autocrlf may check text files out with CRLF
+            data = data.replace(b"\r\n", b"\n")
+        assert hashlib.sha256(data).hexdigest() == digest, outputs[name]
+
+
+def test_published_ui_marks_are_frames_of_the_approved_icons():
+    app = {e["w"]: e["png"] for e in ico_entries((REPO / "assets/icons/jarvis.ico").read_bytes())}
+    ready = {e["w"]: e["png"]
+             for e in ico_entries((REPO / "assets/icons/tray/jarvis-ready.ico").read_bytes())}
+    marks = REPO / "src" / "assets" / "icons"
+    assert (marks / "mark-24.png").read_bytes() == ready[24] == app[24]
+    for size in (32, 48, 64, 96):        # the reviewed renders inside the approved jarvis.ico
+        assert (marks / f"mark-{size}.png").read_bytes() == app[size]
+    assert (REPO / "native/setup/emblem-128.png").read_bytes() == app[128]
+
+
+def test_local_review_build_keeps_the_approved_bytes():
+    manifest = REPO / ".runtime" / "icons" / "review" / "manifest.json"
+    if not manifest.is_file():
+        pytest.skip("no local icon review build")
+    outputs = json.loads(manifest.read_text(encoding="utf-8"))["outputs"]
+    for name, digest in APPROVED.items():
+        assert outputs[name]["sha256"] == digest, name

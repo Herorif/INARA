@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "outputs": {
+    "jarvis.ico": "assets/icons/jarvis.ico",
+    "jarvis.png": "assets/icons/jarvis.png",
+    "tray/jarvis-ready.ico": "assets/icons/tray/jarvis-ready.ico",
+    "tray/jarvis-talking.ico": "assets/icons/tray/jarvis-talking.ico",
+    "tray/jarvis-calls.ico": "assets/icons/tray/jarvis-calls.ico",
+    "tray/jarvis-attention.ico": "assets/icons/tray/jarvis-attention.ico",
+    "tray/jarvis-paused.ico": "assets/icons/tray/jarvis-paused.ico",
+    "ui/mark-24.png": "src/assets/icons/mark-24.png",
+    "ui/mark-32.png": "src/assets/icons/mark-32.png",
+    "ui/mark-48.png": "src/assets/icons/mark-48.png",
+    "ui/mark-64.png": "src/assets/icons/mark-64.png",
+    "ui/mark-96.png": "src/assets/icons/mark-96.png",
+    "setup/emblem-128.png": "native/setup/emblem-128.png",
+    "android/res/mipmap-anydpi-v26/ic_launcher.xml": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "android/res/mipmap-anydpi-v26/ic_launcher_round.xml": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    "android/res/mipmap-mdpi/ic_launcher_foreground.png": "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+    "android/res/mipmap-mdpi/ic_launcher_monochrome.png": "android/app/src/main/res/mipmap-mdpi/ic_launcher_monochrome.png",
+    "android/res/mipmap-hdpi/ic_launcher_foreground.png": "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+    "android/res/mipmap-hdpi/ic_launcher_monochrome.png": "android/app/src/main/res/mipmap-hdpi/ic_launcher_monochrome.png",
+    "android/res/mipmap-xhdpi/ic_launcher_foreground.png": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+    "android/res/mipmap-xhdpi/ic_launcher_monochrome.png": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_monochrome.png",
+    "android/res/mipmap-xxhdpi/ic_launcher_foreground.png": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+    "android/res/mipmap-xxhdpi/ic_launcher_monochrome.png": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_monochrome.png",
+    "android/res/mipmap-xxxhdpi/ic_launcher_foreground.png": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+    "android/res/mipmap-xxxhdpi/ic_launcher_monochrome.png": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_monochrome.png",
+    "android/res/values/ic_launcher_background.xml": "android/app/src/main/res/values/ic_launcher_background.xml"
+  }
+}

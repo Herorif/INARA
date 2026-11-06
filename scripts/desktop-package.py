@@ -26,6 +26,17 @@ RUNTIME_REQUIRED = {
 
 # The workspace entry and preload, and the talking overlay's (docs/VOICE_OVERLAY.md).
 BUNDLE_FILES = ("native-main.cjs", "preload.js", "overlay-main.cjs", "overlay-preload.js")
+# The window, taskbar and tray icons (assets/icons/** ships with the payload) and the Setup
+# header emblem (art/icons/publish.json publishes all of them).
+ICON_FILES = (
+    "assets/icons/jarvis.ico",
+    "assets/icons/jarvis.png",
+    *(
+        f"assets/icons/tray/jarvis-{state}.ico"
+        for state in ("ready", "talking", "calls", "attention", "paused")
+    ),
+    "native/setup/emblem-128.png",
+)
 
 
 def read_json(path, limit=4_194_304):
@@ -169,7 +180,15 @@ def stage(destination, bundle, root=ROOT, runtime_directory=None):
             "pilot-start.ps1",
         )
     ]
-    mapping += [(root / name, name) for name in ("JARVIS Setup.cmd", "JARVIS Setup.ps1", "native/setup/Setup.xaml")]
+    mapping += [
+        (root / name, name)
+        for name in (
+            "JARVIS Setup.cmd",
+            "JARVIS Setup.ps1",
+            "native/setup/Setup.xaml",
+            "native/setup/emblem-128.png",
+        )
+    ]
     mapping += [(root / name, name) for name in ("dist/renderer-provenance.json", "docs/ASSET_OWNERSHIP.json")]
     mapping += [
         (path, "runtime/electron/" + path.relative_to(runtime).as_posix()) for path in runtime_files
@@ -272,6 +291,7 @@ def verify(directory):
         "scripts/pilot-start.ps1",
         "scripts/desktop-package.py",
     }
+    required |= set(ICON_FILES)
     required |= {"runtime/electron/" + name for name in RUNTIME_REQUIRED}
     if not required.issubset(expected):
         raise ValueError("Pilot runtime/entrypoints are incomplete")

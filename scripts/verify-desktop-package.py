@@ -23,8 +23,14 @@ spec = importlib.util.spec_from_file_location(
 packaging = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(packaging)
 packaging.verify(package)
-# The talking overlay ships beside the workspace entry (docs/VOICE_OVERLAY.md).
-for name in ("electron/overlay-main.cjs", "electron/overlay-preload.js", "dist/overlay.html"):
+# The talking overlay ships beside the workspace entry (docs/VOICE_OVERLAY.md), and the
+# window, tray and Setup icons with it.
+for name in (
+    "electron/overlay-main.cjs",
+    "electron/overlay-preload.js",
+    "dist/overlay.html",
+    *packaging.ICON_FILES,
+):
     assert (package / name).is_file(), name
 assert {entry["path"] for entry in json.loads((package / "electron/bundle-manifest.json").read_text())["files"]} == set(
     packaging.BUNDLE_FILES

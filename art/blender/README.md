@@ -237,8 +237,65 @@ disc. It takes no scene arguments besides `--out`. The constants are at the top 
 
 `scripts/build-icons.py` turns the reviewed renders into the icon files (it draws the 16,
 20, 24 and 32 px frames itself, on the pixel grid) in `.runtime/icons/review/`, and
-`scripts/icon-review.cjs` captures a review sheet from them offscreen. Nothing from this
-scene is approved in `publish.json` yet.
+`scripts/icon-review.cjs` captures a review sheet from them offscreen. The scene's renders
+are never published directly (nothing from it is in `art/blender/publish.json`): the icon
+files are, through `build-icons.py --publish` (see "Icons" below).
+
+### Icons
+
+```powershell
+.venv\Scripts\python.exe scripts\blender-build.py jarvis-emblem   # renders, for review
+.venv\Scripts\python.exe scripts\build-icons.py                   # icon files, for review
+node_modules\.bin\electron scripts\icon-review.cjs                  # review sheet
+.venv\Scripts\python.exe scripts\build-icons.py --publish         # after the owner approves
+```
+
+The review build writes, into a freshly emptied `.runtime/icons/review/`, with a
+`manifest.json` (each file's size, SHA-256 and pixel sizes or ICO frames; the hashes of
+`build-icons.py`, the scene script and the scene manifest; the Blender version):
+
+| Output | What it is | Published to |
+| --- | --- | --- |
+| `jarvis.ico` | App icon: pixel frames 16, 20, 24; renders 32 to 256 | `assets/icons/jarvis.ico` (window, taskbar, Alt-Tab) |
+| `jarvis.png` | The 256 render | `assets/icons/jarvis.png` (window icon off Windows) |
+| `tray/jarvis-<state>.ico` | Tray icons, pixel frames 16, 20, 24, 32: `ready`, `talking`, `calls`, `attention`, `paused` | `assets/icons/tray/` |
+| `ui/mark-<24\|32\|48\|64\|96>.png` | In-app mark: 24 is the ready pixel frame, 32 the simplified render, 48 and up the full renders | `src/assets/icons/mark-<size>.png` |
+| `setup/emblem-128.png`, `setup/emblem-64.png` | Setup header renders | `native/setup/emblem-128.png` (64 is review only) |
+| `android/res/...` | Adaptive launcher icon XML, background colour, foreground and monochrome mipmaps for mdpi to xxxhdpi | `android/app/src/main/res/` |
+
+`--publish` mirrors `blender-build.py --publish`. It does not rebuild: it copies the reviewed
+bytes as they are, and only to the destinations approved in `art/icons/publish.json`:
+
+```json
+{ "format": 1, "outputs": { "jarvis.ico": "assets/icons/jarvis.ico", "...": "..." } }
+```
+
+Destinations must be relative paths under `assets/`, `src/assets/`,
+`android/app/src/main/res/` or `native/setup/`. Every check runs before anything is copied.
+Publishing is refused when:
+
+- `art/icons/publish.json` is missing, malformed or empty, or a destination or output name
+  is outside those folders, absolute, has a drive, a backslash, or an empty, `.` or `..` part;
+- there is no review build, or its `manifest.json` is not a `build-icons.py` manifest;
+- `scripts/build-icons.py` or `art/blender/jarvis-emblem.py` changed since the review build,
+  or the renders were not made with Blender 5.2.x;
+- a reviewed file is missing or its size or SHA-256 differs from the manifest;
+- the approvals, a reviewed file or a destination goes through a symlink or junction, or a
+  destination resolves outside the repository.
+
+Each copy is checked against its reviewed hash. `--publish` then prints the
+`docs/ASSET_OWNERSHIP.json` entries for the renderer assets among the destinations (paths
+under `assets/`, `public/` or `src/`; the Android and Setup files are not renderer assets,
+and `scripts/renderer-provenance.py` refuses entries for anything else). Their `origin`
+names both generators:
+
+```text
+owner-generated: scripts/build-icons.py (sha256 <hash>) from art/blender/jarvis-emblem.py (sha256 <hash>), Blender 5.2.3
+```
+
+Replace or add those entries in the same commit as the published files.
+`tests/test_build_icons.py` pins the SHA-256 of every published file from the approved
+review build, so a later review build or publish that changes their bytes fails the tests.
 
 ## In the app
 
