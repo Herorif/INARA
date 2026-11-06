@@ -57,3 +57,14 @@ Vision v2 adds a shared native/fallback preload pause bridge for window hide/min
 ## Tray voice (J2)
 
 The tray menu has **Talk to JARVIS**, which starts a hands-free voice session through this PC's microphone and speaker with the workspace closed, and shows **Stop talking** while it runs. The tooltip shows Listening / Thinking / Speaking with the microphone state and any notice. The microphone is open only during that session; gaming mode stops it at once and closes the devices. Icon art comes later (B2). See [Voice connection policy](VOICE_CONNECTION_POLICY.md#tray-voice-the-local-endpoint-j2).
+
+## The talking overlay (J4)
+
+While a tray voice session runs (Talk to JARVIS or "Hey Jarvis"), the host runs a second, small Electron process, `electron/overlay-main.cjs` (the window: [VOICE_OVERLAY.md](VOICE_OVERLAY.md)), which connects to the core with the `overlay` socket role and shows the live core and captions ([Voice connection policy](VOICE_CONNECTION_POLICY.md#the-talking-overlay-j4)).
+
+- **Spawn.** When a tray session starts (after `check_local_start` passed), the core loop posts to the tray thread, which starts the overlay only if `voice.overlay` is on, `dist/overlay.html` exists, `resident.layout.workspace_executable(root)` finds Electron, JARVIS is not quitting and no overlay process is alive. It uses the same `WorkspaceProcess` job and stdin-pipe bootstrap as the workspace, with exactly `{"token", "clientId" (the owner UUID), "profile" (<profile>\overlay, created if missing; never the workspace's own profile folder), "core": "http://127.0.0.1:8000", "dev" (the workspace's dev rule)}`.
+- **Reuse.** A new session while the overlay is still alive (for example fading out) reuses it.
+- **Closing.** The overlay quits itself after its fade-out; as a safety net the host closes one still alive 30 s after its session ended (checked on the tray tick). A `now` end (gaming mode, face lock, microphone permission denied) closes it at once, after the cleared final snapshot is sent. Turning `voice.overlay` off closes an open overlay at once; turning it on mid-session opens nothing until the next session. Quitting JARVIS closes it.
+- **Isolation.** `release_workspace()` disconnects only renderer and workspace sockets, the workspace start-up check counts only `workspace` sockets, workspace focus goes only to `workspace` sockets and `resident_state` is not sent to overlay sockets.
+- **Failure.** A spawn failure logs one line (the exception type, never the token) and voice carries on normally, with no user-facing error.
+- **Threading.** Process work runs on the tray thread (`tray.post`), like `open_workspace`; the core loop only posts (`VoiceOverlay.observer` -> `NativeHost.overlay_changed`).

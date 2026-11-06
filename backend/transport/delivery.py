@@ -46,7 +46,7 @@ class EventDelivery:
                 [
                     sid
                     for sid in self.sessions.rooms(principal)
-                    if self.sessions.roles.get(sid) != "workspace"
+                    if self.sessions.roles.get(sid) not in ("workspace", "overlay")
                 ],
                 key=lambda sid: (
                     (self.sessions.roles.get(sid) != "resident")

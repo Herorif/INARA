@@ -127,7 +127,7 @@
       "caller": "Launch-token channel; pinned/native desktop owner",
       "context": "Registry owner/role; owner-only renderer hydration after face gate",
       "effects": "Register channel, hydrate state, optional face loop",
-      "policy": "Control/resident channels receive no private hydration; locked renderers receive auth state/frames only",
+      "policy": "Control/resident channels receive no private hydration; locked renderers receive auth state/frames only; overlay channels (role \"overlay\", the registered owner only, no registration path) receive only their voice_overlay snapshot on connect, then voice_overlay / voice_level",
       "response": "Origin SID or verified owner renderer rooms; no broadcast",
       "lifetime": "One owned face generation; last-renderer/resource/settings/quit cleanup",
       "replacement": "ConnectionTransport / owned FaceWorker",
@@ -1242,6 +1242,28 @@
       "response": "Origin ACK {ok, state (off | listening | paused | unavailable), message}; paused means gaming mode only; unavailable carries a plain reason",
       "lifetime": "Request-only; no audio captured, nothing stored",
       "replacement": "WakeWordTransport / WakeWordService (services/wake_listening.py)",
+      "status": "migrated"
+    },
+    "overlay_stop": {
+      "schema": "OverlayRequest (no fields; null or {} only, extra fields forbidden)",
+      "caller": "The registered owner's overlay socket only (role \"overlay\"; accepted only for the registered owner, never a registration path); allowed while locked",
+      "context": "The owner's tray voice session (endpoint local), if any",
+      "effects": "The tray's \"Stop talking\": VoiceService.stop_local() ends a tray voice session (quiet end); a safety stop, always allowed",
+      "policy": "Independent owner/role gate require_owner(sid, {\"overlay\"}, allow_locked=True); not a dispatcher tool and not model-visible; every other socket event rejects an overlay SID, and DesktopSessions.context refuses it",
+      "response": "Origin ACK {ok: true} or {ok: false, code, message}; the overlay itself receives only voice_overlay snapshots and voice_level, to the owner's overlay SIDs only",
+      "lifetime": "Request-only; nothing stored",
+      "replacement": "VoiceOverlayTransport (transport/voice_overlay.py) / VoiceOverlay (services/voice_overlay.py)",
+      "status": "migrated"
+    },
+    "overlay_open": {
+      "schema": "OverlayRequest (no fields; null or {} only, extra fields forbidden)",
+      "caller": "The registered owner's overlay socket only (role \"overlay\"; accepted only for the registered owner, never a registration path); allowed while locked",
+      "context": "The native resident host (sessions.native_desktop) and its tray thread",
+      "effects": "The tray's \"Open JARVIS\": NativeHost.open_workspace(quick=False) posted to the tray thread (opens or focuses the workspace; approvals then happen there)",
+      "policy": "Independent owner/role gate require_owner(sid, {\"overlay\"}, allow_locked=True); not a dispatcher tool and not model-visible; every other socket event rejects an overlay SID, and DesktopSessions.context refuses it",
+      "response": "Origin ACK {ok: true} once posted, or {ok: false, code (workspace_unavailable without a native host), message}",
+      "lifetime": "Request-only; nothing stored",
+      "replacement": "VoiceOverlayTransport (transport/voice_overlay.py) / VoiceOverlay (services/voice_overlay.py)",
       "status": "migrated"
     }
   },

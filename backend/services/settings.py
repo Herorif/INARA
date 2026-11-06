@@ -174,6 +174,10 @@ class VoiceSettings(EmptyRequest):
     ``wake_word`` (listen for "Hey Jarvis" from the tray, on by default) and
     ``wake_sensitivity`` read with their defaults when absent or stale
     (services/audio_contracts.wake_word_settings).
+
+    ``overlay`` (J4, "Show JARVIS while you talk"): the small always-on-top window with the
+    live core and captions during a tray voice session; on by default, and an absent or
+    stale saved value reads as on (services/audio_contracts.overlay_settings).
     """
 
     name: Literal[PREBUILT_VOICES] | None = None
@@ -182,6 +186,7 @@ class VoiceSettings(EmptyRequest):
     local_speaker: DeviceSelection | None = None
     wake_word: StrictBool | None = None
     wake_sensitivity: Literal[WAKE_SENSITIVITIES] | None = None
+    overlay: StrictBool | None = None
 
     @field_validator(
         "name",
@@ -190,6 +195,7 @@ class VoiceSettings(EmptyRequest):
         "local_speaker",
         "wake_word",
         "wake_sensitivity",
+        "overlay",
         mode="before",
     )
     @classmethod

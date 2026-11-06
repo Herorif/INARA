@@ -75,7 +75,7 @@ class LifecycleTransport:
                 if self.after_resource:
                     await self.after_resource(state)
                 for room in self.sessions.rooms(principal):
-                    if room != "native-resident":
+                    if room != "native-resident" and self.sessions.roles.get(room) != "overlay":
                         await self.sio.emit("resource_state", self.resources.snapshot(), room=room)
                 return {"ok": True}
         except (ServiceError, ValidationError) as exc:

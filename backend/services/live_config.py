@@ -23,6 +23,8 @@ VOICE_DEFAULTS = {
     # "Hey Jarvis" in the native tray (services/wake_listening.py).
     "wake_word": True,
     "wake_sensitivity": "normal",
+    # The always-on-top talking overlay during tray voice (services/voice_overlay.py).
+    "overlay": True,
 }
 
 # Prebuilt voices (https://ai.google.dev/gemini-api/docs/speech-generation, "Voice options";

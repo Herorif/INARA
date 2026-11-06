@@ -57,7 +57,8 @@ def test_voice_settings_fall_back_and_patch_validates_documented_voices(tmp_path
     settings = {"tool_permissions": {}}
     service = SettingsService(settings, SettingsStore(tmp_path / "settings.json"), set())
     service.apply(SettingsPatch.model_validate({"voice": {"mode": "conversation"}}))
-    wake = {"wake_word": True, "wake_sensitivity": "normal"}  # the "Hey Jarvis" defaults
+    # The "Hey Jarvis" and talking-overlay defaults.
+    wake = {"wake_word": True, "wake_sensitivity": "normal", "overlay": True}
     assert settings["voice"] == {"name": "Kore", "mode": "conversation", **wake}
     service.apply(SettingsPatch.model_validate({"voice": {"name": "Aoede"}}))
     assert settings["voice"] == {"name": "Aoede", "mode": "conversation", **wake}

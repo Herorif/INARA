@@ -63,7 +63,9 @@ from services.audio_devices import AudioDevices
 from transport.audio_devices import AudioDevicesTransport
 from services.speech import SpeechService, SpeechTransport
 from services.voice import VoiceService, VoiceTransport
+from services.voice_overlay import VoiceOverlay
 from services.wake_listening import WakeWordService
+from transport.voice_overlay import VoiceOverlayTransport
 from transport.wake_word import WakeWordTransport
 from services.voice_preview import VoicePreviewService
 from transport.voice_preview import VoicePreviewTransport
@@ -175,6 +177,9 @@ class Application:
         self.audio_devices_transport = AudioDevicesTransport(self)
         self.voice = VoiceService(self)
         self.voice_transport = VoiceTransport(self)
+        # The talking overlay during tray voice; the native host runs its window.
+        self.voice_overlay = VoiceOverlay(self)
+        self.voice_overlay_transport = VoiceOverlayTransport(self)
         # "Hey Jarvis": listens only once the native resident host activates it.
         self.wake = WakeWordService(self)
         self.wake_transport = WakeWordTransport(self)
@@ -330,6 +335,7 @@ class Application:
                 ("mobile", self.mobile_transport.stop_sid),
                 ("speech", self.speech_transport.stop_sid),
                 ("voice", self.voice_transport.stop_sid),
+                ("voice_overlay", self.voice_overlay.detached),
                 ("conversation", self.conversation_transport.stop_sid),
                 ("local_actions", self.local_transport.stop_sid),
                 ("compatibility", self.compat_transport.stop_sid),
@@ -354,6 +360,8 @@ class Application:
         await self.connection.settings_changed(patch)
         if "calls" in patch:
             await self.telephony.reconcile()
+        if "voice" in patch:
+            self.voice_overlay.settings_changed()
         if "voice" in patch or "tool_permissions" in patch:
             await self.wake.reconcile(fresh=True)
 
@@ -422,6 +430,7 @@ class Application:
             await _isolated("call_orchestrator", self.call_orchestrator.close)
             await _isolated("call_agent", self.call_agent.close)
             await _isolated("wake", self.wake.close)
+            await _isolated("voice_overlay", self.voice_overlay.close)
             await _isolated("audio_devices", self.audio_devices.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:

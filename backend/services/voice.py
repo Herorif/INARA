@@ -401,6 +401,7 @@ class VoiceService:
         )
         # Hold the one-per-owner slot while the devices open.
         self.sessions[owner] = session
+        self.overlay_event("started", session)
         self.publish_local(self.local_status(session))
         try:
             from services.audio_devices import local_choices
@@ -479,6 +480,7 @@ class VoiceService:
     def local_changed(self, session):
         """Playback started or the tail ended: the tray, and the listener's audible guard."""
         self.publish_local(self.local_status(session))
+        self.overlay_event("changed", session)
         listening = getattr(self.app, "wake", None)
         if listening is not None:
             audio = session.audio
@@ -500,6 +502,7 @@ class VoiceService:
             session.drop_until = self.clock() + BARGE_DROP_SECONDS
         session.last_activity = self.clock()
         audio.flush(reset_tail=True)
+        self.overlay_event("barged", session)
         logger.info("Tray voice barge-in (answer %s)", "dropped" if session.drop_until else "done")
         await self.set_state(session, "listening")
         self.local_changed(session)
@@ -572,8 +575,19 @@ class VoiceService:
             return
         await self.app.sio.emit(event, {"session_id": session.id, **payload}, room=session.sid)
 
+    def overlay_event(self, name, session, *args):
+        """Tell the talking overlay (services/voice_overlay.py) about a tray session."""
+        overlay = getattr(self.app, "voice_overlay", None)
+        if overlay is None or session.endpoint != "local":
+            return
+        try:
+            getattr(overlay, name)(session, *args)
+        except Exception:
+            logger.warning("The voice overlay could not follow the session", exc_info=True)
+
     def deliver_local(self, session, event, payload):
-        """The local endpoint's renderer: the PC's speaker and the tray."""
+        """The local endpoint's renderer: the PC's speaker, the tray and the overlay."""
+        self.overlay_event("delivered", session, event, payload)
         audio = session.audio
         if event == "voice_audio_out":
             if audio is not None and not session.closed:
@@ -590,7 +604,8 @@ class VoiceService:
                 )
             else:
                 self.publish_local(self.local_status(session))
-        # Captions are recorded as conversation turns when each turn completes.
+        # Captions are recorded as conversation turns when each turn completes; the overlay
+        # shows them live.
 
     async def set_state(self, session, state, code=None, message=None):
         if session.state == state and code is None:
@@ -853,6 +868,7 @@ class VoiceService:
             await self.emit(session, "voice_caption", {"role": "user", "text": user, "final": True})
         if jarvis:
             await self.emit(session, "voice_caption", {"role": "jarvis", "text": jarvis, "final": True})
+        self.overlay_event("turn_completed", session)
         # A brain hand-off already recorded its own request and answer.
         if (user or jarvis) and not brain:
             task = asyncio.create_task(self.record(session, user, jarvis))
@@ -942,6 +958,7 @@ class VoiceService:
                 # Tray voice: approvals still happen on screen, in an open workspace.
                 rooms = self.renderer_rooms(session)
                 if not rooms:
+                    self.overlay_event("approval_needed", session)
                     raise ServiceError(
                         "approval_unavailable",
                         "This needs your approval on screen. Open the JARVIS workspace, "

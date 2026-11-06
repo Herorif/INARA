@@ -84,6 +84,7 @@ UNAVAILABLE = (
 _PRINTABLE = re.compile(r"^[^\x00-\x1f\x7f]+$")
 _BIG_ENDIAN = sys.byteorder == "big"
 LABELS = {"input": "microphone", "output": "speaker"}
+LEVEL_STRIDE = 4  # the output level reads every 4th int16 sample of a speaker block
 
 
 def import_sounddevice():
@@ -198,6 +199,23 @@ def upmix(pcm, channels):
     for channel in range(channels):
         wide[channel::channels] = mono
     return _bytes(wide)
+
+
+def block_level(data, size, stride=LEVEL_STRIDE):
+    """``min(1, 4 * rms / 32768)`` over every ``stride``-th int16 sample of ``data[:size]``,
+    the scale of the workspace player (src/features/voice/playback.worklet.js).
+
+    Runs on the PortAudio output thread: no copy of the block, one small view, no numpy.
+    """
+    size -= size % 2
+    if size <= 0:
+        return 0.0
+    with memoryview(data) as raw, raw[:size] as part, part.cast("h") as samples:
+        total = count = 0
+        for value in samples[::stride]:
+            total += value * value
+            count += 1
+    return min(1.0, 4.0 * math.sqrt(total / count) / 32768.0) if count else 0.0
 
 
 class AudioDevices:
@@ -405,6 +423,10 @@ class LocalAudio:
         self.input_blocks = self.input_dropped = self.input_flags = 0
         self.output_blocks = self.output_dropped = self.output_flags = 0
         self.gated = self.backlog_dropped = 0
+        # The talking overlay's output level (services/voice_overlay.py): measured in the
+        # speaker callback only while ``measure_level`` is set.
+        self.measure_level = False
+        self.level = 0.0
 
     # --- lifetime ---------------------------------------------------------------------------
 
@@ -585,6 +607,8 @@ class LocalAudio:
                 outdata[filled:need] = bytes(need - filled)
             if filled and not self.drop_partial:  # a barge-in flush during this block wins
                 self.last_audible = self.clock()
+                if self.measure_level:
+                    self.level = block_level(outdata, filled)
         except Exception:
             try:
                 outdata[:] = bytes(len(outdata))
@@ -661,6 +685,11 @@ class LocalAudio:
         if self.outbox or (self.partial is not None and not self.drop_partial):
             return True
         return self.clock() - self.last_audible < self.tail + self.output_latency
+
+    def output_level(self):
+        """0..1: the level of the last speaker block that had audio (while ``measure_level``
+        is set), and 0.0 when JARVIS is not speaking."""
+        return self.level if self.speaking() else 0.0
 
     def play(self, pcm):
         """Queue 24 kHz PCM16 from Live for the speaker."""

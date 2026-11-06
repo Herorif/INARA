@@ -11,6 +11,11 @@ from pathlib import Path
 from services.tools import ServiceError
 
 
+# Socket roles besides "renderer" (the default). "overlay" is the tray voice window (J4):
+# it receives only voice_overlay / voice_level and may send only overlay_stop / overlay_open.
+ROLES = ("resident", "workspace", "overlay")
+
+
 @dataclass(frozen=True)
 class RequestContext:
     principal: str
@@ -46,13 +51,17 @@ class DesktopSessions:
         native = self.native_desktop
         if native and native.state.identity.owner and principal != native.state.identity.owner:
             return False
+        role = auth.get("role")
+        role = role if role in ROLES else "renderer"
+        # The talking overlay (J4) is only ever the registered owner's: it never registers
+        # or pins an owner, and it is never a renderer.
+        if role == "overlay" and not self.is_owner(principal):
+            return False
         # Only a holder of this launch's token reaches here; there is no tokenless owner path.
         if self.local_owner is None:
             self.local_owner = principal
         self.principals[sid] = principal
-        self.roles[sid] = (
-            auth.get("role") if auth.get("role") in ("resident", "workspace") else "renderer"
-        )
+        self.roles[sid] = role
         return True
 
     def attach_native(self, owner):
@@ -67,7 +76,9 @@ class DesktopSessions:
 
     def context(self, sid, *, renderer=False):
         principal = self.principals.get(sid)
-        if principal is None or (renderer and self.roles.get(sid) != "renderer"):
+        role = self.roles.get(sid)
+        # The overlay shows a voice session; it never acts with the owner's request context.
+        if principal is None or role == "overlay" or (renderer and role != "renderer"):
             raise ServiceError(
                 "authentication_required", "Use the connected workspace to access Studio."
             )

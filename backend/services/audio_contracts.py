@@ -1,5 +1,5 @@
-"""Tray voice contracts: the saved device choice, the core's device list and the
-"Hey Jarvis" status.
+"""Tray voice contracts: the saved device choice, the core's device list, the
+"Hey Jarvis" status and the talking overlay's setting and requests.
 
 A device is identified by its name and host API (``Windows WASAPI``), never by an index,
 which changes as devices come and go. ``"default"`` follows the system default device.
@@ -94,6 +94,21 @@ def wake_word_settings(settings):
         if isinstance(sensitivity, str) and sensitivity in WAKE_SENSITIVITIES
         else VOICE_DEFAULTS["wake_sensitivity"],
     }
+
+
+def overlay_settings(settings):
+    """``{"overlay": bool}``: whether tray voice shows the talking overlay. A missing or
+    non-bool value on disk reads as on (settings files are never migrated on startup)."""
+    voice = (settings or {}).get("voice")
+    voice = voice if isinstance(voice, dict) else {}
+    enabled = voice.get("overlay", VOICE_DEFAULTS["overlay"])
+    return {"overlay": enabled if type(enabled) is bool else VOICE_DEFAULTS["overlay"]}
+
+
+class OverlayRequest(BaseModel):
+    """``overlay_stop`` / ``overlay_open`` take no fields."""
+
+    model_config = ConfigDict(extra="forbid")
 
 
 def local_devices(settings):

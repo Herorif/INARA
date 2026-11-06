@@ -66,6 +66,12 @@ class ConnectionTransport:
             self.sessions.remove(sid)
             return False
         try:
+            if self.sessions.roles[sid] == "overlay":
+                # The talking overlay gets the voice snapshot only: no status, no hydration.
+                overlay = getattr(self.app, "voice_overlay", None)
+                if overlay is not None:
+                    await overlay.attached(sid)
+                return
             await self.sio.emit("status", {"msg": "Connected to JARVIS Backend"}, room=sid)
             if self.sessions.roles[sid] != "renderer":
                 return

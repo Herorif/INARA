@@ -21,6 +21,9 @@ NOTICES = {
 }
 LOCKED_NOTICE_SECONDS = 600
 STARTING = "JARVIS is still starting. Try again in a moment."
+# The talking overlay normally quits after its fade-out; this closes one that did not.
+OVERLAY_CLOSE_SECONDS = 30.0
+CORE_URL = "http://127.0.0.1:8000"
 
 logger = get_logger(__name__)
 
@@ -56,6 +59,9 @@ class NativeHost:
         self.state = State(Identity(profile))
         self.token, self.instance_id = secrets.token_hex(32), str(uuid.uuid4())
         self.workspace = None
+        # The talking overlay's process during tray voice (J4), and when its session ended.
+        self.overlay = None
+        self.overlay_ended = None
         self.pending_open = not resident_only
         self.pending_quick = False
         self.hide_workspace = hide_workspace
@@ -117,6 +123,8 @@ class NativeHost:
             server.runtime.sessions.native_desktop = self
             # Tray voice reports its state here (called on the core loop).
             server.runtime.voice.local_observer = self.voice_changed
+            # The talking overlay's process follows tray voice sessions (core loop -> tray).
+            server.runtime.voice_overlay.observer = self.overlay_changed
             # "Hey Jarvis" listens only here, in the native resident.
             server.runtime.wake.activate(observer=self.wake_changed, notice=self.voice_notice)
             server.ACTIVE_RUNTIME = "native-resident-core"
@@ -231,8 +239,13 @@ class NativeHost:
             await self.runtime.set_resource_state(
                 "native-resident", {"state": self.state.resource_state()}
             )
+            roles = self.runtime.client_roles
             for sid, owner in tuple(self.runtime.client_principals.items()):
-                if owner == self.state.identity.owner and sid != "native-resident":
+                if (
+                    owner == self.state.identity.owner
+                    and sid != "native-resident"
+                    and roles.get(sid) != "overlay"
+                ):
                     await self.runtime.sio.emit("resident_state", self.state.snapshot(), room=sid)
 
         self._submit(announce(), "announce resident state")
@@ -323,6 +336,7 @@ class NativeHost:
     def tick(self):
         if self.state.quitting:
             return
+        self.check_overlay()
         if self.server and self.server.started and self.state.phase == "starting":
             self.state.phase = "ready"
             if self.state.voice and not self.state.voice.get("active"):
@@ -397,6 +411,80 @@ class NativeHost:
             "start tray voice" if start else "stop tray voice",
         )
 
+    # --- the talking overlay (J4) ----------------------------------------------------------
+
+    def overlay_changed(self, event, data=None):
+        """Core loop -> tray thread: a tray session started or ended, or the setting is off."""
+        self.tray.post(lambda: self.follow_overlay(event, data or {}))
+
+    def follow_overlay(self, event, data):
+        if event == "started":
+            self.open_overlay()
+        elif event == "ended":
+            if data.get("now"):
+                self.close_overlay()  # gaming, face lock or permission: nothing stays up
+            elif self.overlay is not None:
+                self.overlay_ended = time.monotonic()
+        elif event == "disabled":
+            self.close_overlay()
+
+    def open_overlay(self):
+        """Run the overlay for a starting tray session; reuse one still alive (fading out).
+
+        Any failure is logged in one line and voice carries on without it."""
+        self.overlay_ended = None
+        if self.state.quitting:
+            return
+        if self.overlay is not None:
+            if self.overlay.alive():
+                return
+            self.close_overlay()
+        if not (self.root / "dist/overlay.html").exists():
+            return
+        from resident.layout import workspace_executable
+
+        try:
+            executable = workspace_executable(self.root)
+            profile = (self.profile / "overlay").resolve()
+            profile.mkdir(parents=True, exist_ok=True)
+            self.overlay = self.process_factory(
+                executable,
+                self.root / "electron/overlay-main.cjs",
+                {
+                    "token": self.token,
+                    "clientId": self.state.identity.owner or "",
+                    "profile": str(profile),
+                    "core": CORE_URL,
+                    "dev": not (self.root / "desktop-pilot.json").exists()
+                    and env.getenv("DEV_SERVER") == "1",
+                },
+                self.root,
+            )
+        except Exception as exc:
+            self.overlay = None
+            logger.warning("The voice overlay could not start (%s)", type(exc).__name__)
+
+    def close_overlay(self):
+        overlay, self.overlay, self.overlay_ended = self.overlay, None, None
+        if overlay is None:
+            return
+        try:
+            overlay.close()
+        except Exception as exc:
+            logger.warning("The voice overlay did not close cleanly (%s)", type(exc).__name__)
+
+    def check_overlay(self, now=None):
+        """Tray tick: forget an overlay that quit; close one still up 30 s after its session."""
+        overlay = self.overlay
+        if overlay is None:
+            return
+        if not overlay.alive():
+            self.close_overlay()
+            return
+        now = time.monotonic() if now is None else now
+        if self.overlay_ended is not None and now - self.overlay_ended >= OVERLAY_CLOSE_SECONDS:
+            self.close_overlay()
+
     # --- "Hey Jarvis" ----------------------------------------------------------------------
 
     def wake_changed(self, status):
@@ -452,6 +540,7 @@ class NativeHost:
         elif action == "quit":
             self.state.quitting = True
             self.state.phase = "stopping"
+            self.close_overlay()
             if self.server:
                 self.server.should_exit = True
             self.tray.close()
@@ -467,6 +556,7 @@ class NativeHost:
             self.tray.run()
         finally:
             self.state.quitting = True
+            self.close_overlay()
             if self.workspace:
                 self.workspace.close()
             if self.server:
