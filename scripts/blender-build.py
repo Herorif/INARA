@@ -9,7 +9,7 @@ version, output hashes); the log goes to ``.runtime/blender/logs/<scene>.log``.
 Nothing reaches the repository unless ``--publish`` is given: that copies reviewed
 outputs, unchanged and hash-checked, to the destinations approved in
 ``art/blender/publish.json``. Publishing does not rebuild and does not edit
-docs/ASSET_OWNERSHIP.json; it prints the entry the owner should add.
+docs/ASSET_OWNERSHIP.json; it prints the entries the owner should add (renderer assets only).
 
     python scripts/blender-build.py --list
     python scripts/blender-build.py jarvis-core [-- <scene args>]
@@ -31,7 +31,10 @@ DEFAULT_BLENDER = Path.home() / "tools" / "blender-5.2.3-windows-x64" / "blender
 SUPPORTED = (5, 2)
 SCENE_NAME = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 OUTPUT_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
-PUBLISH_PREFIXES = ("public/", "assets/", "src/assets/")
+# native/setup/ holds the Setup window's packaged art. It is not a renderer asset, so it gets
+# no docs/ASSET_OWNERSHIP.json entry (renderer-provenance.py refuses those).
+PUBLISH_PREFIXES = ("public/", "assets/", "src/assets/", "native/setup/")
+RENDERER_PREFIXES = ("public/", "assets/", "src/")
 HEADLESS = ("-b", "--factory-startup", "-noaudio", "--python-exit-code", "1")
 # Variables Blender, the GPU driver and Windows need; everything else (keys, PYTHONPATH,
 # user tool paths) is dropped. Blender's own Python ignores PYTHON* variables anyway.
@@ -260,6 +263,8 @@ def publish(root, name):
         if sha256(destination) != record["sha256"]:
             raise BuildError(f"Copy of {output} does not match its reviewed hash")
         print(f"published {output} -> {target}")
+        if not target.startswith(RENDERER_PREFIXES):
+            continue
         entries.append({
             "path": target,
             "sha256": record["sha256"],

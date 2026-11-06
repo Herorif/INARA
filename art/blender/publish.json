@@ -2,7 +2,10 @@
   "format": 1,
   "scenes": {
     "jarvis-core": {
-      "jarvis-core.glb": "src/assets/models/jarvis-core.glb"
+      "jarvis-core.glb": "src/assets/models/jarvis-core.glb",
+      "splash-core-720.png": "src/assets/brand/splash-core-720.png",
+      "lock-dial-720.png": "src/assets/brand/lock-dial-720.png",
+      "setup-banner-410x1700.png": "native/setup/setup-banner.png"
     }
   }
 }

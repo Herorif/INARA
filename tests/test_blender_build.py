@@ -7,6 +7,7 @@ Subprocess is faked; no Blender needed. The one live test is opt-in
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 from types import SimpleNamespace
 
@@ -253,6 +254,29 @@ def test_publish_copies_reviewed_bytes_and_prints_ownership_entry(root, blender,
     assert (entry["owner"], entry["license_evidence"], entry["decision"]) == (None, [], "pending")
 
 
+def test_publish_accepts_native_setup_art_without_an_ownership_entry(root, blender, capsys):
+    outputs = {"thing.glb": b"glTF-fixture", "banner.png": b"png-fixture"}
+    bb.main(["tiny"], environ=env(blender), root=root, run=FakeBlender(outputs=outputs))
+    approve(root, {"thing.glb": "src/assets/models/thing.glb",
+                   "banner.png": "native/setup/setup-banner.png"})
+    capsys.readouterr()
+    assert bb.main(["tiny", "--publish"], environ={}, root=root) == 0
+    assert (root / "native/setup/setup-banner.png").read_bytes() == b"png-fixture"
+    out = capsys.readouterr().out
+    assert "published banner.png -> native/setup/setup-banner.png" in out
+    # Only renderer assets get docs/ASSET_OWNERSHIP.json entries.
+    entries = json.loads(out[out.index("["):])
+    assert [entry["path"] for entry in entries] == ["src/assets/models/thing.glb"]
+
+
+@pytest.mark.parametrize("target", ["native/x.png", "native/setup", "native/setup/",
+                                    "native/setup/../x.png", "native/setupx/x.png"])
+def test_publish_refuses_other_native_destinations(root, blender, target):
+    bb.main(["tiny"], environ=env(blender), root=root, run=FakeBlender())
+    approve(root, {"thing.glb": target})
+    assert bb.main(["tiny", "--publish"], environ={}, root=root) == 1
+
+
 def test_publish_refuses_when_script_changed_since_review(root, blender, capsys):
     bb.main(["tiny"], environ=env(blender), root=root, run=FakeBlender())
     approve(root, {"thing.glb": "public/models/thing.glb"})
@@ -281,6 +305,37 @@ def test_publish_without_review_is_refused(root, capsys):
     approve(root, {"thing.glb": "public/models/thing.glb"})
     assert bb.main(["tiny", "--publish"], environ={}, root=root) == 1
     assert "build it first" in capsys.readouterr().err
+
+
+# --- the repository's approvals -------------------------------------------------------
+REPO = Path(__file__).resolve().parents[1]
+
+
+def test_published_core_outputs_match_their_ownership_entries():
+    approvals = json.loads((REPO / "art/blender/publish.json").read_text(encoding="utf-8"))
+    targets = approvals["scenes"]["jarvis-core"]
+    assert targets == {
+        "jarvis-core.glb": "src/assets/models/jarvis-core.glb",
+        "splash-core-720.png": "src/assets/brand/splash-core-720.png",
+        "lock-dial-720.png": "src/assets/brand/lock-dial-720.png",
+        "setup-banner-410x1700.png": "native/setup/setup-banner.png",
+    }
+    assert bb.publish_targets(REPO, "jarvis-core") == targets
+    entries = {e["path"]: e for e in json.loads(
+        (REPO / "docs/ASSET_OWNERSHIP.json").read_text(encoding="utf-8"))["entries"]}
+    origins = set()
+    for target in targets.values():
+        if not target.startswith(bb.RENDERER_PREFIXES):
+            assert target not in entries, target   # Setup art is not a renderer asset
+            continue
+        entry = entries[target]
+        assert entry["sha256"] == bb.sha256(REPO / target), target
+        assert (entry["owner"], entry["license_evidence"], entry["decision"]) == (None, [], "pending")
+        origins.add(entry["origin"])
+    # One review build published them all: the same generator hash and Blender version.
+    assert len(origins) == 1
+    assert re.fullmatch(r"owner-generated: art/blender/jarvis-core\.py \(sha256 [0-9a-f]{64}\), "
+                        r"Blender 5\.2\.\d+", origins.pop())
 
 
 # --- optional: real Blender -----------------------------------------------------------

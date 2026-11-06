@@ -50,6 +50,11 @@ app.whenReady().then(async () => {
     // jarvis.ico's 16-256 frames keep the taskbar and Alt-Tab icon crisp at every scale.
     icon: path.join(root, process.platform === 'win32' ? 'assets/icons/jarvis.ico' : 'assets/icons/jarvis.png'),
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: !bootstrap.hide, offscreen: !!bootstrap.hide, preload: path.join(__dirname, 'preload.js') } });
+  // Show at first paint (the static startup splash in index.html), not after the whole page
+  // has loaded; the load below keeps a fallback. A hidden (offscreen) host is never shown.
+  let shown = false;
+  const showOnce = () => { if (shown || bootstrap.hide || window.isDestroyed()) return; shown = true; window.show(); };
+  window.once('ready-to-show', showOnce);
   bindCaptureLifecycle(window, powerMonitor);
   security.installPermissionHandlers(window.webContents.session, () => window, appPage);
   ipcMain.on('desktop-bootstrap', event => { event.returnValue = trusted(event) ? { token: bootstrap.token, clientId: bootstrap.clientId, quick: bootstrap.quick } : {}; });
@@ -75,7 +80,7 @@ app.whenReady().then(async () => {
   });
   if (bootstrap.dev) await window.loadURL(security.DEV_ORIGIN);
   else await window.loadFile(path.join(root, 'dist/index.html'));
-  if (!bootstrap.hide) window.show();
+  showOnce();
   publish(state);
 }).catch(error => { console.error(error.message); app.exit(1); });
 app.on('window-all-closed', () => { control?.disconnect(); app.quit(); });

@@ -82,6 +82,22 @@
       "decision": "pending"
     },
     {
+      "path": "src/assets/brand/lock-dial-720.png",
+      "sha256": "8b6670d743ec912acf92e0016b862313f8bd3cd667474213901dc13a1497f6a1",
+      "origin": "owner-generated: art/blender/jarvis-core.py (sha256 4aaa0df6d8f3eb249f7eef26ae167d96f27edce9a2a19c1f9dace1260e01677c), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
+      "path": "src/assets/brand/splash-core-720.png",
+      "sha256": "1f2b11da5713173d3d259c6a8fb348e09ca43db2c13f627a4e805a96ce75da80",
+      "origin": "owner-generated: art/blender/jarvis-core.py (sha256 4aaa0df6d8f3eb249f7eef26ae167d96f27edce9a2a19c1f9dace1260e01677c), Blender 5.2.3",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
       "path": "src/assets/icons/mark-24.png",
       "sha256": "f5fda67d76c92fcf39f3741fbea0eef42ae4b5029788716cce67de739fddc205",
       "origin": "owner-generated: scripts/build-icons.py (sha256 08b1091b9f0e0d6fb9bccf18fae9398f4512592669fe150f142f89f91af2ead2) from art/blender/jarvis-emblem.py (sha256 097acdc81abd8ba00fd5cc8101bb24e2c154a488e5f41ec46d1d8707a030e515), Blender 5.2.3",
@@ -124,7 +140,7 @@
     {
       "path": "src/assets/models/jarvis-core.glb",
       "sha256": "01f7174a520543f378c7f987d6ce19ccb585f3901cafeedb84f47ad0642705b8",
-      "origin": "owner-generated: art/blender/jarvis-core.py (sha256 6393a8b85d206100153c14cacbeb0a18d8d38d70f94706fc94af5cce1027a22a), Blender 5.2.3",
+      "origin": "owner-generated: art/blender/jarvis-core.py (sha256 4aaa0df6d8f3eb249f7eef26ae167d96f27edce9a2a19c1f9dace1260e01677c), Blender 5.2.3",
       "owner": null,
       "license_evidence": [],
       "decision": "pending"

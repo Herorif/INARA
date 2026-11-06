@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { User } from 'lucide-react';
 import useStore from '../store';
 import socket from '../services/socket';
-import BrandMark from '../shared/ui/BrandMark';
+import lockDial from '../assets/brand/lock-dial-720.png';
+import { authLockCameraState, authLockMessage } from './authLockView';
 
 // Keep the recognised state readable before the lock fades (the previous screen held it for 2s).
 const RECOGNIZED_HOLD_MS = 2000;
@@ -49,17 +50,20 @@ const AuthLock = () => {
 
     // "Face not recognized. Try again." needs a rejection signal; the core only reports
     // authenticated true/false, and false is also its idle "still locked" state.
-    const message = status === 'recognized' ? 'Face recognized' : status === 'rejected' ? 'Face not recognized. Try again.' : 'Looking for your face…';
+    const message = authLockMessage(status);
 
     return (
         <div className={`auth-lock ${leaving ? 'is-leaving' : ''}`} role="dialog" aria-modal="true" aria-labelledby="auth-lock-title">
             <div className="auth-lock__content">
-                <BrandMark size={48} />
+                {/* The face camera sits inside the core's dial (art/blender/jarvis-core.py). */}
+                <div className="auth-lock__dial">
+                    <img className="auth-lock__dial-art" src={lockDial} alt="" aria-hidden="true" draggable="false" />
+                    <div className="auth-lock__camera" data-state={authLockCameraState(status)}>
+                        {frameSrc ? <img src={frameSrc} alt="Camera preview for face unlock" /> : <User size={40} strokeWidth={1.25} aria-hidden="true" />}
+                    </div>
+                </div>
                 <h1 id="auth-lock-title">Locked</h1>
                 <p className="auth-lock__status" role="status" data-state={status}>{message}</p>
-                <div className="auth-lock__camera hud-panel">
-                    {frameSrc ? <img src={frameSrc} alt="Camera preview for face unlock" /> : <User size={40} strokeWidth={1.25} aria-hidden="true" />}
-                </div>
             </div>
         </div>
     );

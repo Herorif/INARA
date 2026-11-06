@@ -44,12 +44,11 @@ test('BrandMark imports the five published marks', () => {
   assert.match(source, /<img className=\{`brand-mark \$\{className\}`\.trim\(\)\} \{\.\.\.brandMarkProps\(size, URLS\)\} \/>/);
 });
 
-test('the title bar, quick assistant, welcome and lock screen show the mark at their sizes', () => {
+test('the title bar, quick assistant and welcome show the mark at their sizes', () => {
   const sites = [
     ['src/app/CommandDeck.jsx', 24, 'titlebar-brand brand"><BrandMark size={24} />'],
     ['src/app/QuickAssistant.jsx', 24, 'quick-header__brand"><BrandMark size={24} />'],
     ['src/app/Conversation.jsx', 32, 'conversation-welcome">\n                <BrandMark size={32} />'],
-    ['src/components/AuthLock.jsx', 48, 'auth-lock__content">\n                <BrandMark size={48} />'],
   ];
   for (const [name, size, context] of sites) {
     const source = read(name).replace(/\r\n/g, '\n');

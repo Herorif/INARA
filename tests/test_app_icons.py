@@ -1,5 +1,6 @@
 """The published crystal J icons where they are used: the Android manifest and resources,
-the Setup header (XAML and its wiring), the window and tray icons of the Electron hosts.
+the Setup header (XAML and its wiring), the window and tray icons of the Electron hosts. Also
+the Setup sidebar banner (the core's dial, from art/blender/jarvis-core.py).
 
 No Android SDK, Gradle or visible window: XML is parsed, resource references are resolved
 against the res/ folder, and the Setup XAML is loaded by WPF without being shown.
@@ -127,11 +128,11 @@ def test_setup_script_sets_the_emblem_from_the_packaged_png():
         < script.index("if ($BuildOnly) {return}")
 
 
-def load_setup(root):
-    """Load the Setup UI with -BuildOnly (never shown) and report the emblem's image."""
+def load_setup(root, element="Emblem"):
+    """Load the Setup UI with -BuildOnly (never shown) and report an Image's source."""
     command = (
         f". '{root / 'scripts/setup-ui.ps1'}' -BuildOnly; "
-        "$s = $script:ui.Emblem.Source; "
+        f"$s = $script:ui.{element}.Source; "
         "if ($s) { '{0} {1} {2}' -f $s.PixelWidth, $s.PixelHeight, $s.UriSource.IsAbsoluteUri }"
         " else { 'empty' }"
     )
@@ -158,6 +159,57 @@ def test_setup_opens_with_an_empty_emblem_when_the_png_is_missing(tmp_path):
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, tmp_path / name)
     assert load_setup(tmp_path) == "empty"
+    assert load_setup(tmp_path, "SidebarBanner") == "empty"
+
+
+# --- Setup sidebar banner --------------------------------------------------------------------
+def sidebar():
+    return next(b for b in setup_xaml().iter(f"{XAML}Border") if b.get("Background") == "#0C1722")
+
+
+def test_setup_sidebar_banner_sits_behind_the_sidebar_content():
+    children = list(sidebar())
+    assert [c.tag for c in children] == [f"{XAML}Grid"]
+    grid = children[0]
+    assert [c.tag for c in grid] == [f"{XAML}Image", f"{XAML}DockPanel"]   # drawn first: behind
+    banner, dock = list(grid)
+    assert banner.attrib == {f"{X}Name": "SidebarBanner", "Width": "205", "Height": "850",
+                             "HorizontalAlignment": "Left", "VerticalAlignment": "Bottom",
+                             "IsHitTestVisible": "False",
+                             "RenderOptions.BitmapScalingMode": "HighQuality"}
+    assert grid.get("ClipToBounds") == "True"
+    assert dock.get("Margin") == "20,30,16,22"
+    names = {e.get(f"{X}Name") for e in dock.iter()}
+    assert {"Emblem", "NavHome", "NavRecovery", "NavRemove", "NavProviders"} <= names
+    assert [e.get(f"{X}Name") for e in setup_xaml().iter(f"{XAML}Image")] == \
+        ["SidebarBanner", "Emblem"]
+
+
+def test_setup_banner_is_the_2x_dial_art():
+    data = (ROOT / "native/setup/setup-banner.png").read_bytes()
+    assert png_size(ROOT / "native/setup/setup-banner.png") == (410, 1700)   # 2x of 205 x 850
+    assert data[24:26] == bytes((8, 6))                                       # 8-bit RGBA
+
+
+def test_setup_script_sets_the_banner_from_the_packaged_png():
+    script = (ROOT / "scripts/setup-ui.ps1").read_text(encoding="utf-8")   # newlines are \n
+    start = script.index("function Set-SetupBanner {")
+    body = script[start:script.index("\n}\n", start)]
+    assert "'native/setup/setup-banner.png'" in body
+    assert "!$script:ui.SidebarBanner -or !(Test-Path -LiteralPath $path -PathType Leaf)" in body
+    assert "BitmapCacheOption]::OnLoad" in body and "[UriKind]::Absolute" in body
+    assert "GetFullPath" in body and "$image.Freeze()" in body
+    assert "$script:ui.SidebarBanner.Source = $image" in body
+    assert "catch {$script:ui.SidebarBanner.Source = $null}" in body
+    # Wired after the named elements are found, before -BuildOnly returns.
+    assert script.index("FindName($taskName)") < script.index("Set-SetupBanner\n") \
+        < script.index("if ($BuildOnly) {return}")
+
+
+@pytest.mark.skipif(sys.platform != "win32" or not shutil.which("powershell.exe"),
+                    reason="WPF needs Windows PowerShell")
+def test_setup_xaml_loads_and_shows_the_sidebar_banner():
+    assert load_setup(ROOT, "SidebarBanner") == "410 1700 True"
 
 
 # --- window and tray icons -----------------------------------------------------------------

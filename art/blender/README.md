@@ -6,7 +6,7 @@ hand-modelled or downloaded, so the scripts are the source of truth.
 
 | Scene | Outputs |
 | --- | --- |
-| `jarvis-core.py` | `jarvis-core.glb` (app model), hero stills (`hero-splash-1920x1080.png`, `hero-lock-1440x900.png`), state stills (`state-<idle\|listening\|speaking\|working\|offline>-512.png`) |
+| `jarvis-core.py` | `jarvis-core.glb` (app model), hero stills (`hero-splash-1920x1080.png`, `hero-lock-1440x900.png`), state stills (`state-<idle\|listening\|speaking\|working\|offline>-512.png`), brand renders (`splash-core-720.png`, `lock-dial-720.png`, `setup-banner-410x1700.png`) |
 | `jarvis-emblem.py` | App icon renders: `emblem-<256\|128\|96\|64\|48>.png` (full), `emblem-<40\|32>.png` (simplified), Android `android-foreground-<size>.png` and `android-monochrome-<size>.png` (108, 162, 216, 324, 432) |
 
 ## Running
@@ -23,7 +23,7 @@ refuses any other version.
 ```
 
 Arguments after `--` go to the scene script. `--out` is reserved, because the build tool
-sets it. `jarvis-core` accepts `--only all|glb|hero|states` and
+sets it. `jarvis-core` accepts `--only all|glb|hero|states|brand` and
 `--device CPU|auto|OPTIX|CUDA`. **CPU is the default**, because CPU renders are
 byte-identical and, for this scene, about as fast as the GPU. The GPU is opt-in: `auto` tries
 OptiX, then CUDA, then CPU. Each GPU backend must pass a 16x16 probe render, because a
@@ -64,7 +64,8 @@ outputs listed in `publish.json`:
 { "format": 1, "scenes": { "jarvis-core": { "jarvis-core.glb": "src/assets/models/jarvis-core.glb" } } }
 ```
 
-Destinations must be relative paths under `public/`, `assets/` or `src/assets/`.
+Destinations must be relative paths under `public/`, `assets/`, `src/assets/` or
+`native/setup/` (the Setup window's packaged art).
 
 Publishing is refused when:
 
@@ -73,7 +74,14 @@ Publishing is refused when:
 - a reviewed output is missing or its hash differs from the manifest;
 - the manifest's Blender version is not 5.2.x.
 
-`publish.json` approves one output: `jarvis-core.glb` to `src/assets/models/jarvis-core.glb`.
+`publish.json` approves four `jarvis-core` outputs:
+
+| Output | Published to |
+| --- | --- |
+| `jarvis-core.glb` | `src/assets/models/jarvis-core.glb` |
+| `splash-core-720.png` | `src/assets/brand/splash-core-720.png` (startup splash) |
+| `lock-dial-720.png` | `src/assets/brand/lock-dial-720.png` (lock screen dial) |
+| `setup-banner-410x1700.png` | `native/setup/setup-banner.png` (Setup sidebar watermark) |
 
 ## Determinism rules
 
@@ -126,7 +134,9 @@ So an entry for a generated asset must contain exactly these values:
 | `license_evidence` | `[]` |
 | `decision` | `"pending"` |
 
-`--publish` prints this entry ready to paste. Add it in the same commit as the published file.
+`--publish` prints these entries ready to paste, for renderer assets only (paths under
+`public/`, `assets/` or `src/`): `native/setup/` files are not renderer assets and get no
+entry. Add them in the same commit as the published files.
 Never add entries for outputs that are still only in `.runtime/blender/review/`: the
 provenance check refuses entries whose path is not a shipped asset.
 
@@ -200,6 +210,28 @@ ellipse: at small sizes, a ring with a dot inside reads as an eye.
 | offline | Every line steel at 50%; core faces dark neutral; rest pose |
 
 The stills only show one phase of each; the app animates them (see "In the app").
+
+**Brand renders.** Published (see "Publishing"); RGBA on a transparent film, CPU, 128
+samples, the same seed, filter, view transform and metadata stripping as the stills. The
+constants are `SPLASH`, `LOCK_DIAL` and `BANNER` in the script.
+
+| Output | What it shows |
+| --- | --- |
+| `splash-core-720.png` | The whole core in the idle pose, default view (the hero look), the rig (r = 1.2) spanning 86% of the frame. Shown at min(40vmin, 360px) on the startup splash (`index.html`). |
+| `lock-dial-720.png` | Only the outer dial, head-on (`az = el = 0`), so the outer ring is a true circle: `ring_outer`, `ticks_minor`, `ticks_major`, `arc_band` and `reticle`. The ring is 576 px across (80%), and the centre is empty for the face camera (`AuthLock`). |
+| `setup-banner-410x1700.png` | The same head-on dial, ring 600 px across, centred at (64, 1540), so it runs past the left and bottom edges. 2x art for the 205x850 Setup sidebar, with 38% opacity baked into the alpha. |
+
+The two 720 px renders are shown at roughly half size, so their lines are thicker than the
+stills' (`lines` in `SPLASH` and `LOCK_DIAL`): tube radii 2.25x for the splash, with bead
+cubes 1.5x, and 2x for the lock dial, so primary lines read about 1.5-2 CSS px wide, like the
+hero still at 1:1. The banner is shown at its 2x size and keeps the stills' widths. The GLB
+and the stills are unaffected (the widths are reset after each brand render).
+
+The splash keeps the hero materials (secondary lines pre-mixed toward `#05080C`, which is
+the splash background). The dial renders use coverage instead: primary lines are the cyan
+at full alpha and secondary lines at 35% alpha (times 38% for the banner), so they read the
+same over any dark surface. Only the first surface a camera ray meets counts, so a tick
+running into the ring never stacks above its alpha.
 
 ## jarvis-emblem
 

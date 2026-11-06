@@ -26,8 +26,9 @@ RUNTIME_REQUIRED = {
 
 # The workspace entry and preload, and the talking overlay's (docs/VOICE_OVERLAY.md).
 BUNDLE_FILES = ("native-main.cjs", "preload.js", "overlay-main.cjs", "overlay-preload.js")
-# The window, taskbar and tray icons (assets/icons/** ships with the payload) and the Setup
-# header emblem (art/icons/publish.json publishes all of them).
+# The window, taskbar and tray icons (assets/icons/** ships with the payload), the Setup
+# header emblem (art/icons/publish.json publishes all of them) and the Setup sidebar banner
+# (art/blender/publish.json publishes it).
 ICON_FILES = (
     "assets/icons/jarvis.ico",
     "assets/icons/jarvis.png",
@@ -36,6 +37,7 @@ ICON_FILES = (
         for state in ("ready", "talking", "calls", "attention", "paused")
     ),
     "native/setup/emblem-128.png",
+    "native/setup/setup-banner.png",
 )
 
 
@@ -187,6 +189,7 @@ def stage(destination, bundle, root=ROOT, runtime_directory=None):
             "JARVIS Setup.ps1",
             "native/setup/Setup.xaml",
             "native/setup/emblem-128.png",
+            "native/setup/setup-banner.png",
         )
     ]
     mapping += [(root / name, name) for name in ("dist/renderer-provenance.json", "docs/ASSET_OWNERSHIP.json")]

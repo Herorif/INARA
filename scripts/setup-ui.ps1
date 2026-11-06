@@ -38,6 +38,22 @@ function Set-SetupEmblem {
     } catch {$script:ui.Emblem.Source = $null}
 }
 Set-SetupEmblem
+# Sidebar banner: the faint core dial at the sidebar's foot (2x art, 38% opacity baked in),
+# loaded the same way. A missing or unreadable file leaves the Image empty; Setup still opens.
+function Set-SetupBanner {
+    $path = Join-Path $script:controlRoot 'native/setup/setup-banner.png'
+    if (!$script:ui.SidebarBanner -or !(Test-Path -LiteralPath $path -PathType Leaf)) {return}
+    try {
+        $image = New-Object Windows.Media.Imaging.BitmapImage
+        $image.BeginInit()
+        $image.CacheOption = [Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+        $image.UriSource = New-Object Uri ([IO.Path]::GetFullPath($path), [UriKind]::Absolute)
+        $image.EndInit()
+        $image.Freeze()
+        $script:ui.SidebarBanner.Source = $image
+    } catch {$script:ui.SidebarBanner.Source = $null}
+}
+Set-SetupBanner
 $script:reviewToken = $null; $script:lastStatus = $null; $script:busy = $false; $script:currentOp = $null
 $script:worker = $null; $script:readTask = $null; $script:eraseRequired = $false
 $script:actionButtons = @('InstallButton','SelectButton','RollbackButton','LaunchButton','BackupButton','PrepareButton','ActivateRecovery','RollbackRecovery','UninstallButton','EraseButton','ResumeButton')

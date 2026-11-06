@@ -5,7 +5,7 @@ random numbers, no clock-dependent names or metadata, fixed samples and seed.
 
 Scene arguments (after ``--``):
     --out DIR            output folder (set by blender-build.py)
-    --only all|glb|hero|states
+    --only all|glb|hero|states|brand
     --device CPU|auto|OPTIX|CUDA   (CPU by default: byte-identical renders)
 
 Coordinates are Blender Z-up; the camera looks along +Y, so a ring in the local XZ plane
@@ -65,7 +65,23 @@ STATES = {
     "offline": {"offline": True},
 }
 
-SAMPLES = {"hero": 128, "state": 64}
+SAMPLES = {"hero": 128, "state": 64, "brand": 128}
+
+# Brand renders (published: the startup splash, the lock screen dial, the Setup banner).
+# Each is RGBA on a transparent film. The dial renders show only the outer dial, head-on so
+# the outer ring is a true circle; secondary lines are the cyan at 35% coverage (alpha), so
+# they read the same over any dark surface.
+HEAD_ON = {"azimuth": 0.0, "elevation": 0.0}
+DIAL_NODES = ("ring_outer", "ticks_minor", "ticks_major", "arc_band", "reticle")
+# `lines` scales the tube radii (and `beads` the bead cubes) for the size each render is shown
+# at. Both 720 px renders are shown at roughly half size (the splash at min(40vmin, 360px),
+# the lock dial at min(60vmin, 360px)), so their lines are thickened to read about as wide
+# and bright as the hero still at 1:1 (primary lines 1.5-2 CSS px). The banner is shown at
+# its 2x size and keeps the hero widths.
+SPLASH = {"size": 720, "fill": 0.86, "lines": 2.25, "beads": 1.5}   # rig (r = 1.2) spans 86%
+LOCK_DIAL = {"size": 720, "ring_diameter": 576, "lines": 2.0}       # ring at 80% of the frame
+BANNER = {"width": 410, "height": 1700, "ring_diameter": 600, "center": (64, 1540),
+          "opacity": 0.38}                              # 2x art for the 205x850 Setup sidebar
 
 
 def srgb_to_linear(value):
@@ -300,6 +316,41 @@ def emission_material(name, rgba):
     return mat
 
 
+def coverage_material(name, code, alpha):
+    """Emission at `alpha` coverage over a transparent film. Only the first surface a camera
+    ray meets counts: back faces and anything behind a first hit let the ray through, so
+    crossing tubes (a tick into the ring) never stack above `alpha`."""
+    mat = bpy.data.materials.new(name)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    nodes.clear()
+    out = nodes.new("ShaderNodeOutputMaterial")
+    emit = nodes.new("ShaderNodeEmission")
+    emit.inputs["Color"].default_value = linear(code)
+    emit.inputs["Strength"].default_value = 1.0
+    clear = nodes.new("ShaderNodeBsdfTransparent")
+    geo = nodes.new("ShaderNodeNewGeometry")
+    path = nodes.new("ShaderNodeLightPath")
+    front = nodes.new("ShaderNodeMath")        # alpha * (1 - backfacing)
+    front.operation = "MULTIPLY_ADD"
+    front.inputs[1].default_value = -alpha
+    front.inputs[2].default_value = alpha
+    first = nodes.new("ShaderNodeMath")        # 1 on the first surface, else 0
+    first.operation = "LESS_THAN"
+    first.inputs[1].default_value = 0.5
+    fac = nodes.new("ShaderNodeMath")
+    fac.operation = "MULTIPLY"
+    mix = nodes.new("ShaderNodeMixShader")
+    links.new(geo.outputs["Backfacing"], front.inputs[0])
+    links.new(path.outputs["Transparent Depth"], first.inputs[0])
+    links.new(front.outputs["Value"], fac.inputs[0])
+    links.new(first.outputs["Value"], fac.inputs[1])
+    links.new(fac.outputs["Value"], mix.inputs["Fac"])
+    links.new(clear.outputs["BSDF"], mix.inputs[1])
+    links.new(emit.outputs["Emission"], mix.inputs[2])
+    links.new(mix.outputs["Shader"], out.inputs["Surface"])
+    return mat
+
+
 def facet_material(name, code):
     """Self-lit facet shading: brightness from the flat normal against a fixed key."""
     mat = bpy.data.materials.new(name)
@@ -338,6 +389,7 @@ def tube_modifier(obj, radius, material):
     gout = nodes.new("NodeGroupOutput")
     to_curve = nodes.new("GeometryNodeMeshToCurve")
     profile = nodes.new("GeometryNodeCurvePrimitiveCircle")
+    profile.name = "profile"
     profile.inputs["Resolution"].default_value = 8
     profile.inputs["Radius"].default_value = radius
     to_mesh = nodes.new("GeometryNodeCurveToMesh")
@@ -453,8 +505,9 @@ def make_camera(scene):
     return cam
 
 
-def frame(cam, scene, width, height, view, radius_px, center_y=0.5):
-    """Orbit the camera so a 1.2-unit rig fills `radius_px`; centre at `center_y` of height."""
+def frame(cam, scene, width, height, view, radius_px, center_y=0.5, center_x=0.5):
+    """Orbit the camera so a 1.2-unit rig fills `radius_px`; centre at (`center_x` of the
+    width, `center_y` of the height), both measured from the top-left corner."""
     scene.render.resolution_x, scene.render.resolution_y = width, height
     scene.render.resolution_percentage = 100
     data = cam.data
@@ -466,7 +519,7 @@ def frame(cam, scene, width, height, view, radius_px, center_y=0.5):
     cam.rotation_mode = "XYZ"
     cam.rotation_euler = (Vector((0, 0, 0)) - Vector(cam.location)).to_track_quat(
         "-Z", "Y").to_euler()
-    data.shift_x = 0.0
+    data.shift_x = (0.5 - center_x) * width / long_side
     data.shift_y = (center_y - 0.5) * height / long_side
 
 
@@ -505,7 +558,8 @@ def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     parser = argparse.ArgumentParser(prog="jarvis-core")
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--only", choices=("all", "glb", "hero", "states"), default="all")
+    parser.add_argument("--only", choices=("all", "glb", "hero", "states", "brand"),
+                        default="all")
     parser.add_argument("--device", choices=("CPU", "auto", "OPTIX", "CUDA"), default="CPU")
     args = parser.parse_args(argv)
     out = args.out
@@ -561,6 +615,72 @@ def main():
             apply(state_name)
             frame(cam, scene, 512, 512, DEFAULT_VIEW, radius_px=228)
             render(scene, out / f"state-{state_name}-512.png", SAMPLES["state"])
+    if args.only in ("all", "brand"):
+        render_brand(scene, cam, objects, setters, apply, out)
+
+
+def line_weight(objects, lines=1.0, beads=1.0):
+    """Scale every tube's radius by `lines` and the bead cubes by `beads` (1.0 restores)."""
+    for name in NODES:
+        modifier = objects[name].modifiers.get("tube")
+        if modifier:
+            radius = TUBE_OUTER if name == "ring_outer" else TUBE_LINE
+            modifier.node_group.nodes["profile"].inputs["Radius"].default_value = radius * lines
+    # Bead cubes grow about their own centres (scaling the object would move them off the ring).
+    bead = objects["beads"]
+    key = f"beads_{beads:.3f}"
+    mesh = bpy.data.meshes.get("beads" if beads == 1.0 else key)
+    if mesh is None:
+        mesh = bpy.data.meshes.new(key)
+        verts, faces = cubes([(R_MID, 0.0), (-R_MID, 0.0)], BEAD_EDGE * beads)
+        mesh.from_pydata(verts, [], faces)
+        mesh.shade_flat()
+        mesh.update()
+        mesh.materials.append(bead.data.materials[0])
+    bead.data = mesh
+    bpy.context.view_layer.update()
+
+
+def render_brand(scene, cam, objects, setters, apply, out):
+    """splash-core-720.png, lock-dial-720.png and setup-banner-410x1700.png (RGBA)."""
+    scene.render.film_transparent = True
+    scene.render.image_settings.color_mode = "RGBA"
+    apply("idle")
+    size = SPLASH["size"]
+    line_weight(objects, SPLASH["lines"], SPLASH["beads"])
+    frame(cam, scene, size, size, DEFAULT_VIEW, radius_px=SPLASH["fill"] * size / 2.0)
+    render(scene, out / f"splash-core-{size}.png", SAMPLES["brand"])
+    line_weight(objects)
+
+    def dial_look(opacity):
+        for name in DIAL_NODES:
+            strength = 1.0 if name in PRIMARY else SECONDARY_STRENGTH
+            alpha = round(strength * opacity, 6)
+            key = f"dial_{name}_{alpha:.6f}"
+            material = bpy.data.materials.get(key) or coverage_material(key, CYAN, alpha)
+            setters[name].inputs["Material"].default_value = material
+
+    shown = {name: objects[name].hide_render for name in NODES}
+    for name in NODES:
+        objects[name].hide_render = name not in DIAL_NODES
+    ring_scale = RETICLE[1] / R_OUTER          # frame() sizes the 1.2-unit rig
+    dial_look(1.0)
+    size = LOCK_DIAL["size"]
+    line_weight(objects, LOCK_DIAL["lines"])
+    frame(cam, scene, size, size, HEAD_ON, radius_px=LOCK_DIAL["ring_diameter"] / 2.0 * ring_scale)
+    render(scene, out / f"lock-dial-{size}.png", SAMPLES["brand"])
+    line_weight(objects)
+    dial_look(BANNER["opacity"])
+    width, height = BANNER["width"], BANNER["height"]
+    (cx, cy) = BANNER["center"]
+    frame(cam, scene, width, height, HEAD_ON,
+          radius_px=BANNER["ring_diameter"] / 2.0 * ring_scale,
+          center_x=cx / width, center_y=cy / height)
+    render(scene, out / f"setup-banner-{width}x{height}.png", SAMPLES["brand"])
+    for name, hidden in shown.items():
+        objects[name].hide_render = hidden
+    scene.render.film_transparent = False
+    scene.render.image_settings.color_mode = "RGB"
 
 
 main()

@@ -1,0 +1,29 @@
+/* Startup splash (index.html). Linked from <head>, so it styles the first paint; the CSP
+   allows no inline <style>. Inter loads with the app, so the wordmark uses system fonts.
+   src/app/splash.js fades it once the app shell has rendered. */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000; /* above the lock screen (9999) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #05080c;
+  opacity: 1;
+  transition: opacity 180ms cubic-bezier(.2,.8,.2,1);
+  user-select: none;
+}
+#splash.is-done { opacity: 0; pointer-events: none; }
+#splash img { display: block; width: min(40vmin, 360px); height: auto; }
+#splash span {
+  color: #e6eef5;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(12px, 1.4vmin, 15px);
+  font-weight: 500;
+  letter-spacing: .34em;
+}
+@media (prefers-reduced-motion: reduce) {
+  #splash { transition: none; }
+}

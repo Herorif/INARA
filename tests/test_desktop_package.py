@@ -255,6 +255,7 @@ def test_icon_files_are_the_published_window_tray_and_setup_icons():
         "assets/icons/tray/jarvis-attention.ico",
         "assets/icons/tray/jarvis-paused.ico",
         "native/setup/emblem-128.png",
+        "native/setup/setup-banner.png",
     )
     root = Path(__file__).resolve().parents[1]
     assert all((root / name).is_file() for name in package.ICON_FILES)
@@ -267,10 +268,11 @@ def test_staged_pilot_ships_the_icons(source):
         assert (destination / name).read_bytes() == (root / name).read_bytes(), name
 
 
-def test_staging_refuses_a_missing_setup_emblem(source):
+@pytest.mark.parametrize("name", ["native/setup/emblem-128.png", "native/setup/setup-banner.png"])
+def test_staging_refuses_missing_setup_art(source, name):
     root, bundle = source
-    (root / "native/setup/emblem-128.png").unlink()
-    target = root / ".runtime/releases/no-emblem"
+    (root / name).unlink()
+    target = root / ".runtime/releases/no-setup-art"
     with pytest.raises((ValueError, OSError)):  # the payload size check stats every input
         package.stage(target, bundle, root)
     assert not target.exists()
@@ -285,6 +287,7 @@ def test_staging_refuses_a_missing_setup_emblem(source):
         "assets/icons/jarvis.ico",
         "assets/icons/tray/jarvis-calls.ico",
         "native/setup/emblem-128.png",
+        "native/setup/setup-banner.png",
     ],
 )
 def test_pilot_requires_the_overlay_and_icon_files(source, name):

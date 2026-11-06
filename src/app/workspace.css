@@ -222,7 +222,11 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .auth-lock__content h1 { margin:.5rem 0 0; font-size:var(--text-xl); font-weight:500; line-height:var(--leading-tight); }
 .auth-lock__status { margin:0; font-size:var(--text-sm); color:var(--text-2); }
 .auth-lock__status[data-state="recognized"] { color:var(--ok); }
-.auth-lock__camera { width:15rem; height:15rem; margin-top:.75rem; overflow:hidden; display:grid; place-items:center; color:var(--text-3); }
+.auth-lock__dial { position:relative; flex-shrink:0; width:min(60vmin,360px); height:min(60vmin,360px); }
+.auth-lock__dial-art { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+/* The camera circle: 47% of the dial, centred inside its ring. */
+.auth-lock__camera { position:absolute; inset:26.5%; box-sizing:border-box; border:2px solid var(--line-strong); border-radius:50%; background:var(--bg-panel); overflow:hidden; display:grid; place-items:center; color:var(--text-3); }
+.auth-lock__camera[data-state="recognized"] { border-color:var(--ok); }
 .auth-lock__camera img { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
 
 .command-deck[data-ui-visible="false"] * { animation-play-state:paused!important; }
