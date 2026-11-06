@@ -35,7 +35,7 @@ if str(BACKEND) not in sys.path:
 
 EXIT_OK, EXIT_INPUT, EXIT_TEST, EXIT_STORAGE = 0, 2, 3, 4
 # Anything that looks like a provider key on argv is refused without echoing it.
-KEY_SHAPED = re.compile(r"(sk-ant-|AIza)[A-Za-z0-9_\-]{8,}")
+KEY_SHAPED = re.compile(r"(sk-ant-|AIza|AQ\.)[A-Za-z0-9_\-]{8,}")
 
 
 class InputError(Exception):

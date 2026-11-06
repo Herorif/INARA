@@ -100,6 +100,11 @@ def test_placeholders_are_rejected(store, value):
         ("gemini_api_key", "AIza" + "x" * 10, False),
         ("gemini_api_key", ANTHROPIC, False),
         ("gemini_api_key", "AIza" + "x" * 30 + "é" * 5, False),
+        # Google AI Studio's newer auth keys start with AQ. and are longer.
+        ("gemini_api_key", "AQ.Fixture" + "Qx-_7" * 12, True),
+        ("gemini_api_key", "AQ.short", False),
+        ("gemini_api_key", "AQ." + "x" * 30 + " extra", False),
+        ("gemini_api_key", "AQ:" + "x" * 40, False),
     ],
 )
 def test_format_validation(store, name, value, valid):

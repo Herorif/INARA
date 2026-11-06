@@ -12,7 +12,7 @@ JARVIS uses two providers. Claude is the assistant's brain; Gemini handles audio
 | Key | Used for | Where to get it | Name in JARVIS |
 | --- | --- | --- | --- |
 | Anthropic API key (starts with `sk-ant-`) | Claude, the assistant's brain | [Anthropic Console](https://console.anthropic.com/) | `anthropic_api_key` |
-| Gemini API key (starts with `AIza`, about 39 characters) | Transcription and voice; the assistant when no Anthropic key is set | [Google AI Studio](https://aistudio.google.com/app/apikey) | `gemini_api_key` |
+| Gemini API key (new keys start with `AQ.`; older ones start with `AIza`, about 39 characters) | Transcription and voice; the assistant when no Anthropic key is set | [Google AI Studio](https://aistudio.google.com/app/apikey) | `gemini_api_key` |
 
 Both are optional: JARVIS starts without them, and AI features report that a key is missing ("Add an Anthropic or Gemini API key in Setup (AI providers) or Preferences").
 

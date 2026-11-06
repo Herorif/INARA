@@ -184,8 +184,10 @@ REGISTRY = {
             label="Gemini API key",
             provider="Google",
             env="GEMINI_API_KEY",
-            pattern=r"AIza[A-Za-z0-9_\-]{30,60}",
-            format_message="Gemini keys start with AIza and are about 39 characters. Copy the whole key from Google AI Studio.",
+            # Google AI Studio now issues "auth keys" that start with AQ. (sent the same way,
+            # as x-goog-api-key); older keys start with AIza and are about 39 characters.
+            pattern=r"AIza[A-Za-z0-9_\-]{30,60}|AQ\.[A-Za-z0-9_\-.]{20,400}",
+            format_message="Gemini keys start with AQ. (or AIza for older keys). Copy the whole key from Google AI Studio.",
             request=_gemini_request,
         ),
         # Telephony (docs/CALL_ROUTING.md). The Auth Token authenticates REST calls

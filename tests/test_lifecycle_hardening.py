@@ -426,6 +426,7 @@ async def test_call_lab_cancellation_records_stop_then_propagates(call_app):
     [
         "sk-ant-api03-AbCdEf0123456789_xyz-QWERTY",
         "AIzaSyA1b2C3d4E5f6G7h8I9j0KlMnOpQrStUv",
+        "AQ.FixtureQ2Wx-Lm_9Zt4Kp7Vn3Bc",  # Google's newer Gemini auth key shape
         "Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig",
         "Authorization: Basic dXNlcjpwYXNz",
         "x-api-key: plainvalue123",

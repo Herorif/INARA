@@ -30,6 +30,7 @@ _KEYED = re.compile(
 _PATTERNS = (
     (re.compile(r"sk-ant-[A-Za-z0-9_\-]+"), MASK),
     (re.compile(r"AIza[0-9A-Za-z_\-]{20,}"), MASK),
+    (re.compile(r"\bAQ\.[0-9A-Za-z_\-.]{16,}"), MASK),  # Google's newer Gemini auth keys
     (re.compile(r"(?i)\b(bearer)\s+[^\s,;\"']+"), r"\1 " + MASK),
     (_KEYED, r"\1\2" + MASK),
 )
