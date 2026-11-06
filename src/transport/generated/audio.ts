@@ -20,3 +20,9 @@ export type AudioDevicesReport = {
   "inputs": Array<AudioDeviceEntry>;
   "outputs": Array<AudioDeviceEntry>;
 };
+export type WakeWordStatusRequest = {
+};
+export type WakeWordStatus = {
+  "state": "off" | "listening" | "paused" | "unavailable";
+  "message": string | null;
+};

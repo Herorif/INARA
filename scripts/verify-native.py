@@ -28,8 +28,11 @@ for key, directory in [
     ("JARVIS_SETTINGS_FILE", "settings.json"),
     ("JARVIS_PROJECT_ROOT", "workspace"),
     ("JARVIS_LEGACY_DATA_DIR", "legacy"),
+    ("JARVIS_WAKE_WORD_DIR", "wake-word-empty"),
 ]:
     os.environ[key] = str(output / directory)
+# Empty: no "Hey Jarvis" models, so this core never opens the microphone.
+(output / "wake-word-empty").mkdir(parents=True, exist_ok=True)
 os.environ.pop("ELECTRON_RUN_AS_NODE", None)
 from resident.host import NativeHost  # noqa: E402 - isolate before importing the runtime
 from resident.state import Identity  # noqa: E402

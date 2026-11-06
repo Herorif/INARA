@@ -1,4 +1,5 @@
-"""Tray voice device contracts (J2): the saved choice and the core's device list.
+"""Tray voice contracts: the saved device choice, the core's device list and the
+"Hey Jarvis" status.
 
 A device is identified by its name and host API (``Windows WASAPI``), never by an index,
 which changes as devices come and go. ``"default"`` follows the system default device.
@@ -9,6 +10,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, TypeAdapter
 from pydantic import ValidationError
+
+from services.live_config import VOICE_DEFAULTS, WAKE_SENSITIVITIES
 
 # Printable text only (device names come from the OS and are shown on screen).
 PRINTABLE = r"^[^\x00-\x1f\x7f]+$"
@@ -58,6 +61,39 @@ class AudioDevicesReport(BaseModel):
     host_api: StrictStr | None = Field(max_length=HOST_API_LIMIT)
     inputs: list[AudioDeviceEntry] = Field(max_length=DEVICE_LIMIT)
     outputs: list[AudioDeviceEntry] = Field(max_length=DEVICE_LIMIT)
+
+
+class WakeWordStatusRequest(BaseModel):
+    """``wake_word_status`` takes no fields."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class WakeWordStatus(BaseModel):
+    """Whether the tray is listening for "Hey Jarvis", for the Preferences status line.
+
+    ``listening`` (also while the models load), ``paused`` (gaming mode only), ``off``
+    (the setting is off) or ``unavailable`` with a plain ``message`` saying why.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    state: Literal["off", "listening", "paused", "unavailable"]
+    message: StrictStr | None = Field(max_length=500)
+
+
+def wake_word_settings(settings):
+    """``{"wake_word": bool, "wake_sensitivity": str}`` with defaults for missing or
+    stale values on disk (settings files are never migrated on startup)."""
+    voice = (settings or {}).get("voice")
+    voice = voice if isinstance(voice, dict) else {}
+    enabled = voice.get("wake_word", VOICE_DEFAULTS["wake_word"])
+    sensitivity = voice.get("wake_sensitivity", VOICE_DEFAULTS["wake_sensitivity"])
+    return {
+        "wake_word": enabled if type(enabled) is bool else VOICE_DEFAULTS["wake_word"],
+        "wake_sensitivity": sensitivity
+        if isinstance(sensitivity, str) and sensitivity in WAKE_SENSITIVITIES
+        else VOICE_DEFAULTS["wake_sensitivity"],
+    }
 
 
 def local_devices(settings):

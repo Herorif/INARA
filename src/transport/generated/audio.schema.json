@@ -193,5 +193,46 @@
     ],
     "title": "AudioDevicesReport",
     "type": "object"
+  },
+  "WakeWordStatusRequest": {
+    "additionalProperties": false,
+    "description": "``wake_word_status`` takes no fields.",
+    "properties": {},
+    "title": "WakeWordStatusRequest",
+    "type": "object"
+  },
+  "WakeWordStatus": {
+    "additionalProperties": false,
+    "description": "Whether the tray is listening for \"Hey Jarvis\", for the Preferences status line.\n\n``listening`` (also while the models load), ``paused`` (gaming mode only), ``off``\n(the setting is off) or ``unavailable`` with a plain ``message`` saying why.",
+    "properties": {
+      "state": {
+        "enum": [
+          "off",
+          "listening",
+          "paused",
+          "unavailable"
+        ],
+        "title": "State",
+        "type": "string"
+      },
+      "message": {
+        "anyOf": [
+          {
+            "maxLength": 500,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Message"
+      }
+    },
+    "required": [
+      "state",
+      "message"
+    ],
+    "title": "WakeWordStatus",
+    "type": "object"
   }
 }

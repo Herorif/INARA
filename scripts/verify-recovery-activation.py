@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import sys
 import subprocess
+import tempfile
 import threading
 import time
 from types import SimpleNamespace
@@ -28,6 +29,8 @@ assert Path(sys.executable).resolve() == package / "runtime/python/python.exe"
 output = args.output.absolute()
 assert output.parent == ROOT / ".runtime" and not output.exists()
 output.mkdir()
+# Empty: no "Hey Jarvis" models, so this core never opens the microphone.
+os.environ["JARVIS_WAKE_WORD_DIR"] = tempfile.mkdtemp(prefix="jarvis-wake-empty-")
 spec = importlib.util.spec_from_file_location(
     "recovery_control", control / "scripts/desktop-recovery.py"
 )

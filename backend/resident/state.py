@@ -53,6 +53,12 @@ VOICE_STATES = {
     "speaking": "Speaking",
 }
 MICROPHONE = {"on": "mic on", "paused": "mic paused while JARVIS speaks", "off": "mic off"}
+WAKE = {
+    "listening": 'Listening for "Hey Jarvis"',
+    "paused": '"Hey Jarvis" paused',
+    "unavailable": '"Hey Jarvis" unavailable',
+}
+TOOLTIP_LIMIT = 127  # NOTIFYICONDATA's tip holds 128 characters with the terminator
 
 
 class State:
@@ -63,9 +69,12 @@ class State:
         self.quitting = False
         # Tray voice, as the core reports it: {"active", "state", "microphone", "notice"}.
         self.voice = None
+        # "Hey Jarvis", as the core reports it: {"setting", "state", "message"}.
+        self.wake = None
 
     def tooltip(self):
-        """The tray tooltip: resident status, or tray voice state with the microphone."""
+        """The tray tooltip: resident status (with "Hey Jarvis" while that setting is on),
+        or tray voice state with the microphone; at most 127 characters."""
         base = (
             "Core unavailable"
             if self.phase == "failed"
@@ -84,9 +93,12 @@ class State:
             ]
         else:
             parts = [base]
+            wake = self.wake or {}
+            if wake.get("setting") and self.phase != "failed" and wake.get("state") in WAKE:
+                parts.append(WAKE[wake["state"]])
         if notice:
             parts.append(notice)
-        return "JARVIS · " + " · ".join(parts)
+        return ("JARVIS · " + " · ".join(parts))[:TOOLTIP_LIMIT]
 
     def snapshot(self):
         return {

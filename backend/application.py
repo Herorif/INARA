@@ -63,6 +63,8 @@ from services.audio_devices import AudioDevices
 from transport.audio_devices import AudioDevicesTransport
 from services.speech import SpeechService, SpeechTransport
 from services.voice import VoiceService, VoiceTransport
+from services.wake_listening import WakeWordService
+from transport.wake_word import WakeWordTransport
 from services.voice_preview import VoicePreviewService
 from transport.voice_preview import VoicePreviewTransport
 from services.scheduler_tools import register_scheduler_tools
@@ -173,6 +175,9 @@ class Application:
         self.audio_devices_transport = AudioDevicesTransport(self)
         self.voice = VoiceService(self)
         self.voice_transport = VoiceTransport(self)
+        # "Hey Jarvis": listens only once the native resident host activates it.
+        self.wake = WakeWordService(self)
+        self.wake_transport = WakeWordTransport(self)
         self.voice_preview = VoicePreviewService(self)
         self.voice_preview_transport = VoicePreviewTransport(self)
         self.reminder_transport = ReminderTransport(sio, self.dispatcher, reminders, self.sessions)
@@ -245,7 +250,7 @@ class Application:
             self.restrict_resources,
             self.close,
             request_exit,
-            after_resource=self.connection.resource_changed,
+            after_resource=self.resource_changed,
         )
         self.tasks = []
         self.started = False
@@ -349,6 +354,12 @@ class Application:
         await self.connection.settings_changed(patch)
         if "calls" in patch:
             await self.telephony.reconcile()
+        if "voice" in patch or "tool_permissions" in patch:
+            await self.wake.reconcile(fresh=True)
+
+    async def resource_changed(self, state):
+        await self.connection.resource_changed(state)
+        await self.wake.reconcile()
 
     async def start(self):
         if self.started:
@@ -366,6 +377,7 @@ class Application:
         )
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
+        await self.wake.begin()  # no-op outside the native resident
         if self.telephony.calls_settings()["enabled"]:
             await self.telephony.reconcile()  # never raises; failures show in calls_status
         try:
@@ -409,6 +421,7 @@ class Application:
         finally:
             await _isolated("call_orchestrator", self.call_orchestrator.close)
             await _isolated("call_agent", self.call_agent.close)
+            await _isolated("wake", self.wake.close)
             await _isolated("audio_devices", self.audio_devices.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:

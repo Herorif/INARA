@@ -14,7 +14,13 @@ from resident.state import Identity, State
 from services import env
 from services.log import get_logger
 
-NOTICES = {"call": ("JARVIS call", "A call record is ready. Open the command deck to view it.")}
+NOTICES = {
+    "call": ("JARVIS call", "A call record is ready. Open the command deck to view it."),
+    # "Hey Jarvis" heard while face lock is on (at most once per LOCKED_NOTICE_SECONDS).
+    "voice_locked": ("JARVIS voice", "Unlock JARVIS in the workspace to talk."),
+}
+LOCKED_NOTICE_SECONDS = 600
+STARTING = "JARVIS is still starting. Try again in a moment."
 
 logger = get_logger(__name__)
 
@@ -56,6 +62,7 @@ class NativeHost:
         self.loop = self.thread = self.server = self.runtime = None
         self.process_factory = process_factory or WorkspaceProcess
         self.seen = set()
+        self.notice_shown = {}  # notice kind -> monotonic time last shown
         self.tray = (tray_factory or Tray)(
             hashlib.sha256(str(self.profile.resolve()).encode()).hexdigest()[:24],
             self.root / "assets/icons/jarvis.ico",
@@ -110,6 +117,8 @@ class NativeHost:
             server.runtime.sessions.native_desktop = self
             # Tray voice reports its state here (called on the core loop).
             server.runtime.voice.local_observer = self.voice_changed
+            # "Hey Jarvis" listens only here, in the native resident.
+            server.runtime.wake.activate(observer=self.wake_changed, notice=self.voice_notice)
             server.ACTIVE_RUNTIME = "native-resident-core"
             server.ACTIVE_ENTRYPOINT = "backend/resident_main.py"
             self.server = server.uvicorn.Server(
@@ -169,6 +178,9 @@ class NativeHost:
 
             def attach():
                 self.runtime.runtime.sessions.attach_native(self.state.identity.owner)
+                wake = getattr(self.runtime.runtime, "wake", None)
+                if wake is not None:
+                    wake.poke(fresh=True)  # an owner is registered: listening may start
 
             if self.loop and self.loop.is_running():
                 self.loop.call_soon_threadsafe(attach)
@@ -376,7 +388,7 @@ class NativeHost:
                         "active": False,
                         "state": "off",
                         "microphone": "off",
-                        "notice": "JARVIS is still starting. Try again in a moment.",
+                        "notice": STARTING,
                     }
                 )
             return None
@@ -385,11 +397,53 @@ class NativeHost:
             "start tray voice" if start else "stop tray voice",
         )
 
+    # --- "Hey Jarvis" ----------------------------------------------------------------------
+
+    def wake_changed(self, status):
+        """Core loop -> tray thread: {"setting", "state", "message"} for the tooltip/menu."""
+        self.tray.post(lambda: self.show_wake(status))
+
+    def show_wake(self, status):
+        self.state.wake = status
+        self.tray.wake_word = bool(status.get("setting"))
+        self.show_tooltip()
+
+    def voice_notice(self, kind):
+        """Core loop -> tray thread: a fixed, content-free balloon (rate-limited)."""
+        self.tray.post(lambda: self.show_notice(kind))
+
+    def show_notice(self, kind, now=None):
+        notice = NOTICES.get(kind)
+        if notice is None or self.state.quitting:
+            return False
+        now = time.monotonic() if now is None else now
+        last = self.notice_shown.get(kind)
+        if last is not None and now - last < LOCKED_NOTICE_SECONDS:
+            return False
+        try:
+            shown = bool(self.tray.notify(*notice))
+        except Exception:
+            return False
+        if shown:
+            self.notice_shown[kind] = now
+        return shown
+
+    def toggle_wake(self):
+        """Tray "Listen for "Hey Jarvis"": the core saves voice.wake_word and reports back."""
+        application = getattr(self.runtime, "runtime", None)
+        wake = getattr(application, "wake", None)
+        if self.state.phase != "ready" or wake is None or not self.loop or not self.loop.is_running():
+            self.show_voice({"active": False, "state": "off", "microphone": "off", "notice": STARTING})
+            return None
+        return self._submit(wake.toggle(), 'toggle "Hey Jarvis"')
+
     def action(self, action):
         if action in {"open", "quick"}:
             self.open_workspace(quick=action == "quick")
         elif action in {"talk", "stop_talking"}:
             self.talk(action == "talk")
+        elif action == "wake_word":
+            self.toggle_wake()
         elif action == "gaming":
             self.state.mode(not self.state.identity.gaming)
             self.publish()

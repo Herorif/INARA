@@ -1,18 +1,29 @@
-"""This PC's microphone and speaker for tray voice (J2). Never imported audio at startup.
+"""This PC's microphone and speaker for tray voice. Never imports audio at startup.
 
 ``sounddevice`` (PortAudio) is imported lazily, on one dedicated audio control thread,
 the first time devices are listed or opened; every PortAudio control call (initialize,
 query, open, start, abort, close) runs on that thread, so they are serialized and keep
 one COM apartment. Streams are raw PCM16 bytes (no numpy). WASAPI shared mode runs at the
-device's own mix rate, so the microphone records at the device rate and is resampled to
-Live's 16 kHz, and Live's 24 kHz speech is resampled to the speaker's rate
+device's own mix rate, so a session's own microphone records at the device rate and is
+resampled to Live's 16 kHz, and Live's 24 kHz speech is resampled to the speaker's rate
 (``telephony.audio.Resampler``; speech quality).
+
+While "Hey Jarvis" listens (services/wake_listening.py), ``Microphone`` is the one capture
+stream: opened at 16 kHz mono through WASAPI's own converter when it can be (its blocks
+go straight from the PortAudio callback to the detector's queue), else at the device rate
+and resampled on a capture worker thread. It stays open across tray voice sessions, which
+attach to it instead of opening their own, and keeps the last 1.5 s of 16 kHz audio in
+memory only (``PREROLL_SECONDS``), so a session started by the phrase can send it first.
+With no session attached, no block reaches the core loop.
 
 PortAudio callbacks never block and never call into the core: they copy one block into
 a bounded deque (dropping the oldest block on overflow, counted) and wake the core loop
-with ``call_soon_threadsafe``. Half-duplex echo control lives here too: while JARVIS's
-audio is playing, and for ``tail`` seconds after the playback buffer drains,
-``speaking()`` is true and the voice service drops microphone frames.
+with ``call_soon_threadsafe`` (the shared microphone wakes the loop only for an attached
+session). Half-duplex echo control lives here too: while JARVIS's audio is playing, and
+for ``tail`` seconds after the playback buffer drains, ``speaking()`` is true and the
+voice service drops microphone frames; a "Hey Jarvis" barge-in flushes playback and ends
+the tail at once. The short wake and denied cues (``cue_pcm``) are generated here and
+play on an output stream of their own (``Cue``), apart from any session.
 
 Audio is never logged or stored. Logs carry device names, host APIs, rates and counters.
 """
@@ -24,8 +35,10 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import importlib
 import importlib.util
+import math
 import re
 import sys
+import threading
 import time
 
 from services.audio_contracts import (
@@ -50,6 +63,21 @@ TAIL_SECONDS = 0.3  # microphone stays muted this long after playback drains
 STALL_SECONDS = 2.0  # no callbacks for this long: the device is gone
 OPEN_GRACE_SECONDS = 3.0  # first callbacks may take a moment after opening
 CONTROL_TIMEOUT = 10.0
+CAPTURE_BLOCK = INPUT_RATE // BLOCKS_PER_SECOND  # 20 ms of 16 kHz (shared microphone)
+PREROLL_SECONDS = 1.5
+PREROLL_BYTES = int(INPUT_RATE * PREROLL_SECONDS) * 2
+HOLD_BYTES = INPUT_RATE * 2 * 10  # audio held between a detection and its decision (10 s)
+SHARED_INBOX = INBOX_BLOCKS + 4  # shared-microphone chunks waiting for a session's loop
+WORKER_POLL = 1.0  # the capture worker checks for a stalled microphone this often
+CUES = {"wake": (660.0, 880.0), "denied": (523.0, 392.0)}
+CUE_TONE_SECONDS = 0.07
+CUE_GAP_SECONDS = 0.02
+CUE_FADE_SECONDS = 0.01
+CUE_PEAK_DBFS = -18.0
+OPEN_FAILED = (
+    "JARVIS could not open the microphone or speaker. "
+    "Check them in Windows sound settings and try again."
+)
 UNAVAILABLE = (
     "Tray voice needs the sounddevice audio library. Run scripts/bootstrap.ps1 to repair setup."
 )
@@ -186,14 +214,15 @@ class AudioDevices:
 
     # --- the audio control thread ---------------------------------------------------------
 
-    async def call(self, function, *args):
+    def submit(self, function, *args):
+        """Queue ``function`` on the control thread now; an asyncio future of its result."""
         if self.executor is None:
             self.executor = ThreadPoolExecutor(1, thread_name_prefix="jarvis-audio")
-        loop = asyncio.get_running_loop()
+        return asyncio.get_running_loop().run_in_executor(self.executor, function, *args)
+
+    async def call(self, function, *args):
         try:
-            return await asyncio.wait_for(
-                loop.run_in_executor(self.executor, function, *args), self.timeout
-            )
+            return await asyncio.wait_for(self.submit(function, *args), self.timeout)
         except TimeoutError as exc:
             logger.warning("The audio system did not answer within %ss", self.timeout)
             raise ServiceError(
@@ -324,6 +353,11 @@ class LocalAudio:
     ``on_frame(pcm)`` receives 40 ms frames of 16 kHz PCM16 on the core loop;
     ``on_lost(kind)`` is called once if a device stops ("microphone" or "speaker");
     ``on_change()`` when playback starts or the half-duplex tail ends.
+
+    With ``microphone`` (the shared ``Microphone`` while "Hey Jarvis" listens) the session
+    opens only its speaker and attaches to that stream; with ``preroll`` it first takes
+    the audio held since the detection, handing the 1.5 s before it to ``on_preroll(pcm)``
+    in 40 ms frames (the last one may be shorter). Closing detaches; the stream stays open.
     """
 
     def __init__(
@@ -338,9 +372,14 @@ class LocalAudio:
         stall=STALL_SECONDS,
         grace=OPEN_GRACE_SECONDS,
         poll=0.1,
+        microphone=None,
+        preroll=False,
+        on_preroll=lambda pcm: None,
     ):
         self.devices = devices
         self.on_frame, self.on_lost, self.on_change = on_frame, on_lost, on_change
+        self.shared, self.take_preroll, self.on_preroll = microphone, preroll, on_preroll
+        self.shared_inbox = deque(maxlen=SHARED_INBOX)  # (preroll, 16 kHz pcm) from ``shared``
         self.clock, self.tail, self.stall, self.grace, self.poll = clock, tail, stall, grace, poll
         self.loop = None
         self.input = self.output = None
@@ -377,6 +416,8 @@ class LocalAudio:
             raise ServiceError("voice_stopped", "Voice is off.")
         self.opened_at = self.last_input = self.last_output = self.clock()
         self.ready = True
+        if self.shared is not None:
+            self.shared.attach(self, preroll=self.take_preroll)
         self.monitor = asyncio.create_task(self.watch(), name="local-audio-watch")
         return notices
 
@@ -384,25 +425,30 @@ class LocalAudio:
         if self.closing:
             return []
         preferred, devices = self.devices.devices()
-        mic, mic_notice = resolve(devices, preferred, "input", microphone)
+        if self.shared is None:
+            mic, mic_notice = resolve(devices, preferred, "input", microphone)
+        else:  # the listener's stream: already open, its device already resolved
+            mic, mic_notice = self.shared.device, self.shared.notice
         out, out_notice = resolve(devices, preferred, "output", speaker)
         backend = self.devices.backend
         from telephony.audio import Resampler
 
         try:
-            self.in_channels, self.input = self._stream(
-                backend.RawInputStream, mic, "input", self._capture_callback
-            )
+            if self.shared is None:
+                self.in_channels, self.input = self._stream(
+                    backend.RawInputStream, mic, "input", self._capture_callback
+                )
             self.out_channels, self.output = self._stream(
                 backend.RawOutputStream, out, "output", self._play_callback
             )
             # Filter design for 44.1 kHz can take a moment: built here, off the core loop.
-            self.capture = Resampler(mic.rate, INPUT_RATE)
+            self.capture = Resampler(INPUT_RATE if self.shared else mic.rate, INPUT_RATE)
             self.playback = Resampler(OUTPUT_RATE, out.rate)
             self.block_bytes = max(2, out.rate // BLOCKS_PER_SECOND) * 2 * self.out_channels
             latency = getattr(self.output, "latency", 0.0)
             self.output_latency = float(latency) if isinstance(latency, (int, float)) else 0.0
-            self.input.start()
+            if self.input is not None:  # None: the shared microphone is already running
+                self.input.start()
             self.output.start()
         except ServiceError:
             self._close_streams()
@@ -415,16 +461,13 @@ class LocalAudio:
                 out.label(),
             )
             self._close_streams()
-            raise ServiceError(
-                "audio_open_failed",
-                "JARVIS could not open the microphone or speaker. "
-                "Check them in Windows sound settings and try again.",
-            ) from exc
+            raise ServiceError("audio_open_failed", OPEN_FAILED) from exc
         self.microphone, self.speaker = mic, out
         logger.info(
-            "Local voice opened microphone %s (%s ch) and speaker %s (%s ch)",
+            "Local voice opened microphone %s (%s ch%s) and speaker %s (%s ch)",
             mic.label(),
             self.in_channels,
+            ", shared with the wake-word listener" if self.shared is not None else "",
             out.label(),
             self.out_channels,
         )
@@ -455,11 +498,14 @@ class LocalAudio:
         if self.closed:
             return
         self.closed = self.closing = True
+        if self.shared is not None:
+            self.shared.detach(self)  # the listener's stream stays open
         monitor = self.monitor
         if monitor is not None and monitor is not asyncio.current_task():
             monitor.cancel()
             await asyncio.gather(monitor, return_exceptions=True)
         self.inbox.clear()
+        self.shared_inbox.clear()
         self.outbox.clear()
         self.pending.clear()
         try:
@@ -537,7 +583,7 @@ class LocalAudio:
                 self.partial = None if offset >= len(block) else (block, offset)
             if filled < need:
                 outdata[filled:need] = bytes(need - filled)
-            if filled:
+            if filled and not self.drop_partial:  # a barge-in flush during this block wins
                 self.last_audible = self.clock()
         except Exception:
             try:
@@ -556,14 +602,48 @@ class LocalAudio:
 
     # --- core loop -------------------------------------------------------------------------
 
+    def shared_audio(self, pcm, preroll):
+        """The shared microphone's 16 kHz audio (any thread): copy, count, wake the loop."""
+        try:
+            if self.closing:
+                return
+            self.input_blocks += 1
+            if len(self.shared_inbox) == self.shared_inbox.maxlen:
+                self.input_dropped += 1  # the deque drops the oldest chunk
+            self.shared_inbox.append((preroll, pcm))
+            if not self.wake_pending:
+                self.wake_pending = True
+                self.loop.call_soon_threadsafe(self._drain)
+        except Exception:
+            pass  # e.g. the loop closed during shutdown
+
     def _drain(self):
         self.wake_pending = False
+        if self.shared is not None:
+            self._drain_shared()
+            return
         while not self.closing:
             try:
                 block = self.inbox.popleft()
             except IndexError:
                 return
             self.pending += self.capture.process(downmix(block, self.in_channels))
+            while len(self.pending) >= FRAME_BYTES and not self.closing:
+                frame = bytes(self.pending[:FRAME_BYTES])
+                del self.pending[:FRAME_BYTES]
+                self.on_frame(frame)
+
+    def _drain_shared(self):
+        while not self.closing:
+            try:
+                preroll, pcm = self.shared_inbox.popleft()
+            except IndexError:
+                return
+            if preroll:
+                for start in range(0, len(pcm), FRAME_BYTES):
+                    self.on_preroll(pcm[start : start + FRAME_BYTES])
+                continue
+            self.pending += pcm
             while len(self.pending) >= FRAME_BYTES and not self.closing:
                 frame = bytes(self.pending[:FRAME_BYTES])
                 del self.pending[:FRAME_BYTES]
@@ -578,7 +658,7 @@ class LocalAudio:
 
     def speaking(self):
         """True while JARVIS is audible, plus the tail after the playback buffer drains."""
-        if self.outbox or self.partial is not None:
+        if self.outbox or (self.partial is not None and not self.drop_partial):
             return True
         return self.clock() - self.last_audible < self.tail + self.output_latency
 
@@ -596,10 +676,16 @@ class LocalAudio:
         if not was_speaking:
             self.on_change()
 
-    def flush(self):
-        """Interrupted: drop everything not yet played."""
+    def flush(self, reset_tail=False):
+        """Interrupted: drop everything not yet played.
+
+        ``reset_tail`` (a "Hey Jarvis" barge-in only) also ends the half-duplex tail, so
+        the microphone reaches Live at once; every other flush keeps the tail.
+        """
         self.outbox.clear()
         self.drop_partial = True
+        if reset_tail:
+            self.last_audible = float("-inf")
         if self.playback is not None:
             self.playback.reset()
         self.on_change()
@@ -613,7 +699,8 @@ class LocalAudio:
                     return
                 now = self.clock()
                 if now - self.opened_at > self.grace:
-                    if now - self.last_input > self.stall:
+                    # A shared microphone watches itself (Microphone reports its loss).
+                    if self.shared is None and now - self.last_input > self.stall:
                         self._report_lost("microphone")
                         return
                     if now - self.last_output > self.stall:
@@ -628,6 +715,414 @@ class LocalAudio:
         except Exception:
             logger.exception("Local audio watch failed")
             self._report_lost("microphone")
+
+
+class Microphone:
+    """The one capture stream while "Hey Jarvis" listens; tray voice sessions attach to it.
+
+    Every 16 kHz mono chunk goes to ``submit`` (the listener's non-blocking queue), into
+    the 1.5 s pre-roll ring (memory only, overwritten continuously), and to the attached
+    session, if any (``LocalAudio.shared_audio``). ``arm()`` (called at a detection)
+    snapshots the ring and holds the following audio until the core decides: ``attach``
+    hands a wake-started session the snapshot and the held audio, ``release()`` gives the
+    held audio to the attached session, ``discard()`` drops it. Snapshot, hold and
+    forwarding all happen under one lock, so nothing is lost or sent twice.
+
+    ``on_lost()`` is called once, on the core loop, if the stream stops or goes silent.
+    """
+
+    def __init__(self, devices, *, on_lost, submit=None, clock=time.monotonic,
+                 stall=STALL_SECONDS, grace=OPEN_GRACE_SECONDS, poll=WORKER_POLL):
+        self.devices, self.on_lost, self.submit = devices, on_lost, submit
+        self.clock, self.stall, self.grace, self.poll = clock, stall, grace, poll
+        self.loop = None
+        self.stream = None
+        self.device = self.notice = None
+        self.direct = False  # 16 kHz mono blocks straight from the callback
+        self.channels = 1
+        self.resampler = None
+        self.inbox = deque(maxlen=INBOX_BLOCKS)  # device-rate blocks for the worker
+        self._lock = threading.Lock()
+        self._ring = deque()
+        self._ring_bytes = 0
+        self._held = None  # deque of chunks since arm(), or None
+        self._held_bytes = 0
+        self._armed_preroll = None
+        self._sink = None
+        self._wake = threading.Event()
+        self._worker = None
+        self.opened_at = self.last_input = 0.0
+        self.closing = self.closed = False
+        self.ready = False
+        self.lost = False
+        # Counters (logged at close; never audio).
+        self.blocks = self.dropped = self.flags = self.held_dropped = 0
+
+    # --- lifetime -------------------------------------------------------------------------
+
+    async def open(self, choice=SYSTEM_DEFAULT):
+        """Resolve and open the saved microphone (control thread); the fallback notice."""
+        self.loop = asyncio.get_running_loop()
+        await self.devices.call(self._open, choice)
+        if self.closing:
+            raise ServiceError("voice_stopped", "The microphone was closed.")
+        self.ready = True
+        return self.notice
+
+    def _open(self, choice):
+        if self.closing:
+            return
+        preferred, devices = self.devices.devices()
+        mic, notice = resolve(devices, preferred, "input", choice)
+        backend = self.devices.backend
+        self.device, self.notice = mic, notice
+        self.opened_at = self.last_input = self.clock()
+        stream = None
+        wasapi = getattr(backend, "WasapiSettings", None)
+        if callable(wasapi) and mic.host_api == PREFERRED_HOST_API:
+            # WASAPI converts to 16 kHz mono for us: no resampling at all.
+            self.direct, self.channels = True, 1
+            try:
+                stream = self._start(
+                    backend, mic, INPUT_RATE, 1, CAPTURE_BLOCK,
+                    extra_settings=wasapi(auto_convert=True),
+                )
+            except Exception as exc:
+                logger.info(
+                    "Microphone %s refused 16 kHz (%s); using its own rate",
+                    mic.label(),
+                    type(exc).__name__,
+                )
+        if stream is None:
+            from telephony.audio import Resampler
+
+            self.direct = False
+            self.resampler = Resampler(mic.rate, INPUT_RATE)  # filter design off the loop
+            error = None
+            for channels in dict.fromkeys((1, max(1, min(mic.inputs, 8)))):
+                self.channels = channels
+                try:
+                    stream = self._start(
+                        backend, mic, mic.rate, channels, max(1, mic.rate // BLOCKS_PER_SECOND)
+                    )
+                    break
+                except Exception as exc:
+                    error = exc
+            if stream is None:
+                logger.warning(
+                    "The wake-word microphone could not open (%s): %s",
+                    type(error).__name__,
+                    mic.label(),
+                )
+                raise ServiceError("audio_open_failed", OPEN_FAILED) from error
+        self.stream = stream
+        if self.closing:  # close() is queued behind this open; it releases the stream
+            return
+        self._worker = threading.Thread(
+            target=self._work, name="jarvis-mic-capture", daemon=True
+        )
+        self._worker.start()
+        logger.info(
+            "Wake-word microphone opened: %s (%s)",
+            mic.label(),
+            "16 kHz mono via WASAPI" if self.direct else f"{self.channels} ch, resampled",
+        )
+
+    def _start(self, backend, mic, rate, channels, blocksize, **extra):
+        stream = backend.RawInputStream(
+            device=mic.index,
+            samplerate=rate,
+            channels=channels,
+            dtype="int16",
+            blocksize=blocksize,
+            callback=self._callback,
+            finished_callback=self._finished,
+            **extra,
+        )
+        self.devices.open_streams += 1
+        try:
+            stream.start()
+        except BaseException:
+            self.devices.open_streams = max(0, self.devices.open_streams - 1)
+            for method in ("abort", "close"):
+                try:
+                    getattr(stream, method)()
+                except Exception:
+                    pass
+            raise
+        return stream
+
+    async def close(self):
+        """Stop and release the stream; safe to call more than once and while opening."""
+        if self.closed:
+            return
+        self.closed = self.closing = True
+        self._wake.set()
+        with self._lock:
+            self._sink = self._held = self._armed_preroll = None
+            self._ring.clear()
+            self._ring_bytes = 0
+        self.inbox.clear()
+        try:
+            await self.devices.call(self._close_stream)
+        finally:
+            logger.info(
+                "Wake-word microphone closed: %s blocks (%s dropped, %s flagged, %s held "
+                "chunks dropped)",
+                self.blocks,
+                self.dropped,
+                self.flags,
+                self.held_dropped,
+            )
+
+    def _close_stream(self):
+        self.closing = True
+        self._wake.set()
+        stream, self.stream = self.stream, None
+        if stream is not None:
+            self.devices.open_streams = max(0, self.devices.open_streams - 1)
+            for method in ("abort", "close"):
+                try:
+                    getattr(stream, method)()
+                except Exception:
+                    logger.debug("Wake-word microphone %s failed", method, exc_info=True)
+        worker = self._worker
+        if worker is not None and worker is not threading.current_thread():
+            worker.join(2)
+
+    # --- PortAudio and worker threads: copy, count, never block or raise -------------------
+
+    def _callback(self, indata, frames, time_info, status):
+        try:
+            if self.closing:
+                return
+            self.last_input = self.clock()
+            self.blocks += 1
+            if status:
+                self.flags += 1
+            if self.direct:
+                self._distribute(bytes(indata))
+                return
+            if len(self.inbox) == self.inbox.maxlen:
+                self.dropped += 1  # the deque drops the oldest block
+            self.inbox.append(bytes(indata))
+            self._wake.set()
+        except Exception:
+            pass
+
+    def _work(self):
+        """Resample device-rate blocks (fallback) and watch for a stalled stream."""
+        while not self.closing:
+            self._wake.wait(self.poll)
+            self._wake.clear()
+            while not self.closing:
+                try:
+                    block = self.inbox.popleft()
+                except IndexError:
+                    break
+                try:
+                    pcm = self.resampler.process(downmix(block, self.channels))
+                except Exception:
+                    continue
+                if pcm:
+                    self._distribute(pcm)
+            if self.closing or self.lost or not self.ready:
+                continue
+            now = self.clock()
+            if now - self.opened_at > self.grace and now - self.last_input > self.stall:
+                self._signal_lost()
+                return
+
+    def _distribute(self, pcm):
+        submit = self.submit
+        if submit is not None:
+            try:
+                submit(pcm)
+            except Exception:
+                pass
+        with self._lock:
+            self._ring.append(pcm)
+            self._ring_bytes += len(pcm)
+            while self._ring_bytes - len(self._ring[0]) >= PREROLL_BYTES:
+                self._ring_bytes -= len(self._ring.popleft())
+            if self._held is not None:
+                self._held.append(pcm)
+                self._held_bytes += len(pcm)
+                while self._held_bytes > HOLD_BYTES and self._held:
+                    self._held_bytes -= len(self._held.popleft())
+                    self.held_dropped += 1
+                return
+            sink = self._sink
+            if sink is not None:
+                sink.shared_audio(pcm, False)
+
+    def _finished(self):
+        # Ours stop only while closing (or a failed open); else the device went away.
+        if self.closing or not self.ready:
+            return
+        self._signal_lost()
+
+    def _signal_lost(self):
+        try:
+            self.loop.call_soon_threadsafe(self._report_lost)
+        except Exception:
+            pass
+
+    def _report_lost(self):
+        if self.closing or self.lost:
+            return
+        self.lost = True
+        logger.warning("The wake-word microphone was lost")
+        self.on_lost()
+
+    # --- pre-roll and sessions (any thread) -------------------------------------------------
+
+    def preroll(self):
+        """The last 1.5 s of 16 kHz audio (a copy)."""
+        with self._lock:
+            return self._snapshot()
+
+    def _snapshot(self):
+        return b"".join(self._ring)[-PREROLL_BYTES:]
+
+    def arm(self):
+        """A detection: snapshot the pre-roll and hold what follows until the decision."""
+        with self._lock:
+            if self.closing or self._held is not None:
+                return
+            self._armed_preroll = self._snapshot()
+            self._held, self._held_bytes = deque(), 0
+
+    @property
+    def armed(self):
+        return self._held is not None
+
+    def attach(self, sink, preroll=False):
+        """``sink`` (a LocalAudio) receives audio from now on; a wake start takes the
+        pre-roll and the held audio first."""
+        with self._lock:
+            self._sink = sink
+            if self._held is None:
+                return
+            held, before = b"".join(self._held), self._armed_preroll
+            self._held = self._armed_preroll = None
+            if preroll and before:
+                sink.shared_audio(before, True)
+            if held:
+                sink.shared_audio(held, False)
+
+    def detach(self, sink):
+        with self._lock:
+            if self._sink is sink:
+                self._sink = None
+
+    def attached(self):
+        return self._sink
+
+    def release(self):
+        """The decision was to keep listening: the held audio goes to the session, if any."""
+        with self._lock:
+            if self._held is None:
+                return
+            held = b"".join(self._held)
+            self._held = self._armed_preroll = None
+            if self._sink is not None and held:
+                self._sink.shared_audio(held, False)
+
+    def discard(self):
+        with self._lock:
+            self._held = self._armed_preroll = None
+
+
+def cue_pcm(kind, rate):
+    """A two-tone cue as mono PCM16 at ``rate``: "wake" rises 660 -> 880 Hz, "denied" falls
+    523 -> 392 Hz. Each tone is 70 ms with 10 ms raised-cosine fades, 20 ms apart, peaking
+    at about -18 dBFS."""
+    peak = 32767 * 10 ** (CUE_PEAK_DBFS / 20)
+    tone = round(rate * CUE_TONE_SECONDS)
+    fade = max(1, round(rate * CUE_FADE_SECONDS))
+    samples = array("h")
+    for index, frequency in enumerate(CUES[kind]):
+        if index:
+            samples.extend([0] * round(rate * CUE_GAP_SECONDS))
+        step = 2 * math.pi * frequency / rate
+        for i in range(tone):
+            edge = min(i, tone - 1 - i)
+            envelope = 0.5 - 0.5 * math.cos(math.pi * edge / fade) if edge < fade else 1.0
+            samples.append(round(peak * envelope * math.sin(step * i)))
+    return _bytes(samples)
+
+
+class Cue:
+    """One short cue on the tray voice speaker, on an output stream of its own.
+
+    It never counts as JARVIS speaking and never gates the microphone. ``open`` runs on
+    the control thread and returns how long to keep the stream before closing it.
+    """
+
+    def __init__(self, devices, kind):
+        self.devices, self.kind = devices, kind
+        self.stream = None
+        self.data = b""
+        self.position = 0
+
+    def open(self, choice):
+        preferred, devices = self.devices.devices(refresh=False)
+        out, _ = resolve(devices, preferred, "output", choice)
+        backend = self.devices.backend
+        error = None
+        for channels in dict.fromkeys((1, max(1, min(out.outputs, 8)))):
+            try:
+                stream = backend.RawOutputStream(
+                    device=out.index,
+                    samplerate=out.rate,
+                    channels=channels,
+                    dtype="int16",
+                    blocksize=max(1, out.rate // BLOCKS_PER_SECOND),
+                    callback=self._callback,
+                    finished_callback=lambda: None,
+                )
+                break
+            except Exception as exc:
+                error, stream = exc, None
+        if stream is None:
+            raise ServiceError("audio_open_failed", OPEN_FAILED) from error
+        self.data = upmix(cue_pcm(self.kind, out.rate), channels)
+        self.devices.open_streams += 1
+        self.stream = stream
+        try:
+            stream.start()
+        except Exception:
+            self.close()
+            raise
+        latency = getattr(stream, "latency", 0.0)
+        latency = float(latency) if isinstance(latency, (int, float)) else 0.0
+        return len(self.data) / (2 * channels * out.rate) + latency
+
+    def _callback(self, outdata, frames, time_info, status):
+        try:
+            need = len(outdata)
+            chunk = self.data[self.position : self.position + need]
+            self.position += len(chunk)
+            outdata[: len(chunk)] = chunk
+            if len(chunk) < need:
+                outdata[len(chunk) : need] = bytes(need - len(chunk))
+        except Exception:
+            try:
+                outdata[:] = bytes(len(outdata))
+            except Exception:
+                pass
+
+    def close(self):
+        stream, self.stream = self.stream, None
+        if stream is None:
+            return
+        self.devices.open_streams = max(0, self.devices.open_streams - 1)
+        for method in ("abort", "close"):
+            try:
+                getattr(stream, method)()
+            except Exception:
+                logger.debug("Cue stream %s failed", method, exc_info=True)
 
 
 def local_choices(settings):

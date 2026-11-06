@@ -16,7 +16,14 @@ Field names follow the Live API docs (checked 26 Oct 2026):
 INPUT_RATE = 16000  # raw PCM16 mono little-endian into Live
 OUTPUT_RATE = 24000  # raw PCM16 mono little-endian out of Live
 VOICE_MODES = ("push_to_talk", "conversation")
-VOICE_DEFAULTS = {"name": "Kore", "mode": "push_to_talk"}
+WAKE_SENSITIVITIES = ("low", "normal", "high")
+VOICE_DEFAULTS = {
+    "name": "Kore",
+    "mode": "push_to_talk",
+    # "Hey Jarvis" in the native tray (services/wake_listening.py).
+    "wake_word": True,
+    "wake_sensitivity": "normal",
+}
 
 # Prebuilt voices (https://ai.google.dev/gemini-api/docs/speech-generation, "Voice options";
 # the Live guide says native audio models accept any voice of the TTS models).

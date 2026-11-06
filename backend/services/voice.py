@@ -4,12 +4,17 @@
 between the renderer socket and Live. Gaming/resident mode, lock, project change,
 disconnect and quit stop the session.
 
-``local`` (J2, tray voice): the resident core itself captures this PC's microphone and
-plays through its speaker (services/audio_devices.py), hands-free with Gemini server VAD
-and half-duplex echo control: microphone frames are not sent while JARVIS is audible and
-for a short tail after. It runs with the workspace closed (resident state) for the local
+``local`` (tray voice): the resident core itself captures this PC's microphone and plays
+through its speaker (services/audio_devices.py), hands-free with Gemini server VAD and
+half-duplex echo control: microphone frames are not sent while JARVIS is audible and for
+a short tail after. It runs with the workspace closed (resident state) for the local
 owner; gaming mode, lock, project change, a lost device, the tray Stop action, silence and
 quit stop it. Turns join the conversation the workspace shows for the current project.
+It starts from the tray, or from "Hey Jarvis" (services/wake_listening.py): then the
+session uses the listener's open microphone, sends the 1.5 s before the detection first
+(``preroll``, outside the queued-audio limit), and the phrase said while JARVIS speaks
+barges in (``barge_in``): playback is flushed, the tail ends, and the rest of the
+interrupted answer is dropped.
 
 Either way the core never stores audio. Captions become text turns of the desktop
 conversation. Anything that needs tools is handed to the brain through the ``ask_brain``
@@ -41,6 +46,7 @@ SILENCE_SECONDS = 60  # no speech either way (and no brain work) ends the sessio
 END_GRACE_SECONDS = 10  # end_conversation: let the goodbye finish speaking
 THINKING_SECONDS = 20  # no answer after the owner spoke: return to standing by
 QUEUED_AUDIO_LIMIT = 100  # frames buffered while connecting or resuming (2-10 s)
+BARGE_DROP_SECONDS = 5.0  # after a barge-in, the rest of the interrupted answer is dropped
 RECONNECT_ATTEMPTS = 3
 CAPTION_LIMIT = 12_000
 PCM_MIME = f"audio/pcm;rate={INPUT_RATE}"
@@ -156,6 +162,11 @@ class VoiceSession:
     endpoint: str = "renderer"
     audio: object = None
     notice: str | None = None
+    # "Hey Jarvis": started by the phrase (sent the pre-roll); a model turn is streaming;
+    # model audio is dropped until this clock time after a barge-in.
+    wake: bool = False
+    model_streaming: bool = False
+    drop_until: float | None = None
 
 
 class VoiceService:
@@ -333,21 +344,26 @@ class VoiceService:
 
         return LocalAudio(self.app.audio_devices, **callbacks)
 
-    async def start_local(self):
+    async def start_local(self, wake=False):
         """Tray "Talk to JARVIS": hands-free voice through this PC's microphone and speaker.
 
+        ``wake``: started by "Hey Jarvis", so the session sends the pre-roll first.
         Returns an ACK-shaped result and never raises a refusal: the tray shows the message.
         """
         try:
-            return {"ok": True, **await self._start_local()}
+            return {"ok": True, **await self._start_local(wake)}
         except asyncio.CancelledError:
             raise
         except ServiceError as exc:
-            if exc.code != "voice_stopped":  # else whatever stopped it already said why
-                self.publish_local(self.local_status(notice=str(exc)))
+            self.refused_local(exc)
             return {"ok": False, "code": exc.code, "message": str(exc)}
 
-    async def _start_local(self):
+    def check_local_start(self):
+        """The synchronous refusals of a tray voice start, in order; returns the owner.
+
+        Shared by ``_start_local`` and the "Hey Jarvis" detection path, which runs them
+        before its wake cue so a refusal plays only the denied cue.
+        """
         owner = self.local_owner()
         self.require_local_owner(owner)
         self.require_resources("local")
@@ -360,6 +376,15 @@ class VoiceService:
                 "voice_busy", "Voice is already on in the workspace. Stop it there first."
             )
         self.preflight()
+        return owner
+
+    def refused_local(self, exc):
+        """Show a refused tray voice start on the tray (whatever stopped it already did)."""
+        if exc.code != "voice_stopped":
+            self.publish_local(self.local_status(notice=str(exc)))
+
+    async def _start_local(self, wake=False):
+        owner = self.check_local_start()
         project = self.app.projects.get_current_project_path().resolve()
         conversation_id = self.app.conversation.current_conversation(owner, project)
         now = self.clock()
@@ -380,10 +405,22 @@ class VoiceService:
         try:
             from services.audio_devices import local_choices
 
+            # While "Hey Jarvis" listens, the session shares its open microphone.
+            listening = getattr(self.app, "wake", None)
+            shared = await listening.session_microphone() if listening is not None else None
+            extra = {}
+            if shared is not None:
+                session.wake = wake
+                extra = {
+                    "microphone": shared,
+                    "preroll": wake,
+                    "on_preroll": lambda pcm: self.local_preroll(session, pcm),
+                }
             session.audio = self.audio_factory(
                 on_frame=lambda pcm: self.local_frame(session, pcm),
                 on_lost=lambda kind: self.local_lost(session, kind),
-                on_change=lambda: self.publish_local(self.local_status(session)),
+                on_change=lambda: self.local_changed(session),
+                **extra,
             )
             notices = await session.audio.open(*local_choices(self.app.settings))
             session.notice = " ".join(notices) or None
@@ -431,6 +468,41 @@ class VoiceService:
             return
         session.queued_audio += 1
         session.outbound.put_nowait(("audio", pcm))
+
+    def local_preroll(self, session, pcm):
+        """The 1.5 s before "Hey Jarvis" (wake-started sessions only); never counted
+        against the queued-audio limit and never gated (JARVIS is not speaking yet)."""
+        if session.closed or session.audio is None:
+            return
+        session.outbound.put_nowait(("preroll", pcm))
+
+    def local_changed(self, session):
+        """Playback started or the tail ended: the tray, and the listener's audible guard."""
+        self.publish_local(self.local_status(session))
+        listening = getattr(self.app, "wake", None)
+        if listening is not None:
+            audio = session.audio
+            listening.set_audible(
+                not session.closed
+                and audio is not None
+                and getattr(audio, "ready", False)
+                and audio.speaking()
+            )
+
+    async def barge_in(self, session):
+        """Saying "Hey Jarvis" while JARVIS speaks. Live cannot hear it (the microphone is
+        muted to Live), so playback stops here, the tail ends at once and, if the answer
+        is still streaming, the rest of it is dropped until Live ends that turn (or 5 s)."""
+        audio = session.audio
+        if session.closed or audio is None:
+            return
+        if session.model_streaming:
+            session.drop_until = self.clock() + BARGE_DROP_SECONDS
+        session.last_activity = self.clock()
+        audio.flush(reset_tail=True)
+        logger.info("Tray voice barge-in (answer %s)", "dropped" if session.drop_until else "done")
+        await self.set_state(session, "listening")
+        self.local_changed(session)
 
     def local_lost(self, session, kind):
         if not session.closed:
@@ -605,6 +677,8 @@ class VoiceService:
             if kind == "audio":
                 session.queued_audio = max(0, session.queued_audio - 1)
                 await live.send_realtime_input(audio=types.Blob(data=value, mime_type=PCM_MIME))
+            elif kind == "preroll":  # not counted in queued_audio
+                await live.send_realtime_input(audio=types.Blob(data=value, mime_type=PCM_MIME))
             elif kind == "activity_start":
                 await live.send_realtime_input(activity_start=types.ActivityStart())
             elif kind == "activity_end":
@@ -687,6 +761,10 @@ class VoiceService:
                 logger.warning("Local audio did not close cleanly", exc_info=True)
             if code:
                 logger.info("Tray voice ended (%s)", code)
+            listening = getattr(self.app, "wake", None)
+            if listening is not None:
+                listening.set_audible(False)
+                listening.session_ended()
         try:
             await self.complete_turn(session, final=True)
             pending = [task for task in session.tasks if task is not current]
@@ -735,12 +813,18 @@ class VoiceService:
                 session, "voice_caption", {"role": "user", "text": session.user_text, "final": False}
             )
         if content.interrupted:
+            session.model_streaming, session.drop_until = False, None
             await self.emit(session, "voice_interrupted", {})
             await self.complete_turn(session)
         if content.model_turn and content.model_turn.parts:
             for part in content.model_turn.parts:
                 data = getattr(part, "inline_data", None)
                 if data and data.data and str(data.mime_type or "").startswith("audio/pcm"):
+                    session.model_streaming = True
+                    if session.drop_until is not None:
+                        if self.clock() < session.drop_until:
+                            continue  # the answer the owner barged in on; never "speaking"
+                        session.drop_until = None
                     session.last_activity = self.clock()
                     if session.state != "speaking":
                         await self.set_state(session, "speaking")
@@ -756,6 +840,7 @@ class VoiceService:
                 session, "voice_caption", {"role": "jarvis", "text": session.jarvis_text, "final": False}
             )
         if content.turn_complete:
+            session.model_streaming, session.drop_until = False, None
             await self.complete_turn(session)
 
     async def complete_turn(self, session, final=False):

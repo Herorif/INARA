@@ -4,8 +4,74 @@ JARVIS can listen for the phrase "Hey Jarvis" with a small local detector:
 `backend/services/wake_word.py`, a port of the openWakeWord v0.5.1 streaming pipeline
 running its pre-trained ONNX models on the CPU.
 
-This task (J3a) adds the detector, its setup and these docs. The tray and Preferences
-switch, and the wiring into the microphone, arrive with J3b.
+Saying "Hey Jarvis" starts tray voice hands-free, with the workspace open or closed.
+
+## Turning it on and off
+
+- It is on by default (`voice.wake_word`, with `voice.wake_sensitivity` low, normal or
+  high, default normal). A missing or unreadable saved value counts as the default.
+- In the tray menu, **Listen for "Hey Jarvis"** is checked while it is on; choosing it
+  switches it and saves the setting, exactly as Preferences does, so an open Preferences
+  page shows the change.
+- In Preferences, the voice section has the same switch, the sensitivity and a status
+  line.
+- Turning it off releases the microphone and unloads the detector, so the resident is
+  back to tray voice only (numpy and onnxruntime, once imported, stay loaded until
+  JARVIS restarts).
+
+Listening runs only in the JARVIS tray app (the native resident), in the resident, chat
+and studio states. The microphone is held only while all of these hold: the switch is
+on, the extras and models are installed, the desktop owner is registered, a Gemini API
+key is set, microphone permission is not turned off, gaming mode is off, and a
+microphone is connected. JARVIS checks again when settings, the resource state or the
+owner change, after each tray voice session, and every 30 s while it is not listening
+(so a key or the models added later are picked up).
+
+## What each state means
+
+The tray tooltip and the Preferences status line show one of:
+
+| State | Tooltip | Meaning |
+| --- | --- | --- |
+| listening | `Listening for "Hey Jarvis"` | The microphone is open and the detector runs (including the moment the models load). |
+| paused | `"Hey Jarvis" paused` | Gaming mode is on; the microphone is closed. It listens again when gaming mode ends. |
+| unavailable | `"Hey Jarvis" unavailable` | Something is missing; Preferences says what: the extras, the models, the Gemini key, the owner, microphone permission, no microphone, a disconnected microphone, or a detector error. |
+| off | (nothing) | The switch is off. |
+
+While a tray voice session runs, the tooltip shows that session instead.
+
+There is only ever one capture stream. While listening, the microphone opens at 16 kHz
+mono (Windows converts it), or at the device's own rate and resampled on a capture
+thread when the device refuses. It stays open across tray voice sessions: Talk to JARVIS
+and "Hey Jarvis" both reuse it, and ending a session leaves it open. A disconnected
+microphone is tried again after 10 s, 30 s, then every 60 s, each time with the saved
+device or the system default. Opening Preferences' device list briefly releases it so
+Windows can report new devices, unless a session is running.
+
+## When the phrase is heard
+
+- No voice session: a short rising cue (660 then 880 Hz), then tray voice starts.
+- A workspace voice session: ignored.
+- A tray session while JARVIS is talking: **barge-in**. Gemini cannot hear you while
+  JARVIS speaks (the microphone is paused to Gemini then, so JARVIS does not hear
+  itself), so the phrase interrupts it here: playback stops at once, the microphone
+  reaches Gemini immediately, and the rest of the interrupted answer is dropped until
+  Gemini ends that turn (or 5 s). No cue plays; just say what you want.
+- A tray session while JARVIS is quiet: ignored; Gemini already hears you.
+
+The cues play on the tray voice speaker and never pause the microphone, so you can talk
+straight through them.
+
+**Pre-roll.** JARVIS keeps the last 1.5 s of microphone audio in memory, overwriting it
+continuously; it is never stored or logged. Only after a detection starts a session is
+it sent to Gemini, before the live audio: it holds the phrase itself plus a moment
+before it, so a request said in one breath ("Hey Jarvis, what's on today?") is heard
+whole. A session started from the tray menu sends none, and neither does a barge-in
+(it would contain JARVIS's own voice).
+
+**Face lock.** Listening continues while JARVIS is locked, but the phrase cannot start
+voice: a falling cue (523 then 392 Hz) plays, the tray shows why, and a notification
+says "Unlock JARVIS in the workspace to talk." (at most once every 10 minutes).
 
 ## What runs where
 
@@ -95,9 +161,9 @@ check is cached by file size and modification time.
   embeddings of random noise) and zeroes its first 5 predictions; after the warmup every
   wake-model input comes from real audio, so scores equal upstream's for the same audio.
 - Refractory period: after a detection, nothing more for 2 s of audio.
-- While JARVIS is speaking (`audible`, set by J3b) the threshold is at least 0.70. This
-  is checked before a detection is accepted, so a score rejected by it starts no
-  refractory period.
+- While JARVIS is speaking (`audible`, kept in step with tray voice playback) the
+  threshold is at least 0.70. This is checked before a detection is accepted, so a
+  score rejected by it starts no refractory period.
 - `submit()` never blocks: the listener queue is bounded and drops the oldest chunk
   when full, counting drops in `dropped`. `on_detect(score, monotonic_time)` is called
   on the listener thread.
@@ -115,3 +181,16 @@ On the development PC, with the real models on Windows text-to-speech clips (the
   sensitivity can wake on close rhymes; every other negative stayed under 0.07;
 - CPU: about 18 ms of thread CPU time per second of audio, 1.8 % of one core, against a
   target of under 3 %.
+
+Idle listening, measured as the whole process's CPU time against wall-clock time over
+60 s of synthetic 20 ms blocks fed through the microphone's real callback path into the
+listener (a fake audio device, so no real microphone; the simulated device thread is
+included):
+
+- real models, 16 kHz stream from Windows (the normal case): 2.7 % of one core
+  (27 ms of CPU per second);
+- real models, a microphone that refuses 16 kHz (device rate, resampled): 4.6 % of
+  one core (46 ms per second);
+- fake models (the capture path alone, plus a small stand-in pipeline): 1.2 %.
+
+No block was dropped in any run. Real microphones may differ.

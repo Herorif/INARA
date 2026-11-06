@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import threading
 import time
 import uuid
@@ -38,6 +39,8 @@ from resident.state import Identity  # noqa: E402
 Identity(data / "desktop-profile").register(str(uuid.uuid4()))
 os.environ["GEMINI_API_KEY"] = "changeme"
 os.environ["JARVIS_IMAGE_MODEL_DIR"] = ""
+# Empty: no "Hey Jarvis" models, so this core never opens the microphone.
+os.environ["JARVIS_WAKE_WORD_DIR"] = tempfile.mkdtemp(prefix="jarvis-wake-empty-")
 original_init = NativeHost.__init__
 original_run = NativeHost.run
 result = {"passed": False}

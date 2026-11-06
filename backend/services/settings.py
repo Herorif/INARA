@@ -21,7 +21,7 @@ from pydantic import (
     model_validator,
 )
 from services.audio_contracts import DeviceSelection
-from services.live_config import PREBUILT_VOICES, VOICE_DEFAULTS, VOICE_MODES
+from services.live_config import PREBUILT_VOICES, VOICE_DEFAULTS, VOICE_MODES, WAKE_SENSITIVITIES
 from services.tools import DEFAULT_DENY_PERMISSIONS, ServiceError
 
 # Retained legacy panel/declaration names, until the R2c declaration migration.
@@ -170,14 +170,28 @@ class VoiceSettings(EmptyRequest):
     device) or ``{"name", "host_api"}``; an absent or stale saved value reads as
     ``"default"`` (services/audio_contracts.local_devices), and a saved device that is
     not connected falls back to the default when tray voice starts.
+
+    ``wake_word`` (listen for "Hey Jarvis" from the tray, on by default) and
+    ``wake_sensitivity`` read with their defaults when absent or stale
+    (services/audio_contracts.wake_word_settings).
     """
 
     name: Literal[PREBUILT_VOICES] | None = None
     mode: Literal[VOICE_MODES] | None = None
     local_microphone: DeviceSelection | None = None
     local_speaker: DeviceSelection | None = None
+    wake_word: StrictBool | None = None
+    wake_sensitivity: Literal[WAKE_SENSITIVITIES] | None = None
 
-    @field_validator("name", "mode", "local_microphone", "local_speaker", mode="before")
+    @field_validator(
+        "name",
+        "mode",
+        "local_microphone",
+        "local_speaker",
+        "wake_word",
+        "wake_sensitivity",
+        mode="before",
+    )
     @classmethod
     def reject_null(cls, value):
         if value is None:

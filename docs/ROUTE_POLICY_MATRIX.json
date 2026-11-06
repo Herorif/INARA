@@ -1226,11 +1226,22 @@
       "schema": "AudioDevicesRequest (no fields; extra fields forbidden)",
       "caller": "Authenticated unlocked owner renderer",
       "context": "This PC's audio host APIs and devices (names, host API, default flag, channel count, native rate) read through PortAudio on the core's single audio control thread",
-      "effects": "List the preferred host API's (Windows WASAPI) microphones and speakers without opening any device; re-reads the system's devices when no tray voice stream is open; loads the sounddevice library on first use",
+      "effects": "List the preferred host API's (Windows WASAPI) microphones and speakers without opening any device; re-reads the system's devices when no tray voice stream is open (with no tray session running, the \"Hey Jarvis\" microphone stream is released for the re-read and reopened); loads the sounddevice library on first use",
       "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; the choice itself is saved through update_settings voice.local_microphone / voice.local_speaker (\"default\" or {name, host_api})",
       "response": "Origin ACK {ok, available, code, message, host_api, inputs[], outputs[]}; a missing audio library or unreadable audio system is available=false with a plain message, not an error",
       "lifetime": "Request-only (15s client budget, 10s core control-call deadline); no audio captured, nothing stored",
       "replacement": "AudioDevicesTransport / AudioDevices (services/audio_devices.py)",
+      "status": "migrated"
+    },
+    "wake_word_status": {
+      "schema": "WakeWordStatusRequest (no fields; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "voice.wake_word setting, wake_word.status() (find_spec and pinned model hashes only), owner registration, Gemini key/SDK readiness, microphone permission, resource state and the native resident's listener and microphone state",
+      "effects": "Report whether the tray listens for \"Hey Jarvis\"; never opens a device, never imports numpy or onnxruntime; a stale view asks the listener to re-check",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; the switch is saved through update_settings voice.wake_word / voice.wake_sensitivity or the tray menu",
+      "response": "Origin ACK {ok, state (off | listening | paused | unavailable), message}; paused means gaming mode only; unavailable carries a plain reason",
+      "lifetime": "Request-only; no audio captured, nothing stored",
+      "replacement": "WakeWordTransport / WakeWordService (services/wake_listening.py)",
       "status": "migrated"
     }
   },

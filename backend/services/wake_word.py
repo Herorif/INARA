@@ -17,8 +17,8 @@
 """Local "Hey Jarvis" wake-phrase detection (openWakeWord v0.5.1 models, ONNX on the CPU).
 
 Everything here runs on this PC: microphone audio is scored by three small ONNX models
-and nothing leaves the machine until the phrase is heard (J3b wires the result into the
-microphone, tray and Preferences). Audio and per-frame scores are never logged or
+and nothing leaves the machine until the phrase is heard (services/wake_listening.py wires
+the result into the tray's microphone and tray voice). Audio and per-frame scores are never logged or
 stored; only state changes and the score of an accepted detection are logged.
 
 Pipeline (exactly upstream's, one 80 ms step at a time). Input is 16 kHz mono PCM16
@@ -383,7 +383,7 @@ class Detector:
     def __init__(self, pipeline, sensitivity="normal"):
         self.pipeline = pipeline
         self.sensitivity = sensitivity
-        self.audible = False  # set while JARVIS itself is speaking (J3b)
+        self.audible = False  # set while JARVIS itself is speaking
         self._quiet_through = 0  # last step of the current refractory period
 
     @property
@@ -426,15 +426,19 @@ class WakeWordListener:
 
     ``submit(pcm)`` never blocks: when the queue is full the oldest chunk is dropped and
     counted in ``dropped``. ``on_detect(score, monotonic_time)`` is called on the listener
-    thread (J3b marshals it to the event loop). The loaded models are kept across
-    stop/start; each start resets the detector, so the 2 s warmup applies again.
+    thread (services/wake_listening.py marshals it to the event loop), and so is the
+    optional ``on_state(state, error)`` after each state change. The loaded models are
+    kept across stop/start; each start resets the detector, so the 2 s warmup applies
+    again.
     """
 
     def __init__(self, on_detect, *, sensitivity="normal", directory=None,
-                 max_chunks=DEFAULT_QUEUE_CHUNKS, pipeline_factory=None, clock=time.monotonic):
+                 max_chunks=DEFAULT_QUEUE_CHUNKS, pipeline_factory=None, clock=time.monotonic,
+                 on_state=None):
         if max_chunks < 1:
             raise ValueError("max_chunks must be at least 1.")
         self._on_detect = on_detect
+        self._on_state = on_state
         self._factory = pipeline_factory or (lambda: load_pipeline(directory))
         self._clock = clock
         self._sensitivity = _check_sensitivity(sensitivity)
@@ -534,6 +538,11 @@ class WakeWordListener:
             _logger.warning("Wake-word detector %s: %s", state, error)
         else:
             _logger.info("Wake-word detector %s.", state)
+        if self._on_state is not None:
+            try:
+                self._on_state(state, error)
+            except Exception as exc:
+                _logger.warning("Wake-word state callback failed (%s).", type(exc).__name__)
 
     def _run(self, stop):
         self._set_state(stop, "loading")

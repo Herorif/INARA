@@ -9,6 +9,7 @@ from services.capability_profiles import WORKER_PROFILES, model_id, provider_key
 from services.cad import blender_executable
 from services.image_config import image_backend
 from services.settings import EmptyRequest
+from services.wake_word import status as wake_word_status
 from services.tools import ServiceError
 
 
@@ -43,6 +44,9 @@ class CapabilityCenter:
         blender = bool(blender_executable())
         # Tray voice: whether the audio library is installed, never importing or opening it.
         local_audio = self.app.audio_devices.status()
+        # "Hey Jarvis": extras found by find_spec and the pinned models; never imports them.
+        wake = getattr(self.app, "wake", None)
+        wake_status = wake.status_reader() if wake is not None else wake_word_status()
         descriptors = [
             ("cad_offline", "Parametric 3D", True, True, "Fixed offline geometry worker.", None),
             (
@@ -93,6 +97,15 @@ class CapabilityCenter:
                 model_id("voice"),
             ),
             (
+                "wake_word",
+                "Hey Jarvis",
+                wake_status["installed"],
+                key and wake_status["models"] == "ok",
+                wake_status["reason"]
+                or 'Say "Hey Jarvis" to start tray voice hands-free. Detection runs on this PC.',
+                None,
+            ),
+            (
                 "camera",
                 "Camera tracking",
                 True,
@@ -115,7 +128,7 @@ class CapabilityCenter:
             blocked = None
             if governor.fault:
                 blocked = governor.fault
-            elif identifier == "voice_local":
+            elif identifier in ("voice_local", "wake_word"):
                 # Tray voice is meant for resident mode; only gaming mode pauses it.
                 if governor.state == "gaming":
                     blocked = "Voice pauses in gaming mode."

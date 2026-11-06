@@ -9,6 +9,7 @@ import subprocess
 import time
 from pathlib import Path
 
+MF_CHECKED = 0x8
 LRESULT = C.c_ssize_t
 WPARAM = C.c_size_t
 LPARAM = C.c_ssize_t
@@ -417,6 +418,7 @@ class Tray:
         self.name = f"JARVIS.Native.{key}"
         self.on_action, self.on_tick = on_action, on_tick
         self.talking = False  # a tray voice session is on: the menu offers Stop talking
+        self.wake_word = False  # voice.wake_word is on: Listen for "Hey Jarvis" is checked
         self.calls = queue.Queue()
         self.suppress_notifications = suppress_notifications
         self.notification_count = 0
@@ -531,17 +533,22 @@ class Tray:
         return (
             ("open", "Open JARVIS"),
             talk,
+            ("wake_word", 'Listen for "Hey Jarvis"'),
             ("gaming", "Toggle gaming mode"),
             ("retry", "Retry backend"),
             ("quit", "Quit JARVIS"),
         )
 
+    def menu_flags(self, action):
+        """MF_CHECKED (0x8) on Listen for "Hey Jarvis" while it is on; else MF_STRING."""
+        return MF_CHECKED if action == "wake_word" and getattr(self, "wake_word", False) else 0
+
     def menu(self):
         menu = checked(api(user, "CreatePopupMenu", [], W.HMENU)())
         append = api(user, "AppendMenuW", [W.HMENU, W.UINT, C.c_size_t, W.LPCWSTR], W.BOOL)
         items = self.menu_items()
-        for index, (_, text) in enumerate(items, 1):
-            checked(append(menu, 0, index, text))
+        for index, (action, text) in enumerate(items, 1):
+            checked(append(menu, self.menu_flags(action), index, text))
         position = W.POINT()
         api(user, "GetCursorPos", [C.POINTER(W.POINT)], W.BOOL)(C.byref(position))
         api(user, "SetForegroundWindow", [W.HWND], W.BOOL)(self.window)

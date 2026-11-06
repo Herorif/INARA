@@ -21,8 +21,11 @@ for key, name in [
     ("JARVIS_SETTINGS_FILE", "settings.json"),
     ("JARVIS_PROJECT_ROOT", "workspace"),
     ("JARVIS_LEGACY_DATA_DIR", "legacy"),
+    ("JARVIS_WAKE_WORD_DIR", "wake-word-empty"),
 ]:
     os.environ[key] = str(output / name)
+# Empty: no "Hey Jarvis" models, so this core never opens the microphone.
+(output / "wake-word-empty").mkdir(parents=True, exist_ok=True)
 os.environ["GEMINI_API_KEY"] = "changeme"  # Never use a real key in this verification.
 os.environ.pop("ELECTRON_RUN_AS_NODE", None)
 (output / "settings.json").write_text(

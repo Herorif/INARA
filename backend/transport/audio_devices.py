@@ -24,7 +24,8 @@ class AudioDevicesTransport:
         try:
             self.app.sessions.require_owner(sid, {"renderer"})
             AudioDevicesRequest.model_validate({} if data is None else data)
-            return {"ok": True, **await self.app.audio_devices.report()}
+            # The "Hey Jarvis" stream is released briefly so PortAudio can re-read devices.
+            return {"ok": True, **await self.app.wake.report_devices()}
         except asyncio.CancelledError:
             raise
         except ServiceError as exc:

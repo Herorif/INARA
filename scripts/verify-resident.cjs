@@ -22,6 +22,11 @@ process.env.JARVIS_DATA_DIR = path.join(output, 'database');
 process.env.JARVIS_SETTINGS_FILE = path.join(output, 'settings.json');
 process.env.JARVIS_PROJECT_ROOT = path.join(output, 'workspace');
 process.env.JARVIS_LEGACY_DATA_DIR = path.join(output, 'legacy');
+// Empty: no "Hey Jarvis" models, so the core it starts never opens the microphone.
+process.env.JARVIS_WAKE_WORD_DIR = path.join(output, 'wake-word-empty');
+fs.mkdirSync(process.env.JARVIS_WAKE_WORD_DIR, {
+  recursive: true
+});
 process.env.JARVIS_PYTHON = path.join(root, '.venv/Scripts/python.exe');
 process.env.JARVIS_DEV_SERVER = '0';
 BrowserWindow.prototype.show = function () {};
