@@ -41,6 +41,10 @@ test('connecting and listening with no words show their status in text-3', () =>
 test('the owner\'s words are quoted: text-1 while speaking, text-2 when final, text-3 once JARVIS answers', () => {
   assert.deepEqual(snapshotView(snap({ user: 'what is the time' })).top, { text: '\u201cwhat is the time\u201d', tone: 'primary' });
   assert.deepEqual(snapshotView(snap({ state: 'thinking', user: 'what is the time', user_final: true })).top, { text: '\u201cwhat is the time\u201d', tone: 'secondary' });
+  // The core marks the words final only when the turn completes; thinking or working already dims them.
+  assert.equal(snapshotView(snap({ state: 'thinking', user: 'what is the time' })).top.tone, 'secondary');
+  assert.equal(snapshotView(snap({ state: 'working', user: 'what is the time' })).top.tone, 'secondary');
+  assert.equal(snapshotView(snap({ state: 'listening', user: 'what is the' })).top.tone, 'primary');
   assert.deepEqual(snapshotView(snap({ state: 'speaking', user: 'what is the time', user_final: true, jarvis: 'It is ten.' })).top, { text: '\u201cwhat is the time\u201d', tone: 'tertiary' });
   // Not final but JARVIS words showing still dims to text-3.
   assert.equal(snapshotView(snap({ user: 'x', jarvis: 'y' })).top.tone, 'tertiary');

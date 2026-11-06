@@ -13,6 +13,8 @@ export const FADE_MS = 180;
 export const TONES = Object.freeze({ primary: '--text-1', secondary: '--text-2', tertiary: '--text-3', warn: '--warn' });
 
 const RING = { connecting: 'working', thinking: 'working', working: 'working', listening: 'listening', speaking: 'speaking', ended: 'offline' };
+/** States in which the owner has finished speaking (their quote dims). */
+const AFTER_SPEECH = new Set(['thinking', 'working', 'speaking']);
 
 /** PresenceRing state for a snapshot state. */
 export const ringState = state => RING[state] || 'working';
@@ -61,7 +63,8 @@ export function snapshotView(snapshot) {
   if (snapshot.state === 'connecting') top = { text: 'Connecting…', tone: 'tertiary' };
   else if (!words) top = { text: 'Listening', tone: 'tertiary' };
   else if (jarvis) top = { text: quoted(words), tone: 'tertiary' };
-  else top = { text: quoted(words), tone: snapshot.user_final ? 'secondary' : 'primary' };
+  // The owner has finished once JARVIS thinks or works, even before the core marks the words final.
+  else top = { text: quoted(words), tone: snapshot.user_final || AFTER_SPEECH.has(snapshot.state) ? 'secondary' : 'primary' };
   let main = null;
   if (jarvis) main = { text: jarvis, tone: snapshot.state === 'speaking' ? 'primary' : 'secondary' };
   else if (snapshot.state === 'thinking') main = { text: 'Thinking…', tone: 'tertiary' };
