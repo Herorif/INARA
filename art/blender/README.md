@@ -7,6 +7,7 @@ hand-modelled or downloaded, so the scripts are the source of truth.
 | Scene | Outputs |
 | --- | --- |
 | `jarvis-core.py` | `jarvis-core.glb` (app model), hero stills (`hero-splash-1920x1080.png`, `hero-lock-1440x900.png`), state stills (`state-<idle\|listening\|speaking\|working\|offline>-512.png`) |
+| `jarvis-emblem.py` | App icon renders: `emblem-<256\|128\|96\|64\|48>.png` (full), `emblem-<40\|32>.png` (simplified), Android `android-foreground-<size>.png` and `android-monochrome-<size>.png` (108, 162, 216, 324, 432) |
 
 ## Running
 
@@ -199,6 +200,45 @@ ellipse: at small sizes, a ring with a dot inside reads as an eye.
 | offline | Every line steel at 50%; core faces dark neutral; rest pose |
 
 The stills only show one phase of each; the app animates them (see "In the app").
+
+## jarvis-emblem
+
+The app icon: the core's crystal cut into a letter J, inside the core's dial ring, on a dark
+disc. It takes no scene arguments besides `--out`. The constants are at the top of
+`jarvis-emblem.py`; the geometry is the approved mockup's 256-unit grid (x right, y down).
+
+- **Camera:** orthographic and head-on, so the 256 grid fills the frame. Outside the disc
+  the film is transparent (RGBA PNG).
+- **Disc:** radius 124, `#0A1017`.
+- **Dial ring:** radius 108, 3 wide, `#2A8A96`. Four cardinal ticks from radius 100 to 114,
+  3 wide, `#70E0ED`. A bead of radius 6, `#70E0ED`, on the ring 40° clockwise from top.
+- **Crystal J:** a real 3D chiselled letter whose cross-section is a roof: a ridge 10 units
+  high along the stroke's centre line, falling to the outer and inner contours. The whole J
+  is shifted by (-3, 0). Each stroke segment has two flat faces (ridge to outer, ridge to
+  inner).
+- **Facet tones:** flat emission, no lights, noise or shadows. `#B0EFF5` (facing the key
+  light from the upper-left front), `#8AE8F2`, `#4FCFDD`, `#34AEBD` (away). The stem's left
+  face is lightest and its right face `#4FCFDD`; on the hook the inner faces are lighter
+  than the outer ones, and the two tip segments are a step lighter on both sides. The
+  `FACET_TONES` table fixes the approved mockup's assignment per facet: no single light
+  direction reproduces it on this roof, so tones are not computed at render time.
+- **Ridge highlight:** a 1.6-wide `#E6FBFD` line along the ridge, round joins.
+- **Variants:**
+  - full (256, 128, 96, 64, 48): everything above;
+  - simplified (40, 32): no ticks, no ridge highlight, ring 1.4/32 of the size wide, bead
+    radius 1.5/32 of the size (the mockup's 32 px symbol);
+  - Android foreground: J, ridge highlight, ring and bead, no disc, on a transparent
+    108-unit canvas. The bead's outer edge sits 32 units from the centre, inside the
+    66-unit safe zone (radius 33);
+  - Android monochrome: the same J, ring and bead silhouette in flat white.
+- **Render:** Cycles on the CPU, 256 samples, seed 0, no denoising, a one-pixel box filter
+  (each pixel is the artwork's exact area coverage, so edges stay crisp), each size rendered
+  at its exact pixel size.
+
+`scripts/build-icons.py` turns the reviewed renders into the icon files (it draws the 16,
+20, 24 and 32 px frames itself, on the pixel grid) in `.runtime/icons/review/`, and
+`scripts/icon-review.cjs` captures a review sheet from them offscreen. Nothing from this
+scene is approved in `publish.json` yet.
 
 ## In the app
 
