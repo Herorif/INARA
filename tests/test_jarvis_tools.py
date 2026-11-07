@@ -28,6 +28,23 @@ def test_push_to_talk_config_voice_compression_resumption_transcription_and_tool
     assert config.max_output_tokens is None
 
 
+def test_desktop_voice_pins_english_and_malay_but_calls_detect_any_language():
+    # First live run (7 Nov 2026): with automatic detection a short "hello" became Spanish.
+    from services.live_config import DESKTOP_LANGUAGES, declarations, live_connect_config
+
+    for mode in ("push_to_talk", "conversation"):
+        config = make_live_config({}, mode=mode)
+        assert config.input_audio_transcription.language_codes == ["en-US", "ms-MY"]
+    assert DESKTOP_LANGUAGES == ("en-US", "ms-MY")
+    assert "Speak English; if the owner speaks Malay to you, answer in Malay." in VOICE_LINE
+    # Phone calls share live_connect_config without the hint: callers may speak anything.
+    call = live_connect_config(
+        system_instruction="call", voice_name="Kore", function_declarations=declarations("conversation"),
+        automatic_activity_detection=True,
+    )
+    assert not call.input_audio_transcription.language_codes
+
+
 def test_conversation_config_resumes_with_handle_and_uses_the_chosen_voice():
     settings = {"voice": {"name": "Puck"}, "assistant": {"owner_name": "Hiro"}}
     config = make_live_config(settings, mode="conversation", handle="resume-1", max_output_tokens=512)

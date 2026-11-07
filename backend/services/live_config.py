@@ -64,8 +64,13 @@ PREBUILT_VOICES = (
 
 VOICE_LINE = (
     "When speaking, keep answers short — one to three sentences — unless asked for detail; "
-    "never read out long lists, code or URLs; offer to show details on screen instead."
+    "never read out long lists, code or URLs; offer to show details on screen instead. "
+    "Speak English; if the owner speaks Malay to you, answer in Malay."
 )
+# Desktop voice captions: hint English and Malay (BCP-47). With no hint, Live's automatic
+# detection heard a short first "hello" as Spanish in the first live run (7 Nov 2026) and
+# stayed in Spanish. Phone calls keep automatic detection: callers may speak anything.
+DESKTOP_LANGUAGES = ("en-US", "ms-MY")
 
 ASK_BRAIN = {
     "name": "ask_brain",
@@ -120,7 +125,8 @@ def declarations(mode):
 
 
 def live_connect_config(*, system_instruction, voice_name, function_declarations,
-                        automatic_activity_detection, handle=None, max_output_tokens=None):
+                        automatic_activity_detection, handle=None, max_output_tokens=None,
+                        transcription_languages=None):
     """The Live session shape shared by desktop voice and phone calls (telephony/agent.py):
     audio out in a prebuilt voice, captions both ways, barge-in, context-window
     compression and session resumption (``handle`` resumes a dropped session)."""
@@ -134,8 +140,11 @@ def live_connect_config(*, system_instruction, voice_name, function_declarations
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
             )
         ),
-        # Empty configs enable captions with automatic language detection (English or Malay).
-        input_audio_transcription=types.AudioTranscriptionConfig(),
+        # Captions both ways. ``transcription_languages`` hints the owner's languages; without
+        # it Live detects the language automatically.
+        input_audio_transcription=types.AudioTranscriptionConfig(
+            **({"language_codes": list(transcription_languages)} if transcription_languages else {})
+        ),
         output_audio_transcription=types.AudioTranscriptionConfig(),
         realtime_input_config=types.RealtimeInputConfig(
             # Without automatic detection the client sends activity start/end itself
@@ -167,4 +176,5 @@ def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_out
         automatic_activity_detection=mode == "conversation",
         handle=handle,
         max_output_tokens=max_output_tokens,
+        transcription_languages=DESKTOP_LANGUAGES,
     )
