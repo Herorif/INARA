@@ -365,7 +365,9 @@ def test_gemini_tools_leaves_sdk_objects_alone():
 
 @pytest.mark.parametrize("thinking", [False, True])
 @pytest.mark.asyncio
-async def test_gemini_thinking_is_low_unless_thoughts_are_requested(thinking):
+async def test_gemini_thinking_is_default_unless_thoughts_are_requested(thinking):
+    # 7 Nov 2026, measured with the owner's key: any thinking config made gemini-3.8-flash
+    # hang past 60 s, while no thinking config answered in 3-4 s.
     from google.genai import types
 
     from llm.base import Message, MessageRole
@@ -382,9 +384,7 @@ async def test_gemini_thinking_is_low_unless_thoughts_are_requested(thinking):
         if thinking:
             assert config.thinking_config == types.ThinkingConfig(include_thoughts=True)
         else:
-            assert config.thinking_config == types.ThinkingConfig(
-                thinking_level=types.ThinkingLevel.LOW
-            )
+            assert config.thinking_config is None
 
 
 @pytest.mark.asyncio

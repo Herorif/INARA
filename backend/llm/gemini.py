@@ -34,17 +34,16 @@ DEFAULT_BUDGET = 45.0
 
 
 def _thinking_config(types, thinking, model=""):
-    """Thoughts when asked for; otherwise LOW thinking on Gemini 3 models.
+    """Thoughts when asked for; otherwise the model's default thinking (None).
 
-    The live run (7 Nov 2026) showed the model's default thinking pushing a plain "Hi"
-    past the 45 s chat timeout, so short chat asks for LOW explicitly. ``thinking_level``
-    exists for Gemini 3 models only (older ones take a thinking budget), so any other model
-    keeps its default (None).
+    Measured with the owner's key on 7 Nov 2026 (scripts/diagnose-gemini.py): on
+    gemini-3.8-flash every request carrying a thinking config (thinking_level LOW or MEDIUM,
+    or thinking_budget 0) got no answer within 60 s, MINIMAL was rejected with 400, and the
+    same request with no thinking config answered in 3-4 s. So short chat sends none.
     """
+    del model  # kept for callers; no model gets a thinking level until that is re-measured
     if thinking:
         return types.ThinkingConfig(include_thoughts=True)
-    if str(model).removeprefix("models/").startswith("gemini-3"):
-        return types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
     return None
 
 
