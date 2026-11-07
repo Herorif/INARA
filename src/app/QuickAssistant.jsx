@@ -4,6 +4,7 @@ import useStore from '../store';
 import socket from '../services/socket';
 import { SpeechController } from '../features/speech/controller';
 import { liveVoice, voiceTarget } from '../features/voice';
+import { microphoneDeviceId } from '../features/voice/microphone.js';
 import { holdButtonTone, shouldStartConversation } from '../features/voice/defaultMode.js';
 import PresenceRing from './PresenceRing';
 import HudLabel from '../shared/ui/HudLabel';
@@ -40,7 +41,6 @@ export default function QuickAssistant({
     processing = useStore(s => s.textProcessing),
     restoring = useStore(s => s.conversationRestoring),
     messages = useStore(s => s.messages),
-    deviceId = useStore(s => s.selectedMicId),
     live = useStore(s => s.voice),
     defaultMode = useStore(s => s.voiceDefaultMode),
     openedAt = useStore(s => s.quickOpenedAt);
@@ -91,7 +91,7 @@ export default function QuickAssistant({
       window.removeEventListener('blur', pause);
       off?.();
     };
-  }, [project, conversationId, deviceId]);
+  }, [project, conversationId]);
   useEffect(() => {
     if (gaming || locked) {
       controller.current?.cancel(gaming ? 'Voice pauses in gaming mode. Typed input is available.' : 'Workspace locked.');
@@ -123,7 +123,7 @@ export default function QuickAssistant({
   const hold = event => {
     if (event.type === 'keydown' && (event.repeat || ![' ', 'Enter'].includes(event.key))) return;
     event.preventDefault();
-    if (dictating) controller.current.record(deviceId);
+    if (dictating) controller.current.record(microphoneDeviceId);
     else liveVoice().holdStart(voiceTarget());
   };
   const release = event => {
@@ -161,8 +161,7 @@ export default function QuickAssistant({
         if (liveVoice().active()) await liveVoice().stop();
         controller.current.begin({
           project,
-          conversationId,
-          deviceId
+          conversationId
         });
       }}>Dictate</button>}<button type="button" className="interrupt-voice btn btn--ghost" disabled={!active && !processing && !talking} onClick={() => {
         controller.current.cancel();

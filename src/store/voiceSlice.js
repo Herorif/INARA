@@ -3,4 +3,7 @@ export const createVoiceSlice = () => ({
     voice: { state: 'off', mode: null, micOpen: false, playing: false, level: 0, error: '' },
     // settings.voice.mode: how the Quick assistant opens (Preferences > Voice).
     voiceDefaultMode: 'push_to_talk',
+    // settings.voice.local_microphone: 'default' (Automatic, follows Windows) or { name, host_api };
+    // every voice uses it (Preferences > Voice > Microphone).
+    voiceMicrophone: 'default',
 });

@@ -1,6 +1,7 @@
 import useStore from '../../store';
 import socket from '../../services/socket';
 import { VoiceController } from './controller.js';
+import { microphoneDeviceId } from './microphone.js';
 
 let controller = null;
 
@@ -29,8 +30,8 @@ export function liveVoice() {
   return controller;
 }
 
-/** Current conversation and microphone for a voice gesture. */
+/** Current conversation and microphone for a voice gesture; the device is read when the capture opens. */
 export function voiceTarget() {
   const state = useStore.getState();
-  return { conversationId: state.conversationId, deviceId: state.selectedMicId };
+  return { conversationId: state.conversationId, deviceId: microphoneDeviceId };
 }

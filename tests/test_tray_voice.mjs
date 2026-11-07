@@ -5,7 +5,7 @@ import {
   createAudioDevicesClient, devicePatch, isAudioDeviceSelection, parseAudioDevices, parseWakeWordStatus,
 } from '../src/transport/audioDevicesClient.ts';
 import {
-  DEVICE_KINDS, TRAY_VOICE_HELP, deviceNote, deviceOptions, savedDevice, selectedValue, selectionFor,
+  DEVICE_KINDS, TRAY_KINDS, TRAY_VOICE_HELP, deviceNote, deviceOptions, savedDevice, selectedValue, selectionFor,
 } from '../src/features/settings/trayVoiceDevicesModel.js';
 import { createSubscriptions } from '../src/services/subscriptions.js';
 import { registerConversationEvents } from '../src/services/events/conversation.js';
@@ -129,7 +129,12 @@ test('Preferences options: system default, the listed devices, and a saved devic
   assert.equal(selectedValue(inputs, gone), 'saved');
   assert.equal(selectionFor(inputs, gone, 'saved'), null);
   assert.equal(deviceNote(inputs, gone, 'microphone', true),
-    'This microphone is not connected; tray voice uses the system default until it is.');
+    'This microphone is not connected; JARVIS uses the Windows default until it is.');
+  assert.equal(deviceNote(inputs, gone, 'speaker', true),
+    'This speaker is not connected; tray voice uses the system default until it is.');
+  assert.deepEqual(deviceOptions(inputs, 'default', 'microphone').map(item => item.label),
+    ['Automatic (follows Windows)', 'Microphone Array (Realtek(R) Audio)', 'Microphone (Yeti Orb)']);
+  assert.deepEqual(TRAY_KINDS.map(item => item.kind), ['speaker']);
   assert.equal(deviceNote(inputs, gone, 'microphone', false), '');
 });
 

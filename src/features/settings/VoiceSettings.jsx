@@ -5,7 +5,9 @@ import {
 } from './voiceSettingsModel';
 import SegmentedControl from './SegmentedControl';
 import OverlaySettings from './OverlaySettings';
+import MicrophoneSettings from './MicrophoneSettings';
 import TrayVoiceDevices from './TrayVoiceDevices';
+import { useAudioDeviceReport, useBrowserDevices } from './useAudioDevices';
 import WakeWordSettings from './WakeWordSettings';
 
 const ROW = 'flex flex-col gap-2 rounded-md border border-line bg-raised px-3 py-2';
@@ -48,6 +50,9 @@ export default function VoiceSettings({ voice, client, previewAvailable, patch }
   const [preview, setPreview] = useState(IDLE);
   const [failure, setFailure] = useState('');
   const player = useMemo(() => new PreviewPlayer({ fetch: (name) => client.voicePreview(name), onChange: setPreview }), [client]);
+  // One device list for the Microphone and the tray speaker; a plugged or unplugged device reloads it.
+  const { report, loadError, reload } = useAudioDeviceReport();
+  const devices = useBrowserDevices(reload);
 
   useEffect(() => () => player.close(), [player]);
   useEffect(() => { if (previewAvailable !== true) player.stop(); }, [previewAvailable, player]);
@@ -96,7 +101,8 @@ export default function VoiceSettings({ voice, client, previewAvailable, patch }
     </div>
     <WakeWordSettings voice={voice} patch={patch} />
     <OverlaySettings voice={voice} patch={patch} />
-    <TrayVoiceDevices voice={voice} patch={patch} />
+    <MicrophoneSettings voice={voice} patch={patch} report={report} loadError={loadError} devices={devices} />
+    <TrayVoiceDevices voice={voice} patch={patch} report={report} />
     <p aria-live="polite" className="min-h-0 text-[0.75rem] leading-snug text-danger">{failure}</p>
   </div>;
 }

@@ -15,6 +15,14 @@ One capture stream: while listening, ``audio_devices.Microphone`` stays open acr
 voice sessions (they attach to it) and closes or reopens only when no session uses it.
 Turning the setting off drops the listener and its models; a gaming pause keeps the models.
 
+Automatic (the Microphone setting "default") follows Windows: while listening with no
+session, every ``FOLLOW_SECONDS`` the listener compares Windows' own view of its microphones
+(``AudioDevices.input_fingerprint``: the default capture device and the connected ones, read
+from Core Audio, never from PortAudio and without opening anything) with the view when the
+stream opened. On a change it closes the stream, so PortAudio re-reads its devices with none
+open, and reopens on the new default. A voice session (attached, or a detection being
+decided) is never interrupted: the switch waits for the first check after it ends.
+
 A detection is marshalled to the core loop and decided there:
 
 a. no voice session: ``start_local``'s synchronous checks first; if they pass, the wake
@@ -34,6 +42,7 @@ import time
 
 from services import wake_word
 from services.audio_contracts import wake_word_settings
+from services.audio_contracts import SYSTEM_DEFAULT
 from services.audio_devices import OPEN_FAILED, Cue, Microphone, local_choices
 from services.log import get_logger
 from services.tools import ServiceError
@@ -42,6 +51,7 @@ logger = get_logger(__name__)
 
 RECHECK_SECONDS = 30.0  # while not listening: keys or models added later
 RETRY_SECONDS = (10.0, 30.0, 60.0)  # after the microphone was lost
+FOLLOW_SECONDS = 5.0  # while listening on Automatic: how often Windows' default is compared
 CUE_MARGIN_SECONDS = 0.15  # the cue stream stays open this long after its last sample
 LOCKED_NOTICE = "voice_locked"  # resident/host.py NOTICES entry
 OWNER_MESSAGE = "Register the desktop owner first."
@@ -61,12 +71,15 @@ class WakeWordService:
         self.clock = clock
         self.recheck = RECHECK_SECONDS
         self.retry_delays = RETRY_SECONDS
+        self.follow_every = FOLLOW_SECONDS
         self.active = False  # set by the native resident host only
         self.observer = None  # tray: callable({"setting", "state", "message"})
         self.notice_observer = None  # tray balloon: callable(kind)
         self.listener = None
         self.microphone = None
         self.mic_choice = None  # the saved choice the open microphone was resolved from
+        self.mic_devices = None  # Windows' microphones when it opened (Automatic only), or None
+        self.default_moved = False  # they changed since: reopen when no session uses it
         self.mic_problem = None  # why the microphone could not open (no device, ...)
         self.lost = 0  # retries since the microphone was lost (0: not lost)
         self.retry_at = None
@@ -132,12 +145,19 @@ class WakeWordService:
             listener.audible = bool(value)
 
     async def _maintain(self):
+        check = True
         while True:
             self.poked.clear()
-            await self.reconcile()
+            if check or await self.follow():
+                await self.reconcile()
             timeout = self._timeout()
+            if self.following() and (timeout is None or timeout > self.follow_every):
+                timeout, check = self.follow_every, False  # only Windows' default is due
+            else:
+                check = True
             try:
                 await asyncio.wait_for(self.poked.wait(), timeout)
+                check = True
             except TimeoutError:
                 pass
 
@@ -147,6 +167,31 @@ class WakeWordService:
         if self.listening() or not wake_word_settings(self.app.settings)["wake_word"]:
             return None  # nothing to re-check: changes poke
         return self.recheck
+
+    def following(self):
+        """Listening on Automatic with Windows' microphones known: the default is followed."""
+        return (
+            self.listening()
+            and self.mic_choice == SYSTEM_DEFAULT
+            and self.mic_devices is not None
+        )
+
+    async def follow(self):
+        """Whether Windows' default microphone (or the connected ones) changed since the
+        stream opened, while no session uses it; True asks for a reopen. Never raises."""
+        mic = self.microphone
+        if not self.following() or self.local_session() is not None:
+            return False
+        if mic.attached() is not None or mic.armed or mic.lost or mic.closing:
+            return False
+        if getattr(self.app.audio_devices, "open_streams", 0) > 1:
+            return False  # a cue is playing: PortAudio could not re-read its devices yet
+        current = await self._windows_microphones()
+        if current is None or current == self.mic_devices or mic is not self.microphone:
+            return False
+        logger.info("Windows' default microphone changed; reopening the wake-word microphone")
+        self.default_moved = True
+        return True
 
     def listening(self):
         listener, mic = self.listener, self.microphone
@@ -285,10 +330,15 @@ class WakeWordService:
             return
         choice = local_choices(self.app.settings)[0]
         mic = self.microphone
+        moved = mic is not None and self.default_moved and choice == SYSTEM_DEFAULT and not mic.armed
+        self.default_moved = False
+        reopened = False
         if mic is not None and session is None and mic.attached() is None and (
-            self.mic_choice != choice
+            self.mic_choice != choice or moved
         ):
-            await self._close_microphone()  # the saved microphone changed: reopen below
+            # The saved microphone changed, or Automatic's Windows default did: reopen below.
+            await self._close_microphone()
+            reopened = moved
         if self.microphone is None:
             if session is not None:
                 return  # a tray session uses its own stream; listen once it ends
@@ -297,6 +347,8 @@ class WakeWordService:
             await self._open_microphone(choice)
         if self.microphone is not None and not listener.running:
             listener.start()
+        elif reopened and self.microphone is not None:
+            listener.reset()  # nothing heard on the old device counts on the new one
 
     async def _open_microphone(self, choice):
         self.opening = asyncio.get_running_loop().create_future()
@@ -304,6 +356,8 @@ class WakeWordService:
         listener = self.listener
         mic.submit = listener.submit if listener is not None else None
         try:
+            # Read before PortAudio re-reads its devices, so a change in between shows next time.
+            known = await self._windows_microphones() if choice == SYSTEM_DEFAULT else None
             try:
                 await mic.open(choice)
             except Exception as exc:
@@ -324,14 +378,26 @@ class WakeWordService:
                     getattr(exc, "code", type(exc).__name__),
                 )
                 return
-            self.microphone, self.mic_choice = mic, choice
+            self.microphone, self.mic_choice, self.mic_devices = mic, choice, known
             self.lost, self.retry_at, self.mic_problem = 0, None, None
         finally:
             self.opening.set_result(None)
 
+    async def _windows_microphones(self):
+        """``AudioDevices.input_fingerprint()``, or None when it cannot be known."""
+        probe = getattr(getattr(self.app, "audio_devices", None), "input_fingerprint", None)
+        if probe is None:
+            return None
+        try:
+            return await probe()
+        except Exception:
+            logger.debug("Windows' microphones could not be read", exc_info=True)
+            return None
+
     async def _close_microphone(self):
         mic, self.microphone = self.microphone, None
-        self.mic_choice = None
+        self.mic_choice = self.mic_devices = None
+        self.default_moved = False
         if mic is None:
             return
         try:

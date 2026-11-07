@@ -1,5 +1,6 @@
-// Pure mappings for the tray voice devices in Preferences (J2): the saved choice per kind,
-// the <select> options built from the core's device list, and the plain notes.
+// Pure mappings for the voice devices in Preferences (J2): the saved choice per kind, the
+// <select> options built from the core's device list, and the plain notes. The microphone is
+// the one Microphone setting every voice uses; the speaker is tray voice's.
 import { isAudioDeviceChoice } from '../../transport/audioDevicesClient.ts';
 
 export const SYSTEM_DEFAULT = 'default';
@@ -7,6 +8,14 @@ export const DEVICE_KINDS = [
   { kind: 'microphone', label: 'Microphone', list: 'inputs', setting: 'local_microphone' },
   { kind: 'speaker', label: 'Speaker', list: 'outputs', setting: 'local_speaker' },
 ];
+/** The tray voice block lists the speaker only; the microphone has its own row. */
+export const TRAY_KINDS = DEVICE_KINDS.filter(item => item.kind === 'speaker');
+export const AUTOMATIC_LABEL = 'Automatic (follows Windows)';
+const DEFAULT_LABELS = { microphone: AUTOMATIC_LABEL, speaker: 'System default' };
+const NOT_CONNECTED = {
+  microphone: 'This microphone is not connected; JARVIS uses the Windows default until it is.',
+  speaker: 'This speaker is not connected; tray voice uses the system default until it is.',
+};
 export const TRAY_VOICE_HELP = 'Used when you talk to JARVIS from the tray or say "Hey Jarvis". The microphone pauses while JARVIS speaks.';
 
 const SAVED = 'saved';
@@ -21,9 +30,9 @@ export function savedDevice(voice, kind) {
 
 const savedIndex = (entries, saved) => (saved === SYSTEM_DEFAULT ? -1 : entries.findIndex(entry => same(entry, saved)));
 
-/** <select> options: System default, the listed devices, then a saved device that is not connected. */
-export function deviceOptions(entries, saved) {
-  const options = [{ value: SYSTEM_DEFAULT, label: 'System default' }];
+/** <select> options: the default (Automatic for the microphone), the listed devices, then a saved device that is not connected. */
+export function deviceOptions(entries, saved, kind = 'speaker') {
+  const options = [{ value: SYSTEM_DEFAULT, label: DEFAULT_LABELS[kindOf(kind).kind] }];
   entries.forEach((entry, index) => options.push({ value: `device:${index}`, label: entry.name }));
   if (saved !== SYSTEM_DEFAULT && savedIndex(entries, saved) === -1) {
     options.push({ value: SAVED, label: `${saved.name} (not connected)` });
@@ -49,5 +58,5 @@ export function selectionFor(entries, saved, value) {
 /** A plain note when a saved device is not connected right now. */
 export function deviceNote(entries, saved, kind, available) {
   if (!available || saved === SYSTEM_DEFAULT || savedIndex(entries, saved) !== -1) return '';
-  return `This ${kindOf(kind).label.toLowerCase()} is not connected; tray voice uses the system default until it is.`;
+  return NOT_CONNECTED[kindOf(kind).kind];
 }

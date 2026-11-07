@@ -158,7 +158,7 @@ export default function CommandDeck() {
     }
     if (feature === 'reminder') emitSocket('get_reminders');
     if (feature === 'settings' && navigator.mediaDevices) navigator.mediaDevices.enumerateDevices().then(devices => useStore.setState({
-      micDevices:devices.filter(device => device.kind === 'audioinput'), speakerDevices:devices.filter(device => device.kind === 'audiooutput'), webcamDevices:devices.filter(device => device.kind === 'videoinput')
+      speakerDevices:devices.filter(device => device.kind === 'audiooutput'), webcamDevices:devices.filter(device => device.kind === 'videoinput')
     })).catch(() => {});
   }, [locked, gaming, activeFeature, currentProject, closeDialog, navigate, setQuick]);
   const toggleGaming = async () => {

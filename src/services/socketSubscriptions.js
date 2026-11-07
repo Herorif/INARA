@@ -3,7 +3,7 @@
  * Called once at app startup from main.jsx. Returns cleanup function.
  * Replaces the 300-line useEffect in the old App.jsx.
  */
-import socket from './socket';
+import socket, { emitSocket } from './socket';
 import { createSubscriptions } from './subscriptions';
 import { registerConversationEvents } from './events/conversation';
 import { registerCreativeEvents } from './events/creative';
@@ -12,6 +12,8 @@ import { registerRemindersEvents } from './events/reminders';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
 import { defaultVoiceMode } from '../features/voice/defaultMode.js';
+import { adoptLegacyMicrophone } from '../features/voice/legacyMicrophone.js';
+import { savedDevice } from '../features/settings/trayVoiceDevicesModel.js';
 
 /** Matches the core's ToolDispatcher approval timeout; the core rejects later answers. */
 const APPROVAL_TIMEOUT_MS = 60_000;
@@ -155,6 +157,11 @@ export function initSocketListeners() {
             useStore.setState({ isCameraFlipped: settings.camera_flipped });
         }
         if (settings && settings.voice) useStore.setState({ voiceDefaultMode: defaultVoiceMode(settings) });
+        if (settings && typeof settings === 'object') {
+            const saved = savedDevice(settings.voice, 'microphone');
+            useStore.setState({ voiceMicrophone: saved });
+            adoptLegacyMicrophone({ socket, saved, emit: emitSocket });
+        }
     }));
 
     // --- Tool Confirmation ---

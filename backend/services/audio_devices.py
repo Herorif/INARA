@@ -25,6 +25,10 @@ voice service drops microphone frames; a "Hey Jarvis" barge-in flushes playback 
 the tail at once. The short wake and denied cues (``cue_pcm``) are generated here and
 play on an output stream of their own (``Cue``), apart from any session.
 
+``AudioDevices.input_fingerprint`` reads which microphone Windows uses by default straight
+from Core Audio (services/default_input.py), so the always-open "Hey Jarvis" stream can follow
+a new default without PortAudio re-reading its device list underneath an open stream.
+
 Audio is never logged or stored. Logs carry device names, host APIs, rates and counters.
 """
 
@@ -63,6 +67,7 @@ TAIL_SECONDS = 0.3  # microphone stays muted this long after playback drains
 STALL_SECONDS = 2.0  # no callbacks for this long: the device is gone
 OPEN_GRACE_SECONDS = 3.0  # first callbacks may take a moment after opening
 CONTROL_TIMEOUT = 10.0
+PROBE_TIMEOUT = 2.0  # Windows' default-microphone probe (services/default_input.py)
 CAPTURE_BLOCK = INPUT_RATE // BLOCKS_PER_SECOND  # 20 ms of 16 kHz (shared microphone)
 PREROLL_SECONDS = 1.5
 PREROLL_BYTES = int(INPUT_RATE * PREROLL_SECONDS) * 2
@@ -221,7 +226,7 @@ def block_level(data, size, stride=LEVEL_STRIDE):
 class AudioDevices:
     """Device enumeration and the single audio control thread, shared by local sessions."""
 
-    def __init__(self, loader=None, timeout=CONTROL_TIMEOUT):
+    def __init__(self, loader=None, timeout=CONTROL_TIMEOUT, probe=None):
         self.loader = loader or import_sounddevice
         self.timeout = timeout
         self.backend = None
@@ -229,6 +234,13 @@ class AudioDevices:
         self.executor = None
         self.open_streams = 0
         self.summary = None  # {"inputs": n, "outputs": n} from the last successful listing
+        # Windows' view of the default microphone, for the real backend only (a fake loader,
+        # in tests, gets no probe unless one is given).
+        if probe is None and loader is None:
+            from services.default_input import fingerprint as probe
+        self.probe = probe
+        self.probe_executor = None
+        self.probe_failed = False
 
     # --- the audio control thread ---------------------------------------------------------
 
@@ -248,9 +260,39 @@ class AudioDevices:
             ) from exc
 
     def close(self):
-        executor, self.executor = self.executor, None
-        if executor is not None:
-            executor.shutdown(wait=False, cancel_futures=True)
+        for name in ("executor", "probe_executor"):
+            executor = getattr(self, name)
+            setattr(self, name, None)
+            if executor is not None:
+                executor.shutdown(wait=False, cancel_futures=True)
+
+    async def input_fingerprint(self):
+        """Which microphones Windows has and uses by default (comparable values), or None
+        when that cannot be known here. Never touches PortAudio or opens a device; runs on a
+        thread of its own. A probe that hangs is not asked again; a failure is logged once."""
+        probe = self.probe
+        if probe is None:
+            return None
+        if self.probe_executor is None:
+            self.probe_executor = ThreadPoolExecutor(1, thread_name_prefix="jarvis-audio-probe")
+        future = asyncio.get_running_loop().run_in_executor(self.probe_executor, probe)
+        try:
+            value = await asyncio.wait_for(future, PROBE_TIMEOUT)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            if isinstance(exc, TimeoutError):
+                self.probe = None  # its thread is stuck: stop following the default
+            if not self.probe_failed:
+                self.probe_failed = True
+                logger.warning(
+                    "Windows' default microphone cannot be read (%s); voice picks it up when "
+                    "it next opens the microphone",
+                    type(exc).__name__,
+                )
+            return None
+        self.probe_failed = False
+        return value
 
     def load(self):
         """The backend module (control thread); a failed load is reported as setup state."""

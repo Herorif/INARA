@@ -39,11 +39,8 @@ const PermissionControl = ({ tool, option, onChange }) =>
 </div>;
 
 const SettingsWindow = () => {
-  const micDevices = useStore((s) => s.micDevices);
   const speakerDevices = useStore((s) => s.speakerDevices);
   const webcamDevices = useStore((s) => s.webcamDevices);
-  const selectedMicId = useStore((s) => s.selectedMicId);
-  const setSelectedMicId = useStore((s) => s.setSelectedMicId);
   const selectedSpeakerId = useStore((s) => s.selectedSpeakerId);
   const setSelectedSpeakerId = useStore((s) => s.setSelectedSpeakerId);
   const selectedWebcamId = useStore((s) => s.selectedWebcamId);
@@ -100,15 +97,6 @@ const SettingsWindow = () => {
                     <span>Face authentication</span>
                     <Switch checked={faceAuthEnabled} label="Face authentication" onClick={toggleFaceAuth} />
                 </div>
-            </section>
-
-            <section className="flex flex-col gap-2">
-                <label htmlFor="settings-microphone" className="hud-label">Microphone</label>
-                <select id="settings-microphone" value={selectedMicId} onChange={(e) => setSelectedMicId(e.target.value)} className={SELECT}>
-                    {micDevices.map((device, i) =>
-          <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${i + 1}`}</option>
-          )}
-                </select>
             </section>
 
             <section className="flex flex-col gap-2">

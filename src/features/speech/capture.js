@@ -1,4 +1,14 @@
-/** Exclusive browser microphone ownership; no APIs are called at module load. */
+import { captureDecision, defaultInputKey } from '../voice/microphoneModel.js';
+
+const LOST = 'The microphone was lost or suspended. Press to talk again.';
+const RECOVERIES = 2; // reopens in a row without a frame in between before the capture ends
+
+/**
+ * Exclusive browser microphone ownership; no APIs are called at module load. `deviceId` is a
+ * browser deviceId, '' for the default device, or an async function resolving to one when the
+ * capture opens. On the default device (Automatic) an open capture moves to a new Windows
+ * default by itself; a chosen device that disappears ends the capture.
+ */
 let owner = null;
 export class PttCapture {
   constructor({
@@ -11,6 +21,9 @@ export class PttCapture {
     this.WorkletNode = WorkletNode;
     this.generation = 0;
     this.pending = false;
+    this.request = null;
+    this.restarting = false;
+    this.recoveries = 0;
   }
   async start({
     deviceId,
@@ -20,9 +33,22 @@ export class PttCapture {
     if (owner) throw Error('Another microphone request is active. Finish or dismiss it before trying again.');
     if (!this.media?.getUserMedia || !this.Context || !this.WorkletNode) throw Error('Push-to-talk is unavailable here. Type a message instead.');
     owner = this;
+    this.request = { deviceId, onFrame, onFailure };
+    this.recoveries = 0;
+    try {
+      return await this.open();
+    } catch (error) {
+      await this.stop();
+      throw error;
+    }
+  }
+  async open() {
+    const { deviceId: wanted, onFrame, onFailure } = this.request;
     this.pending = true;
     const generation = ++this.generation;
     try {
+      const deviceId = (typeof wanted === 'function' ? await wanted() : wanted) || '';
+      if (generation !== this.generation) return false;
       const stream = await this.media.getUserMedia({
         audio: {
           channelCount: 1,
@@ -48,16 +74,26 @@ export class PttCapture {
       if (deviceId && track.getSettings?.().deviceId !== deviceId) throw Error('The selected microphone changed. Choose it again.');
       const fail = () => {
         if (generation === this.generation) {
-          onFailure('The microphone was lost or suspended. Press to talk again.');
+          onFailure(LOST);
           this.stop();
         }
       };
-      track.addEventListener('ended', fail);
-      track.addEventListener('mute', fail);
+      // The default device (Automatic): a lost track reopens on whatever Windows uses now.
+      const recover = () => {
+        if (generation === this.generation) this.restart();
+      };
+      track.addEventListener('ended', deviceId ? fail : recover);
+      track.addEventListener('mute', deviceId ? fail : recover);
+      const devices = async () => (typeof this.media.enumerateDevices === 'function' ? this.media.enumerateDevices() : []);
+      const defaultKey = deviceId ? '' : defaultInputKey(await devices().catch(() => []));
+      if (generation !== this.generation) return false;
       this.deviceChanged = async () => {
         try {
-          const devices = await this.media.enumerateDevices();
-          if (generation === this.generation && track.getSettings?.().deviceId && !devices.some(device => device.kind === 'audioinput' && device.deviceId === track.getSettings().deviceId)) fail();
+          const listed = await devices();
+          if (generation !== this.generation) return;
+          const decision = captureDecision({ deviceId, trackDeviceId: track.getSettings?.().deviceId, defaultKey, devices: listed });
+          if (decision === 'lost') fail();
+          else if (decision === 'restart') recover();
         } catch {
           fail();
         }
@@ -71,7 +107,9 @@ export class PttCapture {
       if (generation !== this.generation) return false;
       this.node = new this.WorkletNode(this.context, 'jarvis-ptt');
       this.node.port.onmessage = event => {
-        if (generation === this.generation && event.data?.byteLength === 640) onFrame(event.data);
+        if (generation !== this.generation || event.data?.byteLength !== 640) return;
+        this.recoveries = 0;
+        onFrame(event.data);
       };
       this.source = this.context.createMediaStreamSource(stream);
       this.silent = this.context.createGain();
@@ -84,17 +122,41 @@ export class PttCapture {
       };
       await this.context.resume();
       return generation === this.generation;
-    } catch (error) {
-      await this.stop();
-      throw error;
     } finally {
       this.pending = false;
-      if (generation !== this.generation && owner === this) owner = null;
+      // Stopped while opening: ownership ends here (a restart keeps it).
+      if (generation !== this.generation && owner === this && !this.request) owner = null;
     }
   }
-  async stop() {
-    this.generation++;
+  /** Reopen on the current default device, keeping ownership and the frame callback. */
+  async restart() {
+    if (this.restarting || !this.request) return;
+    if (++this.recoveries > RECOVERIES) {
+      const request = this.request;
+      await this.stop();
+      request.onFailure(LOST);
+      return;
+    }
+    this.restarting = true;
+    try {
+      this.generation++;
+      await this.release();
+      if (!this.request) return;
+      try {
+        await this.open();
+      } catch {
+        const request = this.request;
+        if (!request) return;
+        await this.stop();
+        request.onFailure(LOST);
+      }
+    } finally {
+      this.restarting = false;
+    }
+  }
+  async release() {
     this.media?.removeEventListener?.('devicechange', this.deviceChanged);
+    this.deviceChanged = null;
     if (this.node) {
       this.node.port.onmessage = null;
       this.node.port.close?.();
@@ -113,6 +175,11 @@ export class PttCapture {
       context.onstatechange = null;
       await context.close().catch(() => {});
     }
+  }
+  async stop() {
+    this.generation++;
+    this.request = null;
+    await this.release();
     if (!this.pending && owner === this) owner = null;
   }
 }
