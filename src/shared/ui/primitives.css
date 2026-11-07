@@ -200,3 +200,20 @@
 @media (prefers-reduced-motion: reduce) {
   .progress-line::after { animation: none; width: 100%; opacity: .4; }
 }
+
+/* Streaming reply caret: follows the last character while JARVIS writes. */
+.reply-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.125em;
+  background: var(--accent);
+  animation: reply-caret-blink 1s steps(1, end) infinite;
+}
+@keyframes reply-caret-blink {
+  50% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reply-caret { animation: none; }
+}

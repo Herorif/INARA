@@ -534,7 +534,8 @@ def timing_lines(caplog):
 
 
 TIMING = re.compile(
-    r"AI provider request: provider=(\w+) model=([\w.\-]+) elapsed_ms=(\d+) outcome=([\w\-]+)"
+    r"AI provider request: provider=(\w+) model=([\w.\-]+) elapsed_ms=(\d+) "
+    r"first_text_ms=(?:\d+|-) outcome=([\w\-]+)"
 )
 
 

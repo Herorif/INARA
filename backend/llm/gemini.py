@@ -288,14 +288,7 @@ class GeminiProvider(BaseLLMProvider):
             await self.__client.aio.aclose()
             self.__client = None
 
-    async def generate(
-        self,
-        messages: list[Message],
-        tools: Optional[list[dict]] = None,
-        system_instruction: Optional[str] = None,
-        temperature: float = 1.0,
-        **kwargs,
-    ) -> LLMResponse:
+    def _config(self, tools, system_instruction, temperature, kwargs):
         from google.genai import types
 
         config = types.GenerateContentConfig(
@@ -308,8 +301,22 @@ class GeminiProvider(BaseLLMProvider):
             config.tools = gemini_tools(tools)
             config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         config.thinking_config = _thinking_config(types, kwargs.get("thinking", False), self._model)
+        return config
 
+    async def generate(
+        self,
+        messages: list[Message],
+        tools: Optional[list[dict]] = None,
+        system_instruction: Optional[str] = None,
+        temperature: float = 1.0,
+        **kwargs,
+    ) -> LLMResponse:
+        """One complete turn. With ``on_text`` (an async callable) the turn is streamed:
+        each text delta goes to ``on_text`` as it arrives and the assembled turn is
+        returned, signed parts included, exactly as a non-streamed turn would be."""
+        config = self._config(tools, system_instruction, temperature, kwargs)
         contents = _messages_to_gemini_contents(messages)
+        on_text = kwargs.get("on_text")
 
         # The budget is the caller's timeout for this call (ConversationService passes its
         # own), measured from here: the caller's asyncio.wait_for starts at the same moment.
@@ -317,16 +324,26 @@ class GeminiProvider(BaseLLMProvider):
         started = time.monotonic()
         retried = False
         while True:
+            progress = {"text": False}
             try:
-                response = await self._client.aio.models.generate_content(
-                    model=self._model,
-                    contents=contents,
-                    config=config,
-                )
+                if on_text is None:
+                    response = await self._client.aio.models.generate_content(
+                        model=self._model,
+                        contents=contents,
+                        config=config,
+                    )
+                else:
+                    response = await self._streamed(contents, config, on_text, progress)
                 break
             except Exception as exc:
                 remaining = budget - (time.monotonic() - started) - RETRY_DELAY
-                if not retried and _retryable(exc) and remaining >= RETRY_MIN_REMAINING:
+                # Once text has reached the owner a retry would repeat it: never retry then.
+                if (
+                    not retried
+                    and not progress["text"]
+                    and _retryable(exc)
+                    and remaining >= RETRY_MIN_REMAINING
+                ):
                     retried = True
                     status, kind, _ = diagnose(exc)
                     log_provider_retry("gemini", status, kind)
@@ -335,29 +352,43 @@ class GeminiProvider(BaseLLMProvider):
                 if _is_sdk_error(exc):
                     raise provider_error(exc, self._model) from exc
                 raise
+        return _parse(response)
 
-        if not response.candidates:
-            return LLMResponse(raw=response)
+    async def _streamed(self, contents, config, on_text, progress):
+        """Stream one attempt; returns a response assembled from every streamed part."""
+        from google.genai import types
 
-        candidate = response.candidates[0]
-        text_parts = []
-        thinking_parts = []
-
-        if candidate.content and candidate.content.parts:
-            for part in candidate.content.parts:
-                if not part.text:
-                    continue
-                if getattr(part, "thought", False):
-                    thinking_parts.append(part.text)
-                else:
-                    text_parts.append(part.text)
-
-        return LLMResponse(
-            text="".join(text_parts) if text_parts else None,
-            tool_calls=_extract_tool_calls(candidate),
-            thinking="".join(thinking_parts) if thinking_parts else None,
-            raw=response,
+        stream = await self._client.aio.models.generate_content_stream(
+            model=self._model,
+            contents=contents,
+            config=config,
         )
+        parts, usage, finish = [], None, None
+        try:
+            async for chunk in stream:
+                for response in _chunk_responses(chunk):
+                    if response.text:
+                        progress["text"] = True
+                        await on_text(response.text)
+                if getattr(chunk, "usage_metadata", None) is not None:
+                    usage = chunk.usage_metadata  # the last chunk carries the totals
+                if chunk.candidates:
+                    candidate = chunk.candidates[0]
+                    finish = getattr(candidate, "finish_reason", None) or finish
+                    if candidate.content and candidate.content.parts:
+                        # Every part, empty signed ones included, so tool turns replay intact.
+                        parts.extend(candidate.content.parts)
+        finally:
+            # A cancelled or failed stream closes its response now, not at garbage collection.
+            close = getattr(stream, "aclose", None)
+            if close is not None:
+                await close()
+        candidates = (
+            [types.Candidate(content=types.Content(role="model", parts=parts), finish_reason=finish)]
+            if parts
+            else []
+        )
+        return types.GenerateContentResponse(candidates=candidates, usage_metadata=usage)
 
     async def stream(
         self,
@@ -367,19 +398,7 @@ class GeminiProvider(BaseLLMProvider):
         temperature: float = 1.0,
         **kwargs,
     ) -> AsyncIterator[LLMResponse]:
-        from google.genai import types
-
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            temperature=temperature,
-        )
-        if kwargs.get("max_output_tokens") is not None:
-            config.max_output_tokens = kwargs["max_output_tokens"]
-        if tools:
-            config.tools = gemini_tools(tools)
-            config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
-        config.thinking_config = _thinking_config(types, kwargs.get("thinking", False), self._model)
-
+        config = self._config(tools, system_instruction, temperature, kwargs)
         contents = _messages_to_gemini_contents(messages)
 
         try:
@@ -395,6 +414,32 @@ class GeminiProvider(BaseLLMProvider):
             if _is_sdk_error(exc):
                 raise provider_error(exc, self._model) from exc
             raise
+
+
+def _parse(response):
+    """LLMResponse for one complete (or assembled) GenerateContentResponse."""
+    if not response.candidates:
+        return LLMResponse(raw=response)
+
+    candidate = response.candidates[0]
+    text_parts = []
+    thinking_parts = []
+
+    if candidate.content and candidate.content.parts:
+        for part in candidate.content.parts:
+            if not part.text:
+                continue
+            if getattr(part, "thought", False):
+                thinking_parts.append(part.text)
+            else:
+                text_parts.append(part.text)
+
+    return LLMResponse(
+        text="".join(text_parts) if text_parts else None,
+        tool_calls=_extract_tool_calls(candidate),
+        thinking="".join(thinking_parts) if thinking_parts else None,
+        raw=response,
+    )
 
 
 def _chunk_responses(chunk):

@@ -11,7 +11,13 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
         || (data.project && data.project !== s().currentProject);
     unsubs.push(onSocket('text_status', data => {
         if (stale(data) || (data.request_id && s().pendingTextRequest && data.request_id !== s().pendingTextRequest)) return;
-        useStore.setState({ textProcessing: data.state === 'processing' });
+        const processing = data.state === 'processing';
+        const tool = processing && data.phase === 'tool';
+        useStore.setState({ textProcessing: processing, textPhase: tool ? 'tool' : null });
+        // Text written before a tool call was narration: it moves under the working line.
+        if (tool && data.request_id) s().toolStepReply?.(data.request_id);
+        // Idle without a final transcription (cancelled or failed): the partial reply is stopped.
+        if (!processing && data.request_id && !completedTextRequests.has(data.request_id)) s().stopReplies?.(data.request_id);
     }));
     unsubs.push(onSocket('conversation_restored', data => {
         if (data.conversation_id !== s().conversationId || data.project !== s().currentProject) return;
@@ -30,6 +36,11 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
     }));
 
     // --- Transcription ---
+    // The step's text so far (cumulative) while a typed request streams; the final transcription wins.
+    unsubs.push(onSocket('transcription_delta', data => {
+        if (stale(data) || typeof data.request_id !== 'string' || completedTextRequests.has(data.request_id)) return;
+        s().streamReply?.(data.request_id, data.step, data.text);
+    }));
     unsubs.push(onSocket('transcription', (data) => {
         if (stale(data)) return;
         if (data.request_id) {
@@ -41,7 +52,9 @@ export function registerConversationEvents({ onSocket, store: useStore, unsubs, 
         }
         // A task call's outcome (C4) arrives later as its own message, never joined to the last one.
         if (data.kind === 'task_call_outcome') s().addMessage(sender(data.sender), data.text);
-        else s().appendTranscription(sender(data.sender), data.text, safeMemorySources(data.memory_sources));
+        else if (!(data.request_id && s().finishReply?.(data.request_id, data.text, safeMemorySources(data.memory_sources)))) {
+            s().appendTranscription(sender(data.sender), data.text, safeMemorySources(data.memory_sources));
+        }
     }));
 
     // --- Project ---

@@ -7,6 +7,7 @@ import { liveVoice, voiceTarget } from '../features/voice';
 import { emitSocket } from '../services/socket';
 import { stageView } from './stageModel.js';
 import { useVoiceStageReport } from './useVoiceStage.js';
+import { replyNarration, replyStreaming } from '../store/replyStream.js';
 import './conversation.css';
 
 const starters = [
@@ -51,6 +52,7 @@ const stopVoice = target => {
 export default function Conversation({ gaming = false, hidden = false }) {
   const messages = useStore(state => state.messages);
   const processing = useStore(state => state.textProcessing);
+  const toolStep = useStore(state => state.textPhase === 'tool');
   const restoring = useStore(state => state.conversationRestoring);
   const connected = useStore(state => state.backendConnected);
   const input = useStore(state => state.inputValue);
@@ -83,6 +85,10 @@ export default function Conversation({ gaming = false, hidden = false }) {
   const speaking = stage.mode === 'voice';
   const empty = messages.length === 0;
   const coreSize = speaking && !narrow ? CORE_VOICE : CORE_REST;
+  // The working line gives way to the reply as it streams, and returns while a tool step runs.
+  const working = processing && (toolStep || !replyStreaming(messages));
+  // What JARVIS said before the tool call it is running now.
+  const narration = working ? replyNarration(messages) : null;
   useVoiceStageReport({ hidden });
 
   // A finished tray session's words are held for a moment; the stage rests when that ends.
@@ -214,11 +220,13 @@ export default function Conversation({ gaming = false, hidden = false }) {
             ) : (
               <>
                 {messages.length > 30 && <p className="conversation-history-note">Showing the latest 30 messages.</p>}
-                {messages.slice(-30).map((message, index) => (
-                  <article key={`${conversationId}:${Math.max(messages.length - 30, 0) + index}`} className={`chat-message ${message.sender === 'You' ? 'from-you' : message.sender === 'System' ? 'from-system' : 'from-jarvis'}`}>
+                {messages.slice(-30).map((message, index) => message.streaming && !message.text?.trim() ? null : (
+                  // A streaming reply with no text yet (a tool step) shows only the working line.
+                  <article key={`${conversationId}:${Math.max(messages.length - 30, 0) + index}`} className={`chat-message ${message.sender === 'You' ? 'from-you' : message.sender === 'System' ? 'from-system' : 'from-jarvis'}`} aria-busy={message.streaming || undefined}>
                     <div className="message-content">
                       <header className="message-meta hud-label">{speaker(message.sender)}{message.time && <> · <time>{shortTime(message.time)}</time></>}</header>
-                      <p>{message.text}</p>
+                      <p>{message.text}{message.streaming && <span className="reply-caret" aria-hidden="true" />}</p>
+                      {message.stopped && <HudLabel className="message-stopped">STOPPED</HudLabel>}
                       {!!message.memory_sources?.length && (
                         <div className="memory-citations"><BookOpen size={12} aria-hidden="true" /><span>Project memory: {message.memory_sources.map(source => `${source.title} (v${source.version})`).join(' / ')}</span></div>
                       )}
@@ -227,7 +235,7 @@ export default function Conversation({ gaming = false, hidden = false }) {
                 ))}
               </>
             )}
-            {(processing || restoring) && <div className="processing-line" role="status"><HudLabel>{restoring ? 'RESTORING CONVERSATION' : 'JARVIS · WORKING'}</HudLabel><span className="progress-line" aria-hidden="true" /></div>}
+            {(working || restoring) && <div className="processing-line" role="status"><HudLabel>{restoring ? 'RESTORING CONVERSATION' : 'JARVIS · WORKING'}</HudLabel><span className="progress-line" aria-hidden="true" />{!restoring && narration && <p className="processing-narration" title={narration}>{narration}</p>}</div>}
           </div>
         </div>
         {showLatest && <button type="button" className="conversation-latest btn btn--secondary btn--sm" onClick={scrollToLatest}><ArrowDown size={14} aria-hidden="true" />Latest messages</button>}

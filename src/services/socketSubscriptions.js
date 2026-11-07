@@ -57,6 +57,8 @@ export function initSocketListeners() {
     }));
 
     unsubs.push(onSocket('disconnect', () => {
+        // A reply still being written will not finish: keep its text, marked stopped.
+        s().stopReplies?.();
         useStore.setState({
             status: 'Backend Disconnected',
             confirmationRequest: null, confirmationQueue: [], pendingTextRequest: null,

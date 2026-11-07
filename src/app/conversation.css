@@ -156,6 +156,7 @@
 .conversation-workspace .chat-message code { padding: 0 .25rem; }
 .conversation-workspace .chat-message pre { padding: .75rem; overflow-x: auto; }
 .conversation-workspace .from-system p { color: var(--text-2); font-size: var(--text-sm); }
+.conversation-workspace .message-stopped { display: block; margin-top: .375rem; color: var(--text-3); }
 .conversation-workspace .memory-citations {
   display: flex;
   align-items: flex-start;
@@ -171,6 +172,18 @@
 
 /* Working indicator */
 .conversation-workspace .processing-line { display: flex; flex-direction: column; gap: .5rem; margin: 0 0 1rem; }
+.conversation-workspace .processing-narration {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+}
 
 .conversation-workspace .conversation-latest {
   position: absolute;

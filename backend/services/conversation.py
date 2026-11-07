@@ -177,6 +177,36 @@ class Conversation:
     active: int = 0  # requests holding or waiting for the lock; never evicted while > 0
 
 
+class StreamedReply:
+    """The text being written while a typed turn streams, one tool-loop step at a time.
+
+    ``listener.text(text, step)`` gets the current step's text so far (cumulative within
+    the step, never a delta) and the 0-based tool-loop step. ``listener.working()`` runs
+    when a step ends in tool calls; that step's text was narration, and the next step's
+    text starts again from empty. Nothing here is stored: only a completed turn reaches
+    history.
+    """
+
+    def __init__(self, listener, clock=time.monotonic):
+        self.listener, self.clock = listener, clock
+        self.started = clock()
+        self.first_text_ms = None
+        self.step = 0
+        self.text = ""
+
+    async def delta(self, chunk):
+        if not isinstance(chunk, str) or not chunk:
+            return
+        if self.first_text_ms is None:
+            self.first_text_ms = (self.clock() - self.started) * 1000
+        self.text += chunk
+        await self.listener.text(self.text, self.step)
+
+    async def tool_step(self):
+        await self.listener.working()
+        self.step, self.text = self.step + 1, ""
+
+
 def create_text_provider():
     # SDK and credentials are touched only on a request, never during server startup.
     return TaskRouter().provider("chat")
@@ -342,7 +372,10 @@ class ConversationService:
         authorize=None,
         billing_owner=None,
         usage_feature="desktop_chat",
+        stream=None,
     ):
+        """One typed turn. ``stream`` (optional, typed desktop chat only) receives the
+        reply as it is written; see ``StreamedReply``. The returned result is final."""
         if authorize:
             authorize()
         key = str(request.conversation_id)
@@ -397,11 +430,14 @@ class ConversationService:
                     "authorize": authorize,
                     "request_approval": request_approval,
                     "operation": f"{key}:{request_id}",
+                    "streamed": None,
                 }
                 outcome, started = "failed", None
                 try:
                     provider = self.provider_factory()
                     started = time.monotonic()
+                    if stream is not None:
+                        context["streamed"] = StreamedReply(stream)
                     turn = self._claude_turn if getattr(provider, "name", None) == "claude" else (
                         self._text_turn
                     )
@@ -454,6 +490,7 @@ class ConversationService:
                             getattr(provider, "_model", None),
                             (time.monotonic() - started) * 1000,
                             outcome,
+                            context["streamed"].first_text_ms if context["streamed"] else None,
                         )
                     if provider is not None:
                         try:
@@ -518,7 +555,7 @@ class ConversationService:
         return {**entry, **extra}
 
     async def _claude_turn(self, provider, *, owner, project, request, history, usage,
-                           origin_sid, authorize, request_approval, operation):
+                           origin_sid, authorize, request_approval, operation, streamed=None):
         memory = self.memory.context(owner, project, request.text, origin_sid) if self.memory else None
         attached = bool(memory and memory["items"])
         user_text = request.text + (MEMORY_HEADER + json.dumps(memory["items"]) if attached else "")
@@ -544,6 +581,7 @@ class ConversationService:
                     tools=tools,
                     system_instruction=system,
                     effort=self.effort,
+                    **({"on_text": streamed.delta} if streamed else {}),
                 ),
                 self.timeout,
             )
@@ -562,6 +600,8 @@ class ConversationService:
                         result, claude=turn[2:], model=getattr(provider, "_model", None)
                     ),
                 ]
+            if streamed:
+                await streamed.tool_step()
             results = []
             for index, call in enumerate(response.tool_calls):
                 output, failed = await self._dispatch(call, step, index, context)
@@ -578,7 +618,7 @@ class ConversationService:
         raise ServiceError("tool_limit", "The assistant reached its tool-step limit.")
 
     async def _text_turn(self, provider, *, owner, project, request, history, usage,
-                         origin_sid, authorize, request_approval, operation):
+                         origin_sid, authorize, request_approval, operation, streamed=None):
         """Gemini (and generic) loop: text history, signed tool content kept in-request."""
         messages = [
             *(Message(MessageRole(item["role"]), item["content"]) for item in history[-20:]),
@@ -612,6 +652,7 @@ class ConversationService:
                     system_instruction=system + (" " + MEMORY_NOTE if attached else ""),
                     # Gemini's one 503 retry must fit inside this same wait_for.
                     budget=self.timeout,
+                    **({"on_text": streamed.delta} if streamed else {}),
                 ),
                 self.timeout,
             )
@@ -628,6 +669,8 @@ class ConversationService:
                     {"role": "user", "content": request.text},
                     self._assistant_entry(result),
                 ]
+            if streamed:
+                await streamed.tool_step()
             attachments = []
             candidates = getattr(response.raw, "candidates", None)
             if candidates:

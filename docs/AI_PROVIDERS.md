@@ -60,6 +60,19 @@ The capability center reports the active brain (`brain` in `capability_diagnosti
 - Top-level automatic prompt caching (`cache_control: {"type": "ephemeral"}`), streaming with the SDK's stream helper and `max_tokens` 32000 (lower when a usage cap is enabled). The SDK's default retries (2) stay on.
 - Errors: rejected key (`provider_key_invalid`), rate limited (`provider_rate_limited`, with the retry-after time), provider unavailable including overloaded (`provider_unavailable`), network or TLS (`provider_network`), timeout (`provider_timeout`), refusal (`provider_refused`), anything else `provider_failed`. Keys and prompts are never logged.
 
+## Streamed replies (typed chat)
+
+Typed desktop chat (the workspace and the Quick assistant) streams the answer as the model writes it, for both providers. Live voice (`ask_brain`) and phone chat call the same service without a stream and still get the final text only.
+
+- Claude streams through the SDK's stream helper (`text` events). Gemini streams with `generate_content_stream`; the turn is reassembled from every streamed part, signed parts included, so tool steps replay exactly as before. Usage receipts and the 45 s per-step budget are unchanged.
+- While text arrives the core sends `transcription_delta` `{request_id, conversation_id, step, text}` to the socket that sent the request. `step` is the 0-based tool-loop step and `text` is that step's text so far (cumulative within the step, capped at 128,000 characters); each step starts again from empty. At most one event per 50 ms, latest text wins. A step that ends in tool calls first delivers its text, then sends `text_status` `{state: "processing", phase: "tool", ...}`.
+- Text written before a tool call is narration, not the answer. The desktop moves it under the JARVIS · WORKING line (text-3, at most two lines) while the tool runs; the JARVIS message shows only the newest step's text and starts empty for the next step. The narration clears when the next step's text starts or the final arrives.
+- The final `transcription` is unchanged and authoritative: the desktop replaces the streamed text with it, and because the message holds only the last step's text, the replace never shrinks it. No delta is sent after it.
+- Failures: before any text, the same mapped provider errors as before, including Gemini's one retry on 500/503. After some text, no retry; the request ends with the mapped `error` and the partial text is never stored in history.
+- `cancel_conversation` cancels the request at once: the provider stream closes, no further delta, result or transcription is sent, only the usual `text_status` idle. The desktop keeps the partial text marked STOPPED (also after a failure or a disconnect mid-stream); if the message is empty because a tool step was running, the last narration becomes its text.
+- The Quick assistant log follows the newest message while the owner has not scrolled up, and again once they are back near the bottom.
+- The timing line adds `first_text_ms` (time to the first streamed text, `-` when nothing streamed). Reply text is never logged.
+
 ## Costs
 
 Every Claude request has a usage receipt (Usage center) with `input_tokens`, `output_tokens`, `cache_creation_input_tokens` and `cache_read_input_tokens`, and a list-price estimate `estimated_cost_microusd`. Estimates are not invoices. Prices live in one table, `backend/llm/pricing.py`:

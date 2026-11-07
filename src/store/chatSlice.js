@@ -1,5 +1,6 @@
 import { emitSocket } from '../services/socket';
 import { readMigrated } from '../services/storageKeys';
+import { replyActions } from './replyStream.js';
 
 export const conversationForProject = (project) => {
     const key = `jarvis_conversation:${project}`;
@@ -15,6 +16,8 @@ export const createChatSlice = (set, get) => ({
     messages: [],
     inputValue: '',
     textProcessing: false,
+    // 'tool' while a streamed reply waits on a tool step; null otherwise.
+    textPhase: null,
     pendingTextRequest: null,
     conversationId: conversationForProject('temp'),
     conversationRestoring: false,
@@ -46,8 +49,8 @@ export const createChatSlice = (set, get) => ({
         set(state => {
             const prev = state.messages;
             const lastMsg = prev[prev.length - 1];
-            // Live voice captions stay separate messages; only streamed text joins up.
-            if (lastMsg && lastMsg.sender === sender && !lastMsg.captionKey) {
+            // Live voice captions and streamed typed replies stay separate messages; other text joins up.
+            if (lastMsg && lastMsg.sender === sender && !lastMsg.captionKey && !lastMsg.requestKey) {
                 return {
                     messages: [
                         ...prev.slice(0, -1),
@@ -60,6 +63,8 @@ export const createChatSlice = (set, get) => ({
             };
         });
     },
+
+    ...replyActions(set, get),
 
     /** Live voice caption: one message per utterance, updated as the caption streams. */
     voiceCaption: ({ key, role, text, final }) => {

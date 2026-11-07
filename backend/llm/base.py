@@ -48,13 +48,15 @@ def log_provider_retry(provider, status=None, kind=None):
     )
 
 
-def log_provider_timing(provider, model, elapsed_ms, outcome):
-    """One INFO line per provider request: who, how long, and ok or the failure's code."""
+def log_provider_timing(provider, model, elapsed_ms, outcome, first_text_ms=None):
+    """One INFO line per provider request: who, how long, how long until the first
+    streamed text (``-`` when nothing streamed), and ok or the failure's code."""
     from services.log import get_logger
 
     get_logger("llm.provider").info(
-        "AI provider request: provider=%s model=%s elapsed_ms=%s outcome=%s",
-        _field(provider), _field(model), _field(int(elapsed_ms)), _field(outcome),
+        "AI provider request: provider=%s model=%s elapsed_ms=%s first_text_ms=%s outcome=%s",
+        _field(provider), _field(model), _field(int(elapsed_ms)),
+        _field(None if first_text_ms is None else int(first_text_ms)), _field(outcome),
     )
 
 

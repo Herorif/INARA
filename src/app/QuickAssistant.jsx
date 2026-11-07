@@ -53,7 +53,14 @@ export default function QuickAssistant({
     [speak, setSpeak] = useState(false);
   const controller = useRef(null),
     input = useRef(null),
-    startedFor = useRef(null);
+    startedFor = useRef(null),
+    log = useRef(null),
+    followTail = useRef(true);
+  // The log follows the newest message until the owner scrolls up, and again once they are back near the bottom.
+  useEffect(() => {
+    const element = log.current;
+    if (element && followTail.current) element.scrollTop = element.scrollHeight;
+  }, [messages]);
   useEffect(() => {
     let live = true;
     const value = new SpeechController({
@@ -141,7 +148,10 @@ export default function QuickAssistant({
     <div className="quick-signal"><PresenceRing size={64} state={presence} level={live.level} lowPower={gaming} /></div>
     <span className="eyebrow quick-status">{project} · {connected ? 'CORE CONNECTED' : 'CORE OFFLINE'}</span><h1 id="quick-title">{title}</h1>
     <p className="quick-subtitle">Type anytime. Hold to talk, or turn on Conversation to talk hands-free. Dictate to review before sending.</p>
-    <div className="quick-log" aria-label="Recent conversation" aria-live="polite">{messages.filter(message => ['You', 'JARVIS'].includes(message.sender)).slice(-6).map((message, index) => <article key={index} className={message.sender === 'JARVIS' ? 'assistant' : 'user'}><small className="hud-label">{message.sender === 'JARVIS' ? 'JARVIS' : 'YOU'}</small><p>{message.text}</p>{!!message.memory_sources?.length && <small>Project memory: {message.memory_sources.map(source => source.title).join(" / ")}</small>}</article>)}</div>
+    <div ref={log} className="quick-log" aria-label="Recent conversation" aria-live="polite" onScroll={() => {
+      const element = log.current;
+      followTail.current = element.scrollHeight - element.scrollTop - element.clientHeight < 64;
+    }}>{messages.filter(message => ['You', 'JARVIS'].includes(message.sender) && !(message.streaming && !message.text?.trim())).slice(-6).map((message, index) => <article key={index} className={message.sender === 'JARVIS' ? 'assistant' : 'user'} aria-busy={message.streaming || undefined}><small className="hud-label">{message.sender === 'JARVIS' ? 'JARVIS' : 'YOU'}</small><p>{message.text}{message.streaming && <span className="reply-caret" aria-hidden="true" />}</p>{message.stopped && <small className="hud-label quick-stopped">STOPPED</small>}{!!message.memory_sources?.length && <small>Project memory: {message.memory_sources.map(source => source.title).join(" / ")}</small>}</article>)}</div>
     {voice.error && <p className="quick-error" role="alert">{voice.error}</p>}
     {live.error && <p className="quick-error quick-error--voice" role="alert">{live.error}</p>}
     {gaming && <p className="quick-note">Gaming mode: microphone capture is paused.</p>}
