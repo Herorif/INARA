@@ -5,6 +5,8 @@ Wraps the Google GenAI SDK behind the BaseLLMProvider interface.
 Also implements BaseVoiceProvider for Gemini Native Audio (Live API).
 """
 
+import asyncio
+import time
 from typing import AsyncIterator, Optional
 
 from services.tools import ServiceError
@@ -19,9 +21,38 @@ from .base import (
     ToolCall,
     ToolResult,
     log_provider_failure,
+    log_provider_retry,
 )
 
 KEY_STATUSES = ("UNAUTHENTICATED", "PERMISSION_DENIED", "ACCESS_TOKEN_TYPE_UNSUPPORTED")
+# One retry when Google is overloaded (live run, 7 Nov 2026: 503 UNAVAILABLE on a plain "Hi").
+RETRY_CODES = (500, 503)
+RETRY_DELAY = 1.5
+# The retry must fit in the caller's per-request timeout; skip it when less than this remains.
+RETRY_MIN_REMAINING = 10.0
+DEFAULT_BUDGET = 45.0
+
+
+def _thinking_config(types, thinking, model=""):
+    """Thoughts when asked for; otherwise LOW thinking on Gemini 3 models.
+
+    The live run (7 Nov 2026) showed the model's default thinking pushing a plain "Hi"
+    past the 45 s chat timeout, so short chat asks for LOW explicitly. ``thinking_level``
+    exists for Gemini 3 models only (older ones take a thinking budget), so any other model
+    keeps its default (None).
+    """
+    if thinking:
+        return types.ThinkingConfig(include_thoughts=True)
+    if str(model).removeprefix("models/").startswith("gemini-3"):
+        return types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+    return None
+
+
+def _retryable(exc):
+    """Only an overloaded or failing Google server: never 4xx, timeouts or network errors."""
+    from google.genai import errors
+
+    return isinstance(exc, errors.ServerError) and exc.code in RETRY_CODES
 
 
 def _key(api_key):
@@ -277,21 +308,34 @@ class GeminiProvider(BaseLLMProvider):
         if tools:
             config.tools = gemini_tools(tools)
             config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
-        if kwargs.get("thinking", False):
-            config.thinking_config = types.ThinkingConfig(include_thoughts=True)
+        config.thinking_config = _thinking_config(types, kwargs.get("thinking", False), self._model)
 
         contents = _messages_to_gemini_contents(messages)
 
-        try:
-            response = await self._client.aio.models.generate_content(
-                model=self._model,
-                contents=contents,
-                config=config,
-            )
-        except Exception as exc:
-            if _is_sdk_error(exc):
-                raise provider_error(exc, self._model) from exc
-            raise
+        # The budget is the caller's timeout for this call (ConversationService passes its
+        # own), measured from here: the caller's asyncio.wait_for starts at the same moment.
+        budget = kwargs.get("budget") or DEFAULT_BUDGET
+        started = time.monotonic()
+        retried = False
+        while True:
+            try:
+                response = await self._client.aio.models.generate_content(
+                    model=self._model,
+                    contents=contents,
+                    config=config,
+                )
+                break
+            except Exception as exc:
+                remaining = budget - (time.monotonic() - started) - RETRY_DELAY
+                if not retried and _retryable(exc) and remaining >= RETRY_MIN_REMAINING:
+                    retried = True
+                    status, kind, _ = diagnose(exc)
+                    log_provider_retry("gemini", status, kind)
+                    await asyncio.sleep(RETRY_DELAY)
+                    continue
+                if _is_sdk_error(exc):
+                    raise provider_error(exc, self._model) from exc
+                raise
 
         if not response.candidates:
             return LLMResponse(raw=response)
@@ -335,8 +379,7 @@ class GeminiProvider(BaseLLMProvider):
         if tools:
             config.tools = gemini_tools(tools)
             config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
-        if kwargs.get("thinking", False):
-            config.thinking_config = types.ThinkingConfig(include_thoughts=True)
+        config.thinking_config = _thinking_config(types, kwargs.get("thinking", False), self._model)
 
         contents = _messages_to_gemini_contents(messages)
 

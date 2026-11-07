@@ -38,6 +38,26 @@ def log_provider_failure(provider, exc, status=None, kind=None, reason=None):
     )
 
 
+def log_provider_retry(provider, status=None, kind=None):
+    """One INFO line per provider retry; the same identifier-only rules as failures."""
+    from services.log import get_logger
+
+    get_logger("llm.provider").info(
+        "AI provider request retrying: provider=%s status=%s kind=%s",
+        _field(provider), _field(status), _field(kind),
+    )
+
+
+def log_provider_timing(provider, model, elapsed_ms, outcome):
+    """One INFO line per provider request: who, how long, and ok or the failure's code."""
+    from services.log import get_logger
+
+    get_logger("llm.provider").info(
+        "AI provider request: provider=%s model=%s elapsed_ms=%s outcome=%s",
+        _field(provider), _field(model), _field(int(elapsed_ms)), _field(outcome),
+    )
+
+
 class MessageRole(Enum):
     USER = "user"
     ASSISTANT = "assistant"

@@ -1,6 +1,8 @@
 """Provider failures become actionable messages plus one safe diagnostic log line."""
 
+import asyncio
 import logging
+import re
 import ssl
 
 import httpx
@@ -356,3 +358,230 @@ def test_gemini_tools_leaves_sdk_objects_alone():
     already = {"function_declarations": [{"name": "y", "parameters_json_schema": {}}]}
     assert gemini_tools([sdk_tool, already]) == [sdk_tool, already]
     assert gemini_tools([sdk_tool])[0] is sdk_tool
+
+
+# --- Gemini thinking, the one overload retry, and request timings --------------------
+
+
+@pytest.mark.parametrize("thinking", [False, True])
+@pytest.mark.asyncio
+async def test_gemini_thinking_is_low_unless_thoughts_are_requested(thinking):
+    from google.genai import types
+
+    from llm.base import Message, MessageRole
+
+    provider = GeminiProvider(api_key=GEMINI_KEY, model=GEMINI_MODEL)
+    client = RecordingGeminiClient()
+    provider._GeminiProvider__client = client
+    messages = [Message(MessageRole.USER, "hi")]
+    await provider.generate(messages, thinking=thinking)
+    async for _ in provider.stream(messages, thinking=thinking):
+        pass
+    assert len(client.configs) == 2
+    for config in client.configs:
+        if thinking:
+            assert config.thinking_config == types.ThinkingConfig(include_thoughts=True)
+        else:
+            assert config.thinking_config == types.ThinkingConfig(
+                thinking_level=types.ThinkingLevel.LOW
+            )
+
+
+@pytest.mark.asyncio
+async def test_gemini_thinking_level_only_for_gemini_3_models():
+    # thinking_level exists for Gemini 3 only; an older override keeps its default thinking.
+    from llm.base import Message, MessageRole
+
+    provider = GeminiProvider(api_key=GEMINI_KEY, model="gemini-2.5-flash")
+    client = RecordingGeminiClient()
+    provider._GeminiProvider__client = client
+    messages = [Message(MessageRole.USER, "hi")]
+    await provider.generate(messages)
+    async for _ in provider.stream(messages):
+        pass
+    assert [config.thinking_config for config in client.configs] == [None, None]
+
+
+class FlakyGeminiClient:
+    """Raises each queued exception in turn, then answers."""
+
+    def __init__(self, *failures):
+        self.failures = list(failures)
+        self.calls = 0
+        self.aio = self
+        self.models = self
+
+    async def generate_content(self, **kwargs):
+        from types import SimpleNamespace
+
+        self.calls += 1
+        if self.failures:
+            raise self.failures.pop(0)
+        part = SimpleNamespace(text="Hello", thought=False, function_call=None)
+        candidate = SimpleNamespace(content=SimpleNamespace(parts=[part]))
+        return SimpleNamespace(candidates=[candidate])
+
+    async def aclose(self):
+        pass
+
+
+def overloaded(code=503, status="UNAVAILABLE"):
+    return client_error(code, status, cls=errors.ServerError)
+
+
+def flaky_provider(*failures):
+    provider = GeminiProvider(api_key=GEMINI_KEY, model=GEMINI_MODEL)
+    client = FlakyGeminiClient(*failures)
+    provider._GeminiProvider__client = client
+    return provider, client
+
+
+def retry_lines(caplog):
+    return [
+        record.getMessage() for record in caplog.records
+        if "AI provider request retrying" in record.getMessage()
+    ]
+
+
+@pytest.fixture
+def no_retry_delay(monkeypatch):
+    monkeypatch.setattr(gemini, "RETRY_DELAY", 0)
+
+
+@pytest.mark.parametrize("code, status", [(503, "UNAVAILABLE"), (500, "INTERNAL")])
+@pytest.mark.asyncio
+async def test_gemini_retries_an_overloaded_server_once(caplog, no_retry_delay, code, status):
+    from llm.base import Message, MessageRole
+
+    caplog.set_level(logging.INFO)
+    provider, client = flaky_provider(overloaded(code, status))
+    response = await provider.generate([Message(MessageRole.USER, USER_MARKER)])
+    assert response.text == "Hello" and client.calls == 2
+    assert retry_lines(caplog) == [
+        f"AI provider request retrying: provider=gemini status={code} kind={status}"
+    ]
+    assert not failure_lines(caplog)
+    assert SECRET_DETAIL not in caplog.text and USER_MARKER not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_gemini_second_overload_is_the_unavailable_error(caplog, no_retry_delay):
+    from llm.base import Message, MessageRole
+
+    caplog.set_level(logging.INFO)
+    provider, client = flaky_provider(overloaded(), overloaded())
+    with pytest.raises(ServiceError) as raised:
+        await provider.generate([Message(MessageRole.USER, "hi")])
+    assert (raised.value.code, str(raised.value)) == ("provider_unavailable", UNAVAILABLE)
+    assert client.calls == 2 and len(retry_lines(caplog)) == 1
+    assert failure_lines(caplog) == [
+        "AI provider request failed: provider=gemini error=ServerError status=503 "
+        "kind=UNAVAILABLE reason=unavailable"
+    ]
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda: client_error(400, "INVALID_ARGUMENT"),
+        lambda: client_error(429, "RESOURCE_EXHAUSTED"),
+        lambda: overloaded(502, "BAD_GATEWAY"),
+        lambda: httpx.ReadTimeout("slow"),
+        lambda: httpx.ConnectError("down"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_gemini_does_not_retry_other_failures(caplog, no_retry_delay, make):
+    from llm.base import Message, MessageRole
+
+    caplog.set_level(logging.INFO)
+    provider, client = flaky_provider(make())
+    with pytest.raises(ServiceError):
+        await provider.generate([Message(MessageRole.USER, "hi")])
+    assert client.calls == 1 and not retry_lines(caplog)
+
+
+@pytest.mark.asyncio
+async def test_gemini_does_not_retry_when_too_little_time_is_left(caplog, no_retry_delay):
+    from llm.base import Message, MessageRole
+
+    caplog.set_level(logging.INFO)
+    provider, client = flaky_provider(overloaded())
+    with pytest.raises(ServiceError) as raised:
+        await provider.generate([Message(MessageRole.USER, "hi")], budget=9)
+    assert raised.value.code == "provider_unavailable"
+    assert client.calls == 1 and not retry_lines(caplog)
+
+
+@pytest.mark.asyncio
+async def test_conversation_gives_gemini_its_timeout_as_the_retry_budget(
+    tmp_path, caplog, no_retry_delay
+):
+    caplog.set_level(logging.INFO)
+    provider, client = flaky_provider(overloaded())
+    service = conversation(provider)
+    service.timeout = 5  # under the retry floor: the conversation's budget decides
+    with pytest.raises(ServiceError):
+        await service.reply("owner", ConversationRequest(text=USER_MARKER), tmp_path)
+    assert client.calls == 1 and not retry_lines(caplog)
+
+
+def timing_lines(caplog):
+    return [
+        record.getMessage() for record in caplog.records
+        if record.getMessage().startswith("AI provider request: ")
+    ]
+
+
+TIMING = re.compile(
+    r"AI provider request: provider=(\w+) model=([\w.\-]+) elapsed_ms=(\d+) outcome=([\w\-]+)"
+)
+
+
+@pytest.mark.parametrize(
+    "make, provider_name, model, outcome",
+    [
+        (lambda: flaky_provider()[0], "gemini", GEMINI_MODEL, "ok"),
+        (lambda: flaky_provider(client_error(429, "RESOURCE_EXHAUSTED"))[0], "gemini",
+         GEMINI_MODEL, "provider_rate_limited"),
+        (lambda: gemini_provider(RuntimeError(SECRET_DETAIL + GEMINI_KEY)), "gemini",
+         GEMINI_MODEL, "provider_failed"),
+        (lambda: claude_provider(anthropic_error("BadRequestError", 400, CREDIT,
+                                                 "invalid_request_error")),
+         "claude", MODEL, "provider_no_credit"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_each_request_logs_one_timing_line(
+    tmp_path, caplog, make, provider_name, model, outcome
+):
+    caplog.set_level(logging.INFO)
+    service = conversation(make())
+    try:
+        await service.reply("owner", ConversationRequest(text=USER_MARKER), tmp_path)
+    except ServiceError:
+        pass
+    (line,) = timing_lines(caplog)
+    match = TIMING.fullmatch(line)
+    assert match and match.group(1, 2, 4) == (provider_name, model, outcome)
+    for forbidden in (USER_MARKER, SECRET_DETAIL, "Hello", "credit balance", ANTHROPIC_KEY,
+                      GEMINI_KEY):
+        assert forbidden not in line
+
+
+@pytest.mark.asyncio
+async def test_a_conversation_timeout_logs_its_timing(tmp_path, caplog):
+    class Slow(FlakyGeminiClient):
+        async def generate_content(self, **kwargs):
+            await asyncio.sleep(5)
+
+    caplog.set_level(logging.INFO)
+    provider = GeminiProvider(api_key=GEMINI_KEY, model=GEMINI_MODEL)
+    provider._GeminiProvider__client = Slow()
+    service = conversation(provider)
+    service.timeout = 0.05
+    with pytest.raises(ServiceError) as raised:
+        await service.reply("owner", ConversationRequest(text=USER_MARKER), tmp_path)
+    assert raised.value.code == "provider_timeout"
+    (line,) = timing_lines(caplog)
+    assert TIMING.fullmatch(line).group(4) == "timeout"

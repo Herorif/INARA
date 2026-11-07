@@ -114,6 +114,35 @@ async def connect_live(model, config):
             logger.warning("Live client did not close cleanly", exc_info=True)
 
 
+def failure_fields(exc):
+    """Class, API code, API status and websocket close code of a Live failure.
+
+    Identifier-shaped values only: never the message, details or close reason, which can
+    echo request content.
+    """
+    from llm.base import _field
+
+    code = status = close = None
+    try:
+        from google.genai import errors
+    except ImportError:
+        errors = None
+    if errors is not None and isinstance(exc, errors.APIError):
+        code = exc.code if isinstance(exc.code, int) else None
+        status = exc.status if isinstance(exc.status, str) else None
+    # websockets.ConnectionClosed carries the received close frame; the SDK raises its
+    # APIError while handling one, so the close is the exception's context.
+    for item in (exc, exc.__cause__, exc.__context__):
+        frame = getattr(item, "rcvd", None)
+        if isinstance(getattr(frame, "code", None), int):
+            close = frame.code
+            break
+    return (
+        f"{_field(type(exc).__name__)} code={_field(code)} status={_field(status)} "
+        f"close={_field(close)}"
+    )
+
+
 def failure_code(exc):
     """Map a connection failure to a renderer code without exposing SDK text."""
     status = getattr(exc, "code", None)
@@ -673,12 +702,12 @@ class VoiceService:
                     if session.closed:
                         return
                     if session.connected and session.handle and attempts <= RECONNECT_ATTEMPTS:
-                        logger.info("Live voice dropped; resuming (%s)", type(exc).__name__)
+                        logger.info("Live voice dropped; resuming (%s)", failure_fields(exc))
                         await self.set_state(session, "connecting")
                         await asyncio.sleep(self.retry_delay * attempts)
                         continue
                     code, message = failure_code(exc)
-                    logger.warning("Live voice failed: %s", type(exc).__name__)
+                    logger.warning("Live voice failed: %s", failure_fields(exc))
                     await self.end(session, "error", code, message)
                     return
         finally:

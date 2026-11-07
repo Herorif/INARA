@@ -459,6 +459,70 @@ async def test_drop_without_a_handle_or_failed_connect_reports_an_error(voice):
     assert (await ended(app))["code"] == "offline"
 
 
+VOICE_MARKER = "LIVE-MESSAGE-MARKER-5521"
+
+
+def raised_api_error(code, status, close=None):
+    """The APIError the SDK raises, optionally while handling a websocket close."""
+    from google.genai import errors
+
+    body = {"error": {"code": code, "status": status, "message": VOICE_MARKER}}
+    try:
+        if close is not None:
+            try:
+                from websockets.exceptions import ConnectionClosedError
+                from websockets.frames import Close
+
+                raise ConnectionClosedError(Close(close, VOICE_MARKER), None)
+            except ConnectionClosedError:
+                errors.APIError.raise_error(code, body, None)
+        errors.APIError.raise_error(code, body, None)
+    except errors.APIError as exc:
+        return exc
+
+
+def voice_lines(caplog, prefix):
+    return [r.getMessage() for r in caplog.records if r.getMessage().startswith(prefix)]
+
+
+@pytest.mark.asyncio
+async def test_live_drop_and_failure_lines_carry_codes_never_the_message(voice, caplog):
+    import logging
+
+    caplog.set_level(logging.INFO)
+    app, connector = voice
+    _, live = await start(app, connector, mode="conversation")
+    live.message(
+        session_resumption_update=types.LiveServerSessionResumptionUpdate(
+            new_handle="handle-1", resumable=True
+        )
+    )
+    await until(lambda: app.voice.sessions["owner"].handle == "handle-1")
+    live.inbox.put_nowait(raised_api_error(1011, "INTERNAL", close=1011))
+    await until(lambda: len(connector.connections) == 2)
+    assert voice_lines(caplog, "Live voice dropped") == [
+        "Live voice dropped; resuming (APIError code=1011 status=INTERNAL close=1011)"
+    ]
+    await app.voice.stop_sid()
+
+    connector.fail = raised_api_error(503, "UNAVAILABLE")
+    ack = await call(app, "start", {"mode": "push_to_talk", "conversation_id": str(uuid.uuid4())})
+    assert ack["ok"]
+    await ended(app)
+    assert voice_lines(caplog, "Live voice failed") == [
+        "Live voice failed: ServerError code=503 status=UNAVAILABLE close=-"
+    ]
+    assert VOICE_MARKER not in caplog.text
+
+
+def test_failure_fields_for_plain_errors():
+    from services.voice import failure_fields
+
+    assert failure_fields(ConnectionResetError(VOICE_MARKER)) == (
+        "ConnectionResetError code=- status=- close=-"
+    )
+
+
 @pytest.mark.asyncio
 async def test_silence_ends_the_session_but_not_while_the_brain_works(voice):
     app, connector = voice

@@ -13,6 +13,7 @@ stays append-only for preserved thinking and prompt caching.
 
 import asyncio
 import json
+import time
 import uuid
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -397,12 +398,15 @@ class ConversationService:
                     "request_approval": request_approval,
                     "operation": f"{key}:{request_id}",
                 }
+                outcome, started = "failed", None
                 try:
                     provider = self.provider_factory()
+                    started = time.monotonic()
                     turn = self._claude_turn if getattr(provider, "name", None) == "claude" else (
                         self._text_turn
                     )
                     result, entries = await turn(provider, **context)
+                    outcome = "ok"
                     history = trim_history([*history, *entries])
                     if self.store is not None:
                         self.store.finish(
@@ -421,9 +425,11 @@ class ConversationService:
                         conversation.results.pop(next(iter(conversation.results)))
                     return result
                 except ServiceError as exc:
+                    outcome = exc.code
                     conversation.results[request_id] = (request.text, exc)
                     raise
                 except TimeoutError as exc:
+                    outcome = "timeout"
                     from llm.base import log_provider_failure
 
                     log_provider_failure(
@@ -435,9 +441,20 @@ class ConversationService:
                 except Exception as exc:
                     # Do not expose SDK errors: they can contain credentials or private request data.
                     error = provider_failure(provider, exc)
+                    outcome = error.code
                     conversation.results[request_id] = (request.text, error)
                     raise error from exc
                 finally:
+                    if started is not None:
+                        from llm.base import log_provider_timing
+
+                        # One line per request, both providers; identifiers only, never text.
+                        log_provider_timing(
+                            getattr(provider, "name", None) or "unknown",
+                            getattr(provider, "_model", None),
+                            (time.monotonic() - started) * 1000,
+                            outcome,
+                        )
                     if provider is not None:
                         try:
                             await asyncio.wait_for(provider.close(), 5)
@@ -593,6 +610,8 @@ class ConversationService:
                     provider_messages,
                     tools=[{"function_declarations": schemas}] if schemas else None,
                     system_instruction=system + (" " + MEMORY_NOTE if attached else ""),
+                    # Gemini's one 503 retry must fit inside this same wait_for.
+                    budget=self.timeout,
                 ),
                 self.timeout,
             )
