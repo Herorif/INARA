@@ -17,7 +17,14 @@ from typing import Any, Optional
 
 from services.tools import ServiceError
 
-from .base import BaseLLMProvider, LLMResponse, MessageRole, ToolCall
+from .base import (
+    GENERIC_FAILURE,
+    BaseLLMProvider,
+    LLMResponse,
+    MessageRole,
+    ToolCall,
+    log_provider_failure,
+)
 
 MAX_TOKENS = 32_000
 THINKING_BINDING_BETA = "thinking-binding-controls-2026-08-01"
@@ -120,17 +127,76 @@ def usage_counts(message):
     return counts or None
 
 
-def map_error(exc):
-    """SDK exception -> ServiceError with a plain message; never echoes SDK text."""
+def _error_text(exc):
+    """Lower-cased provider message, only for choosing a reason; never logged or shown."""
+    parts = [str(getattr(exc, "message", "") or "")]
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        error = body.get("error") if isinstance(body.get("error"), dict) else body
+        parts.append(str(error.get("message", "") or ""))
+    return " ".join(parts).lower()
+
+
+def diagnose(exc):
+    """(HTTP status, Anthropic ``error.type``, reason tag) for an SDK exception."""
     import anthropic
 
-    if isinstance(exc, (anthropic.AuthenticationError, anthropic.PermissionDeniedError)):
+    status = kind = reason = None
+    if isinstance(exc, anthropic.APIStatusError):
+        status = getattr(exc, "status_code", None)
+        body = getattr(exc, "body", None)
+        if isinstance(body, dict):
+            error = body.get("error")
+            kind = error.get("type") if isinstance(error, dict) else body.get("type")
+    if isinstance(exc, anthropic.AuthenticationError):
+        reason = "api_key_invalid"
+    elif isinstance(exc, anthropic.PermissionDeniedError):
+        reason = "permission_denied"
+    elif isinstance(exc, anthropic.NotFoundError):
+        reason = "model_not_found"
+    elif isinstance(exc, anthropic.RateLimitError):
+        reason = "rate_limit"
+    elif isinstance(exc, anthropic.APITimeoutError):
+        reason = "timeout"
+    elif isinstance(exc, anthropic.APIConnectionError):
+        from services.secrets import classify_exception
+
+        reason = "tls" if classify_exception(exc) == "tls_error" else "network"
+    elif isinstance(exc, anthropic.APIStatusError):
+        if status == 400 and "credit balance" in _error_text(exc):
+            reason = "credit_balance"
+        elif isinstance(status, int) and status >= 500:
+            reason = "unavailable"
+    return status, kind, reason
+
+
+def map_error(exc, model=None):
+    """SDK exception -> ServiceError with a plain message; never echoes SDK text."""
+    status, _, reason = diagnose(exc)
+    if reason == "api_key_invalid":
         return ServiceError(
             "provider_key_invalid",
-            "Claude rejected the Anthropic API key. Update it in Setup (AI providers) "
-            "or Preferences.",
+            "Claude rejected your Anthropic key. Replace it in Preferences > AI.",
         )
-    if isinstance(exc, anthropic.RateLimitError):
+    if reason == "permission_denied":
+        return ServiceError(
+            "provider_permission_denied",
+            "Your Anthropic key isn't allowed to use Claude. Check the key in the "
+            "Anthropic Console.",
+        )
+    if reason == "model_not_found":
+        return ServiceError(
+            "provider_model_not_found",
+            "Claude doesn't offer the model JARVIS asked for"
+            + (f" ({model})." if model else "."),
+        )
+    if reason == "credit_balance":
+        return ServiceError(
+            "provider_no_credit",
+            "Your Anthropic account is out of credit. Add credit under Billing in the "
+            "Anthropic Console, then try again.",
+        )
+    if reason == "rate_limit":
         wait = None
         try:
             wait = int(float(exc.response.headers.get("retry-after", "")))
@@ -141,25 +207,30 @@ def map_error(exc):
             "Claude is limiting requests right now. Try again "
             + (f"in {wait} seconds." if wait and 0 < wait <= 3600 else "in a minute."),
         )
-    if isinstance(exc, anthropic.APITimeoutError):
+    if reason == "timeout":
         return ServiceError("provider_timeout", "The AI request timed out. Try again.")
-    if isinstance(exc, anthropic.APIConnectionError):
-        from services.secrets import classify_exception
-
-        if classify_exception(exc) == "tls_error":
-            return ServiceError(
-                "provider_network",
-                "Couldn't make a secure connection to Claude. A proxy or antivirus may be "
-                "intercepting HTTPS.",
-            )
+    if reason == "tls":
+        return ServiceError(
+            "provider_network",
+            "Couldn't make a secure connection to Claude. A proxy or antivirus may be "
+            "intercepting HTTPS.",
+        )
+    if reason == "network":
         return ServiceError(
             "provider_network", "Couldn't reach Claude. Check your internet connection."
         )
-    if isinstance(exc, anthropic.APIStatusError) and exc.status_code >= 500:
+    if reason == "unavailable":
         return ServiceError(
             "provider_unavailable", "Claude is temporarily unavailable. Try again shortly."
         )
-    return ServiceError("provider_failed", "The AI provider could not complete this request.")
+    return ServiceError("provider_failed", GENERIC_FAILURE)
+
+
+def provider_error(exc, model=None):
+    """Log one safe diagnostic line for ``exc`` and return its ServiceError."""
+    status, kind, reason = diagnose(exc)
+    log_provider_failure("claude", exc, status, kind, reason)
+    return map_error(exc, model)
 
 
 class ClaudeProvider(BaseLLMProvider):
@@ -253,6 +324,7 @@ class ClaudeProvider(BaseLLMProvider):
             raise
         except ValueError as exc:
             # Tool input JSON the SDK could not parse at all (eager input streaming).
+            log_provider_failure("claude", exc, reason="unreadable_tool_input")
             raise ServiceError(
                 "provider_failed", "Claude sent an unreadable tool request. Try again."
             ) from exc
@@ -260,7 +332,7 @@ class ClaudeProvider(BaseLLMProvider):
             import anthropic
 
             if isinstance(exc, anthropic.AnthropicError):
-                raise map_error(exc) from exc
+                raise provider_error(exc, self._model) from exc
             raise
         yield self.parse(message)
 

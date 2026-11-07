@@ -55,6 +55,24 @@ CONVERSATION_LIMIT = 128  # live per-process conversations; idle ones are evicte
 logger = get_logger(__name__)
 
 
+def provider_failure(provider, exc):
+    """Map an unexpected provider exception through that provider's mapper, logging it once."""
+    name = getattr(provider, "name", None)
+    model = getattr(provider, "_model", None)
+    if name == "claude":
+        from llm.claude import provider_error
+
+        return provider_error(exc, model)
+    if name == "gemini":
+        from llm.gemini import provider_error
+
+        return provider_error(exc, model)
+    from llm.base import GENERIC_FAILURE, log_provider_failure
+
+    log_provider_failure(name or "unknown", exc)
+    return ServiceError("provider_failed", GENERIC_FAILURE)
+
+
 def persona(settings, suffix=None):
     """Byte-stable system prompt: persona, optional owner name, optional route note."""
     assistant = (settings or {}).get("assistant") or {}
@@ -406,14 +424,17 @@ class ConversationService:
                     conversation.results[request_id] = (request.text, exc)
                     raise
                 except TimeoutError as exc:
+                    from llm.base import log_provider_failure
+
+                    log_provider_failure(
+                        getattr(provider, "name", None) or "unknown", exc, reason="timeout"
+                    )
                     error = ServiceError("provider_timeout", "The AI request timed out. Try again.")
                     conversation.results[request_id] = (request.text, error)
                     raise error from exc
                 except Exception as exc:
                     # Do not expose SDK errors: they can contain credentials or private request data.
-                    error = ServiceError(
-                        "provider_failed", "The AI provider could not complete this request."
-                    )
+                    error = provider_failure(provider, exc)
                     conversation.results[request_id] = (request.text, error)
                     raise error from exc
                 finally:

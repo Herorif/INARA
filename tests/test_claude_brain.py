@@ -387,7 +387,8 @@ def connection_error(kind):
     "error, code, phrase",
     [
         (lambda: status_error("AuthenticationError", 401), "provider_key_invalid", "Preferences"),
-        (lambda: status_error("PermissionDeniedError", 403), "provider_key_invalid", "Setup"),
+        (lambda: status_error("PermissionDeniedError", 403), "provider_permission_denied",
+         "Anthropic Console"),
         (lambda: status_error("RateLimitError", 429, {"retry-after": "12"}),
          "provider_rate_limited", "12 seconds"),
         (lambda: status_error("InternalServerError", 500), "provider_unavailable", "temporarily"),

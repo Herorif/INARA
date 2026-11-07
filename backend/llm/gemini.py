@@ -7,7 +7,10 @@ Also implements BaseVoiceProvider for Gemini Native Audio (Live API).
 
 from typing import AsyncIterator, Optional
 
+from services.tools import ServiceError
+
 from .base import (
+    GENERIC_FAILURE,
     BaseLLMProvider,
     BaseVoiceProvider,
     LLMResponse,
@@ -15,7 +18,10 @@ from .base import (
     MessageRole,
     ToolCall,
     ToolResult,
+    log_provider_failure,
 )
+
+KEY_STATUSES = ("UNAUTHENTICATED", "PERMISSION_DENIED", "ACCESS_TOKEN_TYPE_UNSUPPORTED")
 
 
 def _key(api_key):
@@ -87,6 +93,137 @@ def _extract_tool_calls(candidate) -> list[ToolCall]:
     return calls
 
 
+def diagnose(exc):
+    """(HTTP status, Google ``status``, reason tag) for a google.genai or transport error."""
+    try:
+        from google.genai import errors
+    except ImportError:
+        errors = None
+    if errors is not None and isinstance(exc, errors.APIError):
+        status = exc.code if isinstance(exc.code, int) else None
+        kind = str(exc.status) if exc.status else None
+        upper = (kind or "").upper()
+        # Only for choosing a reason: the message is never logged or shown.
+        text = f"{exc.message or ''} {exc.details or ''}".lower()
+        if (status == 400 or upper == "FAILED_PRECONDITION") and "not supported" in text and (
+            "location" in text or "region" in text or "country" in text
+        ):
+            return status, kind, "region"
+        if (
+            status in (401, 403)
+            or upper in KEY_STATUSES
+            or (status == 400 and ("api key not valid" in text or "api_key_invalid" in text))
+        ):
+            return status, kind, "api_key_invalid"
+        if status == 404 or upper == "NOT_FOUND":
+            return status, kind, "model_not_found"
+        if status == 429 or upper == "RESOURCE_EXHAUSTED":
+            return status, kind, "quota"
+        if status is not None and status >= 500:
+            return status, kind, "unavailable"
+        return status, kind, None
+    try:
+        import httpx
+
+        if isinstance(exc, httpx.TimeoutException):
+            return None, None, "timeout"
+        network = isinstance(exc, (httpx.TransportError, OSError))
+    except ImportError:
+        network = isinstance(exc, OSError)
+    if network:
+        from services.secrets import classify_exception
+
+        return None, None, "tls" if classify_exception(exc) == "tls_error" else "network"
+    return None, None, None
+
+
+def map_error(exc, model=None):
+    """Gemini SDK/transport failure -> ServiceError with a plain message; never echoes SDK text."""
+    _, _, reason = diagnose(exc)
+    if reason == "api_key_invalid":
+        return ServiceError(
+            "provider_key_invalid",
+            "Google rejected your Gemini key. Replace it in Preferences > AI.",
+        )
+    if reason == "region":
+        return ServiceError(
+            "provider_region", "Gemini isn't available in your region with this key."
+        )
+    if reason == "model_not_found":
+        return ServiceError(
+            "provider_model_not_found",
+            "Gemini doesn't offer the model JARVIS asked for"
+            + (f" ({model})." if model else "."),
+        )
+    if reason == "quota":
+        return ServiceError(
+            "provider_rate_limited",
+            "Gemini's quota or rate limit is used up. Try again later, or check your plan "
+            "in Google AI Studio.",
+        )
+    if reason == "unavailable":
+        return ServiceError(
+            "provider_unavailable", "Gemini is temporarily unavailable. Try again shortly."
+        )
+    if reason == "timeout":
+        return ServiceError("provider_timeout", "The AI request timed out. Try again.")
+    if reason == "tls":
+        return ServiceError(
+            "provider_network",
+            "Couldn't make a secure connection to Gemini. A proxy or antivirus may be "
+            "intercepting HTTPS.",
+        )
+    if reason == "network":
+        return ServiceError(
+            "provider_network", "Couldn't reach Gemini. Check your internet connection."
+        )
+    return ServiceError("provider_failed", GENERIC_FAILURE)
+
+
+def provider_error(exc, model=None):
+    """Log one safe diagnostic line for ``exc`` and return its ServiceError."""
+    status, kind, reason = diagnose(exc)
+    log_provider_failure("gemini", exc, status, kind, reason)
+    return map_error(exc, model)
+
+
+def _is_sdk_error(exc):
+    """google.genai API errors and transport failures; other exceptions propagate as is."""
+    return diagnose(exc)[2] is not None or type(exc).__module__.startswith("google.genai")
+
+
+def _declaration(declaration):
+    """A dict declaration's JSON Schema goes in ``parameters_json_schema``.
+
+    ``parameters`` only takes Google's OpenAPI subset (no "uuid" format, no
+    ``additionalProperties``), so dispatcher schemas sent there fail with a 400.
+    """
+    if (
+        isinstance(declaration, dict)
+        and "parameters" in declaration
+        and "parameters_json_schema" not in declaration
+    ):
+        adapted = {key: value for key, value in declaration.items() if key != "parameters"}
+        adapted["parameters_json_schema"] = declaration["parameters"]
+        return adapted
+    return declaration
+
+
+def gemini_tools(tools):
+    """Adapt dict tools' function declarations; google.genai types objects pass through."""
+    adapted = []
+    for tool in tools:
+        if isinstance(tool, dict) and isinstance(tool.get("function_declarations"), list):
+            tool = {
+                **tool,
+                "function_declarations": [
+                    _declaration(item) for item in tool["function_declarations"]
+                ],
+            }
+        adapted.append(tool)
+    return adapted
+
+
 class GeminiProvider(BaseLLMProvider):
     """Gemini provider for text generation and tool calling."""
 
@@ -138,18 +275,23 @@ class GeminiProvider(BaseLLMProvider):
         if kwargs.get("max_output_tokens") is not None:
             config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
-            config.tools = tools
+            config.tools = gemini_tools(tools)
             config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if kwargs.get("thinking", False):
             config.thinking_config = types.ThinkingConfig(include_thoughts=True)
 
         contents = _messages_to_gemini_contents(messages)
 
-        response = await self._client.aio.models.generate_content(
-            model=self._model,
-            contents=contents,
-            config=config,
-        )
+        try:
+            response = await self._client.aio.models.generate_content(
+                model=self._model,
+                contents=contents,
+                config=config,
+            )
+        except Exception as exc:
+            if _is_sdk_error(exc):
+                raise provider_error(exc, self._model) from exc
+            raise
 
         if not response.candidates:
             return LLMResponse(raw=response)
@@ -191,44 +333,53 @@ class GeminiProvider(BaseLLMProvider):
         if kwargs.get("max_output_tokens") is not None:
             config.max_output_tokens = kwargs["max_output_tokens"]
         if tools:
-            config.tools = tools
+            config.tools = gemini_tools(tools)
             config.automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
         if kwargs.get("thinking", False):
             config.thinking_config = types.ThinkingConfig(include_thoughts=True)
 
         contents = _messages_to_gemini_contents(messages)
 
-        stream = await self._client.aio.models.generate_content_stream(
-            model=self._model,
-            contents=contents,
-            config=config,
-        )
+        try:
+            stream = await self._client.aio.models.generate_content_stream(
+                model=self._model,
+                contents=contents,
+                config=config,
+            )
+            async for chunk in stream:
+                for response in _chunk_responses(chunk):
+                    yield response
+        except Exception as exc:
+            if _is_sdk_error(exc):
+                raise provider_error(exc, self._model) from exc
+            raise
 
-        async for chunk in stream:
-            if not chunk.candidates:
-                continue
-            candidate = chunk.candidates[0]
-            if not candidate.content or not candidate.content.parts:
-                continue
 
-            for part in candidate.content.parts:
-                if part.function_call:
-                    yield LLMResponse(
-                        tool_calls=[
-                            ToolCall(
-                                id=getattr(part.function_call, "id", "") or "",
-                                name=part.function_call.name,
-                                args=dict(part.function_call.args) if part.function_call.args else {},
-                            )
-                        ],
-                        is_partial=True,
-                        raw=chunk,
+def _chunk_responses(chunk):
+    """Partial LLMResponses for one streamed chunk."""
+    if not chunk.candidates:
+        return
+    candidate = chunk.candidates[0]
+    if not candidate.content or not candidate.content.parts:
+        return
+    for part in candidate.content.parts:
+        if part.function_call:
+            yield LLMResponse(
+                tool_calls=[
+                    ToolCall(
+                        id=getattr(part.function_call, "id", "") or "",
+                        name=part.function_call.name,
+                        args=dict(part.function_call.args) if part.function_call.args else {},
                     )
-                elif part.text:
-                    if getattr(part, "thought", False):
-                        yield LLMResponse(thinking=part.text, is_partial=True, raw=chunk)
-                    else:
-                        yield LLMResponse(text=part.text, is_partial=True, raw=chunk)
+                ],
+                is_partial=True,
+                raw=chunk,
+            )
+        elif part.text:
+            if getattr(part, "thought", False):
+                yield LLMResponse(thinking=part.text, is_partial=True, raw=chunk)
+            else:
+                yield LLMResponse(text=part.text, is_partial=True, raw=chunk)
 
 
 class GeminiVoiceProvider(BaseVoiceProvider):

@@ -5,10 +5,37 @@ All LLM providers (Gemini, Claude, local) implement this ABC.
 The rest of the system never imports provider-specific SDKs directly.
 """
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, AsyncIterator, Optional
+
+
+_SAFE_FIELD = re.compile(r"[A-Za-z0-9_.\-]{1,64}")
+GENERIC_FAILURE = "The AI provider could not complete this request."
+
+
+def _field(value):
+    """A short identifier-shaped value, or ``-``; never free text from a provider."""
+    if value is None:
+        return "-"
+    text = str(value)
+    return text if _SAFE_FIELD.fullmatch(text) else "-"
+
+
+def log_provider_failure(provider, exc, status=None, kind=None, reason=None):
+    """One WARNING per failed provider request with safe diagnostic fields only.
+
+    Never pass request text, response bodies, keys or the provider's error message.
+    """
+    from services.log import get_logger
+
+    get_logger("llm.provider").warning(
+        "AI provider request failed: provider=%s error=%s status=%s kind=%s reason=%s",
+        _field(provider), _field(type(exc).__name__), _field(status), _field(kind),
+        _field(reason),
+    )
 
 
 class MessageRole(Enum):
