@@ -51,6 +51,9 @@ class ConnectionTransport:
         await self.sio.emit(
             "reminder_deliveries", self.app.reminders.open_deliveries(owner), room=sid
         )
+        live_design = getattr(self.app, "live_design", None)
+        if live_design is not None:
+            await live_design.hydrate(sid, owner)
 
     async def connect(self, sid, environ, auth=None):
         if not self.sessions.accept(sid, auth, current_token()):

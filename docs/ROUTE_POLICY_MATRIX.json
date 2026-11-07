@@ -1265,6 +1265,50 @@
       "lifetime": "Request-only; nothing stored",
       "replacement": "VoiceOverlayTransport (transport/voice_overlay.py) / VoiceOverlay (services/voice_overlay.py)",
       "status": "migrated"
+    },
+    "cad_design_get": {
+      "schema": "Ignored optional mapping",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; the design keeps the project current when it started",
+      "response": "Origin-only ACK with the cad_design snapshot; cad_design events to owner renderers",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "status": "migrated",
+      "effects": "Read the owner's live design snapshot",
+      "policy": "Owner authorization; another principal sees only its own (none)"
+    },
+    "cad_design_undo": {
+      "schema": "UndoRequest",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; the design keeps the project current when it started",
+      "response": "Origin-only ACK with the cad_design snapshot; cad_design events to owner renderers",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "status": "migrated",
+      "effects": "Undo the newest undoable step of the in-memory draft; nothing written",
+      "policy": "Owner authorization; stale design or step rejected"
+    },
+    "cad_design_build": {
+      "schema": "DesignReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; the design keeps the project current when it started",
+      "response": "Origin-only ACK with the cad_design snapshot; cad_design events to owner renderers",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "status": "migrated",
+      "effects": "Submit the draft as a generate_cad offline build in the design's project",
+      "policy": "Panel Build click is consent; shared generate_cad deny, auth recheck and heavy-resource rules"
+    },
+    "cad_design_end": {
+      "schema": "DesignReference",
+      "caller": "Authenticated owner renderer",
+      "context": "Registry owner; the design keeps the project current when it started",
+      "response": "Origin-only ACK with the cad_design snapshot; cad_design events to owner renderers",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "status": "migrated",
+      "effects": "End the in-memory draft; a running build continues into studio history",
+      "policy": "Owner authorization; stale design rejected"
     }
   },
   "http_routes": {
@@ -1311,7 +1355,7 @@
       "context": "Authenticated principal and resolved project",
       "lifetime": "Existing provider/service/worker lifetime",
       "replacement": "Current shared tool; declarations consolidated at R2c",
-      "model_visible": true
+      "model_visible": false
     },
     "generate_image": {
       "schema": "ImageRequest",
@@ -1471,7 +1515,7 @@
       "context": "Authenticated desktop owner and captured project",
       "lifetime": "40s cooperative execution; provider 30s plus cleanup; separate approval deadline",
       "replacement": "CadTransport planner",
-      "model_visible": true
+      "model_visible": false
     },
     "place_task_call": {
       "schema": "PlaceTaskCall",
@@ -1675,6 +1719,38 @@
       "replacement": "BrowserService / BrowserTransport",
       "status": "migrated",
       "model_visible": false
+    },
+    "start_live_design": {
+      "schema": "StartDesign",
+      "context": "Authenticated desktop owner; the design keeps its starting project",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "model_visible": true,
+      "policy": "Shared permissions[live_design] (default False: no approval); nothing written"
+    },
+    "change_live_design": {
+      "schema": "ChangeDesign",
+      "context": "Authenticated desktop owner; the design keeps its starting project",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "model_visible": true,
+      "policy": "Shared permissions[live_design] (default False: no approval); nothing written"
+    },
+    "undo_live_design": {
+      "schema": "NoArguments",
+      "context": "Authenticated desktop owner; the design keeps its starting project",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "model_visible": true,
+      "policy": "Shared permissions[live_design] (default False: no approval); nothing written"
+    },
+    "build_live_design": {
+      "schema": "NoArguments",
+      "context": "Authenticated desktop owner; the design keeps its starting project",
+      "lifetime": "In-memory draft per owner; survives renderer reloads, not core restarts",
+      "replacement": "LiveDesigns (services/cad_design.py)",
+      "model_visible": true,
+      "policy": "generate_cad permission; absent/True asks with review facts; deny rejects"
     }
   },
   "voice_declarations": {

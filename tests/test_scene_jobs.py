@@ -218,21 +218,29 @@ async def test_pre_scene_revision_defaults_do_not_break_completed_dedupe(tmp_pat
 
 
 def test_nested_scene_tool_schema_converts_through_real_installed_sdk(tmp_path):
+    from types import SimpleNamespace
     from google.genai import types
-    from services.tools import ToolDispatcher
+    from services.tools import ToolDispatcher, inline_tool_schema
     from services.cad import register_cad_tools
+    from services.cad_design import LiveDesigns
 
     dispatcher = ToolDispatcher(lambda: {})
     instance, _ = service(tmp_path)
-    register_cad_tools(dispatcher, instance)
+    sio = SimpleNamespace(on=lambda *args, **kwargs: None)
+    designs = LiveDesigns(sio, SimpleNamespace(rooms=lambda *_: ()), instance, dispatcher, None)
+    register_cad_tools(dispatcher, instance, designs)
+    # generate_cad is studio-only now; the brain's scene schema is start_live_design.
     declarations = dispatcher.schemas()
+    assert "generate_cad" not in {item["name"] for item in declarations}
+    declarations.append(
+        {"name": "generate_cad", "description": "", "parameters": inline_tool_schema(BuildRequest)}
+    )
     assert "$defs" not in json.dumps(declarations)
     assert "$ref" not in json.dumps(declarations)
     config = types.GenerateContentConfig(tools=[{"function_declarations": declarations}])
-    props = config.tools[0].function_declarations[0].parameters.properties
-    assert props["objects"].any_of[0].items.properties["material"].enum == [
-        "cyan",
-        "titanium",
-        "amber",
-        "ceramic",
-    ]
+    converted = {item.name: item for item in config.tools[0].function_declarations}
+    materials = ["cyan", "titanium", "amber", "ceramic"]
+    props = converted["generate_cad"].parameters.properties
+    assert props["objects"].any_of[0].items.properties["material"].enum == materials
+    props = converted["start_live_design"].parameters.properties
+    assert props["objects"].items.properties["material"].enum == materials

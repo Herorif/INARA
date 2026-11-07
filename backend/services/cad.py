@@ -259,12 +259,17 @@ async def _plan_blueprint(prompt, model, provider_factory):
                 logger.warning("AI provider client did not close cleanly", exc_info=True)
 
 
-def register_cad_tools(dispatcher, service):
+def register_cad_tools(dispatcher, service, designs=None):
+    # generate_cad serves the 3D studio's cad_submit; the brain designs through the live
+    # design tools (services/cad_design.py), so it stays model-invisible.
     dispatcher.register(
         ToolSpec(
             "generate_cad",
             "Build parametric solids or a typed scene of up to eight objects with transforms/materials. Offline STL/GLB; optional installed Blender projects and render.",
             BuildRequest,
             service.start,
+            model_visible=False,
         )
     )
+    if designs is not None:
+        designs.register(dispatcher)

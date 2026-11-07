@@ -34,6 +34,9 @@ DEFAULT_SETTINGS = {
     "face_auth_enabled": False, # Default OFF as requested
     "tool_permissions": {
         "generate_cad": True,
+        # Live design drafting (start/change/undo) only edits an in-memory draft; building it
+        # still asks through generate_cad.
+        "live_design": False,
         # Legacy AI-written build123d code runs as the user; off unless enabled.
         "legacy_generated_cad": "deny",
         "generate_image": True,

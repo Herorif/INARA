@@ -19,6 +19,7 @@ from project_manager import ProjectManager
 from services.capabilities import CapabilityCenter
 from services.cad import CadService, register_cad_tools
 from services.cad_transport import CadTransport
+from services.cad_design import LiveDesigns
 from services.creative_handoffs import CreativeHandoffs
 from transport.creative_handoffs import HandoffTransport
 from services.mobile import MobileService
@@ -148,7 +149,12 @@ class Application:
         self.task_queue = TaskQueue(self)
         self.task_queue_transport = TaskQueueTransport(self)
         self.capabilities = CapabilityCenter(self)
-        register_cad_tools(self.dispatcher, self.cad)
+        # The owner's live CAD design (docs/LIVE_DESIGN.md): the brain's only CAD path.
+        self.live_design = LiveDesigns(
+            sio, self.sessions, self.cad, self.dispatcher, self.studio_context,
+            authorize=self.authorize_owner,
+        )
+        register_cad_tools(self.dispatcher, self.cad, self.live_design)
         register_image_tool(self.dispatcher, self.images)
         self.cad_transport = CadTransport(
             sio, self.cad, self.dispatcher, self.studio_context, authorize=self.authorize_owner

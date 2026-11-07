@@ -92,10 +92,10 @@ ASK_BRAIN = {
     # named here are the brain's model-visible tools (services/tools.py dispatcher schemas).
     "description": (
         "JARVIS's hands: use for anything its tools can do or that needs multi-step work or "
-        "careful reasoning. Its tools include 3D models and CAD parts (designed, previewed for "
-        "approval, then built), images, reminders and routines, phone calls to businesses such "
-        "as reservations, the owner's files and projects, apps, screenshots and the clipboard, "
-        "smart devices, and 3D printers. Never tell the owner JARVIS can't do something its "
+        "careful reasoning. Its tools include 3D models and CAD parts (designed live in the "
+        "workspace, changed on request, then built after approval), images, reminders and "
+        "routines, phone calls to businesses such as reservations, the owner's files and "
+        "projects, apps, screenshots and the clipboard, smart devices, and 3D printers. Never tell the owner JARVIS can't do something its "
         "tools might do; call ask_brain instead. Pass the owner's request in full with any "
         "context from this conversation. Before calling, tell the owner briefly that you are "
         "on it (for example 'One moment'). Returns the final answer to speak, condensed if "

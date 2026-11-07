@@ -48,6 +48,8 @@ class CadTransport(CreativeTransport):
                 self.execute_plan,
                 execution_timeout=40,
                 permission="generate_cad",
+                # The studio's cad_plan only; the brain uses the live design tools.
+                model_visible=False,
             )
         )
 
