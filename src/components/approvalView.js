@@ -1,7 +1,8 @@
 // Approval card content for one pending tool request. Outgoing task calls (C4,
 // place_task_call) get their own layout: the core's review sentence says exactly who
 // JARVIS will call, on which number, for what, and what it may share. The live design's
-// build (build_live_design) gets a short one with the core's summary.
+// build (build_live_design) gets a short one with the core's summary, and a calendar event
+// (calendar_add_event) shows the core's one-line approval sentence.
 
 const GENERIC_SUMMARY = 'JARVIS continues only after you approve. Denying leaves this action undone.';
 
@@ -9,6 +10,11 @@ export function approvalView(request) {
   const args = request && typeof request.args === 'object' && request.args ? request.args : {};
   if (request?.tool === 'place_task_call' && typeof args.summary === 'string' && args.summary.trim()) {
     return { kind: 'task_call', title: 'Outgoing call', summary: args.summary.trim(), approveLabel: 'Approve call', denyLabel: 'Deny', details: null };
+  }
+  if (request?.tool === 'calendar_add_event' && typeof args.approval === 'string' && args.approval.trim()) {
+    // Google Calendar (docs/CALENDAR.md): the core's review sentence, e.g.
+    // Add “Lunch with Aisyah” to your calendar, Monday 9 November 13:00 to 14:00?
+    return { kind: 'calendar_event', title: 'Add to calendar', summary: args.approval.trim(), approveLabel: 'Add', denyLabel: 'Not now', details: null };
   }
   if (request?.tool === 'build_live_design') {
     // The live design's build (docs/LIVE_DESIGN.md); the panel shows this inline when it is open.

@@ -157,6 +157,9 @@ class SecretSpec:
     request: Optional[Callable[..., tuple]] = None
     # Other secrets the check request needs, passed after the value (e.g. SID + token).
     companions: tuple = ()
+    # Stored and read only by services (e.g. an OAuth refresh token): never listed by
+    # statuses(), never set or cleared through the secrets routes or jarvis-secrets.py.
+    internal: bool = False
 
     def valid(self, value):
         return (
@@ -246,8 +249,44 @@ REGISTRY = {
             pattern=r"[0-9]{4,8}",
             format_message="Use 4 to 8 digits for the call briefing PIN.",
         ),
+        # Google Calendar (docs/CALENDAR.md): the owner's own OAuth client of type
+        # "Desktop app". No online check: Connect Google Calendar proves the pair.
+        SecretSpec(
+            name="google_oauth_client_id",
+            label="Google OAuth client ID",
+            provider="Google",
+            env="JARVIS_GOOGLE_OAUTH_CLIENT_ID",
+            pattern=r"\d+-[a-z0-9]+\.apps\.googleusercontent\.com",
+            format_message=(
+                "Google client IDs end in .apps.googleusercontent.com. Copy it from your "
+                "OAuth client in the Google Cloud Console."
+            ),
+        ),
+        SecretSpec(
+            name="google_oauth_client_secret",
+            label="Google OAuth client secret",
+            provider="Google",
+            env="JARVIS_GOOGLE_OAUTH_CLIENT_SECRET",
+            pattern=r"GOCSPX-[A-Za-z0-9_\-]{20,}",
+            format_message=(
+                "Google client secrets start with GOCSPX-. Copy it from your OAuth client in "
+                "the Google Cloud Console."
+            ),
+        ),
+        # Written by Connect Google Calendar and deleted by Disconnect; never user-entered.
+        SecretSpec(
+            name="google_calendar_refresh_token",
+            label="Google Calendar access",
+            provider="Google",
+            env="JARVIS_GOOGLE_CALENDAR_REFRESH_TOKEN",
+            pattern=r"[A-Za-z0-9_\-./~+]{20,500}",
+            format_message="Connect Google Calendar from Connections to set this.",
+            internal=True,
+        ),
     )
 }
+# Names the owner manages (Preferences, Connections, scripts/jarvis-secrets.py).
+USER_SECRETS = tuple(name for name, spec in REGISTRY.items() if not spec.internal)
 
 
 def spec_for(name):
@@ -322,7 +361,7 @@ class SecretStore:
         }
 
     def statuses(self):
-        return [self.status(name) for name in REGISTRY]
+        return [self.status(name) for name in USER_SECRETS]
 
     def validate(self, name, value):
         spec = spec_for(name)

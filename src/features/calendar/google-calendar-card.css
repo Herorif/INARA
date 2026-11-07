@@ -1,0 +1,164 @@
+/* Google Calendar card on Connections; inherits the .connections-readiness article layout. */
+.connections-readiness .calendar-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.calendar-card__title svg {
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+.calendar-card .calendar-card__chip[data-tone="idle"] {
+  color: var(--text-2);
+}
+.calendar-card .calendar-card__chip[data-tone="ok"] {
+  color: var(--ok);
+}
+.connections-readiness .calendar-card__account {
+  color: var(--text-1);
+}
+.calendar-card__setup {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+}
+.calendar-card__setup h4 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.calendar-card__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+.calendar-card__fields label {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.calendar-card__fields input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.calendar-card__help {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.calendar-card__help summary {
+  cursor: pointer;
+  color: var(--accent);
+  width: max-content;
+}
+.calendar-card__help summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.calendar-card__help ol {
+  margin: var(--space-2) 0 var(--space-2);
+  padding-left: var(--space-5);
+  line-height: var(--leading-normal);
+}
+.calendar-card__switches {
+  display: grid;
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.calendar-card__switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.calendar-card__switch-row > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.calendar-card__switch-label {
+  font-size: var(--text-sm);
+  color: var(--text-1);
+}
+.calendar-card__switch-detail {
+  font-size: var(--text-xs);
+  color: var(--text-2);
+  line-height: var(--leading-normal);
+}
+.calendar-card__switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.calendar-card__switch > span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: .875rem;
+  height: .875rem;
+  border-radius: 999px;
+  background: var(--text-2);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.calendar-card__switch.is-on {
+  border-color: transparent;
+  background: var(--accent);
+}
+.calendar-card__switch.is-on > span {
+  transform: translateX(1rem);
+  background: var(--text-on-accent);
+}
+.calendar-card__switch:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.calendar-card__waiting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--accent);
+  background: var(--accent-subtle);
+  font-size: var(--text-sm);
+  color: var(--text-1);
+}
+.connections-readiness .calendar-card__error {
+  margin: var(--space-3) 0 0;
+  color: var(--text-1);
+}
+.calendar-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-card__switch,
+  .calendar-card__switch > span {
+    transition: none;
+  }
+}
+@media (max-width: 650px) {
+  .calendar-card__fields {
+    grid-template-columns: 1fr;
+  }
+}

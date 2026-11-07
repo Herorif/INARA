@@ -6,12 +6,13 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, ValidationError
 
-from services.secrets import REGISTRY, check_message
+from services.secrets import USER_SECRETS, check_message
 from services.settings import EmptyRequest
 from services.storage import StorageError
 from services.tools import ServiceError
 
-SecretName = Literal[tuple(REGISTRY)]
+# Internal specs (services-only, e.g. the Calendar refresh token) are never accepted here.
+SecretName = Literal[USER_SECRETS]
 
 
 class SecretReference(BaseModel):

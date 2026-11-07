@@ -283,6 +283,31 @@ CALLS_DEFAULTS = {
 }
 
 
+class CalendarSettings(EmptyRequest):
+    """``calendar.*``: what JARVIS may do with Google Calendar (docs/CALENDAR.md). Each
+    switch acts only while the calendar is connected; all are on by default."""
+
+    read_events: StrictBool | None = None
+    share_free_busy: StrictBool | None = None
+    add_events: StrictBool | None = None
+
+    @field_validator("read_events", "share_free_busy", "add_events", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a calendar setting to update.")
+        return self
+
+
+CALENDAR_DEFAULTS = {"read_events": True, "share_free_busy": True, "add_events": True}
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
@@ -290,6 +315,7 @@ class SettingsPatch(EmptyRequest):
     assistant: AssistantSettings | None = None
     voice: VoiceSettings | None = None
     calls: CallsSettings | None = None
+    calendar: CalendarSettings | None = None
 
     @field_validator(
         "tool_permissions",
@@ -298,6 +324,7 @@ class SettingsPatch(EmptyRequest):
         "assistant",
         "voice",
         "calls",
+        "calendar",
         mode="before",
     )
     @classmethod
@@ -374,6 +401,7 @@ class SettingsService:
             ("assistant", ASSISTANT_DEFAULTS),
             ("voice", VOICE_DEFAULTS),
             ("calls", CALLS_DEFAULTS),
+            ("calendar", CALENDAR_DEFAULTS),
         ):
             if section in patch:
                 current = candidate.get(section)
@@ -386,7 +414,7 @@ class SettingsService:
             {
                 key: value
                 for key, value in patch.items()
-                if key not in ("tool_permissions", "assistant", "voice", "calls")
+                if key not in ("tool_permissions", "assistant", "voice", "calls", "calendar")
             }
         )
         try:

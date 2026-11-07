@@ -132,6 +132,15 @@ class Application:
         )
         # C4: the brain's task calls (always ask; placed by self.call_orchestrator below).
         register_task_call_tool(self.dispatcher, self)
+        # P3 Google Calendar (docs/CALENDAR.md): the Connections card's owner-only routes and
+        # the brain's calendar_events (never asks) and calendar_add_event (always asks).
+        from services.calendar import CalendarService
+        from services.calendar_tools import register_calendar_tools
+        from services.calendar_transport import CalendarTransport
+
+        self.calendar = CalendarService(self)
+        self.calendar_transport = CalendarTransport(self)
+        register_calendar_tools(self.dispatcher, self.calendar)
         self.delivery = EventDelivery(sio, self.sessions, reminders, self.dispatcher, resources)
         self.cad = CadService(database, resources, partial(self.delivery.publish_job, "cad_job"))
         self.images = ImageService(
@@ -369,6 +378,8 @@ class Application:
         if "calls" in patch:
             self.telephony.settings_changed()
             await self.telephony.reconcile()
+        if "calendar" in patch:
+            await self.calendar.publish()
         if "voice" in patch:
             self.voice_overlay.settings_changed()
         if "voice" in patch or "tool_permissions" in patch:

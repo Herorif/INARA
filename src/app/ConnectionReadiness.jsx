@@ -4,6 +4,7 @@ import socket from "../services/socket";
 import useStore from "../store";
 import { createConnectionsClient } from "../transport/connectionsClient.ts";
 import StatusChip from "../shared/ui/StatusChip";
+import GoogleCalendarCard from "../features/calendar/GoogleCalendarCard";
 import "./connection-readiness.css";
 const states = {
   missing_dependency: { label: "SETUP NEEDED", tone: "warn", detail: "Dependency missing" },
@@ -97,6 +98,14 @@ export default function ConnectionReadiness({ compact = false, onOpen }) {
       )}
       {!connected && (
         <p className="connections-readiness__error">Connect to the core to inspect readiness.</p>
+      )}
+      {connected && (
+        <>
+          <h3 className="connections-readiness__title">Accounts</h3>
+          <div className="connections-readiness__grid">
+            <GoogleCalendarCard />
+          </div>
+        </>
       )}
       {data ? (
         <>

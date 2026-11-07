@@ -138,10 +138,11 @@ def open_store(args):
 
 
 def run(args):
-    from services.secrets import REGISTRY
+    from services.secrets import USER_SECRETS
 
-    if args.command != "status" and args.name not in REGISTRY:
-        raise InputError("Unknown key name. Use one of: " + ", ".join(REGISTRY) + ".")
+    # Internal secrets (e.g. the Google Calendar refresh token) belong to their services.
+    if args.command != "status" and args.name not in USER_SECRETS:
+        raise InputError("Unknown key name. Use one of: " + ", ".join(USER_SECRETS) + ".")
     value = read_secret() if args.command == "set" or args.stdin else None
     with open_store(args) as store:
         return execute(args, store, value)

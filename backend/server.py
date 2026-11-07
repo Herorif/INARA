@@ -67,6 +67,10 @@ DEFAULT_SETTINGS = {
         "list_all_devices": True,
         "control_device": True,
         "get_device_state": True,
+        # Google Calendar (docs/CALENDAR.md): reading never asks; adding an event always
+        # asks (calendar_add_event also sets always_ask).
+        "calendar_read": False,
+        "calendar_write": True,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}

@@ -947,6 +947,61 @@
       "replacement": "TelephonyService / CallOrchestrator / CallsTransport",
       "status": "implemented"
     },
+    "calendar_status": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Owner's Google Calendar connection: secret presence only, the connected email from protected storage and calendar.* settings",
+      "effects": "Read status: connected, email, calendar (primary), setup_needed, connecting, switches {read_events, share_free_busy, add_events}, last_error {code, message} | null. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK with status only; never a token, code or client secret; pydantic details never echoed",
+      "lifetime": "Request-only snapshot",
+      "replacement": "CalendarService / CalendarTransport (backend/services/calendar*.py)",
+      "status": "implemented"
+    },
+    "calendar_connect": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's OAuth client (google_oauth_client_id / google_oauth_client_secret secrets); refused with setup_needed when missing",
+      "effects": "Cancels any pending sign-in; starts a one-shot 127.0.0.1 listener on a random free port (never 8000); returns the Google auth URL (calendar.events + openid email, PKCE S256, random state, access_type=offline, prompt=consent). On the single matching callback: code exchange at oauth2.googleapis.com, one Calendar check, refresh token to the internal encrypted secret, email to protected storage, access token in memory",
+      "policy": "Independent owner/role/unlock gate; the renderer opens only https://accounts.google.com URLs through the https-only electronAPI.openExternal",
+      "response": "Origin ACK {auth_url, calendar}; the outcome arrives as calendar_status to the owner's renderers; errors are fixed plain messages",
+      "lifetime": "Listener accepts exactly one callback with a matching state within 5 minutes, then stops; calendar_cancel, a new connect or process exit ends it",
+      "replacement": "CalendarService / CalendarTransport (backend/services/calendar*.py)",
+      "status": "implemented"
+    },
+    "calendar_cancel": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The pending Google sign-in, if any",
+      "effects": "Stops the loopback listener and the pending sign-in; never touches a stored connection",
+      "policy": "Independent owner/role/unlock gate",
+      "response": "Origin ACK with status; calendar_status to the owner's renderers",
+      "lifetime": "Synchronous",
+      "replacement": "CalendarService / CalendarTransport (backend/services/calendar*.py)",
+      "status": "implemented"
+    },
+    "calendar_disconnect": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The stored refresh token and connected email",
+      "effects": "Cancels a pending sign-in; revokes the token at oauth2.googleapis.com/revoke where possible; deletes the refresh token, the email and the in-memory access token",
+      "policy": "Independent owner/role/unlock gate",
+      "response": "Origin ACK {revoked, calendar}; a failed revoke is reported as last_error revoke_failed after local deletion",
+      "lifetime": "One bounded revoke request (15 s)",
+      "replacement": "CalendarService / CalendarTransport (backend/services/calendar*.py)",
+      "status": "implemented"
+    },
+    "calendar_settings": {
+      "schema": "CalendarSettings (read_events, share_free_busy, add_events: bool; at least one; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "calendar.* settings",
+      "effects": "Persist the switches through SettingsService; they act only while connected",
+      "policy": "Independent owner/role/unlock gate; same validation as update_settings {calendar}",
+      "response": "Origin ACK with status; settings snapshot and calendar_status to the owner's renderers",
+      "lifetime": "Synchronous settings save",
+      "replacement": "CalendarService / CalendarTransport (backend/services/calendar*.py)",
+      "status": "implemented"
+    },
     "calls_list": {
       "schema": "CallsList (filter needs_you|all|done; limit 1-100, default 50; extra fields forbidden)",
       "caller": "Authenticated unlocked owner renderer",
@@ -1538,6 +1593,22 @@
       "lifetime": "40s cooperative execution; provider 30s plus cleanup; separate approval deadline",
       "replacement": "CadTransport planner",
       "model_visible": false
+    },
+    "calendar_events": {
+      "schema": "CalendarRange",
+      "policy": "Own permissions[calendar_read] (default False: never asks); deny rejects. Refused when not connected or calendar.read_events is off",
+      "context": "Authenticated desktop owner; primary calendar, Asia/Kuala_Lumpur",
+      "lifetime": "One events.list (singleEvents, orderBy startTime, at most 25 events, 31-day range); 30 s execution timeout",
+      "replacement": "P3 Google Calendar (services/calendar_tools.py)",
+      "model_visible": true
+    },
+    "calendar_add_event": {
+      "schema": "CalendarEvent",
+      "policy": "Own permissions[calendar_write] (default True); always asks the owner on screen (ToolSpec.always_ask); deny rejects. Review facts carry the approval sentence; refused before the card when not connected or calendar.add_events is off",
+      "context": "Authenticated desktop owner; primary calendar, Asia/Kuala_Lumpur",
+      "lifetime": "One events.insert after approval; 30 s execution timeout",
+      "replacement": "P3 Google Calendar (services/calendar_tools.py)",
+      "model_visible": true
     },
     "place_task_call": {
       "schema": "PlaceTaskCall",
