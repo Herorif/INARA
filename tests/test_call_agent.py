@@ -360,6 +360,9 @@ async def test_live_config_is_hands_free_resumable_and_uses_the_settings_voice(p
     config = live.config
     assert live.model == "gemini-3.8-live"
     assert config.realtime_input_config.automatic_activity_detection.disabled is False
+    # Desktop conversation tuning (live run 7 Nov 2026) does not reach phone calls.
+    assert config.realtime_input_config.automatic_activity_detection.end_of_speech_sensitivity is None
+    assert config.realtime_input_config.automatic_activity_detection.silence_duration_ms is None
     assert config.context_window_compression.sliding_window is not None
     assert config.speech_config.voice_config.prebuilt_voice_config.voice_name == "Puck"
     assert {item.name for item in config.tools[0].function_declarations} == {"record_message", "end_call"}

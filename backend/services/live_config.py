@@ -71,12 +71,32 @@ VOICE_LINE = (
 # detection heard a short first "hello" as Spanish in the first live run (7 Nov 2026) and
 # stayed in Spanish. Phone calls keep automatic detection: callers may speak anything.
 DESKTOP_LANGUAGES = ("en-US", "ms-MY")
+# Hands-free turn-taking: in the live run (7 Nov 2026) the owner said conversation mode must
+# "wait until I finish talking" - Live's default end-of-speech detection cut in on short pauses.
+# Low end-of-speech sensitivity plus a longer silence lets the owner pause mid-sentence; the
+# prefix padding keeps the first syllable. Start-of-speech sensitivity stays at the default:
+# the owner's speakers reach the mic, and a more eager start would make JARVIS interrupt itself.
+CONVERSATION_END_SENSITIVITY = "END_SENSITIVITY_LOW"
+CONVERSATION_SILENCE_MS = 1000
+CONVERSATION_PREFIX_PADDING_MS = 300
+CONVERSATION_TURN_TAKING = {
+    "end_of_speech_sensitivity": CONVERSATION_END_SENSITIVITY,
+    "silence_duration_ms": CONVERSATION_SILENCE_MS,
+    "prefix_padding_ms": CONVERSATION_PREFIX_PADDING_MS,
+}
 
 ASK_BRAIN = {
     "name": "ask_brain",
+    # Live answered "I cannot design or build actual 3D model files" in the live run (7 Nov
+    # 2026) because this description named only files/projects/reminders/devices. The abilities
+    # named here are the brain's model-visible tools (services/tools.py dispatcher schemas).
     "description": (
-        "Use for anything that needs tools, the owner's files/projects/reminders/devices, "
-        "multi-step work or careful reasoning. Pass the owner's request in full with any "
+        "JARVIS's hands: use for anything its tools can do or that needs multi-step work or "
+        "careful reasoning. Its tools include 3D models and CAD parts (designed, previewed for "
+        "approval, then built), images, reminders and routines, phone calls to businesses such "
+        "as reservations, the owner's files and projects, apps, screenshots and the clipboard, "
+        "smart devices, and 3D printers. Never tell the owner JARVIS can't do something its "
+        "tools might do; call ask_brain instead. Pass the owner's request in full with any "
         "context from this conversation. Before calling, tell the owner briefly that you are "
         "on it (for example 'One moment'). Returns the final answer to speak, condensed if "
         "long; actions may wait for the owner's approval on screen."
@@ -126,10 +146,14 @@ def declarations(mode):
 
 def live_connect_config(*, system_instruction, voice_name, function_declarations,
                         automatic_activity_detection, handle=None, max_output_tokens=None,
-                        transcription_languages=None):
+                        transcription_languages=None, turn_taking=None):
     """The Live session shape shared by desktop voice and phone calls (telephony/agent.py):
     audio out in a prebuilt voice, captions both ways, barge-in, context-window
-    compression and session resumption (``handle`` resumes a dropped session)."""
+    compression and session resumption (``handle`` resumes a dropped session).
+
+    ``turn_taking`` optionally tunes automatic activity detection with
+    ``end_of_speech_sensitivity`` (an ``EndSensitivity`` name), ``silence_duration_ms`` and
+    ``prefix_padding_ms``; without it the server defaults apply (phone calls)."""
     from google.genai import types
 
     return types.LiveConnectConfig(
@@ -151,7 +175,8 @@ def live_connect_config(*, system_instruction, voice_name, function_declarations
             # (push-to-talk). With it the server detects speech, and new speech
             # interrupts the answer (barge-in).
             automatic_activity_detection=types.AutomaticActivityDetection(
-                disabled=not automatic_activity_detection
+                disabled=not automatic_activity_detection,
+                **_turn_taking_fields(types, turn_taking),
             ),
             activity_handling=types.ActivityHandling.START_OF_ACTIVITY_INTERRUPTS,
         ),
@@ -162,6 +187,15 @@ def live_connect_config(*, system_instruction, voice_name, function_declarations
         tools=[types.Tool(function_declarations=list(function_declarations))],
         **({"max_output_tokens": max_output_tokens} if max_output_tokens else {}),
     )
+
+
+def _turn_taking_fields(types, turn_taking):
+    if not turn_taking:
+        return {}
+    fields = dict(turn_taking)
+    if "end_of_speech_sensitivity" in fields:
+        fields["end_of_speech_sensitivity"] = types.EndSensitivity(fields["end_of_speech_sensitivity"])
+    return fields
 
 
 def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_output_tokens=None):
@@ -177,4 +211,5 @@ def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_out
         handle=handle,
         max_output_tokens=max_output_tokens,
         transcription_languages=DESKTOP_LANGUAGES,
+        turn_taking=CONVERSATION_TURN_TAKING if mode == "conversation" else None,
     )
