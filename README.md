@@ -44,6 +44,10 @@ on any other Python version, and stops on Node.js older than 22.12.
 npm start
 ```
 
+To start JARVIS without a terminal, run `.\scripts\install-shortcuts.ps1` once from a normal
+terminal. It adds a **JARVIS** shortcut with the crystal J icon to the Desktop and the Start
+menu that runs the same thing as `npm start` (`pythonw.exe`, no console window).
+
 For backend-only development:
 
 ```powershell
