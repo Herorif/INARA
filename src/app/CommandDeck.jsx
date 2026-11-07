@@ -9,6 +9,7 @@ import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceInspector from './WorkspaceInspector';
 import WorkspaceTray from './WorkspaceTray';
 import ReminderAlert from '../components/ReminderAlert';
+import VipCallAlert from '../features/calls/VipCallAlert';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import PanelState from './PanelState';
 import StatusChip from '../shared/ui/StatusChip';
@@ -74,6 +75,8 @@ export default function CommandDeck() {
   const liveDesign = useStore(state => state.liveDesign);
   const liveDesignSeen = useStore(state => state.liveDesignSeen);
   const liveDesignShown = useStore(state => state.liveDesignPanelVisible);
+  const callsFocus = useStore(state => state.callsFocus);
+  const reminderShown = useStore(state => !!state.activeAlert);
   const [page, setPage] = useState('assistant');
   const [camera, setCamera] = useState(false);
   const [commands, setCommands] = useState(false);
@@ -142,6 +145,8 @@ export default function CommandDeck() {
     if (next === 'tasks') useStore.setState({ ...clearedFeatures('workspace'), [flags.tasks]:true });
     canvas.current?.scrollTo({ top:0 });
   }, [locked, page, closeDialog, closeFeature]);
+  // P1: a VIP alert's "Call back" or a VIP balloon click opens Calls on that record.
+  useEffect(() => { if (callsFocus && !locked) { if (quick) setQuick(false); navigate('callsview'); } }, [callsFocus, locked]); // eslint-disable-line react-hooks/exhaustive-deps
   const openFeature = useCallback((feature, heavy = heavyFeatures.has(feature), requestId = null) => {
     if (locked || (gaming && heavy)) return;
     if (feature === 'quick') { setQuick(true); return; }
@@ -221,6 +226,6 @@ export default function CommandDeck() {
         <WorkspaceTray expanded={tray} onToggle={() => setTray(value => !value)} onOpen={openFeature} gaming={gaming}/>
       </main></div>{activeDialog && <FeatureDialog key={activeDialog} feature={activeDialog} onClose={closeDialog}/>}</>}
     {commands && !quick && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={openFeature} gaming={gaming}/></Suspense>}
-    <ReminderAlert/><ConfirmationPopup/>{locked && <Suspense fallback={null}><AuthLock/></Suspense>}
+    <ReminderAlert/><VipCallAlert stacked={reminderShown}/><ConfirmationPopup/>{locked && <Suspense fallback={null}><AuthLock/></Suspense>}
   </div>;
 }

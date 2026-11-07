@@ -30,8 +30,9 @@ SYSTEM = (
     "\"Call back about the delivery\"), \"suggested_reply\" (a short, plain message JARVIS could "
     "say to the caller on a callback, addressed to the caller, at most 300 characters; no "
     "promises of times, no commitments or agreements on the owner's behalf; \"\" when no reply "
-    "makes sense, for example on an owner briefing). Do not invent facts that are not in the "
-    "record. Write in English."
+    "makes sense, for example on an owner briefing), \"spam\" (true only when the call is a "
+    "sales pitch, a recorded message, a robocall or a scam; otherwise false). Do not invent "
+    "facts that are not in the record. Write in English."
 )
 REPLY_LIMIT = 300
 
@@ -46,6 +47,9 @@ class TriageResult(BaseModel):
     # For the caller (C3 callback draft). Missing means none; longer than 600 characters is
     # invalid; otherwise one plain line, cut to 300 characters at a word boundary.
     suggested_reply: StrictStr = Field(default="", max_length=600)
+    # P1: a sales pitch, recorded message, robocall or scam (files the call under Spam for
+    # an unknown caller). Missing means false.
+    spam: StrictBool = False
 
     @field_validator("summary")
     @classmethod

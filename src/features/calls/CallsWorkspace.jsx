@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, PhoneCall, Settings2 } from 'lucide-react';
+import { Ban, ChevronDown, PhoneCall, Settings2, Star, UserPlus } from 'lucide-react';
 import useStore from '../../store';
 import socket, { emitSocket } from '../../services/socket';
 import PanelState from '../../app/PanelState';
@@ -11,6 +11,9 @@ import useCallsStatus, { refreshCallsStatus } from './useCallsStatus';
 import CallsSetup from './CallsSetup';
 import CallSettingsDialog from './CallSettingsDialog';
 import { Switch } from './controls';
+import { PeopleList, PersonEditor } from './PeopleView';
+import { createPeopleClient } from './peopleClient';
+import { callPeopleActions, emptyPerson, peopleFailureMessage, sortPeople } from './peopleModel';
 import {
   CALLBACK_LIMIT, DELETE_CONFIRM, FILTERS, ROLE_LABELS, answeringProblem, approveErrorMessage, callChip, callDateTime,
   callTitle, callsFailureMessage, callsSettings, detailMeta, emptyState, filterCalls, formatCallTime, messageRows,
@@ -42,7 +45,7 @@ function CallRow({ call, selected, onSelect }) {
         <time className="calls-row__time" dateTime={callDateTime(call.started_at)}>{formatCallTime(call.started_at)}</time>
       </span>
       <span className="calls-row__bottom">
-        <span className="calls-row__summary">{call.summary || 'No summary yet'}</span>
+        <span className="calls-row__summary">{call.status === 'blocked' ? summaryText(call) : call.summary || 'No summary yet'}</span>
         <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
       </span>
     </button>
@@ -50,6 +53,7 @@ function CallRow({ call, selected, onSelect }) {
 }
 
 function ApprovalCard({ call, client, quietHours, approval, progress, onApproval, onDismiss }) {
+  const approveRef = useRef(null), draftRef = useRef(null);
   const [draft, setDraft] = useState(approval.message ?? '');
   const [loading, setLoading] = useState(approval.message === undefined);
   const [busy, setBusy] = useState(false);
@@ -73,6 +77,15 @@ function ApprovalCard({ call, client, quietHours, approval, progress, onApproval
     return () => { live = false; };
   }, [call.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // P1 "Call back" from the VIP alert: focus the approval once the draft is ready (never a call).
+  useEffect(() => {
+    if (!approval.focus || loading) return;
+    const target = approveRef.current && !approveRef.current.disabled ? approveRef.current : draftRef.current;
+    target?.focus();
+    target?.scrollIntoView?.({ block: 'center' });
+    onApproval({ focus: false });
+  }, [approval.focus, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const approve = async () => {
     setBusy(true); setError('');
     try {
@@ -92,7 +105,7 @@ function ApprovalCard({ call, client, quietHours, approval, progress, onApproval
     <label htmlFor={`calls-callback-${call.id}`} className="calls-approval__prompt">
       Call back {callback ? <span className="calls-mono">{callback}</span> : 'the caller'} and say:
     </label>
-    <textarea id={`calls-callback-${call.id}`} rows={4} maxLength={CALLBACK_LIMIT} value={draft} disabled={loading || busy || running}
+    <textarea ref={draftRef} id={`calls-callback-${call.id}`} rows={4} maxLength={CALLBACK_LIMIT} value={draft} disabled={loading || busy || running}
       placeholder={loading ? 'Drafting a reply…' : 'What JARVIS should say'} aria-describedby={`calls-callback-${call.id}-count calls-callback-${call.id}-status`}
       onChange={event => { setDraft(event.target.value); onApproval({ message: event.target.value }); }} />
     <div className="calls-approval__meta">
@@ -105,13 +118,13 @@ function ApprovalCard({ call, client, quietHours, approval, progress, onApproval
         {!line.done && <span className="progress-line" aria-hidden="true" />}<span>{line.text}</span></p>}
     </div>
     {!finished && <div className="calls-actions">
-      <button type="button" className="btn btn--primary" disabled={!callback || loading || busy || running || !draft.trim()} onClick={approve}>Approve call</button>
+      <button ref={approveRef} type="button" className="btn btn--primary" disabled={!callback || loading || busy || running || !draft.trim()} onClick={approve}>Approve call</button>
       <button type="button" className="btn btn--ghost" disabled={busy || running} onClick={dismiss}>Dismiss</button>
     </div>}
   </section>;
 }
 
-function CallDetail({ call, client, quietHours, approval, progress, onApproval, onMarkDone, onDelete }) {
+function CallDetail({ call, client, quietHours, approval, progress, onApproval, onMarkDone, onDelete, onAddPerson, onMarkGroup }) {
   const [transcript, setTranscript] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -119,6 +132,8 @@ function CallDetail({ call, client, quietHours, approval, progress, onApproval, 
   const confirmRef = useRef(null), deleteRef = useRef(null);
   const urgency = urgencyChip(call.triage?.urgency || call.urgency);
   const rows = messageRows(call);
+  const people = callPeopleActions(call);
+  const spam = call.status === 'spam' || call.status === 'blocked';
   useEffect(() => { setTranscript(false); setConfirm(false); setError(''); }, [call.id]);
   useEffect(() => { if (confirm) confirmRef.current?.focus(); }, [confirm]);
   const run = async action => {
@@ -142,8 +157,8 @@ function CallDetail({ call, client, quietHours, approval, progress, onApproval, 
       <HudLabel as="h3" id="calls-message-label">MESSAGE</HudLabel>
       <dl className="calls-fields">{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
     </section>}
-    {(needsCallbackApproval(call) || approval.callId) && <ApprovalCard key={call.id} call={call} client={client} quietHours={quietHours} approval={approval} progress={progress}
-      onApproval={onApproval} onDismiss={onMarkDone} />}
+    {(needsCallbackApproval(call) || approval.callId || (approval.requested && call.direction === 'inbound' && call.mode === 'screening')) && <ApprovalCard key={call.id} call={call} client={client} quietHours={quietHours} approval={approval} progress={progress}
+      onApproval={onApproval} onDismiss={async () => { await onMarkDone(); onApproval({ requested: false }); }} />}
     <section className="calls-panel hud-panel calls-transcript" aria-labelledby="calls-transcript-label">
       <button type="button" className="calls-transcript__toggle" aria-expanded={transcript} aria-controls="calls-transcript-body" onClick={() => setTranscript(value => !value)}>
         <HudLabel id="calls-transcript-label">TRANSCRIPT</HudLabel>
@@ -160,7 +175,12 @@ function CallDetail({ call, client, quietHours, approval, progress, onApproval, 
     <footer className="calls-detail__footer">
       {error && <p className="calls-note calls-note--danger" role="alert">{error}</p>}
       {!confirm ? <div className="calls-actions">
-        {call.status !== 'done' && call.status !== 'in_progress' && <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => run(onMarkDone)}>Mark done</button>}
+        {people && <>
+          <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => run(onAddPerson)}><UserPlus size={14} aria-hidden="true" />Add to people</button>
+          <button type="button" className="btn btn--secondary" disabled={busy || !people.vip} onClick={() => run(() => onMarkGroup('vip'))}><Star size={14} aria-hidden="true" />Mark VIP</button>
+          <button type="button" className="btn btn--secondary" disabled={busy || !people.block} onClick={() => run(() => onMarkGroup('blocked'))}><Ban size={14} aria-hidden="true" />Block</button>
+        </>}
+        {!spam && call.status !== 'done' && call.status !== 'in_progress' && <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => run(onMarkDone)}>Mark done</button>}
         <button ref={deleteRef} type="button" className="btn btn--ghost calls-delete" disabled={busy || call.status === 'in_progress'} onClick={() => setConfirm(true)}>Delete record</button>
       </div> : <div className="calls-actions" role="group" aria-label="Delete call record">
         <span className="calls-confirm">{DELETE_CONFIRM}</span>
@@ -180,6 +200,7 @@ export default function CallsWorkspace() {
   const snapshot = useSettingsSnapshot(active);
   const settings = useMemo(() => callsSettings(snapshot), [snapshot]);
   const client = useMemo(() => createCallsClient(socket), []);
+  const peopleClient = useMemo(() => createPeopleClient(socket), []);
   const [view, setView] = useState('calls');
   const [dialog, setDialog] = useState(null);
   const [filter, setFilter] = useState('needs_you');
@@ -192,15 +213,24 @@ export default function CallsWorkspace() {
   const [progress, setProgress] = useState({});
   const [toggleNote, setToggleNote] = useState('');
   const [toggling, setToggling] = useState(false);
+  const [people, setPeople] = useState(null);
+  const [peopleError, setPeopleError] = useState('');
+  // People tab: the open person (saved id, or null with `personDraft` for an unsaved one).
+  const [personId, setPersonId] = useState(null);
+  const [personDraft, setPersonDraft] = useState(null);
+  const [editorKey, setEditorKey] = useState(0);
+  const callsFocus = useStore(state => state.callsFocus);
   const selectedRef = useRef(null);
   selectedRef.current = selected;
   const complete = setupComplete(status);
   const showSetup = !!status && (view === 'setup' || !complete);
 
   useEffect(() => () => client.dispose(), [client]);
+  useEffect(() => () => peopleClient.dispose(), [peopleClient]);
+  const peopleTab = filter === 'people';
 
   const loadList = useCallback(async () => {
-    if (!socket.connected) return;
+    if (!socket.connected || filter === 'people') return;
     try {
       const list = await client.list(filter);
       setCalls(list); setListError('');
@@ -221,7 +251,17 @@ export default function CallsWorkspace() {
     }
   }, [client]);
 
+  const loadPeople = useCallback(async () => {
+    if (!socket.connected) return;
+    try { setPeople(sortPeople(await peopleClient.list())); setPeopleError(''); }
+    catch (failure) { setPeopleError(peopleFailureMessage(failure)); }
+  }, [peopleClient]);
+  const openPerson = useCallback((id, draft = null) => { setPersonId(id); setPersonDraft(draft); setEditorKey(value => value + 1); }, []);
+
   useEffect(() => { if (active && status && !showSetup) { setCalls(null); loadList(); } }, [active, !!status, showSetup, loadList]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (active && status && !showSetup && peopleTab) loadPeople(); }, [active, !!status, showSetup, peopleTab, loadPeople]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The first person opens with the tab, as the first call does on the call tabs.
+  useEffect(() => { if (peopleTab && people?.length && personId === null && !personDraft) openPerson(people[0].id); }, [peopleTab, people, personId, personDraft, openPerson]);
   useEffect(() => { setDetail(current => current?.id === selected ? current : null); loadDetail(selected); }, [selected, loadDetail]);
 
   useEffect(() => {
@@ -236,13 +276,57 @@ export default function CallsWorkspace() {
       if (['completed', 'no_answer', 'failed'].includes(payload.state)) { loadList(); if (selectedRef.current) loadDetail(selectedRef.current); }
     });
     const offConnect = client.on('connect', () => loadList());
-    return () => { offReady(); offProgress(); offConnect(); };
-  }, [client, loadList, loadDetail]);
+    // A saved person changes how calls show (their name instead of the number).
+    const offPeople = peopleClient.on('contacts_changed', () => {
+      if (peopleTab) loadPeople();
+      loadList();
+      if (selectedRef.current) loadDetail(selectedRef.current);
+    });
+    return () => { offReady(); offProgress(); offConnect(); offPeople(); };
+  }, [client, peopleClient, peopleTab, loadList, loadPeople, loadDetail]);
 
   const patchApproval = useCallback((id, change) => setApprovals(current => ({ ...current, [id]: { ...current[id], ...change } })), []);
   const after = async () => { await Promise.all([loadList(), refreshCallsStatus(), loadDetail(selectedRef.current)]); };
   const markDone = async () => { await client.markDone(detail.id); await after(); };
   const remove = async () => { await client.remove(detail.id); setSelected(null); setDetail(null); await after(); };
+  const chooseFilter = id => {
+    if (id === filter) return;
+    setFilter(id); setCalls(null); setSelected(null);
+    if (id === 'people') { setPeople(null); setPersonId(null); setPersonDraft(null); }
+  };
+  // Call detail: "Add to people" opens the saved person, or a draft with the caller's number.
+  const addPerson = async () => {
+    const { existing, person } = await peopleClient.callDraft(detail.id);
+    chooseFilter('people');
+    if (existing) openPerson(person.id); else openPerson(null, person);
+  };
+  const markGroup = async group => { await peopleClient.callMark(detail.id, group); await after(); };
+  const personSaved = person => {
+    setPeople(current => sortPeople([...(current || []).filter(item => item.id !== person.id), person]));
+    setPersonId(person.id); setPersonDraft(null);
+  };
+  const personDeleted = id => {
+    const rest = (people || []).filter(item => item.id !== id);
+    setPeople(rest);
+    openPerson(rest[0]?.id ?? null);
+  };
+  const openPersonEntry = id => { if (id) openPerson(id); };
+  const openedPerson = personDraft || (people || []).find(item => item.id === personId) || null;
+
+  // P1: a VIP alert's "Call back" or a VIP balloon click: show that record (under All, so it is
+  // listed whatever its status), with its callback approval focused for "Call back".
+  useEffect(() => {
+    if (!callsFocus || !status || showSetup) return;
+    const { recordId, approve } = callsFocus;
+    useStore.getState().clearCallsFocus();
+    if (filter !== 'all') { setFilter('all'); setCalls(null); }
+    setSelected(recordId);
+    if (approve) patchApproval(recordId, { requested: true, focus: true });
+  }, [callsFocus, !!status, showSetup]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The open call record clears its VIP alert card.
+  const openRecord = !peopleTab && detail?.id === selected ? selected : null;
+  useEffect(() => { useStore.getState().callRecordOpened(openRecord); }, [openRecord]);
+  useEffect(() => () => useStore.getState().callRecordOpened(null), []);
 
   const toggleAnswering = async () => {
     if (!status || toggling) return;
@@ -273,16 +357,22 @@ export default function CallsWorkspace() {
             <div className="calls-list-pane">
               <div className="calls-tabs hud-tabs" role="group" aria-label="Show calls">
                 {FILTERS.map(entry => <button type="button" key={entry.id} className={`hud-tab ${filter === entry.id ? 'is-active' : ''}`} aria-pressed={filter === entry.id}
-                  onClick={() => { if (entry.id !== filter) { setFilter(entry.id); setCalls(null); setSelected(null); } }}>{entry.label}</button>)}
+                  onClick={() => chooseFilter(entry.id)}>{entry.label}</button>)}
               </div>
-              {listError ? <PanelState compact kind="error" title="Could not load calls" detail={listError} action={loadList} actionLabel="Refresh" />
+              {peopleTab ? <PeopleList people={people} error={peopleError} selectedId={personId} draft={personDraft}
+                onSelect={openPersonEntry} onAdd={() => openPerson(null, emptyPerson())} onRetry={loadPeople} />
+                : listError ? <PanelState compact kind="error" title="Could not load calls" detail={listError} action={loadList} actionLabel="Refresh" />
                 : calls === null ? <PanelState compact kind="loading" title="Loading calls" />
                   : visible.length ? <ul className="calls-list" aria-label="Calls">{visible.map(call => <CallRow key={call.id} call={call} selected={call.id === selected} onSelect={setSelected} />)}</ul>
                     : <EmptyState className="calls-empty" icon={<PhoneCall />} title={empty.title} body={empty.body} />}
             </div>
             <div className="calls-detail-pane">
-              {detail ? <CallDetail call={detail} client={client} quietHours={settings.quiet_hours} approval={approvals[detail.id] || {}}
-                progress={progress[approvals[detail.id]?.callId]} onApproval={change => patchApproval(detail.id, change)} onMarkDone={markDone} onDelete={remove} />
+              {peopleTab ? (openedPerson ? <PersonEditor key={editorKey} person={openedPerson} people={people || []} client={peopleClient}
+                onSaved={personSaved} onDeleted={personDeleted} />
+                : <EmptyState className="calls-empty" title="No person selected" body="Choose a person, or add one." />)
+                : detail ? <CallDetail call={detail} client={client} quietHours={settings.quiet_hours} approval={approvals[detail.id] || {}}
+                progress={progress[approvals[detail.id]?.callId]} onApproval={change => patchApproval(detail.id, change)} onMarkDone={markDone} onDelete={remove}
+                onAddPerson={addPerson} onMarkGroup={markGroup} />
                 : detailError ? <PanelState compact kind="error" title="Could not open this call" detail={detailError} action={() => loadDetail(selected)} actionLabel="Try again" />
                   : selected ? <PanelState compact kind="loading" title="Opening call" />
                     : <EmptyState className="calls-empty" title="No call selected" body="Choose a call to see its summary and transcript." />}

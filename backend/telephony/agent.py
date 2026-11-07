@@ -51,11 +51,13 @@ from services.tools import ServiceError
 from services.usage import live_usage_counts
 from telephony import briefs, triage
 from telephony.media import SEND_RATES, StreamClosed
-from telephony.numbers import mask_sid, same_number
+from telephony.numbers import mask_sid, normalize, same_number, withheld
 
 logger = get_logger("telephony.agent")
 
 EVENT_RECORD_READY = "call_record_ready"
+EVENT_VIP_ALERT = "call_vip_alert"  # P1: {record_id, name, summary} to the owner's renderers
+VIP_LEFT_MESSAGE = "Left a message."  # a VIP alert's text before (or without) a summary
 EVENT_CALL_STATUS = "telephony.call_status"  # telephony.service
 TERMINAL_STATUSES = frozenset({"completed", "busy", "failed", "no-answer", "canceled"})
 BRIEFING_PIN = re.compile(r"[0-9]{4,8}")
@@ -129,6 +131,7 @@ class CallRun:
     instruction: str
     declarations: list
     pin: str = field(default="", repr=False)  # never logged
+    contact_id: str | None = None  # P1: the matched person (telephony/contacts.py)
     outbound: asyncio.Queue = field(default_factory=asyncio.Queue)
     opening_done: asyncio.Event = field(default_factory=asyncio.Event)
     opening_started: float | None = None
@@ -250,9 +253,14 @@ class CallAgent:
         """TelephonyService agent: one connected Media Stream."""
         info = session.info or {}
         if info.get("direction", session.direction) == "inbound":
+            # P1: the owner's saved person for this caller ID, if any (VIP, known, blocked).
+            person = self.match_caller(info.get("from"))
             # Validated calls.* values (a malformed facts pack falls back to none).
-            brief = briefs.screening_brief(info, {**self.app.settings, "calls": self.settings()})
-            return await self._run(session, brief, None)
+            brief = briefs.screening_brief(
+                info, {**self.app.settings, "calls": self.settings()}, person=person
+            )
+            return await self._run(session, brief, None,
+                                   contact_id=person["id"] if person and brief.caller_group else None)
         context = info.get("context") if isinstance(info.get("context"), dict) else {}
         token = context.get("brief")
         pending = self.pending.pop(token, None) if isinstance(token, str) else None
@@ -265,6 +273,18 @@ class CallAgent:
             await session.hangup()
             return None
         return await self._run(session, pending.brief, pending)
+
+    def match_caller(self, number):
+        """The owner's saved person for a caller ID, or None (never raises; never logs the
+        number, name or note)."""
+        contacts = getattr(self.app, "contacts", None)
+        if contacts is None:
+            return None
+        try:
+            return contacts.match(number)
+        except Exception as exc:
+            logger.warning("People list could not be read for a call: %s", type(exc).__name__)
+            return None
 
     def _matches(self, pending, info):
         brief = pending.brief
@@ -398,10 +418,15 @@ class CallAgent:
             counterpart = self.records.counterpart(caller)
         except Exception:
             counterpart = {"masked": "withheld", "key": None}
+        person = self.match_caller(caller)
+        group = person.get("group") if person else None
         record = {
             "id": str(uuid.uuid4()),
             "source": "twilio",
             "state": "missed",
+            "caller_number": caller_number(caller),
+            "caller_group": group,
+            "contact_id": person["id"] if person else None,
             "code": code,
             "direction": "inbound",
             "mode": "screening",
@@ -425,10 +450,12 @@ class CallAgent:
         except Exception:
             logger.exception("Missed call record could not be saved")
             return code
-        self._spawn(self._announce(record["id"]))
+        if group != "blocked":  # P1: a blocked caller's call is a quiet Spam record
+            vip = {"name": person["name"]} if group == "vip" else None
+            self._spawn(self._announce(record["id"], vip=vip))
         return code
 
-    def _new_run(self, session, brief):
+    def _new_run(self, session, brief, contact_id=None):
         settings = self.settings()
         pin = self.briefing_pin() if brief.mode == "owner_briefing" else ""
         now = self.clock()
@@ -440,14 +467,16 @@ class CallAgent:
             started_wall=self.wall(),
             max_seconds=float(settings.get("max_call_minutes", 10)) * 60,
             instruction=briefs.system_instruction(brief, now=self.wall(), pin_required=bool(pin)),
-            declarations=briefs.declarations(brief.mode, pin_required=bool(pin)),
+            declarations=briefs.declarations(brief.mode, pin_required=bool(pin),
+                                             caller_group=brief.caller_group),
             pin=pin,
+            contact_id=contact_id,
             last_caller=now,
             last_jarvis=now,
         )
 
-    async def _run(self, session, brief, pending):
-        run = self._new_run(session, brief)
+    async def _run(self, session, brief, pending, *, contact_id=None):
+        run = self._new_run(session, brief, contact_id)
         self.runs[session.call_sid] = run
         tasks = []
         result = None
@@ -633,6 +662,11 @@ class CallAgent:
         except (StreamClosed, TimeoutError):
             pass
         run.opening_done.set()
+        if run.brief.caller_group == "blocked" and run.ending is None:
+            # P1: the opening line already said goodbye to a blocked caller; end the call
+            # even if the model never calls end_call.
+            self._begin_ending(run, "blocked")
+            self._spawn_run(run, self._end_after_playback(run))
 
     async def _end_after_playback(self, run):
         """Hang up once Twilio has played everything sent before the final mark."""
@@ -754,7 +788,7 @@ class CallAgent:
         try:
             if call.name not in MODE_TOOLS[run.brief.mode] or (
                 call.name == "verify_pin" and not run.pin
-            ):
+            ) or (run.brief.caller_group == "blocked" and call.name != "end_call"):
                 raise ToolError("tool_unavailable", "That tool is not available on this call.")
             response = getattr(self, "_tool_" + call.name)(run, args)
         except ValidationError as exc:
@@ -885,6 +919,8 @@ class CallAgent:
         mode, fields = run.brief.mode, run.fields
         if run.failure:
             status = "failed"
+        elif mode == "screening" and run.brief.caller_group == "blocked":
+            status = "blocked"
         elif mode == "screening":
             status = "message_taken" if fields.get("message") else "no_message"
         elif mode == "owner_briefing":
@@ -910,6 +946,8 @@ class CallAgent:
         brief, session = run.brief, run.session
         state = "failed" if run.failure else "completed"
         outcome = self._outcome(run)
+        group = brief.caller_group if brief.mode == "screening" else None
+        blocked = group == "blocked"
         try:
             counterpart = self.records.counterpart(brief.counterpart)
         except Exception:
@@ -926,18 +964,25 @@ class CallAgent:
             "started_at": run.started_wall,
             "finished_at": self.wall(),
             "duration_seconds": duration,
-            "fields": {key: value for key, value in run.fields.items()},
-            "transcript": list(run.transcript),
-            "transcript_truncated": run.truncated,
+            # P1: a blocked caller's record is minimal: no message and no transcript.
+            "fields": {} if blocked else {key: value for key, value in run.fields.items()},
+            "transcript": [] if blocked else list(run.transcript),
+            "transcript_truncated": False if blocked else run.truncated,
             "outcome": outcome,
             "end_reason": session.end_reason,
             "brief_hash": brief.hash() if brief.direction == "outbound" else None,
             "source_record_id": _source_record(brief),
             "identity_verified": run.pin_verified,
-            "message_confirmed": bool(run.fields.get("message")),
+            "message_confirmed": bool(run.fields.get("message")) and not blocked,
             "triage": None,
-            "triage_state": "pending",
+            "triage_state": "skipped" if blocked else "pending",
         }
+        if brief.direction == "inbound":
+            # P1: the caller's group at call time, the matched person and the caller ID
+            # (E.164, protected with the record; it never leaves the core unmasked except
+            # into the owner's own people list).
+            record.update(caller_group=group, contact_id=run.contact_id,
+                          caller_number=brief.counterpart)
         saved = False
         try:
             self.records.save_call(record)
@@ -949,8 +994,8 @@ class CallAgent:
             "Call %s ended: mode=%s state=%s outcome=%s duration=%ss",
             mask_sid(session.call_sid), brief.mode, state, outcome["status"], duration,
         )
-        if saved:
-            self._spawn(self._triage_and_announce(run.record_id))
+        if saved and not blocked:  # P1: no triage and no notice for a blocked caller
+            self._spawn(self._triage_and_announce(run.record_id, group, brief.contact_name))
         return CallResult(
             record_id=run.record_id,
             mode=brief.mode,
@@ -972,11 +1017,22 @@ class CallAgent:
         task.add_done_callback(self.tasks.discard)
         return task
 
-    async def _triage_and_announce(self, record_id):
+    async def _triage_and_announce(self, record_id, group=None, name=""):
+        """Triage, then tell the owner. P1: a VIP's call is announced at once, before
+        triage (marked VIP, "Left a message."), and again once triaged (with the summary);
+        an unknown caller's spam is only a quiet record (no tray notice)."""
+        vip = {"name": name} if group == "vip" and name else None
+        if vip:
+            await self._announce(record_id, vip=vip)
+        value = None
         try:
-            await self.triage(record_id)
+            value = await self.triage(record_id)
         finally:
-            await self._announce(record_id)
+            spam = group not in ("vip", "known") and isinstance(value, dict) and value.get("spam") is True
+            summary = value.get("summary") if isinstance(value, dict) else None
+            await self._announce(
+                record_id, vip={**vip, "summary": summary} if vip and summary else vip, quiet=spam
+            )
 
     async def triage(self, record_id):
         """Triage one stored record; never raises, never alters the record's call data."""
@@ -1035,9 +1091,17 @@ class CallAgent:
                 except Exception:
                     logger.warning("Triage provider did not close cleanly", exc_info=True)
 
-    async def _announce(self, record_id):
-        """Owner-facing: ``call_record_ready`` (record id only) and a generic tray notice."""
-        payload = {"record_id": record_id}
+    async def _announce(self, record_id, *, vip=None, quiet=False):
+        """Owner-facing: ``call_record_ready`` (record id only, plus ``vip: true`` for a VIP
+        caller) and a generic tray notice. ``quiet`` (spam): the renderers refresh, but no
+        tray or resident notice goes out.
+
+        P1, ``vip`` = {name, summary?}: the renderers also get ``call_vip_alert`` (the in-app
+        card), and the native tray gets the VIP balloon even with a renderer connected (the
+        host shows it only while the workspace is not visible). The name and summary are the
+        owner's and JARVIS's text for the owner only; they are never logged."""
+        payload = {"record_id": record_id, **({"vip": True} if vip else {})}
+        alert = vip_alert(record_id, vip) if vip else None
         bus = getattr(self.app, "bus", None)
         if bus is not None:
             bus.emit_nowait(Event(type=EVENT_RECORD_READY, data=payload, source="telephony"))
@@ -1049,12 +1113,22 @@ class CallAgent:
         try:
             for sid in renderers:
                 await self.app.sio.emit(EVENT_RECORD_READY, payload, room=sid)
-            if renderers:
-                return
+                if alert:
+                    await self.app.sio.emit(EVENT_VIP_ALERT, alert, room=sid)
             native = getattr(sessions, "native_desktop", None)
+            if quiet or (renderers and not (alert and native is not None)):
+                return
             if native is not None:
-                # Content-free notice; suppressed in gaming mode by the native host.
-                await native.notify({"delivery_id": "call:" + record_id, "notice": "call"})
+                # Suppressed in gaming mode by the native host. The delivery id is per record,
+                # so a VIP's second announce is not shown twice. Other calls get the fixed,
+                # content-free notice; a VIP call names the caller (the owner's own label).
+                await native.notify({
+                    "delivery_id": "call:" + record_id, "notice": "call",
+                } if not alert else {
+                    "delivery_id": "call:" + record_id, "notice": "call_vip",
+                    "title": f"{alert['name']} called · VIP", "text": alert["summary"],
+                    "record_id": record_id,
+                })
             else:
                 for sid in sessions.rooms(owner, "resident"):
                     await self.app.sio.emit(EVENT_RECORD_READY, payload, room=sid)
@@ -1070,6 +1144,18 @@ class CallAgent:
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+
+
+def vip_alert(record_id, vip):
+    """``call_vip_alert``: the record, the saved person's name and a one-line summary."""
+    summary = briefs.clean_line(str(vip.get("summary") or ""), 200) or VIP_LEFT_MESSAGE
+    return {"record_id": record_id, "name": briefs.clean_line(str(vip.get("name") or ""), 60),
+            "summary": summary}
+
+
+def caller_number(value):
+    """E.164 caller ID, or None when withheld or not a number."""
+    return None if withheld(value) else normalize(value)
 
 
 def _unconnected(brief, state, code):

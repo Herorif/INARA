@@ -670,7 +670,9 @@ class Tray:
                     self.calls.get_nowait()()
             elif message == self.NOTIFY:
                 event = lparam & 0xFFFF
-                if event in (0x202, 0x400, 0x405):
+                if event == 0x405:  # NIN_BALLOONUSERCLICK: the host opens what it was about
+                    self.on_action("balloon")
+                elif event in (0x202, 0x400):
                     self.on_action("open")
                 elif event in (0x205, 0x7B):
                     self.menu()

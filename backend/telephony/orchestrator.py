@@ -44,6 +44,8 @@ EVENT_RECORD_READY = "call_record_ready"
 EVENT_PROGRESS = "call_progress"
 EVENT_CALL_STATUS = "telephony.call_status"
 EVENT_SESSION = "telephony.session"
+EVENT_OPEN = "calls_open"  # P1: open the Calls view on one record (a VIP balloon click)
+OPEN_SECONDS = 120.0  # a workspace started by that click has this long to pick it up
 AWAY_SECONDS = 300
 RESULT_TIMEOUT = 2700.0  # a placed call has resolved long before this (30 min cap + ringing)
 PROGRESS_TTL = 7200.0
@@ -85,11 +87,24 @@ DEFAULT_MESSAGES = {"no_answer": "No one answered.", "failed": "The call could n
 REPORTED_LIMIT = 256
 
 
-def should_brief(setting, triage, *, away, quiet):
-    """The owner-briefing policy for one triaged screening record."""
-    if setting not in ("urgent", "needs_owner") or not away or not isinstance(triage, dict):
+def should_brief(setting, triage, *, away, quiet, group=None, untriaged=False):
+    """The owner-briefing policy for one triaged screening record.
+
+    P1, by the caller's group in the owner's people list: a VIP is briefed whenever
+    ``calls.brief_by_phone`` is not "off" and the owner is away, even when the call is not
+    urgent (quiet hours still hold unless it is urgent); a blocked caller never is; an
+    unknown caller's spam never is. Known and unknown callers follow the setting.
+    ``untriaged``: the triage failed, timed out or never ran. A VIP is still briefed then;
+    the urgency is unknown, so quiet hours always hold. Anyone else is not."""
+    if setting not in ("urgent", "needs_owner") or not away:
+        return False
+    if not isinstance(triage, dict):
+        return bool(group == "vip" and untriaged and not quiet)
+    if group == "blocked" or (group not in ("vip", "known") and triage.get("spam") is True):
         return False
     urgent = triage.get("urgency") == "urgent"
+    if group == "vip":
+        return bool(urgent or not quiet)
     wanted = urgent if setting == "urgent" else urgent or triage.get("needs_owner") is True
     return bool(wanted and (urgent or not quiet))
 
@@ -167,8 +182,25 @@ def task_unconfirmed(record):
             and outcome.get("status") != "confirmed")
 
 
+def caller_group(record):
+    group = record.get("caller_group")
+    return group if group in briefs.CALLER_GROUPS else None
+
+
+def spam(record):
+    """P1: a blocked caller's call, or an unknown caller's call that triage marked spam
+    (a sales pitch, recorded message, robocall or scam). Listed under Spam, never under
+    Needs you."""
+    if record.get("direction") == "outbound":
+        return False
+    group = caller_group(record)
+    if group == "blocked":
+        return True
+    return group is None and (_triage(record) or {}).get("spam") is True
+
+
 def needs_you(record):
-    if record.get("done") is True or record.get("mode") == "owner_briefing":
+    if record.get("done") is True or record.get("mode") == "owner_briefing" or spam(record):
         return False
     if _part(record, "callback").get("state") in ("blocked", "failed", "no_answer"):
         return True
@@ -183,6 +215,8 @@ def needs_you(record):
 
 
 def call_status(record):
+    if spam(record):
+        return "blocked" if caller_group(record) == "blocked" else "spam"
     if record.get("done") is True:
         return "done"
     callback = _part(record, "callback").get("state")
@@ -209,11 +243,24 @@ def _iso(stamp):
     return datetime.fromtimestamp(stamp, timezone.utc).isoformat(timespec="seconds")
 
 
-def summary_item(record):
+def person_for(record, people):
+    """The owner's saved person for this record (by the person matched at call time, else
+    by the caller ID), from ``people`` = (by id, by number); None for outbound calls."""
+    if not people or record.get("direction") == "outbound":
+        return None
+    by_id, by_number = people
+    person = by_id.get(record.get("contact_id"))
+    number = record.get("caller_number")
+    return person or (by_number.get(number) if isinstance(number, str) else None)
+
+
+def summary_item(record, people=None):
     triage = _triage(record)
     message = _message(record)
     urgency = (triage or {}).get("urgency") or message.get("urgency")
-    name = message.get("name") or record.get("name")
+    person = person_for(record, people)
+    # A saved caller shows by the owner's name for them (P1), else the name they gave.
+    name = (person or {}).get("name") or message.get("name") or record.get("name")
     outcome = record.get("outcome") if isinstance(record.get("outcome"), dict) else {}
     counterpart = record.get("counterpart") if isinstance(record.get("counterpart"), dict) else {}
     duration = record.get("duration_seconds")
@@ -230,6 +277,8 @@ def summary_item(record):
         "summary": (triage or {}).get("summary") or None,
         "status": call_status(record),
         "outcome_status": outcome.get("status") if isinstance(outcome.get("status"), str) else None,
+        # P1: the saved person's current group (null for an unsaved caller).
+        "caller_group": person["group"] if person else None,
     }
 
 
@@ -247,8 +296,9 @@ def _details(record):
     return None
 
 
-def detail_item(record, known_ids):
-    item = summary_item(record)
+def detail_item(record, known_ids, people=None, can_add_person=False):
+    item = summary_item(record, people)
+    person = person_for(record, people)
     message = _message(record)
     number = callback_number(record)
     triage = _triage(record)
@@ -280,6 +330,10 @@ def detail_item(record, known_ids):
             "details": _details(record),
         } if outcome and isinstance(outcome.get("status"), str) else None,
         "related_ids": [value for value in record.get("related_ids") or [] if value in known_ids],
+        # P1: the saved person (id, name, group) and whether the call has a number the
+        # owner can add to people, mark VIP or block.
+        "contact": {key: person[key] for key in ("id", "name", "group")} if person else None,
+        "can_add_person": bool(can_add_person),
     }
 
 
@@ -309,6 +363,7 @@ class CallOrchestrator:
         self.reported = {}  # C1 call id -> time its outcome was posted (once per call)
         self.tasks = set()
         self.closing = False
+        self.open_target = None  # P1: (record id, time) from a VIP balloon click
         bus = getattr(app, "bus", None)
         if bus is not None:
             bus.on(EVENT_RECORD_READY, self._record_ready)
@@ -385,8 +440,12 @@ class CallOrchestrator:
         if not settings["enabled"]:
             return False
         moment = self.telephony.limits.local_now().time().replace(tzinfo=None)
+        # P1: a VIP call whose triage failed, timed out or never ran (not a missed call
+        # with nothing recorded) is still briefed, from the message as stored.
+        untriaged = record.get("triage_state") in ("failed", "skipped") and not missed(record)
         if not should_brief(settings["brief_by_phone"], _triage(record), away=self.presence.away(),
-                            quiet=in_quiet_hours(moment, settings["quiet_hours"])):
+                            quiet=in_quiet_hours(moment, settings["quiet_hours"]),
+                            group=caller_group(record), untriaged=untriaged):
             return False
         credentials = self.telephony.credentials()
         owner_number = credentials["owner_number"] if credentials else None
@@ -653,20 +712,38 @@ class CallOrchestrator:
 
     # --- Calls view --------------------------------------------------------------------------
 
+    def people(self):
+        """(by id, by number) from the owner's people list; None when it can't be read."""
+        contacts = getattr(self.app, "contacts", None)
+        if contacts is None:
+            return None
+        try:
+            stored = contacts.people()
+        except Exception as exc:
+            logger.warning("People list could not be read for the Calls view: %s", type(exc).__name__)
+            return None
+        return ({item["id"]: item for item in stored},
+                {number: item for item in stored for number in item["numbers"]})
+
     def list_calls(self, filter_name, limit):
         records = self.records.phone_calls()
         if filter_name == "needs_you":
             records = [item for item in records if needs_you(item)]
         elif filter_name == "done":
             records = [item for item in records if call_status(item) == "done"]
-        return [summary_item(item) for item in records[:limit]]
+        elif filter_name == "spam":
+            records = [item for item in records if spam(item)]
+        people = self.people()
+        return [summary_item(item, people) for item in records[:limit]]
 
     def get_call(self, record_id):
         records = self.records.phone_calls()
         record = next((item for item in records if item["id"] == record_id), None)
         if record is None:
             raise ServiceError("not_found", "That call record no longer exists.")
-        return detail_item(record, {item["id"] for item in records})
+        contacts = getattr(self.app, "contacts", None)
+        can_add = contacts is not None and contacts.call_number(record) is not None
+        return detail_item(record, {item["id"] for item in records}, self.people(), can_add)
 
     def mark_done(self, record_id):
         if not self.records.update_call(record_id, {"done": True, "done_at": self.wall()}):
@@ -706,6 +783,33 @@ class CallOrchestrator:
             # JARVIS's own Twilio number in E.164, for the carrier forwarding codes (owner-only).
             "jarvis_number": normalize(self.telephony.secret("twilio_phone_number")),
         }
+
+    # --- opening a record from the tray (P1) ----------------------------------------------
+
+    async def open_record(self, record_id):
+        """A VIP balloon was clicked: the owner's renderers open Calls on that record. A
+        workspace that is still starting picks it up when it connects (``hydrate``)."""
+        if not isinstance(record_id, str):
+            return
+        self.open_target = (record_id, self.clock())
+        owner = self.owner()
+        if owner is None or not self.app.sessions.authenticated(owner):
+            return
+        sids = self.app.sessions.rooms(owner, "renderer")
+        if sids:
+            self.open_target = None
+        try:
+            for sid in sids:
+                await self.app.sio.emit(EVENT_OPEN, {"record_id": record_id}, room=sid)
+        except Exception:
+            logger.warning("Calls open request could not be delivered", exc_info=True)
+
+    async def hydrate(self, sid):
+        """An owner renderer connected (and is unlocked): deliver a pending open request."""
+        target, self.open_target = self.open_target, None
+        if target is None or self.clock() - target[1] > OPEN_SECONDS:
+            return
+        await self.app.sio.emit(EVENT_OPEN, {"record_id": target[0]}, room=sid)
 
     # --- progress ------------------------------------------------------------------------------
 

@@ -335,6 +335,76 @@ The task record is named after the business. Its status: `done` (chip "TASK DONE
 - The live approval card and the follow-up message in the native shell during a real call (the card was captured with a QA fixture only).
 - A core restart while a task call runs loses the pending report (the record is still saved and shown in the Calls view).
 
+## People and VIP
+
+Built 8 November 2026 (P1) in `backend/telephony/contacts.py` (Contacts, ContactsTransport), with the screening changes in `briefs.py`, `agent.py`, `triage.py` and `orchestrator.py`, and the Calls view's People tab (`src/features/calls/PeopleView.jsx`, `peopleModel.js`, `peopleClient.js`). Covered by `tests/test_call_people.py` (no network: test_call_agent's fake Live session and line) and `tests/test_call_people.mjs`. Nothing changes until the owner saves a person.
+
+### The people list
+
+A person is `{id (UUID), name, numbers, group, note, created_at, updated_at}`:
+
+| Field | Rule |
+| --- | --- |
+| `name` | 1-60 characters, one printable line (control characters and runs of spaces become one space, trimmed) |
+| `numbers` | 1-5, each normalised to E.164 (`contacts.owner_number`): spaces, dashes, dots and brackets are ignored; a Malaysian local number in trunk format (one leading `0`, not `00`) becomes +60 without the 0 (`012-345 6789` -> `+60123456789`, `03-2161 4400` -> `+60321614400`); `+...` goes through `telephony.numbers.normalize`; `00...` and anything else is refused ("Enter a phone number, like 012-345 6789 or +60 12-345 6789."); withheld caller IDs are refused; a number belongs to at most one person. Caller-ID matching stays E.164 (Twilio sends E.164) |
+| `group` | `vip`, `known` or `blocked` |
+| `note` | "Who they are to you (JARVIS may use this)": 0-300 printable characters and line breaks, checked like `calls.facts` (other control characters are refused); spaces collapsed per line |
+
+At most 500 people, each a DPAPI-protected document (`call_people_v1`) in the profile database. `Contacts.match(number)` returns the person whose numbers include a caller ID; withheld, malformed or unsaved numbers return None. Names, notes and numbers are never logged: failures log only an exception type, and refusals are plain sentences that never repeat the submitted values.
+
+### Screening by group
+
+The call agent matches the caller ID when a forwarded call connects (a failing store is logged by type and the call is screened as unknown).
+
+| Group | On the call | After the call |
+| --- | --- | --- |
+| VIP | The usual disclosure, then JARVIS greets them by name, with the person's name and note in this call's instruction, and takes the message | The VIP alert goes out at once, before triage, and again once triaged (see [The VIP alert](#the-vip-alert)). The owner is phoned whenever `calls.brief_by_phone` is not `off` and the owner is away, even when the triage is not urgent; quiet hours still hold unless the triage is urgent. If the triage failed, timed out or never ran (state `failed` or `skipped`, not a missed call), the owner is still phoned, but quiet hours always hold (the urgency is unknown); that briefing's summary is "JARVIS couldn't summarise this call." and the instruction adds "JARVIS couldn't summarise this call: tell the owner that plainly, then pass on the caller's recorded message as it is in the call details." |
+| Known | As VIP, without the VIP mark | The normal notice and `brief_by_phone` rules |
+| Unknown | Screened as before, plus: "If the call is clearly a sales pitch, a recorded message or a scam, do not take a message: say a short, polite goodbye and call end_call." | Triage gains `spam` (true for sales pitches, recorded messages, robocalls and scams; missing means false). A spam record is listed under Spam, never under Needs you, is never briefed by phone, and gets no tray or resident notice (the renderers still refresh) |
+| Blocked | Opening line: "Hi, you've reached <owner>. I'm JARVIS, an AI assistant. <owner> isn't taking calls at the moment. Goodbye." The only tool is `end_call`, and JARVIS ends the call once the opening line has played even if the model does not | No message, no triage and no notice. A minimal record is filed under Spam: masked number, time, `caller_group: "blocked"`, outcome `blocked`, no fields and no transcript. A blocked caller who reaches the budget voicemail is filed the same way, without a notice |
+
+The VIP or known caller's instruction block (owner-approved text, control characters removed, only on that person's call; a blocked person's name and note never reach a brief):
+
+> CALLER FROM THE OWNER'S PEOPLE LIST (owner-approved; the caller ID matches this person): name: <name>[; a VIP for the owner]. Who they are to <owner>: <note, or "(no note)">
+> After the opening line, greet them by this name and ask how you can help. You may use this name in record_message without asking for it, unless the caller says they are someone else; then use the name they give. Use the note only as context for the conversation (for example the language they prefer); never read it out or share it. Take their message as for any caller.
+
+The blocked instruction: "Mode: a call from a number <owner> has blocked. The opening line already tells the caller that <owner> isn't taking calls. After it, call end_call at once. Do not take a message, answer questions or continue the conversation. If the caller speaks before the line closes, say only that <owner> isn't taking calls at the moment, and goodbye."
+
+What the caller says stays untrusted data, as before: it reaches the owner briefing and triage only as JSON. The caller ID can be shared or spoofed, so a VIP's greeting is a courtesy, never an identity check. The brief carries `caller_group`, `contact_name` and `contact_note`; they join the brief hash only when set, so every other brief keeps its hash.
+
+Records (schema 2) gain `caller_group` (at call time), `contact_id` and, for incoming calls, `caller_number` (E.164, protected with the record and never returned by the Calls routes, which still mask every number). `should_brief(setting, triage, away, quiet, group, untriaged)` applies the table above. A record keeps the filing it had at call time; adding, marking or blocking the caller later changes only the name and group chip it shows.
+
+### The VIP alert
+
+- **Event.** `call_vip_alert` `{record_id, name, summary}` to the owner's renderers: at once with `summary` "Left a message.", then after triage with the one-line triage summary (still "Left a message." when the triage failed). `call_record_ready` carries `vip: true` for these records. The name and summary are never logged.
+- **Tray balloon** (native host, `resident/host.py`). The delivery is `{delivery_id: "call:<record id>", notice: "call_vip", title: "<name> called · VIP", text, record_id}`; it is sent even with a renderer connected, and the host shows it only while the workspace is not visible (and never in gaming mode), once per record. Other calls keep the fixed, content-free notice; spam and blocked calls never get a balloon. Clicking the balloon (`NIN_BALLOONUSERCLICK`, tray action `balloon`) opens the workspace and asks the core (`CallOrchestrator.open_record`) to open Calls on that record: `calls_open` `{record_id}` goes to the owner's renderers at once, or to the first owner renderer that connects within two minutes (`ConnectionTransport.hydrate`). Clicking the tray icon itself still just opens the workspace.
+- **In-app card** (`src/features/calls/VipCallAlert.jsx`, next to ReminderAlert in the command deck, in its card pattern; hidden on the lock screen): the HUD label "VIP CALL", "<name> called", the summary, and [Call back] [Dismiss]. "Call back" opens Calls on that record (under All) with its callback approval shown and "Approve call" focused; it never places a call itself. Dismiss hides the card only, for good. The card also clears when the owner opens that record, and none shows for the record already open.
+
+### Calls view
+
+- Tabs: Needs you, All, Done, Spam, People. `calls_list` takes `filter: "spam"`: triage spam and blocked records. List items gain `caller_group` (the saved person's current group, else null) and `name` is the saved person's name when the caller is saved. A blocked record has status `blocked` and a spam record status `spam`; neither counts in `needs_you_count`, and neither offers Mark done.
+- People tab: the list (28 px avatar with the initial, or "#" for a bare number; the name; the first number; a group chip: VIP in accent, Known in text-2, Blocked in danger) under a header with "N people" and "Add person". The editor: name, phone numbers (add and remove), Group (VIP, Known, Blocked), the note, a delete icon button with a confirm, and a box "When <first name> calls and you don't pick up" with the group's sentence. It saves on blur (name, numbers, note) or change (group) once the person is valid, with the errors inline (an empty name, a number that is not a phone number, a number already listed or saved for someone else).
+- Call detail (incoming calls with a caller ID or callback number; `calls_get` gains `contact` `{id, name, group}|null` and `can_add_person`): "Add to people" opens the saved person, or a draft with the number and the name the caller gave; "Mark VIP" and "Block" set the saved caller's group or add them (a Blocked person added this way is named after the number when the caller gave no name; Mark VIP uses the caller's name, else the number).
+
+### Owner-only routes
+
+Every route needs the authenticated, unlocked owner renderer (`authentication_required` or `permission_denied` otherwise); bad payloads return `invalid_arguments` without pydantic details.
+
+| Route | Request | Response |
+| --- | --- | --- |
+| `contacts_list` | `{}` | `{ok, people: [{id, name, numbers, group, note, created_at, updated_at}], limit: 500}`, sorted by name |
+| `contacts_save` | `{id?, name, numbers, group, note?}` | `{ok, person}` or `{ok: false, code: "invalid_name"\|"invalid_number"\|"duplicate_number"\|"too_many_numbers"\|"invalid_group"\|"invalid_note"\|"people_limit"\|"not_found", message}` |
+| `contacts_delete` | `{id}` | `{ok}`; `not_found` for an unknown id. Call records are unchanged |
+| `contacts_call_draft` | `{id}` (call record) | `{ok, existing, person}`: the saved person, or an unsaved draft (`id: null`); `no_number` when the call has no usable number. Nothing is stored |
+| `contacts_call_mark` | `{id (call record), group}` | `{ok, person}`: the saved caller with the new group, or a new person |
+
+Events: `contacts_changed` `{}` to the owner's renderers after every save, delete or mark (the Calls view reloads the people and the calls); `call_vip_alert` and `calls_open` (above).
+
+### Not verified offline
+
+- Gemini Live greeting a VIP by name after the verbatim disclosure, and ending a sales call politely, on a real call.
+- The VIP balloon and its click on the real Windows tray (`NIN_BALLOONUSERCLICK` with the existing `NIIF_USER` balloon), and Windows' focus assist hiding it.
+
 ## Sources
 
 - Twilio Malaysia voice guidelines: https://www.twilio.com/en-us/guidelines/my/voice

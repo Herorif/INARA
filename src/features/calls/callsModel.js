@@ -6,6 +6,8 @@ export const FILTERS = [
   { id: 'needs_you', label: 'Needs you' },
   { id: 'all', label: 'All' },
   { id: 'done', label: 'Done' },
+  { id: 'spam', label: 'Spam' },
+  { id: 'people', label: 'People' },
 ];
 
 export const CALLBACK_LIMIT = 500;
@@ -20,6 +22,8 @@ export function callChip(call) {
     case 'in_progress': return { tone: 'accent', label: 'IN PROGRESS' };
     case 'failed': return { tone: 'danger', label: 'FAILED' };
     case 'callback_blocked': return { tone: 'warn', label: 'BLOCKED' };
+    case 'spam': return { tone: 'idle', label: 'SPAM' };
+    case 'blocked': return { tone: 'danger', label: 'BLOCKED' };
     case 'done':
       if (call.mode === 'task') return { tone: 'ok', label: 'TASK DONE' };
       if (call.mode === 'approved_callback') return { tone: 'idle', label: 'CALLBACK' };
@@ -48,11 +52,13 @@ export function filterCalls(calls, filter) {
   const list = Array.isArray(calls) ? calls : [];
   if (filter === 'needs_you') return list.filter(call => call.status === 'needs_you' || call.status === 'callback_blocked');
   if (filter === 'done') return list.filter(call => call.status === 'done');
+  if (filter === 'spam') return list.filter(call => call.status === 'spam' || call.status === 'blocked');
   return list;
 }
 
 export function emptyState(filter) {
   if (filter === 'needs_you') return { title: 'No calls need you', body: 'Calls that need a decision from you show up here.' };
+  if (filter === 'spam') return { title: 'No spam', body: 'Sales calls, recorded messages, scams and calls from blocked numbers show up here.' };
   return { title: 'No calls yet', body: 'Calls JARVIS answers or makes for you show up here.' };
 }
 
@@ -91,6 +97,7 @@ export function detailMeta(call) {
 }
 
 export function summaryText(call) {
+  if (call?.status === 'blocked') return "Blocked number. JARVIS said you aren't taking calls and ended the call.";
   if (call?.triage?.summary) return call.triage.summary;
   if (call?.triage_state === 'pending') return 'Summarising…';
   if (call?.triage_state === 'failed') return 'No summary — see the transcript';

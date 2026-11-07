@@ -5,8 +5,10 @@ import { createRpcScope, RpcError, type RpcSocket } from './rpc.ts';
  * arrive masked and secret values never arrive at all.
  */
 
-export type CallFilter = 'needs_you' | 'all' | 'done';
-export type CallStatus = 'needs_you' | 'done' | 'in_progress' | 'failed' | 'callback_blocked';
+export type CallFilter = 'needs_you' | 'all' | 'done' | 'spam';
+export type CallStatus = 'needs_you' | 'done' | 'in_progress' | 'failed' | 'callback_blocked' | 'spam' | 'blocked';
+/** P1: the caller's group in the owner's people list. */
+export type CallerGroup = 'vip' | 'known' | 'blocked';
 export type CallDirection = 'inbound' | 'outbound';
 export type Urgency = 'low' | 'normal' | 'urgent';
 export type ProgressState = 'dialing' | 'ringing' | 'in_progress' | 'completed' | 'no_answer' | 'failed';
@@ -45,6 +47,8 @@ export type CallSummary = {
   summary: string | null;
   status: CallStatus;
   outcome_status: string | null;
+  /** P1: the saved caller's current group; null for an unsaved caller (or an older core). */
+  caller_group: CallerGroup | null;
 };
 export type CallFields = { name: string | null; reason: string | null; urgency: string | null; callback_number_masked: string | null; message: string | null };
 export type CallTriage = { summary: string | null; urgency: string | null; needs_owner: boolean; suggested_actions: string[] };
@@ -56,11 +60,15 @@ export type CallDetail = CallSummary & {
   transcript: TranscriptTurn[];
   outcome: { status: string; details: unknown } | null;
   related_ids: string[];
+  /** P1: the saved person for this caller, and whether "Add to people", "Mark VIP" and "Block" can work. */
+  contact: { id: string; name: string; group: CallerGroup } | null;
+  can_add_person: boolean;
 };
 export type CallProgress = { call_id: string; record_id: string | null; mode: string | null; direction: string; state: ProgressState; message: string | null };
 
-const FILTERS: CallFilter[] = ['needs_you', 'all', 'done'];
-const STATUSES: CallStatus[] = ['needs_you', 'done', 'in_progress', 'failed', 'callback_blocked'];
+const FILTERS: CallFilter[] = ['needs_you', 'all', 'done', 'spam'];
+const STATUSES: CallStatus[] = ['needs_you', 'done', 'in_progress', 'failed', 'callback_blocked', 'spam', 'blocked'];
+const GROUPS: CallerGroup[] = ['vip', 'known', 'blocked'];
 const DIRECTIONS: CallDirection[] = ['inbound', 'outbound'];
 const URGENCIES: Urgency[] = ['low', 'normal', 'urgent'];
 const PROGRESS: ProgressState[] = ['dialing', 'ringing', 'in_progress', 'completed', 'no_answer', 'failed'];
@@ -142,7 +150,8 @@ export function isCallSummary(value: unknown): value is CallSummary {
     && typeof value.needs_owner === 'boolean'
     && optionalText(value.summary, 4000)
     && STATUSES.includes(value.status as CallStatus)
-    && optionalText(value.outcome_status, 64);
+    && optionalText(value.outcome_status, 64)
+    && (value.caller_group === null || value.caller_group === undefined || GROUPS.includes(value.caller_group as CallerGroup));
 }
 
 const isFields = (value: unknown) => value === null || value === undefined || (isObject(value)
@@ -151,6 +160,8 @@ const isTriage = (value: unknown) => value === null || value === undefined || (i
   && optionalText(value.summary, 4000) && optionalText(value.urgency, 32) && typeof value.needs_owner === 'boolean'
   && Array.isArray(value.suggested_actions) && value.suggested_actions.length <= 16 && value.suggested_actions.every(item => isText(item, 400)));
 const isTurn = (value: unknown) => isObject(value) && ROLES.includes(value.role as string) && isText(value.text);
+const isContact = (value: unknown) => value === null || value === undefined || (isObject(value)
+  && isId(value.id) && isText(value.name, 200) && GROUPS.includes(value.group as CallerGroup));
 
 export function isCallDetail(value: unknown): value is CallDetail {
   if (!isCallSummary(value)) return false;
@@ -159,7 +170,8 @@ export function isCallDetail(value: unknown): value is CallDetail {
     && (call.triage_state === null || call.triage_state === undefined || TRIAGE_STATES.includes(call.triage_state as TriageState))
     && Array.isArray(call.transcript) && call.transcript.length <= 2000 && call.transcript.every(isTurn)
     && (call.outcome === null || call.outcome === undefined || (isObject(call.outcome) && isText(call.outcome.status, 64)))
-    && (call.related_ids === undefined || (Array.isArray(call.related_ids) && call.related_ids.every(isId)));
+    && (call.related_ids === undefined || (Array.isArray(call.related_ids) && call.related_ids.every(isId)))
+    && isContact(call.contact) && (call.can_add_person === undefined || typeof call.can_add_person === 'boolean');
 }
 
 export function isCallProgress(value: unknown): value is CallProgress {
@@ -186,13 +198,13 @@ export function createCallsClient(socket: RpcSocket) {
       if (!FILTERS.includes(filter)) throw new RpcError('Unknown call filter.', 'invalid_arguments');
       const response = await scope.call<{ calls?: unknown }>('calls_list', { filter, limit });
       if (!Array.isArray(response.calls) || !response.calls.every(isCallSummary)) throw invalid();
-      return response.calls;
+      return response.calls.map(call => ({ ...call, caller_group: call.caller_group ?? null }));
     },
     async get(id: string): Promise<CallDetail> {
       const response = await scope.call<{ call?: unknown }>('calls_get', { id });
       if (!isCallDetail(response.call) || response.call.id !== id) throw invalid();
       const transcript = response.call.transcript.map(turn => ((turn.role as string) === LEGACY_ROLE ? { ...turn, role: 'jarvis' as const } : turn));
-      return { ...response.call, transcript, related_ids: response.call.related_ids ?? [] };
+      return { ...response.call, transcript, related_ids: response.call.related_ids ?? [], contact: response.call.contact ?? null, can_add_person: response.call.can_add_person === true };
     },
     async markDone(id: string): Promise<void> { await scope.call('calls_mark_done', { id }); },
     async remove(id: string): Promise<void> { await scope.call('calls_delete', { id }); },

@@ -39,6 +39,9 @@ GRANTED_MODES = ("approved_callback", "task")  # third-party calls: a one-use gr
 URGENCY = ("low", "normal", "urgent")
 DECISIONS = ("callback", "ignore", "owner_handles")
 OUTCOMES = ("delivered", "confirmed", "declined", "no_answer", "needs_owner")
+CALLER_GROUPS = ("vip", "known", "blocked")  # P1: telephony/contacts.py
+# P1: the briefing summary of a VIP call whose triage failed, timed out or never ran.
+UNSUMMARISED = "JARVIS couldn't summarise this call."
 # Stored in call grants/records and parsed back by the orchestrator; it predates the JARVIS
 # rename and stays so existing records keep resolving.
 PURPOSE_PREFIX = "inara-call-brief"
@@ -228,6 +231,11 @@ class CallBrief(StrictModel):
     source_record_id: uuid.UUID | None = None
     goal: StrictStr | None = Field(default=None, max_length=500)
     constraints: TaskConstraints | None = None
+    # P1, screening only: the caller's group in the owner's people list, and for a VIP or
+    # known caller the person's name and note (owner-approved text for this call only).
+    caller_group: Literal[CALLER_GROUPS] | None = None
+    contact_name: StrictStr = Field(default="", max_length=60)
+    contact_note: StrictStr = Field(default="", max_length=300)
 
     @field_validator("counterpart")
     @classmethod
@@ -243,6 +251,16 @@ class CallBrief(StrictModel):
     @classmethod
     def line(cls, value):
         return clean_line(value, 80)
+
+    @field_validator("contact_name")
+    @classmethod
+    def contact_line(cls, value):
+        return clean_line(value, 60)
+
+    @field_validator("contact_note")
+    @classmethod
+    def contact_text(cls, value):
+        return clean_text(value, 300)
 
     @field_validator("facts")
     @classmethod
@@ -267,10 +285,22 @@ class CallBrief(StrictModel):
             raise ValueError("An approved callback needs the approved message.")
         if self.mode == "task" and not (self.goal and self.constraints):
             raise ValueError("A task call needs a goal and constraints.")
+        if self.caller_group is not None and not inbound:
+            raise ValueError("Only a screened call has a caller group.")
+        if self.caller_group not in ("vip", "known") and (self.contact_name or self.contact_note):
+            raise ValueError("Only a VIP or known caller's name and note reach the call.")
+        if self.caller_group in ("vip", "known") and not self.contact_name:
+            raise ValueError("A VIP or known caller needs the person's name.")
         return self
 
     def canonical(self):
-        return json.dumps(self.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+        value = self.model_dump(mode="json")
+        # The P1 caller fields join the hash only when set, so every other brief keeps the
+        # hash it had before they existed.
+        for key, default in (("caller_group", None), ("contact_name", ""), ("contact_note", "")):
+            if value.get(key) == default:
+                value.pop(key, None)
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
     def hash(self):
         return hashlib.sha256(self.canonical().encode("utf-8")).hexdigest()
@@ -280,20 +310,32 @@ class CallBrief(StrictModel):
         return f"{PURPOSE_PREFIX}:{self.mode}:{self.hash()}"
 
 
-def screening_brief(info, settings):
-    """The default brief for an inbound call, from C1's session info and settings."""
+def screening_brief(info, settings, person=None):
+    """The default brief for an inbound call, from C1's session info and settings.
+
+    ``person`` is the owner's saved person matching the caller ID (telephony/contacts.py),
+    or None. A VIP or known person's name and note go into this call's brief only; a
+    blocked person's never do."""
     from services.settings import CALLS_DEFAULTS
 
     calls = (settings or {}).get("calls") if isinstance(settings, dict) else None
     facts = calls.get("facts", CALLS_DEFAULTS["facts"]) if isinstance(calls, dict) else ""
     caller = (info or {}).get("from")
     number = None if withheld(caller) else normalize(caller)
+    group = person.get("group") if isinstance(person, dict) and number else None
+    group = group if group in CALLER_GROUPS else None
+    known = group in ("vip", "known")
+    name = clean_line(str(person.get("name") or ""), 60) if known else ""
+    note = person.get("note") if known else ""
     return CallBrief(
         mode="screening",
         direction="inbound",
         counterpart=number,
         owner_name=owner_name(settings),
         facts=facts if isinstance(facts, str) else "",
+        caller_group=group if (group == "blocked" or name) else None,
+        contact_name=name,
+        contact_note=clean_text(note, 300) if isinstance(note, str) and name else "",
     )
 
 
@@ -305,7 +347,9 @@ def owner_name(settings):
 
 def owner_briefing_brief(record, *, owner_number, owner_name=""):
     """The owner briefing for one stored screening record (CallRecords, schema 2) and its
-    triage; C3 decides when to place it with ``CallAgent.call``."""
+    triage; C3 decides when to place it with ``CallAgent.call``. Without a finished triage
+    (P1: a VIP call whose triage failed) the summary says so, and the briefing works from
+    the recorded message as stored."""
     fields = record.get("fields") or {}
     message = fields.get("message") if isinstance(fields.get("message"), dict) else {}
     triage = record.get("triage") if record.get("triage_state") == "done" else None
@@ -325,7 +369,7 @@ def owner_briefing_brief(record, *, owner_number, owner_name=""):
             reason=clean_line(str(message.get("reason") or ""), 300),
             urgency=urgency if urgency in URGENCY else "normal",
             message=clean_text(str(message.get("message") or ""), 1000),
-            summary=clean_line(str(triage.get("summary") or ""), 400),
+            summary=clean_line(str(triage.get("summary") or ""), 400) if triage else UNSUMMARISED,
             needs=[str(item) for item in triage.get("suggested_actions") or []][:5],
         ),
     )
@@ -353,6 +397,14 @@ def callback_brief(briefing_brief, message):
 def opening_line(brief):
     """The disclosure JARVIS speaks first on every call."""
     owner = brief.owner_name
+    if brief.mode == "screening" and brief.caller_group == "blocked":
+        # P1: no message is taken and nothing is kept, so there is no transcription notice.
+        return (
+            f"Hi, you've reached {owner or 'this number'}. I'm JARVIS, an AI assistant. "
+            + (f"{owner} isn't taking calls at the moment." if owner
+               else "No calls are being taken at the moment.")
+            + " Goodbye."
+        )
     if brief.mode == "screening":
         return (
             f"Hi, you've reached {owner or 'this number'}. I'm JARVIS, an AI assistant. "
@@ -429,7 +481,9 @@ def system_instruction(brief, *, now=None, pin_required=False):
     opening = opening_line(brief)
     owner = brief.owner_name or "the owner"
     parts = [COMMON, _moment(now), f'Opening line, spoken first and exactly: "{opening}"']
-    if brief.mode == "screening":
+    if brief.mode == "screening" and brief.caller_group == "blocked":
+        parts.append(blocked_instruction(owner))
+    elif brief.mode == "screening":
         caller_id = (
             f"the caller ID ends in {brief.counterpart[-4:]}"
             if brief.counterpart
@@ -450,6 +504,10 @@ def system_instruction(brief, *, now=None, pin_required=False):
             "don't have that information and offer to take a message. If the caller says it "
             "is an emergency, tell them to call 999, and still record the message as urgent."
         )
+        if brief.caller_group in ("vip", "known"):
+            parts.append(known_caller_instruction(brief))
+        else:
+            parts[-1] += " " + spam_line()
         facts = brief.facts.strip()
         parts.append(
             "OWNER-APPROVED FACTS (the only information about the owner you may share):\n"
@@ -466,6 +524,11 @@ def system_instruction(brief, *, now=None, pin_required=False):
                 "PIN and call verify_pin with the digits they say. Share nothing about the "
                 "call until verify_pin succeeds; it returns the call details. Never repeat "
                 "the PIN aloud."
+            )
+        if brief.briefing.summary == UNSUMMARISED:
+            steps += (
+                " JARVIS couldn't summarise this call: tell the owner that plainly, then pass "
+                "on the caller's recorded message as it is in the call details."
             )
         steps += (
             " Brief the owner in two or three sentences: who called, the summary and what the "
@@ -525,6 +588,43 @@ def system_instruction(brief, *, now=None, pin_required=False):
             "responds; leave no voicemail) or needs_owner. Then say goodbye and call end_call."
         )
     return "\n\n".join(parts)
+
+
+def spam_line():
+    """P1, unknown callers only: JARVIS need not take a message from a pitch or a scam."""
+    return (
+        "If the call is clearly a sales pitch, a recorded message or a scam, do not take a "
+        "message: say a short, polite goodbye and call end_call."
+    )
+
+
+def known_caller_instruction(brief):
+    """P1: the matched person's name and note, for a VIP or known caller's call only. Both
+    are the owner's own text (control characters removed), never the caller's words."""
+    owner = brief.owner_name or "the owner"
+    note = brief.contact_note.strip()
+    return (
+        "CALLER FROM THE OWNER'S PEOPLE LIST (owner-approved; the caller ID matches this "
+        f"person): name: {brief.contact_name}"
+        + ("; a VIP for the owner" if brief.caller_group == "vip" else "")
+        + f". Who they are to {owner}: " + (note if note else "(no note)") + "\n"
+        "After the opening line, greet them by this name and ask how you can help. You may "
+        "use this name in record_message without asking for it, unless the caller says they "
+        "are someone else; then use the name they give. Use the note only as context for the "
+        "conversation (for example the language they prefer); never read it out or share it. "
+        "Take their message as for any caller."
+    )
+
+
+def blocked_instruction(owner):
+    """P1: a caller the owner blocked. No message, no questions; the call ends."""
+    return (
+        f"Mode: a call from a number {owner} has blocked. The opening line already tells "
+        f"the caller that {owner} isn't taking calls. After it, call end_call at once. Do "
+        "not take a message, answer questions or continue the conversation. If the caller "
+        f"speaks before the line closes, say only that {owner} isn't taking calls at the "
+        "moment, and goodbye."
+    )
 
 
 def briefing_details(brief):
@@ -700,7 +800,9 @@ RECORD_OUTCOME = {
 }
 
 
-def declarations(mode, pin_required=False):
+def declarations(mode, pin_required=False, caller_group=None):
+    if mode == "screening" and caller_group == "blocked":
+        return [END_CALL]
     if mode == "screening":
         return [RECORD_MESSAGE, END_CALL]
     if mode == "owner_briefing":

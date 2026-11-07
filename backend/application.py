@@ -265,6 +265,11 @@ class Application:
         # C3: owner briefings, callbacks, call progress and the Calls view routes.
         self.call_orchestrator = CallOrchestrator(self)
         self.calls_transport = CallsTransport(self)
+        # P1 people (VIP, known, blocked) for call screening; owner-only contacts_* routes.
+        from telephony.contacts import Contacts, ContactsTransport
+
+        self.contacts = Contacts(self)
+        self.contacts_transport = ContactsTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,

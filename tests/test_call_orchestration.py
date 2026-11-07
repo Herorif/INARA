@@ -41,9 +41,10 @@ CALL_SID = "CA" + "c" * 32
 
 LIST_KEYS = {
     "id", "direction", "mode", "counterpart_masked", "name", "started_at", "duration_seconds",
-    "urgency", "needs_owner", "summary", "status", "outcome_status",
+    "urgency", "needs_owner", "summary", "status", "outcome_status", "caller_group",
 }
-DETAIL_KEYS = LIST_KEYS | {"fields", "triage", "triage_state", "transcript", "outcome", "related_ids"}
+DETAIL_KEYS = LIST_KEYS | {"fields", "triage", "triage_state", "transcript", "outcome", "related_ids",
+                           "contact", "can_add_person"}
 ROUTES = ("calls_status", "calls_list", "calls_get", "calls_mark_done", "calls_delete",
           "calls_callback_draft", "calls_callback_approve", "presence_ping")
 

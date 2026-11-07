@@ -21,7 +21,7 @@ class StrictRequest(BaseModel):
 
 
 class CallsList(StrictRequest):
-    filter: Literal["needs_you", "all", "done"]
+    filter: Literal["needs_you", "all", "done", "spam"]  # spam: P1
     limit: StrictInt = Field(default=50, ge=1, le=100)
 
 

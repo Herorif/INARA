@@ -1003,7 +1003,7 @@
       "status": "implemented"
     },
     "calls_list": {
-      "schema": "CallsList (filter needs_you|all|done; limit 1-100, default 50; extra fields forbidden)",
+      "schema": "CallsList (filter needs_you|all|done|spam; limit 1-100, default 50; extra fields forbidden)",
       "caller": "Authenticated unlocked owner renderer",
       "context": "Protected phone call records (CallRecords, DPAPI, 7-day retention) and calls.* settings",
       "effects": "Read phone call records newest first as summaries {id, direction, mode, counterpart_masked, name, started_at, duration_seconds, urgency, needs_owner, summary, status, outcome_status}; needs_you = triage needs_owner or urgent, a missed incoming call, or a blocked/failed callback, and not marked done",
@@ -1077,6 +1077,61 @@
       "response": "Origin ACK {ok}",
       "lifetime": "Request-only; memory only, nothing stored",
       "replacement": "CallOrchestrator / CallsTransport",
+      "status": "implemented"
+    },
+    "contacts_list": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's people list (telephony/contacts.py: DPAPI-protected documents in the profile database, at most 500 people)",
+      "effects": "Read every saved person sorted by name: {id, name, numbers (E.164, the owner's own list), group vip|known|blocked, note, created_at, updated_at} and the limit (500)",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok, people, limit}; pydantic details are never echoed; names, notes and numbers are never logged",
+      "lifetime": "Request-only read; no network",
+      "replacement": "Contacts / ContactsTransport",
+      "status": "implemented"
+    },
+    "contacts_save": {
+      "schema": "PersonSave (id?: person UUID; name 1-60 printable characters, trimmed; numbers 1-5 E.164 by telephony.numbers.normalize, unique across people; group vip|known|blocked; note 0-300 printable characters, as calls.facts; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's people list (telephony/contacts.py: DPAPI-protected documents in the profile database, at most 500 people)",
+      "effects": "Create (no id) or update one person in one store transaction; refuses invalid_name, invalid_number, duplicate_number, too_many_numbers, invalid_note, people_limit and not_found with a plain message that never repeats the values; then contacts_changed {} to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok, person}; pydantic details are never echoed",
+      "lifetime": "Request-only store transaction",
+      "replacement": "Contacts / ContactsTransport",
+      "status": "implemented"
+    },
+    "contacts_delete": {
+      "schema": "PersonReference (id: person UUID)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's people list (telephony/contacts.py: DPAPI-protected documents in the profile database, at most 500 people)",
+      "effects": "Delete one person now; then contacts_changed {} to the owner's renderers. Call records are not changed",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok}; not_found for an unknown id",
+      "lifetime": "Request-only store transaction",
+      "replacement": "Contacts / ContactsTransport",
+      "status": "implemented"
+    },
+    "contacts_call_draft": {
+      "schema": "PersonReference (id: call record UUID)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's people list (telephony/contacts.py: DPAPI-protected documents in the profile database, at most 500 people); protected phone call records (CallRecords)",
+      "effects": "\"Add to people\" from a call: the saved person for the record's caller ID (else its callback number), or an unsaved draft {id: null, name: the name the caller gave or \"\", numbers: [that number], group known, note \"\"}; nothing is stored",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok, existing, person}; not_found for an unknown record; no_number when the call has no usable number",
+      "lifetime": "Request-only read; no network",
+      "replacement": "Contacts / ContactsTransport",
+      "status": "implemented"
+    },
+    "contacts_call_mark": {
+      "schema": "CallMark (id: call record UUID; group vip|known|blocked)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's people list (telephony/contacts.py: DPAPI-protected documents in the profile database, at most 500 people); protected phone call records (CallRecords)",
+      "effects": "\"Mark VIP\" / \"Block\" from a call: set the saved caller's group, or add them (named after the name they gave, or after the number when blocked or unnamed); then contacts_changed {} to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok, person}; not_found, no_number, people_limit as for contacts_save",
+      "lifetime": "Request-only store transaction",
+      "replacement": "Contacts / ContactsTransport",
       "status": "implemented"
     },
     "secrets_status": {

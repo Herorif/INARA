@@ -20,12 +20,31 @@ NOTICES = {
     "voice_locked": ("JARVIS voice", "Unlock JARVIS in the workspace to talk."),
 }
 LOCKED_NOTICE_SECONDS = 600
+VIP_NOTICE = "call_vip"  # P1: "<name> called · VIP" with a one-line summary; a click opens it
 STARTING = "JARVIS is still starting. Try again in a moment."
 # The talking overlay normally quits after its fade-out; this closes one that did not.
 OVERLAY_CLOSE_SECONDS = 30.0
 CORE_URL = "http://127.0.0.1:8000"
 
 logger = get_logger(__name__)
+
+
+def vip_notice(delivery):
+    """(title, text) for a VIP call balloon, or None for any other delivery. Bounded to what
+    a balloon shows; never logged."""
+    if delivery.get("notice") != VIP_NOTICE or not isinstance(delivery.get("record_id"), str):
+        return None
+    title, text = delivery.get("title"), delivery.get("text")
+    if not isinstance(title, str) or not isinstance(text, str):
+        return None
+    title, text = _balloon_line(title, 63), _balloon_line(text, 255)
+    return (title, text) if title and text else None
+
+
+def _balloon_line(value, limit):
+    """One printable line: control characters and runs of spaces become one space."""
+    printable = "".join(" " if ord(char) < 32 or ord(char) == 127 else char for char in value)
+    return " ".join(printable.split())[:limit]
 
 
 def _log_failure(label):
@@ -69,6 +88,7 @@ class NativeHost:
         self.process_factory = process_factory or WorkspaceProcess
         self.seen = set()
         self.notice_shown = {}  # notice kind -> monotonic time last shown
+        self.balloon_record = None  # P1: the call record the last balloon shown is about
         self.tray = (tray_factory or Tray)(
             hashlib.sha256(str(self.profile.resolve()).encode()).hexdigest()[:24],
             self.root / "assets/icons",
@@ -329,11 +349,15 @@ class NativeHost:
                     result.set_result(False)
                     return
                 key = delivery["delivery_id"]
-                # Fixed, content-free notices: reminders by default, calls (C2) by kind.
-                notice = NOTICES.get(delivery.get("notice"))
+                # Fixed, content-free notices: reminders by default, calls (C2) by kind. A VIP
+                # call (P1) names the caller and its summary, and a click opens that record.
+                vip = vip_notice(delivery)
+                notice = vip or NOTICES.get(delivery.get("notice"))
                 queued = key in self.seen or (
                     self.tray.notify(*notice) if notice else self.tray.notify()
                 )
+                if queued and key not in self.seen:
+                    self.balloon_record = delivery["record_id"] if vip else None
                 if queued:
                     self.seen.add(key)
                     if len(self.seen) > 512:
@@ -547,8 +571,22 @@ class NativeHost:
             return None
         return self._submit(wake.toggle(), 'toggle "Hey Jarvis"')
 
+    def open_call(self, record_id):
+        """A VIP balloon was clicked (P1): open the workspace on Calls with that record."""
+        application = getattr(self.runtime, "runtime", None)
+        calls = getattr(application, "call_orchestrator", None)
+        if calls is not None and self.loop and self.loop.is_running():
+            self._submit(calls.open_record(record_id), "open call record")
+        self.open_workspace()
+
     def action(self, action):
-        if action in {"open", "quick"}:
+        if action == "balloon":
+            record, self.balloon_record = self.balloon_record, None
+            if record:
+                self.open_call(record)
+            else:
+                self.open_workspace()
+        elif action in {"open", "quick"}:
             self.open_workspace(quick=action == "quick")
         elif action in {"talk", "stop_talking"}:
             self.talk(action == "talk")

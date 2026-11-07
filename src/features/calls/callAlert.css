@@ -1,0 +1,7 @@
+/* P1 VIP call alert: the ReminderAlert card pattern (workspace.css .reminder-alert). */
+.vip-call-alert.hud-frame { position:fixed; top:4rem; left:50%; z-index:200; width:min(22.5rem,calc(100vw - 2rem)); transform:translateX(-50%); padding:1rem; background:var(--bg-overlay); border-color:var(--line-strong); box-shadow:var(--shadow-overlay); }
+.vip-call-alert.vip-call-alert--stacked { top:13rem; }
+.vip-call-alert .vip-call-alert__label { color:var(--accent); }
+.vip-call-alert__title { margin:.375rem 0 0; font-size:var(--text-md); font-weight:500; line-height:var(--leading-normal); color:var(--text-1); overflow-wrap:anywhere; }
+.vip-call-alert__summary { margin:.25rem 0 1rem; font-size:var(--text-sm); line-height:var(--leading-normal); color:var(--text-2); overflow-wrap:anywhere; }
+.vip-call-alert__actions { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }

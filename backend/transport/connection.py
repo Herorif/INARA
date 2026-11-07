@@ -54,6 +54,10 @@ class ConnectionTransport:
         live_design = getattr(self.app, "live_design", None)
         if live_design is not None:
             await live_design.hydrate(sid, owner)
+        # P1: a VIP balloon click that started this workspace opens Calls on that record.
+        calls = getattr(self.app, "call_orchestrator", None)
+        if calls is not None:
+            await calls.hydrate(sid)
         # A tray voice session that is running: the workspace's speaking core shows it.
         overlay = getattr(self.app, "voice_overlay", None)
         if overlay is not None:

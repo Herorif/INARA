@@ -11,6 +11,7 @@ import { registerDevicesEvents } from './events/devices';
 import { registerRemindersEvents } from './events/reminders';
 import { registerLocalVoiceEvents } from './events/localVoice';
 import { registerLiveDesignEvents } from './events/liveDesign';
+import { registerCallAlertEvents } from './events/callAlerts';
 import { registerCalendarEvents } from './events/calendar';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
@@ -211,6 +212,7 @@ export function initSocketListeners() {
     registerRemindersEvents(dependencies);
     registerLocalVoiceEvents(dependencies);
     registerLiveDesignEvents(dependencies);
+    registerCallAlertEvents(dependencies);
     registerCalendarEvents(dependencies);
 
     // Return cleanup
