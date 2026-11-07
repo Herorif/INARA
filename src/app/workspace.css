@@ -53,7 +53,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .titlebar-quick__text { display:none; }
 }
 @container command-bar (max-width:46rem) {
-  .command-trigger { width:2.25rem; min-width:2.25rem; padding:0; justify-content:center; }
+  /* .titlebar-main raises specificity: the later 850px media rule must not stretch this back to 100%. */
+  .titlebar-main .command-trigger { width:2.25rem; min-width:2.25rem; padding:0; justify-content:center; }
   .command-trigger__text,.command-trigger>.kbd { display:none; }
   .titlebar-main { flex:none; padding:0 .5rem; }
   .titlebar-status { margin-left:auto; }
