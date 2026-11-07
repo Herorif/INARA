@@ -74,6 +74,45 @@ async def shown(ctx, **expected):
     return sent(ctx.app)[-1]
 
 
+# --- the live design flag --------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_design_flag_is_published_when_a_live_design_starts_and_ends(overlay):
+    app = overlay.app
+    assert app.live_design.observer == app.voice_overlay.design_changed
+    app.settings["tool_permissions"]["live_design"] = False
+    live, session = await begin(overlay)
+    await shown(overlay, state="listening", design=False)
+    context = {"principal": OWNER, "project_path": app.projects.get_current_project_path().resolve()}
+    part = {"name": "shell", "shape": "enclosure", "width": 160.0, "depth": 200.0,
+            "height": 180.0, "thickness": 3.0, "material": "titanium"}
+    await app.dispatcher.dispatch(
+        OWNER, "start_live_design", {"name": "NAS case", "objects": [part]}, context, None
+    )
+    assert (await shown(overlay, design=True))["state"] == "listening"
+    assert sent(app, "local_voice", "client")[-1]["design"] is True
+    design_id = app.live_design.snapshot(OWNER)["design"]["id"]
+    count = len(sent(app))
+    ended = await app.sio.handlers["/"]["cad_design_end"]("client", {"design_id": design_id})
+    assert ended == {"ok": True, "design": None}
+    await shown(overlay, design=False)
+    assert len(sent(app)) > count
+    await app.voice.stop_local()
+
+
+def test_design_flag_follows_only_the_local_owner_and_publishes_only_while_running(overlay):
+    model = overlay.model
+    model.publish = lambda urgent=False: published.append(urgent)
+    published = []
+    model.design_changed("someone-else", True)
+    assert model.snapshot()["design"] is False
+    model.design_changed(OWNER, True)  # no session runs: nothing is sent
+    assert model.snapshot()["design"] is True and published == []
+    model.design_changed(OWNER, False)
+    assert model.snapshot()["design"] is False and published == []
+
+
 # --- the setting ----------------------------------------------------------------------------
 
 
@@ -122,7 +161,7 @@ async def test_exchanges_captions_and_finals(overlay):
     first = await shown(overlay, state="listening")
     assert first == {
         "session": session.id, "state": "listening", "user": "", "user_final": False,
-        "jarvis": "", "jarvis_final": False, "approval": False, "end": None,
+        "jarvis": "", "jarvis_final": False, "approval": False, "design": False, "end": None,
     }
     assert overlay.host_events == [("started", None)]
     live.push(input_transcription=types.Transcription(text="What's"))

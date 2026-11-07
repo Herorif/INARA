@@ -89,6 +89,9 @@ function CadSession({ project }) {
     alive = useRef(false),
     epoch = useRef(0);
   const restoreRecipe = useRef(true), pendingBranch = useRef(null);
+  // A live design handed over as the working draft (one-way): read once per session (a ref, so
+  // StrictMode's effect replay still sees it); history must not replace it.
+  const handoff = useRef(useStore.getState().cadDraftHandoff), keepDraft = useRef(false);
   const handoffVersion = useRef('');
   handoffVersion.current = `${draft.version.current}:${prompt}`;
   const job = jobs.find((value) => value.request_id === selected),
@@ -122,7 +125,7 @@ function CadSession({ project }) {
       if(completed){setBase(completed);pendingBranch.current=null;}
       if (restoreRecipe.current) {
         const restored = response.jobs.find(value => value.request_id === selectedRef.current) || (!selectedRef.current ? response.jobs[0] : null);
-        if (restored) { selectedRef.current = restored.request_id; setSelected(restored.request_id); resetRecipe(restored.recipe); setReference(restored.reference || null); setBase(restored.state === 'succeeded' ? restored : null); }
+        if (restored) { selectedRef.current = restored.request_id; setSelected(restored.request_id); if (!keepDraft.current) { resetRecipe(restored.recipe); setReference(restored.reference || null); setBase(restored.state === 'succeeded' ? restored : null); } }
         else if (selectedRef.current) setError('That revision is outside recent history. Select another saved revision.');
         restoreRecipe.current = false;
       }
@@ -150,6 +153,10 @@ function CadSession({ project }) {
     setError('');
     setPlanning(false);
     setExporting('');
+    // The Live design panel's "Open in 3D studio" on a draft: adopt it once, in Draft blockout.
+    keepDraft.current = !!handoff.current?.recipe;
+    if (useStore.getState().cadDraftHandoff) useStore.setState({ cadDraftHandoff: null });
+    if (keepDraft.current) { resetRecipe(handoff.current.recipe); setDraftView(true); }
     const update = (incoming) => accept(incoming);
     client.on('cad_job', update);
     client.on('connect', refresh);

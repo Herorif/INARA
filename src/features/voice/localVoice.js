@@ -37,7 +37,7 @@ function clip(value, limit, keep = 'start') {
  */
 export function sanitizeLocalVoice(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const { session, state, user, user_final: userFinal, jarvis, jarvis_final: jarvisFinal, approval, end, source } = raw;
+  const { session, state, user, user_final: userFinal, jarvis, jarvis_final: jarvisFinal, approval, design, end, source } = raw;
   if (session !== null && (typeof session !== 'string' || session.length > LOCAL_LIMITS.session)) return null;
   if (typeof state !== 'string' || !LOCAL_STATES.includes(state)) return null;
   if (typeof user !== 'string' || typeof jarvis !== 'string') return null;
@@ -58,6 +58,7 @@ export function sanitizeLocalVoice(raw) {
     jarvis: clip(jarvis, LOCAL_LIMITS.jarvis, 'end'),
     jarvis_final: jarvisFinal,
     approval,
+    design: design === true,
     end: cleanEnd,
     source,
   };

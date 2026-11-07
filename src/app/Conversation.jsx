@@ -48,7 +48,7 @@ const stopVoice = target => {
   else if (target === 'local') emitSocket('local_voice_stop', {});
 };
 
-export default function Conversation({ gaming = false }) {
+export default function Conversation({ gaming = false, hidden = false }) {
   const messages = useStore(state => state.messages);
   const processing = useStore(state => state.textProcessing);
   const restoring = useStore(state => state.conversationRestoring);
@@ -83,7 +83,7 @@ export default function Conversation({ gaming = false }) {
   const speaking = stage.mode === 'voice';
   const empty = messages.length === 0;
   const coreSize = speaking && !narrow ? CORE_VOICE : CORE_REST;
-  useVoiceStageReport();
+  useVoiceStageReport({ hidden });
 
   // A finished tray session's words are held for a moment; the stage rests when that ends.
   useEffect(() => {

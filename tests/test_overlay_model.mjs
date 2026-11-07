@@ -255,7 +255,8 @@ test('bad bootstraps fail with one line that never contains the token', () => {
 
 test('a valid snapshot passes with unknown fields dropped', () => {
   const clean = policy.sanitizeSnapshot({ ...snap({ user: 'hi' }), extra: '<b>x</b>', token: TOKEN });
-  assert.deepEqual(clean, snap({ user: 'hi' }));
+  assert.deepEqual(clean, { ...snap({ user: 'hi' }), design: false });
+  assert.equal(policy.sanitizeSnapshot(snap({ design: true })).design, true);
   assert.deepEqual(policy.sanitizeSnapshot(snap({ session: null })).session, null);
   const end = policy.sanitizeSnapshot(ended('error', { end: { kind: 'error', message: 'Busy', extra: 1 } }));
   assert.deepEqual(end.end, { kind: 'error', message: 'Busy' });

@@ -185,6 +185,8 @@ class Application:
         self.voice_transport = VoiceTransport(self)
         # The talking overlay during tray voice; the native host runs its window.
         self.voice_overlay = VoiceOverlay(self)
+        # While JARVIS designs, the talking overlay offers "Open JARVIS" (design flag).
+        self.live_design.observer = self.voice_overlay.design_changed
         self.voice_overlay_transport = VoiceOverlayTransport(self)
         # "Hey Jarvis": listens only once the native resident host activates it.
         self.wake = WakeWordService(self)

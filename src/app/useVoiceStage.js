@@ -13,14 +13,15 @@ const focused = () => typeof document.hasFocus !== 'function' || document.hasFoc
  * Tells the core whether this window shows the speaking core (`voice_stage`), so tray voice
  * opens the talking overlay only when it does not. Call it from the mounted Conversation view:
  * changes are sent 250 ms after they settle and again after every (re)connect, and unmounting
- * sends `{visible: false}` at once.
+ * sends `{visible: false}` at once. `hidden`: mounted but out of view (the Assistant view's
+ * narrow layout showing the Live design tab).
  */
-export function useVoiceStageReport() {
+export function useVoiceStageReport({ hidden = false } = {}) {
   const connected = useStore(state => state.backendConnected);
   const locked = useStore(state => state.isLockScreenVisible);
   const [page, setPage] = useState(() => ({ documentVisible: documentVisible(), focused: focused() }));
   const sent = useRef(null);
-  const visible = stageVisible({ mounted: true, documentVisible: page.documentVisible, focused: page.focused, locked });
+  const visible = stageVisible({ mounted: !hidden, documentVisible: page.documentVisible, focused: page.focused, locked });
 
   useEffect(() => {
     const update = () => setPage({ documentVisible: documentVisible(), focused: focused() });

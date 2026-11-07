@@ -109,7 +109,7 @@ test('a new session resets the level and an end time is per session', () => {
 test('the Conversation view registers the subscriptions and reports the stage', () => {
   assert.match(read('src/services/socketSubscriptions.js'), /registerLocalVoiceEvents\(dependencies\);/);
   const source = read('src/app/Conversation.jsx');
-  assert.match(source, /useVoiceStageReport\(\);/);
+  assert.match(source, /useVoiceStageReport\(\{ hidden \}\);/);
   assert.match(source, /emitSocket\('local_voice_stop', \{\}\)/);
   assert.match(source, /liveVoice\(\)\.stop\(\)/);
   const hook = read('src/app/useVoiceStage.js');

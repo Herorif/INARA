@@ -1,10 +1,10 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Cable, Gamepad2, History, Inbox, Layers3, ListChecks, Maximize2, MessageSquare, Minus, PanelRight, PhoneCall, PictureInPicture2, Power, Search, Settings2, X } from 'lucide-react';
+import { Cable, DraftingCompass, Gamepad2, History, Inbox, Layers3, ListChecks, Maximize2, MessageSquare, Minus, PanelRight, PhoneCall, PictureInPicture2, Power, Search, Settings2, X } from 'lucide-react';
 import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import FeatureDialog from './FeatureDialog';
 import FeatureWorkspace from './FeatureWorkspace';
-import Conversation from './Conversation';
+import AssistantView from './AssistantView';
 import WorkspaceOverview from './WorkspaceOverview';
 import WorkspaceInspector from './WorkspaceInspector';
 import WorkspaceTray from './WorkspaceTray';
@@ -21,6 +21,7 @@ import { voiceChip } from '../features/voice/status.js';
 import { clearedFeatures, dialogFeatures, featureWorkspace, workspaceTitles } from './workspaceNavigation';
 import useCallsStatus from '../features/calls/useCallsStatus';
 import { startPresencePing } from '../features/calls/presence';
+import { bannerVisible } from '../features/liveDesign/model.js';
 import './workspace.css';
 
 const CommandPalette = lazy(() => import('./CommandPalette'));
@@ -70,6 +71,9 @@ export default function CommandDeck() {
   const locked = useStore(state => state.isLockScreenVisible);
   const activeFlag = useStore(state => Object.keys(flags).find(key => !dialogFeatures.has(key) && state[flags[key]]) || null);
   const activeDialog = useStore(state => Object.keys(flags).find(key => dialogFeatures.has(key) && state[flags[key]]) || null);
+  const liveDesign = useStore(state => state.liveDesign);
+  const liveDesignSeen = useStore(state => state.liveDesignSeen);
+  const liveDesignShown = useStore(state => state.liveDesignPanelVisible);
   const [page, setPage] = useState('assistant');
   const [camera, setCamera] = useState(false);
   const [commands, setCommands] = useState(false);
@@ -178,6 +182,8 @@ export default function CommandDeck() {
     return () => window.removeEventListener('keydown', key);
   }, [locked, activeDialog, quick, setQuick]);
   const [title, description] = workspaceTitles[page];
+  // JARVIS added steps to the live design while the owner is on another page or in a feature.
+  const designBanner = (page !== 'assistant' || !!activeFeature) && bannerVisible({ design: liveDesign, seen: liveDesignSeen, panelVisible: liveDesignShown });
   return <div className={`command-deck ${gaming ? 'gaming-mode' : ''} ${quick ? 'quick-mode' : ''}`} data-resource-state={resource.state} data-ui-contract-version={UI_CONTRACT_VERSION} data-ui-visible={visible && resident.visible !== false}>
     {quick && !locked && <Suspense fallback={<PanelState kind="loading" title="Preparing quick assistant"/>}><QuickAssistant gaming={gaming} onExpand={() => setQuick(false)} onClose={() => window.electronAPI ? window.electronAPI.close() : setQuick(false)}/></Suspense>}
     {!quick && !locked && <><a href="#main-workspace" className="skip-link">Skip to workspace</a>
@@ -206,11 +212,11 @@ export default function CommandDeck() {
         <div className="nav-bottom"><button type="button" className="nav-quick" aria-label="Quick assistant" aria-keyshortcuts="Control+Shift+Space" title="Quick assistant (Ctrl+Shift+Space)" onClick={() => setQuick(true)}><PictureInPicture2 size={16} aria-hidden="true"/><span>Quick assistant</span></button><button type="button" aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode</span><span className="toggle-switch" aria-hidden="true"/></button><button type="button" aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={16} aria-hidden="true"/><span>Preferences</span></button>{window.electronAPI && <button type="button" className="quit-button" aria-label="Quit JARVIS" onClick={() => window.electronAPI.quit()}><Power size={16} aria-hidden="true"/><span>Quit JARVIS</span></button>}</div>
       </aside>
       <main id="main-workspace" className="workspace" tabIndex={-1} data-page={page}>
-        {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
+        {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{designBanner && <div role="status" className="system-banner system-banner--accent live-design-banner"><DraftingCompass size={16} aria-hidden="true"/><span>{`JARVIS is designing “${liveDesign.name}”.`}</span><button type="button" className="btn btn--secondary btn--sm system-banner__action" onClick={() => navigate('assistant')}>Open live design</button></div>}{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
         <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''}`}>
           {!activeFeature && page !== 'callsview' && <div className="workspace-heading"><div className="workspace-heading__copy"><h1>{title}</h1>{description && <p>{description}</p>}</div>{page === 'assistant' && <HudLabel className="workspace-heading__meta">{`PROJECT · ${currentProject || 'temp'}`}</HudLabel>}</div>}
           {(page === 'studio' || page === 'activity') && <div className="studio-tabs hud-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['activity','Artifacts']].map(([key,label]) => { const selected = activeFeature === key || page === key; return <button type="button" key={key} className={`hud-tab ${selected ? 'is-active' : ''}`} aria-pressed={selected} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={14} aria-hidden="true"/>}{label}</button>; })}</div>}
-          {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <Conversation onOpen={openFeature} gaming={gaming}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'callsview' ? <Suspense fallback={<PanelState kind="loading" title="Opening calls"/>}><CallsWorkspace/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
+          {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <AssistantView onOpen={openFeature} gaming={gaming}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'callsview' ? <Suspense fallback={<PanelState kind="loading" title="Opening calls"/>}><CallsWorkspace/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}
         </div>{inspector && <WorkspaceInspector connected={connected} processing={processing} voice={voice} gaming={gaming} resource={resource} memory={memory} showPresence={!(page === 'assistant' && !activeFeature)} onOpen={openFeature} onClose={() => setInspector(false)}/>}</div>
         <WorkspaceTray expanded={tray} onToggle={() => setTray(value => !value)} onOpen={openFeature} gaming={gaming}/>
       </main></div>{activeDialog && <FeatureDialog key={activeDialog} feature={activeDialog} onClose={closeDialog}/>}</>}

@@ -268,6 +268,9 @@ class LiveDesigns:
         self.context, self.authorize = context, authorize
         self.designs = {}
         self.reviewed = {}  # owner -> (design id, version) shown in the build approval
+        # callable(owner, active) told when an owner's design starts or ends; the talking
+        # overlay uses it to offer "Open JARVIS" while JARVIS designs (application.py).
+        self.observer = None
         previous = cad.on_update
 
         async def on_update(owner, job):
@@ -413,6 +416,7 @@ class LiveDesigns:
                 prior,
             )
         self.designs[owner] = design
+        self.notify(owner, True)
         await self.emit(owner)
         return self.summary(design)
 
@@ -666,6 +670,15 @@ class LiveDesigns:
         if design is not None and isinstance(job, dict) and self.mirror(design, job):
             await self.emit(owner)
 
+    def notify(self, owner, active):
+        observer = self.observer
+        if observer is None:
+            return
+        try:
+            observer(owner, active)
+        except Exception:
+            logger.warning("Live design observer could not be told", exc_info=True)
+
     def snapshot(self, owner):
         design = self.designs.get(owner)
         if design is None:
@@ -760,5 +773,6 @@ class LiveDesigns:
         self.referenced(owner, args.design_id)
         self.designs.pop(owner, None)
         self.reviewed.pop(owner, None)
+        self.notify(owner, False)
         await self.emit(owner)
         return self.snapshot(owner)

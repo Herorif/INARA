@@ -71,6 +71,9 @@ class VoiceOverlay:
         self.user = self.jarvis = ""
         self.user_final = self.jarvis_final = False
         self.approval = False
+        # Owners with a live design (services/cad_design.py): while the local owner has one,
+        # the overlay offers "Open JARVIS" so the workspace can show it.
+        self.designs = set()
         self.end = None
         self.turn_done = True  # the next owner words start a new exchange
         self.frozen = False  # barged in: JARVIS's words stay as they were until the turn ends
@@ -96,12 +99,31 @@ class VoiceOverlay:
             "jarvis": self.jarvis,
             "jarvis_final": self.jarvis_final,
             "approval": self.approval,
+            "design": self.designing(),
             "end": dict(self.end) if self.end is not None else None,
         }
 
     def local_snapshot(self):
         """``local_voice`` for the owner's renderers: the snapshot and how it started."""
         return {**self.snapshot(), "source": self.source}
+
+    def designing(self):
+        """The local owner has a live design."""
+        if not self.designs:
+            return False
+        owner = self.app.voice.local_owner()
+        return owner is not None and owner in self.designs
+
+    def design_changed(self, owner, active):
+        """LiveDesigns: an owner's design started (``active``) or ended. A running session's
+        snapshot is published when the local owner's flag changes."""
+        before = self.designing()
+        if active:
+            self.designs.add(owner)
+        else:
+            self.designs.discard(owner)
+        if self.designing() != before and self.running():
+            self.publish()
 
     def enabled(self):
         return overlay_settings(self.app.settings)["overlay"]

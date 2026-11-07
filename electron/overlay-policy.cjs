@@ -101,12 +101,13 @@ function clip(value, limit, keep = 'start') {
 /**
  * Validates one `voice_overlay` snapshot. Returns a fresh object with only the contract fields,
  * text truncated to its limit (JARVIS's words keep their newest end), or null when a type or enum is wrong (the snapshot is dropped).
+ * `design` (the owner has a live design) passes through as a boolean, false when absent.
  * `end` and `state` agree afterwards: an end makes the state "ended", and "ended" with no end
  * reads as a quiet end.
  */
 function sanitizeSnapshot(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const { session, state, user, user_final: userFinal, jarvis, jarvis_final: jarvisFinal, approval, end } = raw;
+  const { session, state, user, user_final: userFinal, jarvis, jarvis_final: jarvisFinal, approval, design, end } = raw;
   if (session !== null && (typeof session !== 'string' || session.length > LIMITS.session)) return null;
   if (typeof state !== 'string' || !STATES.includes(state)) return null;
   if (typeof user !== 'string' || typeof jarvis !== 'string') return null;
@@ -126,6 +127,7 @@ function sanitizeSnapshot(raw) {
     jarvis: clip(jarvis, LIMITS.jarvis, 'end'),
     jarvis_final: jarvisFinal,
     approval,
+    design: design === true,
     end: cleanEnd,
   };
 }

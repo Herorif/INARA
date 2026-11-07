@@ -53,6 +53,15 @@
   justify-content: center;
   gap: .375rem;
 }
+/* At rest the label sits above the title (as in the approved mockup), so a narrow column,
+   such as beside the live design panel, keeps the title readable. */
+.conversation-workspace .conversation-stage[data-stage="rest"] .conversation-heading-copy {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: .25rem;
+}
+.conversation-workspace .conversation-stage[data-stage="rest"] h2 { max-width: 100%; }
 .conversation-workspace .conversation-stage__label.is-live,
 .conversation-workspace .conversation-stage__state.is-live { color: var(--accent); }
 .conversation-workspace .conversation-stage__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

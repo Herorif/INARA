@@ -44,6 +44,10 @@ Main validates every payload before relaying it over IPC:
   tab and newline are removed. Unknown fields are dropped.
 - An `end` forces state `ended`; `ended` without an end reads as a quiet end.
 - Levels are clamped to 0..1; non-numbers are dropped.
+- `design` (true while the local owner has a live design, docs/LIVE_DESIGN.md) passes through
+  as a boolean, and reads as false when absent. The core publishes a new snapshot when it
+  changes during a session: `LiveDesigns` tells `VoiceOverlay.design_changed` when a design
+  starts or ends. `local_voice` carries it too.
 
 ## When the overlay opens: the speaking core
 
@@ -116,8 +120,9 @@ The panel holds the core (PresenceRing at 64 px), the captions and the buttons:
   - an error end's message in warn.
 - **Buttons** (Stop always sits at the far right; "Open JARVIS" comes before it):
   - Stop until the session ends;
-  - "Open JARVIS" when approval is needed and after a quiet end. After the end it also fades
-    the panel out.
+  - "Open JARVIS" when approval is needed or JARVIS is designing (`design`), and after a quiet
+    end. After the end it also fades the panel out. While designing, it opens the workspace,
+    whose Assistant page shows the live design beside the conversation.
 
 Captions are rendered as text only.
 

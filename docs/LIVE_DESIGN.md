@@ -1,6 +1,6 @@
 # Live design (core side)
 
-Added 7 November 2026 (D1a). The owner asks JARVIS, by voice or chat, to design something. A draft then takes shape part by part. Each change applies at once and can be undone. Nothing is written until the owner builds, and the build needs approval. This page covers the core: the model, the brain tools, the renderer RPCs and the events. The workspace panel is task D1b.
+Added 7 November 2026 (D1a). The owner asks JARVIS, by voice or chat, to design something. A draft then takes shape part by part. Each change applies at once and can be undone. Nothing is written until the owner builds, and the build needs approval. This page covers the core (the model, the brain tools, the renderer RPCs and the events) and the workspace panel (D1b).
 
 ## Model
 
@@ -64,5 +64,53 @@ These are for the owner's authenticated renderer sockets. Each RPC acknowledges 
   - The build is the same `generate_cad` service path as the studio's `cad_submit`: the offline engine, a new revision and the studio history.
 - `cad_design_end {design_id}` ends the design. A running build continues and lands in the studio history.
 - The `cad_design` event carries the snapshot. It goes to the owner's renderer sockets after every change and job update. It is also sent on renderer connect, or after unlocking, when a design exists. The studio's `cad_job` events are unchanged.
+- `LiveDesigns.observer` (`callable(owner, active)`) is told when an owner's design starts or ends. `application.py` points it at the talking overlay, which then offers "Open JARVIS" while JARVIS designs (`design` in docs/VOICE_OVERLAY.md).
 
-Tests: `tests/test_live_design.py`.
+## Workspace panel
+
+Added 7 November 2026 (D1b). The renderer shows the design beside the conversation.
+
+**Files.**
+
+| File | Role |
+| --- | --- |
+| `src/app/AssistantView.jsx` | The Assistant page: the conversation, plus the panel while a design exists. |
+| `src/features/liveDesign/LiveDesignPanel.jsx` | Header, canvas, steps and footer; the RPCs and approvals. |
+| `src/features/liveDesign/LiveDesignCanvas.jsx` | The react-three-fiber view: blueprint, solid, reveal, highlights, ghosts and the camera. |
+| `src/features/liveDesign/model.js` | Pure rules: snapshot validation, the `bounds()` port, the reveal queue, ghosts and every label. |
+| `src/store/liveDesignSlice.js`, `src/services/events/liveDesign.js` | The validated snapshot in the store, from `cad_design`. |
+
+**Where it shows.**
+
+- On the Assistant page with no feature open, while a design exists. A workspace canvas 900 px or wider (the owner's 1440 px window keeps the split with the context inspector open) shows the conversation on the left (flex 2, min 360 px) and the panel on the right (flex 3, min 420 px), with a 1 px divider. A narrower canvas shows a "Conversation | Live design" switch, which turns to Live design whenever a new design starts. Conversation stays mounted in both layouts, so the speaking core keeps reporting its visibility.
+- When steps arrive while the owner is on another page or has a feature open, an accent banner reads "JARVIS is designing “<name>”." with "Open live design", which goes to the Assistant page. It hides once the panel shows them, or when the design ends.
+- A design from another project adds "· in <project>" to the header.
+
+**Store and events.** `cad_design` snapshots (and the RPC replies) are validated by `sanitizeDesignSnapshot`: only contract fields, at most 8 parts and the newest 40 steps, strings trimmed and clipped. An invalid snapshot is dropped. The renderer also asks `cad_design_get` on every connect and unlock, so a design that ended meanwhile clears. On disconnect the last snapshot stays and the footer says "Core offline", with the actions disabled. `liveDesignSeen` (`{id, n}`) is the newest step the panel has shown; the first snapshot after a page load marks every step seen, so a reload never replays the reveal.
+
+**Header.** "LIVE DESIGN", the name and a status chip: "Drafting · k of n" while new parts are revealed, "Draft · not built", "Needs your approval" while an approval card shows, "Building", "Saved" or "Failed". Two icon buttons: "Open in 3D studio" and "End live design". End asks "End without building?" for a draft, and ends at once otherwise (`cad_design_end`).
+
+**Canvas.** The parts' blockout boxes, framed isometrically and orbited by dragging, over a floor grid. Drafts are a blueprint: translucent faces and edge lines in the material colour.
+
+- New "add" steps reveal their parts one at a time, 400 ms apart. Each fades in and drops 8 mm into place over 300 ms. There is no reveal under reduced motion, and none on the first snapshot after a load. The steps list shows each row as its part appears.
+- The newest step's new or changed parts have accent edges for 1.2 s.
+- A change's old parts and removed parts show as dashed ghosts until the next step, an undo, or 6 s.
+- The camera refits, with a short ease, when the bounds change, keeping the orbit direction, but not while parts are being revealed.
+- A saved design shows the built model (`ModelPreview` in its `bare` mode) once its GLB loads, and the recipe solid otherwise.
+- The overlays are a callout chip of the newest step, a HUD line about the geometry, and "Drag to orbit".
+
+**Steps.** About five rows, newest at the bottom and scrolled into view. Each row has "YOU" or "JARVIS", the title and the detail; unsupported details are in warn. An undoable row has "Undo" (`cad_design_undo`). Errors from any action show under the list for 6 s, for example gaming mode's refusal of a build.
+
+**Footer.**
+
+- Draft: "N parts · W × D × H mm · draft" and "Build it". The bounds are the renderer port of `bounds()`.
+- The approval card: "Build “<name>”?", "N parts · STL and GLB on this PC · about 10 s", and Not now and Build.
+  - After "Build it", Build sends `cad_design_build`.
+  - For a pending `tool_confirmation_request` with `tool: "build_live_design"` and this design's id, the buttons answer it (`confirm_tool`). While the panel is on screen the global approval popup skips such requests; otherwise it shows them, with the "Build live design" layout.
+- Building: "Building geometry", "Checking the solid" and "Saving exports" from the job's phase, a progress line and Cancel (`cad_cancel`).
+- Saved: "N closed parts · W × D × H mm", STL and GLB downloads (`cad_artifact`) and "Open in 3D studio".
+- Failed: the job's error and "Try again", which opens the approval card.
+
+**Open in 3D studio.** A saved design of the current project opens the studio with its revision selected (`studioSelection`). Anything else is handed to the studio as its working draft (`cadDraftHandoff`, read once when the studio mounts), shown as "Draft blockout". The hand-off is one-way; the live design stays open.
+
+Tests: `tests/test_live_design.py` and `tests/test_live_design_panel.mjs`.

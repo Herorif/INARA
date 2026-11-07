@@ -1,14 +1,22 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import useStore from '../store';
 import { emitSocket } from '../services/socket';
 import { useDialogFocus } from '../app/useDialogFocus';
 import HudLabel from '../shared/ui/HudLabel';
 import { approvalView } from './approvalView';
+import { popupQueue } from '../features/liveDesign/model.js';
 
-/** Shows the oldest pending approval; answering removes exactly that request id. */
+/**
+ * Shows the oldest pending approval; answering removes exactly that request id. While the
+ * Live design panel is on screen it answers its own design's build, so those are skipped.
+ */
 export default function ConfirmationPopup() {
-  const request = useStore(state => state.confirmationQueue[0] || null);
-  const pending = useStore(state => state.confirmationQueue.length);
+  const queue = useStore(state => state.confirmationQueue);
+  const panelVisible = useStore(state => state.liveDesignPanelVisible);
+  const designId = useStore(state => state.liveDesign?.id || null);
+  const shown = useMemo(() => popupQueue(queue, { panelVisible, designId }), [queue, panelVisible, designId]);
+  const request = shown[0] || null;
+  const pending = shown.length;
   const dialog = useRef(null);
   const respond = useCallback(confirmed => {
     if (!request) return;

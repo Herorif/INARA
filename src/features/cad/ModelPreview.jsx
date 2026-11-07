@@ -76,9 +76,13 @@ function disposeModel(model) {
     if (object.material) for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.dispose();
   });
 }
+/**
+ * A saved revision's geometry. `bare` (the Live design panel) draws only the canvas, without
+ * the view tools, label or guide, and shows `fallback` until the geometry loads or if it can't.
+ */
 export default function ModelPreview({
   job,
-  wireframe, selectedObject=0, onSelectObject
+  wireframe, selectedObject=0, onSelectObject, bare=false, fallback=null
 }) {
   const cameraRef=useRef(null),savedView=useRef(null);
   const [view,setView]=useState({kind:'perspective'}),[hasView,setHasView]=useState(false),[viewMessage,setViewMessage]=useState('');
@@ -129,9 +133,7 @@ export default function ModelPreview({
   }, [job?.request_id, job?.state, connected]);
   const visibleGeometry = loadedFor === job?.request_id && job?.state === 'succeeded' ? geometry : null;
   const colors = useMemo(() => sceneColors(), []);
-  return <><div className="draft-view-tools hud-panel" role="group" aria-label="Saved model views">{[['perspective','Fit model'],['selection','Frame selection'],['top','Top'],['front','Front']].map(([kind,title])=><button type="button" className="btn btn--ghost btn--sm" key={kind} disabled={!visibleGeometry} onClick={()=>setView({kind,selected:selectedObject,nonce:Date.now()})}>{title}</button>)}<span className="draft-view-tools__divider" aria-hidden="true" /><button type="button" className="btn btn--ghost btn--sm" disabled={!visibleGeometry} onClick={()=>{const controls=cameraRef.current;if(controls){savedView.current={position:controls.object.position.toArray(),target:controls.target.toArray()};const stored=saveView(undefined,viewKey,savedView.current);setHasView(true);setViewMessage(stored ? 'View saved for this revision.' : 'View kept for this panel; browser storage unavailable.');}}}>Save view</button><button type="button" className="btn btn--ghost btn--sm" disabled={!visibleGeometry || !hasView} onClick={()=>setView({kind:'restore',saved:savedView.current,nonce:Date.now()})}>Restore view</button>{viewMessage && <small role="status">{viewMessage}</small>}</div><div className="cad-viewport" data-model-loaded={!!visibleGeometry}>
-    <div className="cad-view-label hud-label"><span className={`status-dot ${visibleGeometry ? 'status-dot--ok' : ''}`} aria-hidden="true" /><span>Perspective / {wireframe ? 'wireframe' : 'solid'}{job?.recipe && ` / ${job.recipe.shape}`}</span></div>
-    {visibleGeometry ? <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{
+  const canvas = visibleGeometry && <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{
       position: [2.8, 2.1, 3],
       fov: 42, near:.001, far:100
     }} gl={{
@@ -140,7 +142,11 @@ export default function ModelPreview({
       <color attach="background" args={[colors.background]} />
       <ambientLight intensity={1.1} /><directionalLight position={[4, 7, 5]} intensity={2.2} /><directionalLight position={[-4, 1, -2]} intensity={.7} color={colors.fillLight} />
       <Solid geometry={visibleGeometry} wireframe={wireframe} selectedObject={selectedObject} onSelectObject={job?.recipe?.engine === 'blender' ? undefined : onSelectObject} /><gridHelper args={[5, 20, colors.gridMajor, colors.gridMinor]} position={[0, -1.08, 0]} /><Controls geometry={visibleGeometry} view={view} cameraRef={cameraRef} />
-    </Canvas> : <EmptyState className="cad-preview-empty" icon={<Box strokeWidth={1.5} />} title={error ? 'Preview unavailable' : job?.state === 'succeeded' ? 'Loading model' : 'No saved model'} body={error || 'Choose a shape, set its dimensions and build a revision.'} />}
+    </Canvas>;
+  if (bare) return visibleGeometry ? <div className="model-preview-bare" data-model-loaded="true">{canvas}</div> : fallback;
+  return <><div className="draft-view-tools hud-panel" role="group" aria-label="Saved model views">{[['perspective','Fit model'],['selection','Frame selection'],['top','Top'],['front','Front']].map(([kind,title])=><button type="button" className="btn btn--ghost btn--sm" key={kind} disabled={!visibleGeometry} onClick={()=>setView({kind,selected:selectedObject,nonce:Date.now()})}>{title}</button>)}<span className="draft-view-tools__divider" aria-hidden="true" /><button type="button" className="btn btn--ghost btn--sm" disabled={!visibleGeometry} onClick={()=>{const controls=cameraRef.current;if(controls){savedView.current={position:controls.object.position.toArray(),target:controls.target.toArray()};const stored=saveView(undefined,viewKey,savedView.current);setHasView(true);setViewMessage(stored ? 'View saved for this revision.' : 'View kept for this panel; browser storage unavailable.');}}}>Save view</button><button type="button" className="btn btn--ghost btn--sm" disabled={!visibleGeometry || !hasView} onClick={()=>setView({kind:'restore',saved:savedView.current,nonce:Date.now()})}>Restore view</button>{viewMessage && <small role="status">{viewMessage}</small>}</div><div className="cad-viewport" data-model-loaded={!!visibleGeometry}>
+    <div className="cad-view-label hud-label"><span className={`status-dot ${visibleGeometry ? 'status-dot--ok' : ''}`} aria-hidden="true" /><span>Perspective / {wireframe ? 'wireframe' : 'solid'}{job?.recipe && ` / ${job.recipe.shape}`}</span></div>
+    {visibleGeometry ? canvas : <EmptyState className="cad-preview-empty" icon={<Box strokeWidth={1.5} />} title={error ? 'Preview unavailable' : job?.state === 'succeeded' ? 'Loading model' : 'No saved model'} body={error || 'Choose a shape, set its dimensions and build a revision.'} />}
     <div className="cad-view-guide"><Rotate3D size={14} aria-hidden="true" /> Drag to orbit, scroll to zoom<span className="hud-label">Z-up / mm</span></div>
   </div></>;
 }

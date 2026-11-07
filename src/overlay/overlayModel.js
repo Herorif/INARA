@@ -38,6 +38,7 @@ export const endOf = snapshot => (snapshot && snapshot.state === 'ended' ? snaps
 /**
  * View for one snapshot: { ring, top, main, showStop, showOpen, endKind } where top and main
  * are { text, tone } or null (hidden). Text is plain text; the renderer never parses it as HTML.
+ * While the session runs, "Open JARVIS" shows when approval is needed or JARVIS is designing.
  */
 export function snapshotView(snapshot) {
   if (!snapshot) return { ring: 'working', top: null, main: null, showStop: false, showOpen: false, endKind: null };
@@ -69,7 +70,7 @@ export function snapshotView(snapshot) {
   if (jarvis) main = { text: jarvis, tone: snapshot.state === 'speaking' ? 'primary' : 'secondary' };
   else if (snapshot.state === 'thinking') main = { text: 'Thinking…', tone: 'tertiary' };
   else if (snapshot.state === 'working') main = { text: 'Working on it…', tone: 'tertiary' };
-  return { ring, top, main, showStop: true, showOpen: snapshot.approval === true, endKind: null };
+  return { ring, top, main, showStop: true, showOpen: snapshot.approval === true || snapshot.design === true, endKind: null };
 }
 
 /*
