@@ -26,6 +26,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .deck-clock { display:flex; align-items:baseline; gap:.5rem; white-space:nowrap; }
 .deck-clock__time { font-family:var(--font-mono); font-size:var(--text-sm); color:var(--text-2); font-variant-numeric:tabular-nums; }
 .titlebar-actions { display:flex; align-items:center; gap:.25rem; }
+.titlebar-quick { flex-shrink:0; }
+.titlebar-quick>svg { flex-shrink:0; }
 .titlebar-actions .inspector-toggle[aria-expanded="true"] { color:var(--accent); background:var(--bg-selected); }
 .titlebar-divider { align-self:center; width:1px; height:1.5rem; background:var(--line); }
 .window-actions { display:flex; height:100%; }
@@ -47,6 +49,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 @container command-bar (max-width:56rem) {
   .titlebar-brand { width:auto; padding-right:.25rem; }
   .command-trigger { min-width:0; }
+  .titlebar-quick { width:var(--btn-h); min-width:var(--btn-h); padding:0; }
+  .titlebar-quick__text { display:none; }
 }
 @container command-bar (max-width:46rem) {
   .command-trigger { width:2.25rem; min-width:2.25rem; padding:0; justify-content:center; }
@@ -79,7 +83,6 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .nav-project__name { max-width:100%; font-size:var(--text-sm); font-weight:500; color:var(--text-1); overflow-wrap:anywhere; }
 .navigation .nav-project__link { width:auto; min-height:1.875rem; margin-left:-.5rem; padding:0 .5rem; font-size:var(--text-xs); }
 .nav-bottom { display:flex; flex-direction:column; gap:2px; margin-top:auto; padding-top:1rem; border-top:1px solid var(--line); }
-.resident-note { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.375rem; margin:.75rem .5rem 0; padding-top:.75rem; border-top:1px solid var(--line); }
 .toggle-switch { flex-shrink:0; position:relative; width:1.5rem; height:.875rem; margin-left:auto; border:1px solid var(--line-strong); border-radius:var(--radius-lg); background:var(--bg-raised); }
 .toggle-switch::before { content:''; position:absolute; width:.5rem; height:.5rem; left:2px; top:2px; border-radius:50%; background:var(--text-3); transition:left var(--dur-fast) var(--ease-out); }
 .navigation .gaming-selected { color:var(--warn); }
@@ -243,7 +246,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   :root { --deck-nav:4.75rem; }
   .titlebar-brand { width:auto; padding-right:.25rem; }
   .navigation { padding:1rem .5rem; }
-  .nav-caption,.nav-project,.resident-note,.navigation button>span,.navigation .quit-button { display:none; }
+  .nav-caption,.nav-project,.navigation button>span,.navigation .quit-button { display:none; }
   .navigation button { justify-content:center; min-height:2.75rem; padding:0; }
   .navigation nav button.selected { border-radius:var(--radius-sm); }
   .navigation button>span.nav-badge { position:absolute; top:.25rem; right:.25rem; margin:0; min-width:1rem; height:1rem; font-size:.625rem; }
@@ -282,9 +285,9 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .navigation nav button.selected { border-radius:0 0 var(--radius-sm) var(--radius-sm); }
   .navigation nav button.selected::before { top:0; bottom:auto; left:0; right:0; width:auto; height:2px; }
   /* Gaming and Preferences stay reachable in the command bar, left of the window controls. */
-  .nav-bottom { position:fixed; z-index:10; top:calc((var(--deck-titlebar) - 2.25rem) / 2); right:calc(3 * 2.5rem + 2 * 2.25rem + 1.375rem + 1.5rem); flex-direction:row; gap:0; padding:0; border:0; -webkit-app-region:no-drag; }
+  .nav-bottom { position:fixed; z-index:10; top:calc((var(--deck-titlebar) - 2.25rem) / 2); right:calc(3 * 2.5rem + 2.25rem + 1.875rem + 1.375rem + 1.5rem); flex-direction:row; gap:0; padding:0; border:0; -webkit-app-region:no-drag; }
   .nav-bottom button { width:2.25rem; min-height:2.25rem; padding:0; justify-content:center; }
-  .nav-bottom .quit-button { display:none; }
+  .nav-bottom .quit-button,.nav-bottom .nav-quick { display:none; }
   .nav-bottom .toggle-switch { display:none; }
   .workspace { flex:1; }
   .workspace-canvas { padding:1.25rem .875rem; gap:1rem; }

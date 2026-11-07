@@ -628,6 +628,7 @@ class Tray:
         talk = ("stop_talking", "Stop talking") if self.talking else ("talk", "Talk to JARVIS")
         return (
             ("open", "Open JARVIS"),
+            ("quick", "Quick assistant"),
             talk,
             ("wake_word", 'Listen for "Hey Jarvis"'),
             ("gaming", "Toggle gaming mode"),

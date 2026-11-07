@@ -822,10 +822,10 @@ def test_tray_menu_offers_talk_or_stop():
     from resident.win32 import Tray
 
     assert [item[1] for item in Tray.menu_items(SimpleNamespace(talking=False))] == [
-        "Open JARVIS", "Talk to JARVIS", 'Listen for "Hey Jarvis"', "Toggle gaming mode",
-        "Retry backend", "Quit JARVIS",
+        "Open JARVIS", "Quick assistant", "Talk to JARVIS", 'Listen for "Hey Jarvis"',
+        "Toggle gaming mode", "Retry backend", "Quit JARVIS",
     ]
-    assert Tray.menu_items(SimpleNamespace(talking=True))[1] == ("stop_talking", "Stop talking")
+    assert Tray.menu_items(SimpleNamespace(talking=True))[2] == ("stop_talking", "Stop talking")
 
 
 def test_tooltip_text_for_each_state(tmp_path):

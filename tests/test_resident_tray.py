@@ -286,7 +286,7 @@ def test_tray_menu_and_balloon_paths_are_unchanged(fakes, tmp_path):
     assert shell.calls[-1] == (NIM_MODIFY, NIF_TIP, value.icons["ready"])
     value.talking, value.wake_word = False, True
     assert [item[0] for item in value.menu_items()] == [
-        "open", "talk", "wake_word", "gaming", "retry", "quit"]
+        "open", "quick", "talk", "wake_word", "gaming", "retry", "quit"]
 
 
 # --- the host ------------------------------------------------------------------------------
@@ -335,6 +335,56 @@ def test_calls_observer_posts_to_the_tray_and_switches_the_icon(host):
     assert host.state.calls is False and host.tray.icons[-1] == "ready"
     host.calls_changed("yes")                          # only a real True turns it on
     assert host.state.calls is False
+
+
+class FakeWorkspace:
+    """A workspace process that records how it was started; ``running`` drives alive()."""
+
+    started = []
+
+    def __init__(self, executable, script, bootstrap, root):
+        self.bootstrap, self.running = bootstrap, True
+        FakeWorkspace.started.append(self)
+
+    def alive(self):
+        return self.running
+
+    def close(self):
+        self.running = False
+
+
+def test_tray_quick_assistant_opens_the_workspace_in_quick_mode(host, tmp_path, monkeypatch):
+    """Tray "Quick assistant" takes the hotkey's path: straight into quick mode whether the
+    core is still starting, no workspace runs, or the workspace is closing to the tray."""
+    import resident.layout
+
+    monkeypatch.setattr(resident.layout, "workspace_executable", lambda root: tmp_path / "e.exe")
+    (tmp_path / "dist").mkdir()
+    (tmp_path / "dist/index.html").write_text("")
+    host.process_factory, FakeWorkspace.started = FakeWorkspace, []
+    host.runtime = SimpleNamespace(client_roles={}, client_principals={})
+    # The core is still starting: the request waits, then opens in quick mode.
+    host.state.phase = "starting"
+    host.action("quick")
+    assert FakeWorkspace.started == [] and host.pending_open and host.pending_quick
+    host.state.phase = "ready"
+    host.tick()
+    assert [item.bootstrap["quick"] for item in FakeWorkspace.started] == [True]
+    assert host.state.visible and not host.pending_open
+    # Closed to the tray while its process is still exiting: reopens in quick mode after.
+    host.state.visible = False
+    host.action("quick")
+    host.tick()
+    assert len(FakeWorkspace.started) == 1 and host.pending_open
+    FakeWorkspace.started[0].running = False
+    host.tick()
+    assert [item.bootstrap["quick"] for item in FakeWorkspace.started] == [True, True]
+    # No workspace at all: "Quick assistant" starts one in quick mode, "Open JARVIS" does not.
+    host.release_workspace()
+    host.action("quick")
+    host.release_workspace()
+    host.action("open")
+    assert [item.bootstrap["quick"] for item in FakeWorkspace.started] == [True, True, True, False]
 
 
 def test_host_icon_follows_voice_gaming_and_failure(host):
