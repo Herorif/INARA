@@ -75,7 +75,8 @@ BrowserWindow.prototype.loadFile = async function (...args) {
     assert.deepEqual(overflow, [], `${label}: ${JSON.stringify(overflow)}`);
   };
   try {
-    await until(() => evaluate(`document.querySelector('.presence-status')?.textContent === 'STANDING BY' && document.querySelector('.core-chip')?.textContent === 'CORE ONLINE'`), 'core online');
+    // On the Assistant page the speaking core lives in the conversation (C1), not the inspector.
+    await until(() => evaluate(`!!document.querySelector('.conversation-workspace [data-presence="idle"]') && document.querySelector('.core-chip')?.textContent === 'CORE ONLINE'`), 'core online');
     await evaluate(`window.commandQA = { mediaCalls: 0, enumerateCalls: 0 };
       navigator.mediaDevices.enumerateDevices = async () => { commandQA.enumerateCalls++; return []; };
       navigator.mediaDevices.getUserMedia = async () => { commandQA.mediaCalls++; throw new DOMException('No media in shell verification', 'NotAllowedError'); }; void 0`);

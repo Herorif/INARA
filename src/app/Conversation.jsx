@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, AudioWaveform, BookOpen, Mic, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, AudioWaveform, BookOpen, Mic, Plus, Square } from 'lucide-react';
 import useStore from '../store';
 import HudLabel from '../shared/ui/HudLabel';
-import BrandMark from '../shared/ui/BrandMark';
+import PresenceRing from './PresenceRing';
 import { liveVoice, voiceTarget } from '../features/voice';
+import { emitSocket } from '../services/socket';
+import { stageView } from './stageModel.js';
+import { useVoiceStageReport } from './useVoiceStage.js';
 import './conversation.css';
 
 const starters = [
@@ -22,7 +25,30 @@ export const shortTime = value => {
 };
 const speaker = sender => sender === 'You' ? 'YOU' : sender === 'System' ? 'SYSTEM' : 'JARVIS';
 
-export default function Conversation() {
+/** Speaking core sizes (px): the header at rest (and the voice stage at narrow widths), the voice stage, the empty hero. */
+const CORE_REST = 64, CORE_VOICE = 112, CORE_HERO = 150;
+const NARROW = '(max-width: 680px)';
+
+function useNarrow() {
+  const [narrow, setNarrow] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia(NARROW).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+    const query = window.matchMedia(NARROW);
+    const change = () => setNarrow(query.matches);
+    change();
+    query.addEventListener('change', change);
+    return () => query.removeEventListener('change', change);
+  }, []);
+  return narrow;
+}
+
+/** Stop talking: the renderer's own live voice, or the core's tray session. */
+const stopVoice = target => {
+  if (target === 'window') liveVoice().stop();
+  else if (target === 'local') emitSocket('local_voice_stop', {});
+};
+
+export default function Conversation({ gaming = false }) {
   const messages = useStore(state => state.messages);
   const processing = useStore(state => state.textProcessing);
   const restoring = useStore(state => state.conversationRestoring);
@@ -32,6 +58,11 @@ export default function Conversation() {
   const conversationId = useStore(state => state.conversationId);
   const newChat = useStore(state => state.startNewConversation);
   const voice = useStore(state => state.voice);
+  const local = useStore(state => state.localVoice);
+  const localLevel = useStore(state => state.localVoiceLevel);
+  const localEndedAt = useStore(state => state.localVoiceEndedAt);
+  const narrow = useNarrow();
+  const [, refresh] = useState(0);
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const composing = useRef(false);
@@ -45,6 +76,21 @@ export default function Conversation() {
   // There is no stored session title; the first question names the session.
   const firstQuestion = messages.find(message => message.sender === 'You')?.text?.trim();
   const sessionTitle = firstQuestion ? firstQuestion.split('\n')[0] : 'New conversation';
+  const stage = stageView({
+    connected, processing, voice, caption: messages[messages.length - 1],
+    local, localEndedAt, localLevel, now: Date.now(),
+  });
+  const speaking = stage.mode === 'voice';
+  const empty = messages.length === 0;
+  const coreSize = speaking && !narrow ? CORE_VOICE : CORE_REST;
+  useVoiceStageReport();
+
+  // A finished tray session's words are held for a moment; the stage rests when that ends.
+  useEffect(() => {
+    if (stage.until === null) return undefined;
+    const timer = setTimeout(() => refresh(value => value + 1), Math.max(0, stage.until - Date.now()) + 20);
+    return () => clearTimeout(timer);
+  }, [stage.until]);
 
   useEffect(() => {
     followTail.current = true;
@@ -118,14 +164,24 @@ export default function Conversation() {
 
   return (
     <section className="conversation-panel conversation-workspace surface" aria-labelledby="conversation-title" data-conversation-state={state}>
-      <header className="conversation-heading">
+      <header className="conversation-heading conversation-stage" data-stage={speaking ? 'voice' : empty ? 'empty' : 'rest'}>
+        {(speaking || !empty) && <PresenceRing className="conversation-stage__core" size={coreSize} state={stage.presence} level={stage.level} lowPower={gaming} />}
         <div className="conversation-heading-copy">
-          <HudLabel>CONVERSATION</HudLabel>
-          <h2 id="conversation-title" title={sessionTitle}>{sessionTitle}</h2>
+          {speaking
+            ? <HudLabel className={`conversation-stage__label${stage.stop ? ' is-live' : ''}`}>{`${stage.label} · ${stage.source}`}</HudLabel>
+            : empty
+              ? <HudLabel>CONVERSATION</HudLabel>
+              : <HudLabel className="conversation-stage__label">CONVERSATION · <span className={`conversation-stage__state${stage.presence === 'working' ? ' is-live' : ''}`}>{stage.label}</span></HudLabel>}
+          <h2 id="conversation-title" title={sessionTitle} hidden={speaking}>{sessionTitle}</h2>
+          {speaking && <p className="conversation-stage__caption">{stage.caption && <span data-tone={stage.caption.tone}>{stage.caption.text}</span>}</p>}
         </div>
-        <button className="conversation-new btn btn--ghost btn--sm" type="button" disabled={disabled} onClick={newChat} aria-label="New conversation">
-          <Plus size={14} aria-hidden="true" /><span>New chat</span>
-        </button>
+        {speaking
+          ? stage.stop && <button className="conversation-stop btn btn--secondary btn--sm" type="button" onClick={() => stopVoice(stage.stop)}>
+            <Square size={14} aria-hidden="true" /><span>Stop talking</span>
+          </button>
+          : <button className="conversation-new btn btn--ghost btn--sm" type="button" disabled={disabled} onClick={newChat} aria-label="New conversation">
+            <Plus size={14} aria-hidden="true" /><span>New chat</span>
+          </button>}
       </header>
 
       <div className="conversation-body">
@@ -144,11 +200,11 @@ export default function Conversation() {
           }}
         >
           <div className="conversation-column">
-            {messages.length === 0 ? (
+            {empty ? (!speaking &&
               <div className="chat-welcome conversation-welcome">
-                <BrandMark size={32} />
+                <PresenceRing className="conversation-hero-core" size={CORE_HERO} state={stage.presence} lowPower={gaming} />
                 <h3>Start a conversation</h3>
-                <p>Ask a question, plan your day, or hand over a task.</p>
+                <p>Say “Hey Jarvis”, hold the mic, or type below.</p>
                 <div className="conversation-starters">
                   {starters.map(({ label, prompt }) => (
                     <button key={label} type="button" className="btn btn--secondary btn--sm" disabled={disabled} onClick={() => suggest(prompt)}>{label}</button>
@@ -207,7 +263,7 @@ export default function Conversation() {
         </div>
         <div className="composer-foot" id="conversation-input-help">
           <HudLabel>{`PROJECT · ${projectLabel}`}</HudLabel>
-          {voice.micOpen ? <HudLabel className="composer-foot__mic">{hands ? 'MICROPHONE ON · CONVERSATION' : 'MICROPHONE ON'}</HudLabel> : <HudLabel className="composer-foot__keys">ENTER TO SEND · SHIFT+ENTER FOR NEW LINE · HOLD MIC TO TALK</HudLabel>}
+          {stage.microphone ? <HudLabel className="composer-foot__mic">{`MICROPHONE ON · ${stage.source}`}</HudLabel> : <HudLabel className="composer-foot__keys">ENTER TO SEND · SHIFT+ENTER FOR NEW LINE · HOLD MIC TO TALK</HudLabel>}
         </div>
       </form>
     </section>

@@ -285,10 +285,14 @@ async def test_a_refused_start_never_shows_or_spawns_an_overlay(overlay):
 async def test_nothing_is_sent_without_an_overlay_and_connect_sends_the_snapshot(overlay):
     app = overlay.app
     del app.sessions.principals[OVERLAY], app.sessions.roles[OVERLAY]
+    del app.sessions.principals["client"], app.sessions.roles["client"]  # no workspace either
     live, session = await begin(overlay)
     live.push(input_transcription=types.Transcription(text="Hello"))
     await until(lambda: overlay.model.user == "Hello")
-    assert not [c for c in app.sio.emit.await_args_list if c.args[0] in ("voice_overlay", "voice_level")]
+    assert not [
+        c for c in app.sio.emit.await_args_list
+        if c.args[0] in ("voice_overlay", "voice_level", "local_voice", "local_voice_level")
+    ]
     assert session.audio.measure_level is False
     app.sessions.principals[OVERLAY] = OWNER
     app.sessions.roles[OVERLAY] = "overlay"
@@ -314,9 +318,10 @@ def test_caption_text_is_never_logged(overlay, caplog):
 # --- coalescing -----------------------------------------------------------------------------
 
 
-def fake_overlay(rooms=("one",)):
-    rooms = list(rooms)
+def fake_overlay(rooms=("one",), renderers=()):
+    rooms, renderers = list(rooms), list(renderers)
     emit = AsyncMock()
+    by_role = {"overlay": rooms, "renderer": renderers}
     app = SimpleNamespace(
         settings={},
         sio=SimpleNamespace(emit=emit),
@@ -326,7 +331,8 @@ def fake_overlay(rooms=("one",)):
         ),
         sessions=SimpleNamespace(
             is_owner=lambda owner: owner == "owner",
-            rooms=lambda owner, role: tuple(rooms) if role == "overlay" else (),
+            authenticated=lambda owner: owner == "owner",
+            rooms=lambda owner, role: tuple(by_role.get(role, ())),
         ),
     )
     return VoiceOverlay(app), emit, rooms

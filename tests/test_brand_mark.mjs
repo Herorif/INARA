@@ -44,11 +44,10 @@ test('BrandMark imports the five published marks', () => {
   assert.match(source, /<img className=\{`brand-mark \$\{className\}`\.trim\(\)\} \{\.\.\.brandMarkProps\(size, URLS\)\} \/>/);
 });
 
-test('the title bar, quick assistant and welcome show the mark at their sizes', () => {
+test('the title bar and quick assistant show the mark at their sizes', () => {
   const sites = [
     ['src/app/CommandDeck.jsx', 24, 'titlebar-brand brand"><BrandMark size={24} />'],
     ['src/app/QuickAssistant.jsx', 24, 'quick-header__brand"><BrandMark size={24} />'],
-    ['src/app/Conversation.jsx', 32, 'conversation-welcome">\n                <BrandMark size={32} />'],
   ];
   for (const [name, size, context] of sites) {
     const source = read(name).replace(/\r\n/g, '\n');
@@ -56,6 +55,10 @@ test('the title bar, quick assistant and welcome show the mark at their sizes', 
     assert.match(source, /import BrandMark from '\.\.\/shared\/ui\/BrandMark';/);
     assert.doesNotMatch(source, /monogram/);
   }
+  // The empty conversation's welcome shows the live core instead (C1 speaking core).
+  const conversation = read('src/app/Conversation.jsx');
+  assert.doesNotMatch(conversation, /BrandMark|monogram/);
+  assert.ok(conversation.replace(/\r\n/g, '\n').includes('conversation-welcome">\n                <PresenceRing className="conversation-hero-core" size={CORE_HERO}'));
 });
 
 test('the text monogram style is gone and the mark has no border', () => {
@@ -64,5 +67,5 @@ test('the text monogram style is gone and the mark has no border', () => {
   const rule = css.match(/\.brand-mark \{([^}]*)\}/)[1];
   assert.doesNotMatch(rule, /border/);
   assert.match(rule, /flex-shrink: 0/);
-  assert.match(read('src/app/conversation.css'), /\.conversation-welcome \.brand-mark \{ margin-bottom: \.5rem; \}/);
+  assert.match(read('src/app/conversation.css'), /\.conversation-welcome \.conversation-hero-core \{ margin-bottom: \.5rem; gap: 0; \}/);
 });

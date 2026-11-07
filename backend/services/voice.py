@@ -430,7 +430,9 @@ class VoiceService:
         )
         # Hold the one-per-owner slot while the devices open.
         self.sessions[owner] = session
-        self.overlay_event("started", session)
+        # How it started is known before the first snapshot (session.wake follows the
+        # shared microphone, which is only known once the devices open).
+        self.overlay_event("started", session, "wake" if wake else "tray")
         self.publish_local(self.local_status(session))
         try:
             from services.audio_devices import local_choices

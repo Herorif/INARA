@@ -45,6 +45,42 @@ Main validates every payload before relaying it over IPC:
 - An `end` forces state `ended`; `ended` without an end reads as a quiet end.
 - Levels are clamped to 0..1; non-numbers are dropped.
 
+## When the overlay opens: the speaking core
+
+The workspace's Assistant view has its own speaking core (`src/app/Conversation.jsx`, rules in
+`src/app/stageModel.js`), so the overlay is not needed while the owner is looking at it.
+
+- **To renderers.** `services/voice_overlay.py` also sends the owner's authenticated
+  `renderer` sockets `local_voice` (the snapshot above plus `"source": "tray" | "wake"`, how
+  the session started; coalesced the same way, the end at once, and sent to a renderer that
+  connects while a session runs) and `local_voice_level` (`{level}`, on the same schedule as
+  `voice_level`, then one final 0.0). The speaker's level is measured while an overlay or such
+  a renderer is connected during the session. The renderer validates both with
+  `src/features/voice/localVoice.js` (the same rules as `overlay-policy.cjs`, plus `source`)
+  and keeps them in the store (`localVoice`, `localVoiceLevel`, `localVoiceEndedAt`),
+  cleared on disconnect.
+- **Stage visibility.** The Conversation view sends `voice_stage` `{visible}` (strict, owner
+  renderer sockets only, allowed while locked, ACK `{ok}` or `{ok: false, code, message}`) 250
+  ms after a change and after every (re)connect, and `{visible: false}` when it unmounts.
+  Visible means the Conversation view is mounted (the Assistant page with no feature open),
+  the document is visible, the window has focus and the app is not locked. The core keeps the
+  latest value per socket and forgets it on disconnect; the stage counts as shown when any of
+  the authenticated owner's renderer sockets reports visible.
+- **The rule.** A tray session that starts while no stage is shown opens the overlay
+  (`started`) as before. One that starts while a stage is shown does not: the overlay is owed,
+  and no `voice_overlay` or `voice_level` goes to overlay sockets meanwhile (so an overlay still
+  fading out from the last session never shows this one). As soon as no stage is shown (the
+  window hidden, minimised or unfocused, another page, or the renderer gone) the host is told
+  `started` and the overlay shows the session. At most one overlay per session; once open it
+  stays for the rest of the session and is never closed because the stage came back.
+  `ended` and `disabled` are unchanged.
+- **Stop talking.** The stage's button sends `local_voice_stop` (no fields, owner renderer
+  only, allowed while locked): the tray's "Stop talking", `VoiceService.stop_local()`. Window
+  voice stops through the renderer's own live voice (`voice_stop`).
+
+Captions are never logged on either side. Tests: `tests/test_speaking_core.py` and
+`tests/test_speaking_core.mjs`.
+
 ## Window
 
 - Frameless, transparent (`#00000000`), no shadow, not resizable or movable, `focusable: false`,

@@ -11,6 +11,18 @@ change, coalesced to at most 20 per second (the latest state wins); the end snap
 out at once. ``voice_level`` (``{"level": 0..1}``) follows the speaker's output while
 JARVIS speaks, at most 20 per second, then one final 0.0.
 
+The same model also feeds the workspace's speaking core (C1): the owner's authenticated
+``renderer`` sockets receive ``local_voice`` (the snapshot plus ``"source": "tray" |
+"wake"``, how the session started), coalesced the same way and sent on connect while a
+session runs, and ``local_voice_level`` (``{"level": 0..1}``) on the same schedule as
+``voice_level``. The speaker's level is measured while an overlay or such a renderer is
+connected during the session.
+
+A renderer reports whether it shows that core (``voice_stage``, per socket, forgotten on
+disconnect). A tray session that starts while a stage is shown opens no overlay: the
+overlay is owed instead, and opens as soon as no stage is shown any more. At most one
+overlay opens per session, and an open one is never closed because the stage came back.
+
 The voice service feeds it through small hooks (``VoiceService.overlay_event``) and the
 text the core already accumulates; it never changes what the conversation records.
 Caption text is never logged.
@@ -30,6 +42,7 @@ JARVIS_LIMIT = 600  # JARVIS's words: the last 600 characters
 INTERVAL = 0.05  # at most 20 snapshots (and 20 levels) per second
 # Ends after which nothing may stay on screen: the overlay closes at once.
 NOW_ENDS = frozenset({"gaming_mode", "authentication_required", "permission_denied"})
+SOURCES = ("tray", "wake")  # how a tray session started: the tray, or "Hey Jarvis"
 
 
 def plain(text, limit):
@@ -53,6 +66,7 @@ class VoiceOverlay:
         # ("started", None), ("ended", {"now": bool}), ("disabled", None).
         self.observer = None
         self.session = None  # the tray VoiceSession shown (the current or the last one)
+        self.source = None  # "tray" | "wake" for that session
         self.state = "ended"
         self.user = self.jarvis = ""
         self.user_final = self.jarvis_final = False
@@ -60,6 +74,10 @@ class VoiceOverlay:
         self.end = None
         self.turn_done = True  # the next owner words start a new exchange
         self.frozen = False  # barged in: JARVIS's words stay as they were until the turn ends
+        # The workspace's speaking core: the latest voice_stage per renderer socket, and
+        # whether this session's overlay waits for the stage to go (opened at most once).
+        self.stages = {}
+        self.overlay_owed = False
         # Publishing.
         self.dirty = self.urgent = False
         self.last_sent = float("-inf")
@@ -81,6 +99,10 @@ class VoiceOverlay:
             "end": dict(self.end) if self.end is not None else None,
         }
 
+    def local_snapshot(self):
+        """``local_voice`` for the owner's renderers: the snapshot and how it started."""
+        return {**self.snapshot(), "source": self.source}
+
     def enabled(self):
         return overlay_settings(self.app.settings)["overlay"]
 
@@ -93,9 +115,14 @@ class VoiceOverlay:
 
     # --- hooks from VoiceService (core loop, tray sessions only) ----------------------------
 
-    def started(self, session):
-        """A tray session holds its slot (check_local_start passed): a fresh snapshot."""
+    def started(self, session, source="tray"):
+        """A tray session holds its slot (check_local_start passed): a fresh snapshot.
+
+        ``source`` is how it started: ``"tray"`` or ``"wake"`` ("Hey Jarvis").
+        """
         self.session = session
+        self.source = source if source in SOURCES else "tray"
+        self.overlay_owed = False
         self.state = "connecting"
         self.user = self.jarvis = ""
         self.user_final = self.jarvis_final = self.approval = False
@@ -103,7 +130,10 @@ class VoiceOverlay:
         self.turn_done, self.frozen = True, False
         self.publish()
         if self.enabled():
-            self.notify("started")
+            if self.stage_shown():
+                self.overlay_owed = True  # the workspace shows it; the overlay waits
+            else:
+                self.notify("started")
 
     def delivered(self, session, event, payload):
         if session is not self.session:
@@ -178,6 +208,7 @@ class VoiceOverlay:
         if session is not self.session or self.end is not None:
             return
         kind = end_kind(state, code)
+        self.overlay_owed = False
         self.state = "ended"
         self.user_final = self.jarvis_final = True
         self.turn_done, self.frozen = True, False
@@ -195,6 +226,7 @@ class VoiceOverlay:
     def settings_changed(self):
         """voice.overlay turned off: an open overlay closes at once (on: next session)."""
         if not self.enabled():
+            self.overlay_owed = False
             self.notify("disabled")
 
     def notify(self, event, data=None):
@@ -215,6 +247,26 @@ class VoiceOverlay:
         self.dirty = self.urgent = False
         self.kick = None  # "Retry backend" runs the core on a new loop
 
+    # --- the workspace's speaking core (voice_stage) ----------------------------------------
+
+    def stage_shown(self, exclude=None):
+        """Any of the owner's authenticated renderer sockets reports its stage visible."""
+        return any(self.stages.get(sid) is True for sid in self.renderer_rooms(exclude))
+
+    def set_stage(self, sid, visible):
+        """One renderer socket's latest ``voice_stage`` (validated by the transport)."""
+        self.stages[sid] = visible is True
+        self.follow_stage()
+
+    def follow_stage(self, exclude=None):
+        """The owed overlay opens once no stage is shown while its session runs."""
+        if not self.overlay_owed or not self.running() or self.stage_shown(exclude):
+            return
+        self.overlay_owed = False
+        if self.enabled():
+            self.notify("started")
+        self.publish()  # an overlay still open from the last session shows this one now
+
     # --- sockets ----------------------------------------------------------------------------
 
     def rooms(self, exclude=None):
@@ -224,13 +276,42 @@ class VoiceOverlay:
             return ()
         return tuple(sid for sid in sessions.rooms(owner, "overlay") if sid != exclude)
 
+    def overlay_rooms(self, exclude=None):
+        """The overlay sockets this session is shown on: none while its overlay is owed (so
+        an overlay still fading out from the last session never shows this one)."""
+        return () if self.overlay_owed else self.rooms(exclude)
+
+    def renderer_rooms(self, exclude=None):
+        """The owner's renderer sockets, while the owner is authenticated (as captions)."""
+        sessions = self.app.sessions
+        owner = self.app.voice.local_owner()
+        if owner is None or not sessions.is_owner(owner) or not sessions.authenticated(owner):
+            return ()
+        return tuple(sid for sid in sessions.rooms(owner, "renderer") if sid != exclude)
+
+    def running(self):
+        session = self.session
+        return session is not None and not session.closed and self.end is None
+
     async def attached(self, sid):
-        """An overlay socket connected: the current snapshot, to that socket only."""
-        await self.send("voice_overlay", self.snapshot(), (sid,))
+        """An overlay socket connected: the current snapshot, to that socket only (none
+        while this session's overlay is owed)."""
+        if not self.overlay_owed:
+            await self.send("voice_overlay", self.snapshot(), (sid,))
+        self.sync_level()
+
+    async def renderer_attached(self, sid):
+        """An authenticated owner renderer connected (or was unlocked): the running
+        session's snapshot, to that socket only, so a reload mid-session shows it."""
+        if sid in self.renderer_rooms() and self.running():
+            await self.send("local_voice", self.local_snapshot(), (sid,))
         self.sync_level()
 
     def detached(self, sid):
-        """An overlay socket is disconnecting (still registered while this runs)."""
+        """An overlay or renderer socket is disconnecting (still registered while this
+        runs): its stage report is forgotten."""
+        self.stages.pop(sid, None)
+        self.follow_stage(exclude=sid)
         self.sync_level(exclude=sid)
 
     async def send(self, event, payload, rooms):
@@ -242,7 +323,7 @@ class VoiceOverlay:
 
     def publish(self, urgent=False):
         """Coalesce to at most one snapshot per ``interval``; ``urgent`` goes out at once."""
-        if not self.rooms():
+        if not self.overlay_rooms() and not self.renderer_rooms():
             self.sync_level()
             return
         try:
@@ -271,15 +352,16 @@ class VoiceOverlay:
                 continue
             self.dirty = self.urgent = False
             self.last_sent = self.clock()
-            await self.send("voice_overlay", self.snapshot(), self.rooms())
+            await self.send("voice_overlay", self.snapshot(), self.overlay_rooms())
+            await self.send("local_voice", self.local_snapshot(), self.renderer_rooms())
 
     # --- the output level -----------------------------------------------------------------
 
     def sync_level(self, exclude=None):
-        """Measure the speaker while an overlay is connected during the session, and send
-        levels while JARVIS speaks."""
+        """Measure the speaker while an overlay or an owner renderer is connected during the
+        session, and send levels while JARVIS speaks."""
         session = self.session
-        connected = bool(self.rooms(exclude))
+        connected = bool(self.overlay_rooms(exclude) or self.renderer_rooms(exclude))
         audio = getattr(session, "audio", None)
         active = session is not None and not session.closed
         if audio is not None:
@@ -298,15 +380,15 @@ class VoiceOverlay:
     async def _send_levels(self, session):
         sent = False
         while self.current(session) and self.state == "speaking":
-            rooms = self.rooms()
-            if not rooms:
+            rooms, renderers = self.overlay_rooms(), self.renderer_rooms()
+            if not rooms and not renderers:
                 break
             audio = session.audio
-            level = audio.output_level() if audio is not None else 0.0
-            await self.send("voice_level", {"level": float(level)}, rooms)
+            level = float(audio.output_level() if audio is not None else 0.0)
+            await self.send("voice_level", {"level": level}, rooms)
+            await self.send("local_voice_level", {"level": level}, renderers)
             sent = True
             await asyncio.sleep(self.interval)
         if sent:
-            rooms = self.rooms()
-            if rooms:
-                await self.send("voice_level", {"level": 0.0}, rooms)
+            await self.send("voice_level", {"level": 0.0}, self.overlay_rooms())
+            await self.send("local_voice_level", {"level": 0.0}, self.renderer_rooms())

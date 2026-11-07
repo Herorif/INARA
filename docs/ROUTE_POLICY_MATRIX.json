@@ -1266,6 +1266,28 @@
       "replacement": "VoiceOverlayTransport (transport/voice_overlay.py) / VoiceOverlay (services/voice_overlay.py)",
       "status": "migrated"
     },
+    "voice_stage": {
+      "schema": "VoiceStageRequest ({visible: bool} only; strict, extra fields forbidden)",
+      "caller": "The registered owner's renderer sockets only (role \"renderer\"); allowed while locked (a locked owner's stage never counts as shown)",
+      "context": "VoiceOverlay's per-socket stage map (the workspace's speaking core in the Assistant view)",
+      "effects": "Remembers whether this socket shows the speaking core; a tray voice session started while a stage is shown opens no overlay until no stage is shown (at most one overlay per session, never closed because the stage came back)",
+      "policy": "Independent owner/role gate require_owner(sid, {\"renderer\"}, allow_locked=True); not a dispatcher tool and not model-visible; the overlay SID is refused",
+      "response": "Origin ACK {ok: true} or {ok: false, code, message}; renderers receive local_voice snapshots and local_voice_level while a tray session runs, to the authenticated owner's renderer SIDs only",
+      "lifetime": "Per socket; forgotten on disconnect",
+      "replacement": "VoiceOverlayTransport (transport/voice_overlay.py) / VoiceOverlay (services/voice_overlay.py)",
+      "status": "migrated"
+    },
+    "local_voice_stop": {
+      "schema": "OverlayRequest (no fields; null or {} only, extra fields forbidden)",
+      "caller": "The registered owner's renderer sockets only (role \"renderer\"); allowed while locked",
+      "context": "The owner's tray voice session (endpoint local), if any",
+      "effects": "The speaking core's \"Stop talking\" for tray and \"Hey Jarvis\" voice: VoiceService.stop_local() ends a tray voice session (quiet end); a safety stop, always allowed; window voice is untouched (voice_stop)",
+      "policy": "Independent owner/role gate require_owner(sid, {\"renderer\"}, allow_locked=True); not a dispatcher tool and not model-visible; the overlay SID is refused",
+      "response": "Origin ACK {ok: true} or {ok: false, code, message}",
+      "lifetime": "Request-only; nothing stored",
+      "replacement": "VoiceOverlayTransport (transport/voice_overlay.py) / VoiceService.stop_local (services/voice.py)",
+      "status": "migrated"
+    },
     "cad_design_get": {
       "schema": "Ignored optional mapping",
       "caller": "Authenticated owner renderer",

@@ -9,6 +9,7 @@ import { registerConversationEvents } from './events/conversation';
 import { registerCreativeEvents } from './events/creative';
 import { registerDevicesEvents } from './events/devices';
 import { registerRemindersEvents } from './events/reminders';
+import { registerLocalVoiceEvents } from './events/localVoice';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
 import { defaultVoiceMode } from '../features/voice/defaultMode.js';
@@ -204,6 +205,7 @@ export function initSocketListeners() {
     registerCreativeEvents(dependencies);
     registerDevicesEvents(dependencies);
     registerRemindersEvents(dependencies);
+    registerLocalVoiceEvents(dependencies);
 
     // Return cleanup
     return () => {
