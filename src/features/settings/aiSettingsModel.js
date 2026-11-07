@@ -105,3 +105,25 @@ export function brainOption(assistant) {
   const value = assistant && typeof assistant === 'object' ? assistant.brain : undefined;
   return BRAIN_OPTIONS.some(entry => entry.id === value) ? value : 'auto';
 }
+
+// assistant.address: how JARVIS addresses the owner (backend services/conversation.persona).
+export const ADDRESS_LABEL = 'How JARVIS addresses you';
+export const ADDRESS_OPTIONS = [
+  { id: 'sir', label: 'Sir' },
+  { id: 'maam', label: "Ma'am" },
+  { id: 'name', label: 'By name' },
+  { id: 'none', label: 'None' },
+];
+export const ADDRESS_NAME_HINT = 'Add your name above to be addressed by name.';
+
+/** The saved form of address; 'sir' when missing or unknown, as the core reads it. */
+export function addressOption(assistant) {
+  const value = assistant && typeof assistant === 'object' ? assistant.address : undefined;
+  return ADDRESS_OPTIONS.some(entry => entry.id === value) ? value : 'sir';
+}
+
+/** Hint under the control: "By name" with no saved name has nothing to address the owner by. */
+export function addressHint(address, savedName) {
+  const named = typeof savedName === 'string' && savedName.trim() !== '';
+  return address === 'name' && !named ? ADDRESS_NAME_HINT : '';
+}

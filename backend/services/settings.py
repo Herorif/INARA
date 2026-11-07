@@ -140,8 +140,10 @@ class AssistantSettings(EmptyRequest):
     owner_name: StrictStr | None = Field(
         default=None, max_length=80, pattern=r"^[^\x00-\x1f\x7f<>{}\[\]]*$"
     )
+    # How JARVIS addresses the owner (services/conversation.persona); "sir" by default.
+    address: Literal["sir", "maam", "name", "none"] | None = None
 
-    @field_validator("brain", "owner_name", mode="before")
+    @field_validator("brain", "owner_name", "address", mode="before")
     @classmethod
     def reject_null(cls, value):
         if value is None:
@@ -160,7 +162,7 @@ class AssistantSettings(EmptyRequest):
         return self
 
 
-ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": ""}
+ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": "", "address": "sir"}
 
 
 class VoiceSettings(EmptyRequest):

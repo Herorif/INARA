@@ -297,6 +297,7 @@ Settings live in `backend/settings.json` (auto-created on first run).
 | `kasa_devices`                   | `array` | Saved smart home devices                          |
 | `assistant.brain`                | `string`| `auto` (Claude when an Anthropic key is set), `claude` or `gemini` |
 | `assistant.owner_name`           | `string`| Optional name JARVIS uses for you, sparingly       |
+| `assistant.address`              | `string`| `sir` (default), `maam`, `name` or `none`: how JARVIS addresses you |
 
 ### 🔑 API Keys
 

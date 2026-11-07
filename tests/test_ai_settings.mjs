@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import {
+  ADDRESS_LABEL, ADDRESS_NAME_HINT, ADDRESS_OPTIONS, addressHint, addressOption,
   activeModelText, brainOption, brainProblem, CLAUDE_WITHOUT_KEY, rejectedMessage, rpcFailureMessage,
   saveResultMessage, secretChip, testResultMessage,
 } from '../src/features/settings/aiSettingsModel.js';
@@ -104,4 +105,21 @@ test('secrets client sends the value only on set and validates statuses', async 
   await assert.rejects(client.set('anthropic_api_key', 'sk-ant-x'), { code: 'offline' });
   assert.equal(socket.requests.length, 5, 'an offline set must not queue the value');
   client.dispose();
+});
+
+test('form of address: four options, sir by default, and the by-name hint', () => {
+  assert.equal(ADDRESS_LABEL, 'How JARVIS addresses you');
+  assert.deepEqual(ADDRESS_OPTIONS, [
+    { id: 'sir', label: 'Sir' }, { id: 'maam', label: "Ma'am" }, { id: 'name', label: 'By name' }, { id: 'none', label: 'None' },
+  ]);
+  for (const id of ['sir', 'maam', 'name', 'none']) assert.equal(addressOption({ address: id }), id);
+  assert.equal(addressOption({}), 'sir');
+  assert.equal(addressOption({ address: 'madam' }), 'sir');
+  assert.equal(addressOption(null), 'sir');
+  assert.equal(ADDRESS_NAME_HINT, 'Add your name above to be addressed by name.');
+  assert.equal(addressHint('name', ''), ADDRESS_NAME_HINT);
+  assert.equal(addressHint('name', '   '), ADDRESS_NAME_HINT);
+  assert.equal(addressHint('name', undefined), ADDRESS_NAME_HINT);
+  assert.equal(addressHint('name', 'Hiro'), '');
+  for (const id of ['sir', 'maam', 'none']) assert.equal(addressHint(id, ''), '');
 });

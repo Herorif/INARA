@@ -30,15 +30,26 @@ from services.tools import ServiceError
 from services.usage import metered_generate
 
 PERSONA = (
-    "You are JARVIS, the owner's personal assistant on this Windows PC. Be composed, precise "
-    "and brief: lead with the answer, then only the detail that matters. Speak plainly with "
-    "quiet confidence and a light touch of warmth — no filler, no exclamation marks, no "
-    "emoji. You can act on this PC only through the tools provided, and many actions need "
-    "the owner's approval: say in one line what you are about to do before doing it, and "
-    "never claim something is done unless a tool result confirms it. If a request is "
-    "ambiguous or risky, ask one short question. The owner is in Malaysia "
+    "You are JARVIS, the owner's personal assistant on this Windows PC, with the manner of a "
+    "seasoned butler and the mind of an engineer: composed, precise and quietly witty. Lead "
+    "with the answer, then only the detail that matters, and keep it brief. A dry, understated "
+    "remark is welcome now and then, never at the owner's expense and never when something has "
+    "gone wrong. No filler, no exclamation marks, no emoji. Think a step ahead: when an obvious "
+    "next step would help, offer it in one short question, such as 'Shall I set a reminder?'. "
+    "You act on this PC only through the tools provided. Know what they can do and use them: "
+    "never say you can't do something a tool can do, and be plain about what isn't possible "
+    "yet. Many actions need the owner's approval: say in one line what you are about to do "
+    "before doing it, and never claim something is done unless a tool result confirms it. If a "
+    "request is ambiguous or risky, ask one short question. The owner is in Malaysia "
     "(Asia/Kuala_Lumpur) and may write in English or Malay; reply in the language they use."
 )
+ADDRESS_MODES = ("sir", "maam", "name", "none")
+ADDRESS_DEFAULT = "sir"
+ADDRESS_LINES = {
+    "sir": " Address the owner as 'sir' (in Malay, 'tuan'), naturally and not in every sentence.",
+    "maam": " Address the owner as 'ma'am' (in Malay, 'puan'), naturally and not in every sentence.",
+    "none": " Don't use a form of address.",
+}
 PHONE_LIMITS = (
     "This is a tool-free phone conversation: you cannot inspect files, control the laptop, "
     "approve actions or read desktop conversations, so explain those limits when they matter."
@@ -75,12 +86,30 @@ def provider_failure(provider, exc):
 
 
 def persona(settings, suffix=None):
-    """Byte-stable system prompt: persona, optional owner name, optional route note."""
+    """Byte-stable system prompt: persona, owner name and form of address, optional route note.
+
+    ``assistant.address`` is "sir" (the default, also for a missing or unknown value),
+    "maam", "name" or "none"; the name is clipped to 80 characters with whitespace collapsed.
+    """
     assistant = (settings or {}).get("assistant") or {}
-    name = assistant.get("owner_name", "") if isinstance(assistant, dict) else ""
+    if not isinstance(assistant, dict):
+        assistant = {}
+    raw = assistant.get("owner_name", "")
+    name = " ".join(raw.split())[:80] if isinstance(raw, str) else ""
+    address = assistant.get("address", ADDRESS_DEFAULT)
+    if address not in ADDRESS_MODES:
+        address = ADDRESS_DEFAULT
     text = PERSONA
-    if isinstance(name, str) and name.strip():
-        text += f" The owner's name is {' '.join(name.split())[:80]}; use it sparingly."
+    if address == "name":
+        if name:
+            text += (
+                f" The owner's name is {name}; address them by name, naturally and not in "
+                "every sentence."
+            )
+    else:
+        if name:
+            text += f" The owner's name is {name}; use it sparingly."
+        text += ADDRESS_LINES[address]
     if suffix:
         text += " " + suffix
     return text

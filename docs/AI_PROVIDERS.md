@@ -45,6 +45,7 @@ Settings (`settings.json`, validated by `SettingsPatch`):
 | --- | --- | --- |
 | `assistant.brain` | `auto` (default), `claude`, `gemini` | `auto` follows the rules above. `claude` without an Anthropic key is a configuration error (`provider_not_configured`), never a silent switch to Gemini. `gemini` always uses Gemini. |
 | `assistant.owner_name` | Up to 80 printable characters, default empty | Adds "The owner's name is ...; use it sparingly." to the system prompt. |
+| `assistant.address` | `sir` (default), `maam`, `name`, `none` | How the Classic JARVIS persona addresses the owner: "sir" ("tuan" in Malay), "ma'am" ("puan"), by name (needs `owner_name`), or no form of address. Preferences > AI, "How JARVIS addresses you". Calls to third parties never use it. |
 
 Environment overrides: `JARVIS_BRAIN_MODEL` (default `claude-sonnet-5-5`) and `JARVIS_FAST_MODEL` (default `claude-haiku-5-5`).
 
