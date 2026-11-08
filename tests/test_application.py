@@ -221,7 +221,8 @@ async def test_lifetime_restarts_without_duplicate_pollers_or_bus_delivery(appli
         await runtime.start()
         tasks = tuple(runtime.tasks)
         await runtime.start()
-        assert tuple(runtime.tasks) == tasks and len(tasks) == 3
+        # Reminder delivery, notification and memory retention, and the morning briefing (P2).
+        assert tuple(runtime.tasks) == tasks and len(tasks) == 4
         await runtime.bus.emit(Event(Events.DESKTOP_SCREENSHOT, {"message": "local legacy event"}))
         await runtime.close()
         assert all(task.done() for task in tasks) and not runtime.tasks

@@ -270,6 +270,10 @@ class Application:
 
         self.contacts = Contacts(self)
         self.contacts_transport = ContactsTransport(self)
+        # P2 morning briefing: the card, speech through tray voice and the optional owner call.
+        from services.briefing_service import MorningBriefing
+
+        self.briefing = MorningBriefing(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -408,6 +412,7 @@ class Application:
         self.tasks.append(
             asyncio.create_task(self.memory.maintain(), name="project-memory-retention")
         )
+        self.tasks.append(self.briefing.start())
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
         await self.wake.begin()  # no-op outside the native resident
@@ -452,6 +457,7 @@ class Application:
                 if isinstance(result, BaseException):
                     raise result
         finally:
+            await _isolated("briefing", self.briefing.close)
             await _isolated("call_orchestrator", self.call_orchestrator.close)
             await _isolated("call_agent", self.call_agent.close)
             await _isolated("wake", self.wake.close)

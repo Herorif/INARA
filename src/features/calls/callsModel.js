@@ -27,7 +27,7 @@ export function callChip(call) {
     case 'done':
       if (call.mode === 'task') return { tone: 'ok', label: 'TASK DONE' };
       if (call.mode === 'approved_callback') return { tone: 'idle', label: 'CALLBACK' };
-      if (call.mode === 'owner_briefing') return { tone: 'idle', label: 'BRIEFING' };
+      if (call.mode === 'owner_briefing' || call.mode === 'morning_briefing') return { tone: 'idle', label: 'BRIEFING' };
       return { tone: 'idle', label: 'SCREENED' };
     default: return { tone: 'idle', label: 'CALL' };
   }

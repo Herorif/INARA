@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import socket from '../../services/socket';
 import { createSecretsClient } from '../../transport/secretsClient.ts';
 import VoiceSettings from './VoiceSettings';
+import BriefingSettings from './BriefingSettings';
 import SecretKeyRow, { ResultMessage } from './SecretKeyRow';
 import SegmentedControl from './SegmentedControl';
 import {
@@ -27,8 +28,8 @@ const BrainControl = ({ value, disabled, onChange }) =>
     )}
   </div>;
 
-/** "AI and assistant" section at the top of Preferences. `assistant` and `voice` are the saved settings sections. */
-export default function AiSettings({ assistant, voice }) {
+/** "AI and assistant" section at the top of Preferences. `assistant`, `voice` and `briefing` are the saved settings sections. */
+export default function AiSettings({ assistant, voice, briefing }) {
   const client = useMemo(() => createSecretsClient(socket), []);
   const [statuses, setStatuses] = useState({});
   const [loadError, setLoadError] = useState('');
@@ -145,6 +146,7 @@ export default function AiSettings({ assistant, voice }) {
         {hint && <p className={HINT} data-address-hint>{hint}</p>}
         <ResultMessage id="assistant-address-result" result={addressResult} />
       </div>
+      <BriefingSettings briefing={briefing} patch={patchSettings} />
     </div>
 
     <VoiceSettings voice={voice} client={client} patch={patchSettings}

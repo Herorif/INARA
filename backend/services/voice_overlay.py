@@ -13,8 +13,8 @@ JARVIS speaks, at most 20 per second, then one final 0.0.
 
 The same model also feeds the workspace's speaking core (C1): the owner's authenticated
 ``renderer`` sockets receive ``local_voice`` (the snapshot plus ``"source": "tray" |
-"wake"``, how the session started), coalesced the same way and sent on connect while a
-session runs, and ``local_voice_level`` (``{"level": 0..1}``) on the same schedule as
+"wake" | "briefing"``, how the session started), coalesced the same way and sent on connect
+while a session runs, and ``local_voice_level`` (``{"level": 0..1}``) on the same schedule as
 ``voice_level``. The speaker's level is measured while an overlay or such a renderer is
 connected during the session.
 
@@ -42,7 +42,8 @@ JARVIS_LIMIT = 600  # JARVIS's words: the last 600 characters
 INTERVAL = 0.05  # at most 20 snapshots (and 20 levels) per second
 # Ends after which nothing may stay on screen: the overlay closes at once.
 NOW_ENDS = frozenset({"gaming_mode", "authentication_required", "permission_denied"})
-SOURCES = ("tray", "wake")  # how a tray session started: the tray, or "Hey Jarvis"
+# How a tray session started: the tray, "Hey Jarvis", or the morning briefing (P2).
+SOURCES = ("tray", "wake", "briefing")
 
 
 def plain(text, limit):
@@ -66,7 +67,7 @@ class VoiceOverlay:
         # ("started", None), ("ended", {"now": bool}), ("disabled", None).
         self.observer = None
         self.session = None  # the tray VoiceSession shown (the current or the last one)
-        self.source = None  # "tray" | "wake" for that session
+        self.source = None  # "tray" | "wake" | "briefing" for that session
         self.state = "ended"
         self.user = self.jarvis = ""
         self.user_final = self.jarvis_final = False
@@ -140,7 +141,7 @@ class VoiceOverlay:
     def started(self, session, source="tray"):
         """A tray session holds its slot (check_local_start passed): a fresh snapshot.
 
-        ``source`` is how it started: ``"tray"`` or ``"wake"`` ("Hey Jarvis").
+        ``source`` is how it started: ``"tray"``, ``"wake"`` ("Hey Jarvis") or ``"briefing"``.
         """
         self.session = session
         self.source = source if source in SOURCES else "tray"

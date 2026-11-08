@@ -13,6 +13,7 @@ import { registerLocalVoiceEvents } from './events/localVoice';
 import { registerLiveDesignEvents } from './events/liveDesign';
 import { registerCallAlertEvents } from './events/callAlerts';
 import { registerCalendarEvents } from './events/calendar';
+import { registerBriefingEvents } from './events/briefing';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
 import { defaultVoiceMode } from '../features/voice/defaultMode.js';
@@ -214,6 +215,7 @@ export function initSocketListeners() {
     registerLiveDesignEvents(dependencies);
     registerCallAlertEvents(dependencies);
     registerCalendarEvents(dependencies);
+    registerBriefingEvents(dependencies);
 
     // Return cleanup
     return () => {

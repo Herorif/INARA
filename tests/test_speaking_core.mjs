@@ -48,6 +48,7 @@ test('local_voice validation matches the overlay policy, plus a required source'
     else assert.deepEqual(actual, { ...expected, source: raw.source }, JSON.stringify(raw));
   }
   assert.equal(sanitizeLocalVoice(snap({ source: 'wake' })).source, 'wake');
+  assert.equal(sanitizeLocalVoice(snap({ source: 'briefing' })).source, 'briefing');
   for (const source of [undefined, null, 'window', 'Tray', 1]) assert.equal(sanitizeLocalVoice(snap({ source })), null);
   assert.equal('extra' in sanitizeLocalVoice(snap({ extra: 1 })), false);
 });
@@ -131,9 +132,12 @@ test('rest: standing by, typed working, offline', () => {
 });
 
 test('source labels', () => {
-  assert.deepEqual(SOURCE_LABELS, { window: 'Window mic', tray: 'Tray voice', wake: 'Hey Jarvis' });
+  assert.deepEqual(SOURCE_LABELS, { window: 'Window mic', tray: 'Tray voice', wake: 'Hey Jarvis', briefing: 'Morning briefing' });
   assert.equal(view({ local: snap() }).source, 'Tray voice');
   assert.equal(view({ local: snap({ source: 'wake' }) }).source, 'Hey Jarvis');
+  // P2: the morning briefing's tray session.
+  assert.equal(view({ local: snap({ source: 'briefing', state: 'speaking' }) }).source, 'Morning briefing');
+  assert.equal(view({ local: snap({ source: 'briefing', state: 'speaking' }) }).label, 'SPEAKING');
   assert.equal(view({ voice: { ...offVoice, state: 'listening', micOpen: true } }).source, 'Window mic');
 });
 

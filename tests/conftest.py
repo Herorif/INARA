@@ -121,8 +121,10 @@ def application_factory(tmp_path):
     def create(**overrides):
         root = tmp_path / str(len(applications))
         root.mkdir()
+        # The morning briefing (P2) is off here: its trigger reads the real clock, so a
+        # test run between 06:00 and 11:00 would otherwise play it. Its own tests turn it on.
         values = dict(settings={"face_auth_enabled": False, "tool_permissions": {},
-                                "kasa_devices": []},
+                                "kasa_devices": [], "briefing": {"enabled": False}},
                       project_root=root, legacy_data_dir=root,
                       database=Database(root / "private"))
         values.update(overrides)

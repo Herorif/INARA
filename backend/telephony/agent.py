@@ -71,6 +71,7 @@ QUEUED_FRAMES = 150  # about three seconds of caller audio while Live connects o
 RECONNECT_ATTEMPTS = 3
 PENDING_SECONDS = 300.0
 PIN_ATTEMPTS = 3
+AVAILABILITY_TIMEOUT = 3.0  # P2: an uncached free/busy read may delay screening this long
 CAPTION_LIMIT = 4000
 TRANSCRIPT_SEGMENTS = 400
 TRANSCRIPT_CHARS = 40_000
@@ -78,6 +79,7 @@ PCM_MIME = f"audio/pcm;rate={INPUT_RATE}"
 MODE_TOOLS = {
     "screening": {"record_message", "end_call"},
     "owner_briefing": {"verify_pin", "record_owner_decision", "end_call"},
+    "morning_briefing": {"verify_pin", "end_call"},  # P2: read the morning briefing only
     "approved_callback": {"record_outcome", "end_call"},
     "task": {"record_outcome", "end_call"},
 }
@@ -255,9 +257,13 @@ class CallAgent:
         if info.get("direction", session.direction) == "inbound":
             # P1: the owner's saved person for this caller ID, if any (VIP, known, blocked).
             person = self.match_caller(info.get("from"))
+            # P2: the owner's free/busy times for the rest of today (blocked callers get none).
+            blocked = isinstance(person, dict) and person.get("group") == "blocked"
+            availability = "" if blocked else await self.availability()
             # Validated calls.* values (a malformed facts pack falls back to none).
             brief = briefs.screening_brief(
-                info, {**self.app.settings, "calls": self.settings()}, person=person
+                info, {**self.app.settings, "calls": self.settings()}, person=person,
+                availability=availability,
             )
             return await self._run(session, brief, None,
                                    contact_id=person["id"] if person and brief.caller_group else None)
@@ -273,6 +279,25 @@ class CallAgent:
             await session.hangup()
             return None
         return await self._run(session, pending.brief, pending)
+
+    async def availability(self):
+        """P2: the owner-approved availability line for call screening, times only, when
+        ``calendar.share_free_busy`` is on and the calendar is connected (cached for 10
+        minutes by CalendarService); "" when off or on any failure. Never logs the times."""
+        calendar = getattr(self.app, "calendar", None)
+        if calendar is None:
+            return ""
+        try:
+            found = await asyncio.wait_for(calendar.availability(), AVAILABILITY_TIMEOUT)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning("Owner availability skipped for a call: %s", type(exc).__name__)
+            return ""
+        if found is None:
+            return ""
+        busy, now = found
+        return briefs.availability_line(busy, now)
 
     def match_caller(self, number):
         """The owner's saved person for a caller ID, or None (never raises; never logs the
@@ -292,7 +317,7 @@ class CallAgent:
             return False
         if not same_number(info.get("to"), brief.counterpart):
             return False
-        return bool(info.get("owner")) == (brief.mode == "owner_briefing")
+        return bool(info.get("owner")) == (brief.mode in briefs.OWNER_MODES)
 
     async def call(self, brief, grant=None):
         """Place one outbound call for ``brief``; returns a CallHandle (``await handle.result``).
@@ -310,7 +335,7 @@ class CallAgent:
         if credentials is None:
             raise ServiceError("calls_not_configured", "Add the Twilio details first.")
         owner = same_number(brief.counterpart, credentials["owner_number"])
-        if brief.mode == "owner_briefing" and not owner:
+        if brief.mode in briefs.OWNER_MODES and not owner:
             raise ServiceError("call_brief_mismatch", "Owner briefings go only to the owner's number.")
         if brief.mode in briefs.GRANTED_MODES:
             if owner:
@@ -457,7 +482,7 @@ class CallAgent:
 
     def _new_run(self, session, brief, contact_id=None):
         settings = self.settings()
-        pin = self.briefing_pin() if brief.mode == "owner_briefing" else ""
+        pin = self.briefing_pin() if brief.mode in briefs.OWNER_MODES else ""
         now = self.clock()
         return CallRun(
             brief=brief,
@@ -823,6 +848,9 @@ class CallAgent:
         digits = re.sub(r"\D", "", value.pin)
         if hmac.compare_digest(digits.encode(), run.pin.encode()):
             run.pin_verified = True
+            if run.brief.mode == "morning_briefing":
+                return {"result": "PIN verified. Read the morning briefing now.",
+                        "briefing": briefs.morning_details(run.brief)}
             return {"result": "PIN verified. Brief the owner now.",
                     "call_details": briefs.briefing_details(run.brief)}
         run.pin_attempts += 1
@@ -926,6 +954,9 @@ class CallAgent:
         elif mode == "owner_briefing":
             decision = fields.get("decision")
             status = decision["action"] if decision else "no_decision"
+        elif mode == "morning_briefing":
+            # P2: the owner heard it (with a PIN set, only once they verified it).
+            status = "delivered" if not run.pin or run.pin_verified else "not_verified"
         else:
             status = fields["outcome"]["status"] if fields.get("outcome") else "no_outcome"
         ended_by = (
@@ -975,7 +1006,8 @@ class CallAgent:
             "identity_verified": run.pin_verified,
             "message_confirmed": bool(run.fields.get("message")) and not blocked,
             "triage": None,
-            "triage_state": "skipped" if blocked else "pending",
+            # P2: a morning briefing call has nothing to triage or announce.
+            "triage_state": "skipped" if blocked or brief.mode == "morning_briefing" else "pending",
         }
         if brief.direction == "inbound":
             # P1: the caller's group at call time, the matched person and the caller ID
@@ -994,7 +1026,8 @@ class CallAgent:
             "Call %s ended: mode=%s state=%s outcome=%s duration=%ss",
             mask_sid(session.call_sid), brief.mode, state, outcome["status"], duration,
         )
-        if saved and not blocked:  # P1: no triage and no notice for a blocked caller
+        # P1: no triage and no notice for a blocked caller; P2: none for a morning briefing.
+        if saved and not blocked and brief.mode != "morning_briefing":
             self._spawn(self._triage_and_announce(run.record_id, group, brief.contact_name))
         return CallResult(
             record_id=run.record_id,

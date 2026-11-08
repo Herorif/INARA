@@ -8,6 +8,7 @@ import { emitSocket } from '../services/socket';
 import { stageView } from './stageModel.js';
 import { useVoiceStageReport } from './useVoiceStage.js';
 import { replyNarration, replyStreaming } from '../store/replyStream.js';
+import MorningBriefingCard from '../features/briefing/MorningBriefingCard';
 import './conversation.css';
 
 const starters = [
@@ -49,7 +50,7 @@ const stopVoice = target => {
   else if (target === 'local') emitSocket('local_voice_stop', {});
 };
 
-export default function Conversation({ gaming = false, hidden = false }) {
+export default function Conversation({ onOpen, gaming = false, hidden = false }) {
   const messages = useStore(state => state.messages);
   const processing = useStore(state => state.textProcessing);
   const toolStep = useStore(state => state.textPhase === 'tool');
@@ -189,6 +190,9 @@ export default function Conversation({ gaming = false, hidden = false }) {
             <Plus size={14} aria-hidden="true" /><span>New chat</span>
           </button>}
       </header>
+
+      {/* P2: today's morning briefing, above the messages. */}
+      <MorningBriefingCard onOpen={onOpen} />
 
       <div className="conversation-body">
         <div

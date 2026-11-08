@@ -62,6 +62,10 @@ class ConnectionTransport:
         overlay = getattr(self.app, "voice_overlay", None)
         if overlay is not None:
             await overlay.renderer_attached(sid)
+        # P2: today's morning briefing card; connecting or unlocking counts as presence.
+        briefing = getattr(self.app, "briefing", None)
+        if briefing is not None:
+            await briefing.hydrate(sid)
 
     async def connect(self, sid, environ, auth=None):
         if not self.sessions.accept(sid, auth, current_token()):

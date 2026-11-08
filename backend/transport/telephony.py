@@ -121,4 +121,7 @@ class CallsTransport:
     async def _presence_ping(self, data):
         EmptyRequest.model_validate(data)
         self.calls.presence.ping()
+        briefing = getattr(self.app, "briefing", None)
+        if briefing is not None:
+            briefing.presence("ping")  # P2: the first presence in the window plays it
         return {"ok": True}

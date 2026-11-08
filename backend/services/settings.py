@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import shutil
 import tempfile
 import threading
@@ -307,6 +308,69 @@ class CalendarSettings(EmptyRequest):
 
 CALENDAR_DEFAULTS = {"read_events": True, "share_free_busy": True, "add_events": True}
 
+HHMM = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
+BRIEFING_WINDOW_ORDER = "The morning briefing window must start before it ends."
+
+
+class BriefingSettings(EmptyRequest):
+    """``briefing.*``: the morning briefing (services/briefing_service.py). Times are local
+    Malaysian HH:MM; the window starts before it ends (checked again on the merged value)."""
+
+    enabled: StrictBool | None = None
+    window_start: StrictStr | None = Field(default=None, pattern=HHMM)
+    window_end: StrictStr | None = Field(default=None, pattern=HHMM)
+    speak: StrictBool | None = None
+    phone: StrictBool | None = None
+    phone_time: StrictStr | None = Field(default=None, pattern=HHMM)
+
+    @field_validator(
+        "enabled", "window_start", "window_end", "speak", "phone", "phone_time", mode="before"
+    )
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a morning briefing setting to update.")
+        if self.window_start is not None and self.window_end is not None:
+            if self.window_start >= self.window_end:
+                raise ValueError(BRIEFING_WINDOW_ORDER)
+        return self
+
+
+BRIEFING_DEFAULTS = {
+    "enabled": True,
+    "window_start": "06:00",
+    "window_end": "11:00",
+    "speak": True,
+    "phone": False,
+    "phone_time": "07:30",
+}
+
+
+def briefing_settings(settings):
+    """Validated ``briefing.*`` values with defaults: a stale or malformed saved value falls
+    back to its default, and a saved window that does not start before it ends falls back to
+    the default window."""
+    saved = settings.get("briefing") if isinstance(settings, dict) else None
+    saved = saved if isinstance(saved, dict) else {}
+    values = {}
+    for key, default in BRIEFING_DEFAULTS.items():
+        value = saved.get(key)
+        if isinstance(default, bool):
+            values[key] = value if isinstance(value, bool) else default
+        else:
+            valid = isinstance(value, str) and re.fullmatch(HHMM, value)
+            values[key] = value if valid else default
+    if values["window_start"] >= values["window_end"]:
+        values["window_start"] = BRIEFING_DEFAULTS["window_start"]
+        values["window_end"] = BRIEFING_DEFAULTS["window_end"]
+    return values
+
 
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
@@ -316,6 +380,7 @@ class SettingsPatch(EmptyRequest):
     voice: VoiceSettings | None = None
     calls: CallsSettings | None = None
     calendar: CalendarSettings | None = None
+    briefing: BriefingSettings | None = None
 
     @field_validator(
         "tool_permissions",
@@ -325,6 +390,7 @@ class SettingsPatch(EmptyRequest):
         "voice",
         "calls",
         "calendar",
+        "briefing",
         mode="before",
     )
     @classmethod
@@ -402,6 +468,7 @@ class SettingsService:
             ("voice", VOICE_DEFAULTS),
             ("calls", CALLS_DEFAULTS),
             ("calendar", CALENDAR_DEFAULTS),
+            ("briefing", BRIEFING_DEFAULTS),
         ):
             if section in patch:
                 current = candidate.get(section)
@@ -410,13 +477,14 @@ class SettingsService:
                     **(current if isinstance(current, dict) else {}),
                     **patch[section],
                 }
-        candidate.update(
-            {
-                key: value
-                for key, value in patch.items()
-                if key not in ("tool_permissions", "assistant", "voice", "calls", "calendar")
-            }
-        )
+        if "briefing" in patch:
+            # One end of the window can change alone: check the order on the merged value.
+            merged = candidate["briefing"]
+            start, end = merged.get("window_start"), merged.get("window_end")
+            if isinstance(start, str) and isinstance(end, str) and start >= end:
+                raise ServiceError("invalid_arguments", BRIEFING_WINDOW_ORDER)
+        sections = ("tool_permissions", "assistant", "voice", "calls", "calendar", "briefing")
+        candidate.update({key: value for key, value in patch.items() if key not in sections})
         try:
             self.store.save(candidate)
         except ServiceError:

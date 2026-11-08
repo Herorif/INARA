@@ -50,8 +50,11 @@ BARGE_DROP_SECONDS = 5.0  # after a barge-in, the rest of the interrupted answer
 RECONNECT_ATTEMPTS = 3
 CAPTION_LIMIT = 12_000
 PCM_MIME = f"audio/pcm;rate={INPUT_RATE}"
+# The morning briefing's speech could not start (Live failed before JARVIS spoke): the card
+# on screen is the briefing, so the end is quiet.
+BRIEFING_UNAVAILABLE = "briefing_unavailable"
 # Ends the owner asked for (or expected); anything else stays visible on the tray.
-QUIET_ENDS = frozenset({"stopped", "conversation_ended", "silence_timeout"})
+QUIET_ENDS = frozenset({"stopped", "conversation_ended", "silence_timeout", BRIEFING_UNAVAILABLE})
 
 
 class VoiceStart(BaseModel):
@@ -196,6 +199,12 @@ class VoiceSession:
     wake: bool = False
     model_streaming: bool = False
     drop_until: float | None = None
+    # How a tray session started: "tray", "wake" ("Hey Jarvis") or "briefing" (the morning
+    # briefing, services/briefing_service.py), which first asks Live to speak ``say``.
+    source: str = "tray"
+    say: str | None = field(default=None, repr=False)  # never logged
+    said: bool = False
+    spoke: bool = False  # Live has sent JARVIS's audio at least once
 
 
 class VoiceService:
@@ -412,11 +421,25 @@ class VoiceService:
         if exc.code != "voice_stopped":
             self.publish_local(self.local_status(notice=str(exc)))
 
-    async def _start_local(self, wake=False):
+    async def start_briefing(self, text):
+        """The morning briefing's speech: a tray session (source "briefing") that first asks
+        Live to say ``text`` exactly, then listens like any hands-free session. Returns True
+        when it started; a refusal shows nothing on the tray (the card is already on screen)."""
+        try:
+            await self._start_local(source="briefing", say=text)
+            return True
+        except asyncio.CancelledError:
+            raise
+        except ServiceError as exc:
+            logger.info("Morning briefing speech not started (%s)", exc.code)
+            return False
+
+    async def _start_local(self, wake=False, source=None, say=None):
         owner = self.check_local_start()
         project = self.app.projects.get_current_project_path().resolve()
         conversation_id = self.app.conversation.current_conversation(owner, project)
         now = self.clock()
+        source = source or ("wake" if wake else "tray")
         session = VoiceSession(
             id=str(uuid.uuid4()),
             sid=None,
@@ -427,12 +450,16 @@ class VoiceService:
             started=now,
             last_activity=now,
             endpoint="local",
+            source=source,
+            say=say,
         )
         # Hold the one-per-owner slot while the devices open.
         self.sessions[owner] = session
+        if source != "briefing":
+            self.briefing_event("presence", "voice")  # the owner is at the PC
         # How it started is known before the first snapshot (session.wake follows the
         # shared microphone, which is only known once the devices open).
-        self.overlay_event("started", session, "wake" if wake else "tray")
+        self.overlay_event("started", session, source)
         self.publish_local(self.local_status(session))
         try:
             from services.audio_devices import local_choices
@@ -606,6 +633,16 @@ class VoiceService:
             return
         await self.app.sio.emit(event, {"session_id": session.id, **payload}, room=session.sid)
 
+    def briefing_event(self, name, *args):
+        """Tell the morning briefing (services/briefing_service.py) about voice sessions."""
+        briefing = getattr(self.app, "briefing", None)
+        if briefing is None:
+            return
+        try:
+            getattr(briefing, name)(*args)
+        except Exception:
+            logger.warning("The morning briefing could not follow voice (%s)", name, exc_info=True)
+
     def overlay_event(self, name, session, *args):
         """Tell the talking overlay (services/voice_overlay.py) about a tray session."""
         overlay = getattr(self.app, "voice_overlay", None)
@@ -674,6 +711,13 @@ class VoiceService:
                     async with self.connector(model_id("voice"), self.config(session)) as live:
                         session.live, session.connected, attempts = live, True, 0
                         await self.set_state(session, self.rest_state(session))
+                        if session.say is not None and not session.said:
+                            # The morning briefing: one text turn, once (not again on resume).
+                            from services.briefing import live_turn
+
+                            session.said = True
+                            session.last_activity = self.clock()
+                            await live.send_realtime_input(text=live_turn(session.say))
                         sender = asyncio.create_task(self.send_loop(session, live))
                         receiver = asyncio.create_task(self.receive_loop(session, live))
                         try:
@@ -710,6 +754,10 @@ class VoiceService:
                         continue
                     code, message = failure_code(exc)
                     logger.warning("Live voice failed: %s", failure_fields(exc))
+                    if session.source == "briefing" and not session.spoke:
+                        # The briefing's card is already on screen: it stays the only answer.
+                        await self.end(session, "ended", BRIEFING_UNAVAILABLE)
+                        return
                     await self.end(session, "error", code, message)
                     return
         finally:
@@ -826,6 +874,7 @@ class VoiceService:
                 await self.emit(session, "voice_state", payload)
             except Exception:
                 logger.warning("Voice end state could not be delivered", exc_info=True)
+            self.briefing_event("voice_ended")
 
     # --- Live server messages ----------------------------------------------------------
 
@@ -867,6 +916,7 @@ class VoiceService:
                 data = getattr(part, "inline_data", None)
                 if data and data.data and str(data.mime_type or "").startswith("audio/pcm"):
                     session.model_streaming = True
+                    session.spoke = True
                     if session.drop_until is not None:
                         if self.clock() < session.drop_until:
                             continue  # the answer the owner barged in on; never "speaking"

@@ -4,7 +4,7 @@
 import { HOLD_MS, endOf, ringState, snapshotView, stripWake } from '../overlay/overlayModel.js';
 
 /** Who has the microphone, as the stage names it. */
-export const SOURCE_LABELS = Object.freeze({ window: 'Window mic', tray: 'Tray voice', wake: 'Hey Jarvis' });
+export const SOURCE_LABELS = Object.freeze({ window: 'Window mic', tray: 'Tray voice', wake: 'Hey Jarvis', briefing: 'Morning briefing' });
 
 /** Window voice counts as active with the microphone open or in one of these states. */
 const WINDOW_ACTIVE = new Set(['connecting', 'listening', 'thinking', 'working', 'speaking']);

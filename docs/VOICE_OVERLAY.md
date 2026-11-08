@@ -55,7 +55,8 @@ The workspace's Assistant view has its own speaking core (`src/app/Conversation.
 `src/app/stageModel.js`), so the overlay is not needed while the owner is looking at it.
 
 - **To renderers.** `services/voice_overlay.py` also sends the owner's authenticated
-  `renderer` sockets `local_voice` (the snapshot above plus `"source": "tray" | "wake"`, how
+  `renderer` sockets `local_voice` (the snapshot above plus `"source": "tray" | "wake" |
+  "briefing"` (P2, the morning briefing), how
   the session started; coalesced the same way, the end at once, and sent to a renderer that
   connects while a session runs) and `local_voice_level` (`{level}`, on the same schedule as
   `voice_level`, then one final 0.0). The speaker's level is measured while an overlay or such

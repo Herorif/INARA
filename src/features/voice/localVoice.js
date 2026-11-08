@@ -6,8 +6,8 @@
 
 export const LOCAL_STATES = Object.freeze(['connecting', 'listening', 'thinking', 'working', 'speaking', 'ended']);
 export const LOCAL_END_KINDS = Object.freeze(['quiet', 'error', 'now']);
-/** How a tray session started: the tray's "Talk to JARVIS", or "Hey Jarvis". */
-export const LOCAL_SOURCES = Object.freeze(['tray', 'wake']);
+/** How a tray session started: the tray's "Talk to JARVIS", "Hey Jarvis", or the morning briefing (P2). */
+export const LOCAL_SOURCES = Object.freeze(['tray', 'wake', 'briefing']);
 export const LOCAL_LIMITS = Object.freeze({ session: 128, user: 300, jarvis: 600, message: 300 });
 
 // Control characters other than tab and newline never reach the page.

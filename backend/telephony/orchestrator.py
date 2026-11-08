@@ -200,7 +200,7 @@ def spam(record):
 
 
 def needs_you(record):
-    if record.get("done") is True or record.get("mode") == "owner_briefing" or spam(record):
+    if record.get("done") is True or record.get("mode") in briefs.OWNER_MODES or spam(record):
         return False
     if _part(record, "callback").get("state") in ("blocked", "failed", "no_answer"):
         return True
@@ -302,7 +302,8 @@ def detail_item(record, known_ids, people=None, can_add_person=False):
     message = _message(record)
     number = callback_number(record)
     triage = _triage(record)
-    roles = {"assistant": "jarvis", "caller": "owner" if record.get("mode") == "owner_briefing" else "caller"}
+    roles = {"assistant": "jarvis",
+             "caller": "owner" if record.get("mode") in briefs.OWNER_MODES else "caller"}
     outcome = record.get("outcome") if isinstance(record.get("outcome"), dict) else None
     return {
         **item,

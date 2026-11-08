@@ -101,7 +101,8 @@ PKCE and a random state value, so a stray or forged reply is ignored.
 ## For developers
 
 - Service: `backend/services/calendar.py` (status, tokens, `events`, `busy`, `add_event`,
-  and `today_events()` / `free_busy()` for the morning briefing and call screening).
+  `today_events()` / `free_busy()`, and `availability()`: today's busy times, cached for
+  10 minutes, for call screening's availability line; see docs/MORNING_BRIEFING.md).
 - Sign-in: `backend/services/calendar_oauth.py`. Routes: `backend/services/calendar_transport.py`
   (`calendar_status`, `calendar_connect`, `calendar_cancel`, `calendar_disconnect`,
   `calendar_settings`; the core pushes `calendar_status` to the owner's renderers).

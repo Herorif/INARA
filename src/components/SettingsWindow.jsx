@@ -53,6 +53,7 @@ const SettingsWindow = () => {
   const [faceAuthEnabled, setFaceAuthEnabled] = useState(false);
   const [assistant, setAssistant] = useState(null);
   const [voice, setVoice] = useState(null);
+  const [briefing, setBriefing] = useState(null);
 
   useEffect(() => {
     emitSocket('get_settings');
@@ -61,6 +62,7 @@ const SettingsWindow = () => {
         if (settings.tool_permissions) setPermissions(settings.tool_permissions);
         setAssistant(settings.assistant && typeof settings.assistant === 'object' ? settings.assistant : {});
         setVoice(settings.voice && typeof settings.voice === 'object' ? settings.voice : {});
+        setBriefing(settings.briefing && typeof settings.briefing === 'object' ? settings.briefing : {});
         if (typeof settings.face_auth_enabled !== 'undefined') {
           setFaceAuthEnabled(settings.face_auth_enabled);
           localStorage.setItem('face_auth_enabled', settings.face_auth_enabled);
@@ -89,7 +91,7 @@ const SettingsWindow = () => {
 
   return (
     <div className="tool-panel tool-panel--settings">
-            <AiSettings assistant={assistant} voice={voice} />
+            <AiSettings assistant={assistant} voice={voice} briefing={briefing} />
 
             <section className="flex flex-col gap-2">
                 <h3 className="hud-label">Security</h3>

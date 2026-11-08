@@ -55,6 +55,7 @@ BUSY_LIMIT = 250
 TEXT_LIMIT = 120
 MAX_RANGE = dt.timedelta(days=31)
 EXPIRY_MARGIN = 60.0
+BUSY_TTL = 600.0  # P2: call screening reuses today's busy times for 10 minutes
 SWITCHES = tuple(CALENDAR_DEFAULTS)
 GATE_MESSAGES = {
     "not_connected": "Google Calendar isn't connected. Connect it in Connections first.",
@@ -142,6 +143,7 @@ class CalendarService:
         self.callback = None
         self.last_error = None
         self.refresh_lock = asyncio.Lock()
+        self.busy_cache = None  # P2: (local date, monotonic time, today's busy intervals)
 
     # --- storage --------------------------------------------------------------------------
     @property
@@ -167,7 +169,7 @@ class CalendarService:
             database.put(db, KIND, ACCOUNT, {"email": email})
 
     def _forget(self):
-        self.access = None
+        self.access = self.busy_cache = None
         self.secrets.clear(REFRESH_TOKEN)
         database = self.app.database
         with database.transaction() as db:
@@ -543,7 +545,28 @@ class CalendarService:
         except OAuthError as exc:
             raise ServiceError("calendar_" + exc.code, str(exc)) from None
 
-    # --- for the morning briefing and call screening (not wired here) -----------------------
+    # --- for the morning briefing and call screening ---------------------------------------
+    async def availability(self):
+        """P2, call screening: ``(busy, now)`` for the rest of today (busy times only, as
+        aware datetimes), or None while the calendar is not connected or
+        ``share_free_busy`` is off. Today's busy times are cached for 10 minutes; a failed
+        read raises (the caller adds nothing) and is not cached."""
+        if not self.connected or not self.switches()["share_free_busy"]:
+            return None
+        now = local_now()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        cached = self.busy_cache
+        if cached and cached[0] == midnight.date() and self.monotonic() - cached[1] < BUSY_TTL:
+            busy = cached[2]
+        else:
+            body = await self.busy(midnight, midnight + dt.timedelta(days=1))
+            busy = [
+                (dt.datetime.fromisoformat(item["start"]), dt.datetime.fromisoformat(item["end"]))
+                for item in body["busy"]
+            ]
+            self.busy_cache = (midnight.date(), self.monotonic(), busy)
+        return [(begin, end) for begin, end in busy if end > now], now
+
     async def today_events(self):
         today = local_now().replace(hour=0, minute=0, second=0, microsecond=0)
         return await self.events(today, today + dt.timedelta(days=1))

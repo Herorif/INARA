@@ -1072,11 +1072,44 @@
       "schema": "EmptyRequest",
       "caller": "Authenticated unlocked owner renderer",
       "context": "In-memory last-activity time for the owner-briefing policy",
-      "effects": "Record owner input at the PC (renderer sends it on user input at most once a minute); with no ping for 5 minutes, no owner renderer or a hidden native window the owner counts as away",
+      "effects": "Record owner input at the PC (renderer sends it on user input at most once a minute); with no ping for 5 minutes, no owner renderer or a hidden native window the owner counts as away. P2: also counts as presence for the morning briefing (its first presence in the briefing window plays it)",
       "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
       "response": "Origin ACK {ok}",
       "lifetime": "Request-only; memory only, nothing stored",
       "replacement": "CallOrchestrator / CallsTransport",
+      "status": "implemented"
+    },
+    "briefing_get": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Today's morning briefing state in protected storage (kind briefing): the card, when it was shown, dismissal",
+      "effects": "Read today's card {date, card {date_label, sections}, expires_at} or null (none yet, dismissed, or past 12:00 local; a card first shown after noon lasts until midnight)",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok, briefing}; event titles, reminder text and call summaries go only to the owner, never to logs",
+      "lifetime": "Request-only read; no network",
+      "replacement": "MorningBriefing (backend/services/briefing_service.py, composer services/briefing.py)",
+      "status": "implemented"
+    },
+    "briefing_dismiss": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Today's morning briefing state",
+      "effects": "Mark today's card dismissed (it does not come back today); briefing {briefing: null} to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok}",
+      "lifetime": "Synchronous protected-storage write",
+      "replacement": "MorningBriefing (backend/services/briefing_service.py, composer services/briefing.py)",
+      "status": "implemented"
+    },
+    "briefing_play": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Calendar (when connected and calendar.read_events is on), reminders, incoming call records since the later of the last briefing and 18:00 the previous day, finished CAD and image jobs of the current project; assistant.address",
+      "effects": "Compose today's briefing now (also outside the briefing window), show the card (briefing event) and speak it through a tray voice session with source briefing when voice is available (no voice session, not gaming, unlocked, Gemini key); the session then listens like any hands-free session",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; speech never starts in gaming mode or while another voice session runs",
+      "response": "Origin ACK {ok, briefing, spoken, reason}; reason is a code (gaming_mode, voice_busy, provider_not_configured, voice_unavailable) when it was not spoken",
+      "lifetime": "Bounded calendar read (10 s); the voice session ends on silence or Stop talking",
+      "replacement": "MorningBriefing (backend/services/briefing_service.py, composer services/briefing.py)",
       "status": "implemented"
     },
     "contacts_list": {
@@ -2027,8 +2060,8 @@
       "status": "c2"
     },
     "verify_pin": {
-      "mode": "owner_briefing, only when calls.briefing_pin is set",
-      "target": "CallAgent: constant-time compare with calls.briefing_pin; on success returns the call details",
+      "mode": "owner_briefing and morning_briefing (P2), only when the briefing PIN (call_briefing_pin) is set",
+      "target": "CallAgent: constant-time compare with the briefing PIN; on success returns the call details (owner_briefing) or the morning briefing (morning_briefing)",
       "schema": "pin: string (digits; separators ignored)",
       "policy": "The PIN is never in the instruction, logs or record (spoken digits are redacted from captions); the call details reach the model only after a match; three failures end the call",
       "status": "c2"

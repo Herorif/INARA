@@ -1,0 +1,57 @@
+/* P2 morning briefing card: under the conversation's presence header, above the messages,
+   aligned with the 48rem transcript column. Sections are a grid: a 120 px HUD label column,
+   then items with a mono time column (at least 44 px) and the text. */
+.conversation-briefing { flex-shrink: 0; padding: .75rem 1.5rem 0; }
+.morning-briefing {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 48rem;
+  max-height: min(26rem, 45vh);
+  margin: 0 auto;
+  padding: .75rem 1rem .875rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+}
+.morning-briefing__header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.morning-briefing .morning-briefing__title { margin: 0; min-width: 0; color: var(--text-1); overflow-wrap: anywhere; }
+.morning-briefing__actions { display: flex; flex-shrink: 0; align-items: center; gap: .25rem; }
+.morning-briefing__message { margin: .375rem 0 0; color: var(--text-2); font-size: var(--text-xs); line-height: var(--leading-normal); }
+.morning-briefing__sections { display: flex; flex-direction: column; gap: .625rem; margin-top: .75rem; }
+.morning-briefing__section { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: .75rem; align-items: start; }
+.morning-briefing .morning-briefing__label { margin: 0; padding-top: .1875rem; }
+.morning-briefing__items { display: flex; flex-direction: column; gap: .375rem; margin: 0; padding: 0; list-style: none; }
+.morning-briefing__item { display: grid; grid-template-columns: minmax(44px, max-content) minmax(0, 1fr); gap: .75rem; align-items: baseline; }
+.morning-briefing__time { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-3); white-space: nowrap; }
+.morning-briefing__body { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .625rem; min-width: 0; }
+.morning-briefing__text { color: var(--text-1); font-size: var(--text-sm); line-height: var(--leading-normal); overflow-wrap: anywhere; }
+.morning-briefing__detail { flex-basis: 100%; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-normal); overflow-wrap: anywhere; }
+.morning-briefing__item[data-tone="accent"] .morning-briefing__text { color: var(--accent); }
+.morning-briefing__item[data-tone="muted"] .morning-briefing__text { color: var(--text-3); }
+.morning-briefing :is(.morning-briefing__link, .morning-briefing__text--link) {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  text-align: left;
+  cursor: pointer;
+}
+.morning-briefing .morning-briefing__link { order: 1; color: var(--accent); }
+.morning-briefing .morning-briefing__link:hover { color: var(--accent-hover); text-decoration: underline; text-underline-offset: 2px; }
+.morning-briefing .morning-briefing__text--link { color: var(--text-1); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.morning-briefing .morning-briefing__text--link:hover { color: var(--accent); text-decoration-color: currentColor; }
+.morning-briefing :is(.morning-briefing__link, .morning-briefing__text--link):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.morning-briefing__empty { margin: .625rem 0 0; color: var(--text-3); font-size: var(--text-sm); }
+
+/* Narrow (beside the live design, or a small window): the label sits above its items. */
+@container (max-width: 26rem) {
+  .morning-briefing__section { grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+}
+@media (max-width: 680px) {
+  .conversation-briefing { padding: .5rem .75rem 0; }
+}
