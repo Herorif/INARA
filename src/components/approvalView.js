@@ -7,6 +7,8 @@
 const GENERIC_SUMMARY = 'JARVIS continues only after you approve. Denying leaves this action undone.';
 // The approve labels home_control's review can send (backend/services/home_assistant.py).
 const HOME_ACTION_LABELS = ['Turn on', 'Turn off', 'Toggle', 'Set', 'Activate', 'Run', 'Lock', 'Unlock', 'Open', 'Close', 'Arm', 'Disarm', 'Play', 'Pause'];
+// Longer MCP arguments are shown as clipped JSON text.
+const MCP_DETAILS_LIMIT = 600;
 
 export function approvalView(request) {
   const args = request && typeof request.args === 'object' && request.args ? request.args : {};
@@ -23,6 +25,17 @@ export function approvalView(request) {
     // Home Assistant (docs/HOME_ASSISTANT.md): the core's sentence, e.g. "Unlock Front door?",
     // approved with its action ("Unlock").
     return { kind: 'home_control', title: args.approval.trim().slice(0, 160), summary: GENERIC_SUMMARY, approveLabel: args.approve_label, denyLabel: 'Not now', details: null };
+  }
+  if (typeof request?.tool === 'string' && request.tool.startsWith('mcp__') && typeof args.server === 'string' && args.server.trim()) {
+    // MCP server tools (docs/MCP.md): "<Server name>: <tool title or name>", with a short
+    // JSON of the arguments the server will receive.
+    const tool = [args.tool_title, args.mcp_tool].find((value) => typeof value === 'string' && value.trim())?.trim() ?? request.tool;
+    const title = `${args.server.trim()}: ${tool}`.slice(0, 160);
+    const values = args.arguments && typeof args.arguments === 'object' ? args.arguments : {};
+    let text = '';
+    try { text = JSON.stringify(values) ?? ''; } catch { text = ''; }
+    const details = text.length <= MCP_DETAILS_LIMIT ? values : { arguments: `${text.slice(0, MCP_DETAILS_LIMIT)}…` };
+    return { kind: 'mcp_tool', title, summary: GENERIC_SUMMARY, approveLabel: 'Approve', denyLabel: 'Deny', details };
   }
   if (request?.tool === 'build_live_design') {
     // The live design's build (docs/LIVE_DESIGN.md); the panel shows this inline when it is open.

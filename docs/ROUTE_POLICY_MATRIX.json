@@ -1068,6 +1068,61 @@
       "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
       "status": "implemented"
     },
+    "mcp_servers_list": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "mcp.servers settings and the in-memory server states",
+      "effects": "Read each configured server with its status: state (stopped|starting|ready|idle|failed), protocol_version, server_info, tools {tool, title, name, policy}, skipped, last_error {code, message, exit_code, stderr (redacted)} and recent restarts. No process is started",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {servers}; env secrets appear only as {secret: name}, never as values",
+      "lifetime": "Request-only snapshot",
+      "replacement": "McpRegistry (backend/services/mcp_registry.py, mcp_client.py)",
+      "status": "implemented"
+    },
+    "mcp_server_save": {
+      "schema": "ServerSave {server: McpServerConfig (id slug, name, command argv list, cwd, env literal or {secret}, enabled, autostart, timeout_s, idle_timeout_s, default_policy, policy); extra fields forbidden}",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "mcp.servers (at most 32, unique ids)",
+      "effects": "Add or replace one server through SettingsService; a changed command, folder, env or timeout, or turning it off, stops its process and removes its tools; a name or policy change re-registers its tools; mcp_status to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {server}; invalid_arguments without pydantic details (they can include env values)",
+      "lifetime": "Synchronous settings save plus a bounded process stop",
+      "replacement": "McpRegistry (backend/services/mcp_registry.py, mcp_client.py)",
+      "status": "implemented"
+    },
+    "mcp_server_remove": {
+      "schema": "ServerReference {id}",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "mcp.servers",
+      "effects": "Stop the server (close stdin, wait, kill its job tree), remove its tools and its settings entry; mcp_status to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {id}; mcp_not_found",
+      "lifetime": "Synchronous settings save plus a bounded process stop",
+      "replacement": "McpRegistry (backend/services/mcp_registry.py, mcp_client.py)",
+      "status": "implemented"
+    },
+    "mcp_server_test": {
+      "schema": "ServerReference {id}",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "One configured server, enabled or not; secrets resolved by name from the encrypted SecretStore",
+      "effects": "Start the server fresh (stdio, no shell, kill-on-close job), initialize, list its tools and report; an enabled server keeps running with its tools registered for the brain, a disabled one stops again; clears the restart backoff",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {test: {protocol_version, server_info, tools, elapsed_ms}}; failures as {code, message, exit_code, stderr} with secret values redacted",
+      "lifetime": "Server start and initialize within timeout_s, then the paginated tools/list",
+      "replacement": "McpRegistry (backend/services/mcp_registry.py, mcp_client.py)",
+      "status": "implemented"
+    },
+    "mcp_tool_policy_set": {
+      "schema": "ToolPolicySet {id, tool, policy never_ask|ask|deny}",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "mcp.servers[id].policy",
+      "effects": "Persist one tool's policy through SettingsService and re-register the server's tools (deny removes the tool from the brain); mcp_status to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {id, tool, policy}",
+      "lifetime": "Synchronous settings save",
+      "replacement": "McpRegistry (backend/services/mcp_registry.py, mcp_client.py)",
+      "status": "implemented"
+    },
     "calls_list": {
       "schema": "CallsList (filter needs_you|all|done|spam; limit 1-100, default 50; extra fields forbidden)",
       "caller": "Authenticated unlocked owner renderer",

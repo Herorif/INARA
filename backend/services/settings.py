@@ -506,6 +506,109 @@ def legacy_home_assistant_token(settings):
     return isinstance(saved, dict) and "token" in saved
 
 
+# --- MCP servers (docs/MCP.md) -----------------------------------------------------------
+# ``mcp.servers`` is the owner's list of local MCP servers (stdio). The command is an argv
+# list run without a shell; env values are literals or {"secret": name}, a name in the
+# encrypted SecretStore, so a secret value is never stored in settings.json or put in argv.
+MCP_SERVER_ID = r"^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$"
+MCP_SECRET_NAME = r"^[a-z][a-z0-9_]{0,63}$"
+MCP_ENV_NAME = r"^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+MCP_SERVER_LIMIT = 32
+McpPolicy = Literal["never_ask", "ask", "deny"]
+McpServerId = Annotated[StrictStr, StringConstraints(pattern=MCP_SERVER_ID)]
+McpEnvName = Annotated[StrictStr, StringConstraints(pattern=MCP_ENV_NAME)]
+McpToolName = Annotated[
+    StrictStr, StringConstraints(min_length=1, max_length=128, pattern=r"^[^\x00-\x1f\x7f]+$")
+]
+McpArgument = Annotated[StrictStr, StringConstraints(max_length=4096, pattern=r"^[^\x00\r\n]*$")]
+
+
+class McpSecretRef(EmptyRequest):
+    """An env value taken from the encrypted SecretStore at start (never from settings)."""
+
+    secret: Annotated[StrictStr, StringConstraints(pattern=MCP_SECRET_NAME)]
+
+
+class McpServerConfig(EmptyRequest):
+    """One ``mcp.servers`` entry. ``policy`` maps a server tool name to never_ask, ask or
+    deny; tools without an entry use ``default_policy`` ("ask")."""
+
+    id: McpServerId
+    name: StrictStr = Field(min_length=1, max_length=60, pattern=r"^[^\x00-\x1f\x7f<>{}]+$")
+    command: list[McpArgument] = Field(min_length=1, max_length=64)
+    cwd: StrictStr | None = Field(default=None, max_length=1024)
+    env: dict[McpEnvName, McpArgument | McpSecretRef] = Field(default_factory=dict, max_length=64)
+    enabled: StrictBool = True
+    autostart: StrictBool = False
+    timeout_s: StrictInt = Field(default=30, ge=1, le=600)
+    idle_timeout_s: StrictInt = Field(default=600, ge=0, le=86_400)
+    default_policy: McpPolicy = "ask"
+    policy: dict[McpToolName, McpPolicy] = Field(default_factory=dict, max_length=500)
+
+    @field_validator("name")
+    @classmethod
+    def trim_name(cls, value):
+        value = " ".join(value.split())
+        if not value:
+            raise ValueError("Give the server a name.")
+        return value
+
+    @field_validator("command")
+    @classmethod
+    def program(cls, value):
+        if not value[0].strip():
+            raise ValueError("Start the command with the program to run.")
+        return value
+
+    @field_validator("cwd")
+    @classmethod
+    def absolute(cls, value):
+        if value is None:
+            return None
+        if "\x00" in value or not Path(value).is_absolute():
+            raise ValueError("Use a full folder path for the working directory.")
+        return value
+
+    @field_validator("env")
+    @classmethod
+    def distinct_names(cls, value):
+        # Windows environment names ignore case: PATH and Path are the same variable.
+        if len({name.casefold() for name in value}) != len(value):
+            raise ValueError("Each environment variable can be set only once.")
+        return value
+
+
+class McpSettings(EmptyRequest):
+    """``mcp.*``: replaced whole on each save (services/mcp_registry.py)."""
+
+    servers: list[McpServerConfig] = Field(max_length=MCP_SERVER_LIMIT)
+
+    @field_validator("servers")
+    @classmethod
+    def unique_ids(cls, value):
+        if len({server.id for server in value}) != len(value):
+            raise ValueError("Each MCP server needs its own id.")
+        return value
+
+
+def mcp_server_configs(settings):
+    """The validated ``mcp.servers``; a malformed entry (or a repeated id) is skipped."""
+    saved = settings.get("mcp") if isinstance(settings, dict) else None
+    servers = saved.get("servers") if isinstance(saved, dict) else None
+    result, seen = [], set()
+    for item in servers if isinstance(servers, list) else ():
+        try:
+            config = McpServerConfig.model_validate(item)
+        except ValueError:
+            # Pydantic details can include env literals: report the position only.
+            logger.warning("An MCP server entry in settings is invalid and was skipped")
+            continue
+        if config.id not in seen and len(result) < MCP_SERVER_LIMIT:
+            seen.add(config.id)
+            result.append(config)
+    return result
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
@@ -516,6 +619,7 @@ class SettingsPatch(EmptyRequest):
     calendar: CalendarSettings | None = None
     briefing: BriefingSettings | None = None
     home_assistant: HomeAssistantSettings | None = None
+    mcp: McpSettings | None = None
 
     @field_validator(
         "tool_permissions",
@@ -527,6 +631,7 @@ class SettingsPatch(EmptyRequest):
         "calendar",
         "briefing",
         "home_assistant",
+        "mcp",
         mode="before",
     )
     @classmethod

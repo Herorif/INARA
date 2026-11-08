@@ -150,6 +150,11 @@ class Application:
         self.home = HomeAssistantService(self)
         self.home_transport = HomeAssistantTransport(self)
         register_home_tools(self.dispatcher, self.home)
+        # W3a MCP servers (docs/MCP.md): owner-only mcp_* routes, mcp_status, and each
+        # enabled server's tools for the brain as mcp__<server>__<tool>.
+        from services.mcp_registry import McpRegistry
+
+        self.mcp = McpRegistry(self)
         self.delivery = EventDelivery(sio, self.sessions, reminders, self.dispatcher, resources)
         self.cad = CadService(database, resources, partial(self.delivery.publish_job, "cad_job"))
         self.images = ImageService(
@@ -427,6 +432,7 @@ class Application:
             asyncio.create_task(self.memory.maintain(), name="project-memory-retention")
         )
         self.tasks.append(self.briefing.start())
+        self.mcp.start()  # autostart servers in the background; mcp.close() owns the task
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
         await self.wake.begin()  # no-op outside the native resident
@@ -472,6 +478,7 @@ class Application:
                     raise result
         finally:
             await _isolated("briefing", self.briefing.close)
+            await _isolated("mcp", self.mcp.close)
             await _isolated("call_orchestrator", self.call_orchestrator.close)
             await _isolated("call_agent", self.call_agent.close)
             await _isolated("wake", self.wake.close)
