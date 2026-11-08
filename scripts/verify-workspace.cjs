@@ -85,7 +85,7 @@ app.whenReady().then(async () => {
     assert.equal(await window.webContents.executeJavaScript(`!!document.querySelector('[role="dialog"]')`), false);
     // Exercise keyboard command selection and all reframed interiors without running actions.
     const reframed = [
-      ['settings','Preferences'],['Desktop','Desktop'],['Smart home','Smart home'],
+      ['settings','Preferences'],['Desktop','Desktop'],['Smart home','Home'],
       ['Print workshop','Print'],['routine','Routines'],['devices','Devices'],
       ['Android companion','Phone companion','.mobile-companion'],['Web inspector','Web inspector','.web-inspector'],
     ];

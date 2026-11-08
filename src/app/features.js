@@ -17,7 +17,7 @@ export const features = [
   { id: 'reminder', title: 'Reminders', group: 'Organize', keywords: 'schedule tasks alarm', flag: 'showReminderWindow' },
   { id: 'routines', title: 'Routines', group: 'Organize', keywords: 'automation routines routine manager', flag: 'showRoutineWindow' },
   { id: 'desktop', title: 'Desktop', group: 'Connect', keywords: 'apps clipboard system desktop controls', flag: 'showDesktopWindow' },
-  { id: 'kasa', title: 'Smart home', group: 'Connect', keywords: 'lights plug kasa', flag: 'showKasaWindow' },
+  { id: 'kasa', title: 'Home', group: 'Connect', keywords: 'smart home lights plug kasa home assistant rooms', flag: 'showKasaWindow' },
   { id: 'device', title: 'Devices', group: 'Connect', keywords: 'devices control connected devices', flag: 'showDeviceWindow' },
   { id: 'printer', title: 'Print', group: 'Create', keywords: 'printer slice fabrication print workshop', flag: 'showPrinterWindow' },
   { id: 'phone', title: 'Phone companion', group: 'Connect', keywords: 'phone android mobile pairing devices secure android companion', flag: 'showPhoneWindow' },

@@ -4,11 +4,13 @@ import useStore from '../store';
 import socket, { emitSocket } from '../services/socket';
 import StatusChip from '../shared/ui/StatusChip';
 import EmptyState from '../shared/ui/EmptyState';
+import HomeView from '../features/home/HomeView';
 
 // The hue slider's spectrum is the control's content (it shows which color each position sets).
 const HUE_TRACK = 'linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)';
 
-const KasaWindow = () => {
+/** The Kasa group in Home: discovery and control exactly as the Kasa window had them. */
+const KasaDevices = () => {
   const devices = useStore((s) => s.kasaDevices);
   const [isThinking, setIsThinking] = useState(false);
   const [loadingDevices, setLoadingDevices] = useState({});
@@ -52,8 +54,7 @@ const KasaWindow = () => {
   };
 
   return (
-    <div
-      id="kasa" className="tool-panel tool-panel--kasa">
+    <div className="home-kasa">
 
             <div className="flex items-center justify-between gap-2">
                 <StatusChip tone="idle">
@@ -144,5 +145,14 @@ const KasaWindow = () => {
         </div>);
 
 };
+
+/**
+ * Home (feature key "kasa", docs/HOME_ASSISTANT.md): Home Assistant rooms, then the Kasa
+ * group. The key and route stay "kasa" so saved layouts and commands keep working.
+ */
+const KasaWindow = ({ onOpen }) =>
+  <div id="kasa" className="tool-panel tool-panel--kasa tool-panel--home">
+    <HomeView kasa={<KasaDevices />} onOpen={onOpen} />
+  </div>;
 
 export default KasaWindow;

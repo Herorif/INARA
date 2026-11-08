@@ -5,6 +5,8 @@
 // (calendar_add_event) shows the core's one-line approval sentence.
 
 const GENERIC_SUMMARY = 'JARVIS continues only after you approve. Denying leaves this action undone.';
+// The approve labels home_control's review can send (backend/services/home_assistant.py).
+const HOME_ACTION_LABELS = ['Turn on', 'Turn off', 'Toggle', 'Set', 'Activate', 'Run', 'Lock', 'Unlock', 'Open', 'Close', 'Arm', 'Disarm', 'Play', 'Pause'];
 
 export function approvalView(request) {
   const args = request && typeof request.args === 'object' && request.args ? request.args : {};
@@ -15,6 +17,12 @@ export function approvalView(request) {
     // Google Calendar (docs/CALENDAR.md): the core's review sentence, e.g.
     // Add “Lunch with Aisyah” to your calendar, Monday 9 November 13:00 to 14:00?
     return { kind: 'calendar_event', title: 'Add to calendar', summary: args.approval.trim(), approveLabel: 'Add', denyLabel: 'Not now', details: null };
+  }
+  if (request?.tool === 'home_control' && typeof args.approval === 'string' && args.approval.trim()
+    && HOME_ACTION_LABELS.includes(args.approve_label)) {
+    // Home Assistant (docs/HOME_ASSISTANT.md): the core's sentence, e.g. "Unlock Front door?",
+    // approved with its action ("Unlock").
+    return { kind: 'home_control', title: args.approval.trim().slice(0, 160), summary: GENERIC_SUMMARY, approveLabel: args.approve_label, denyLabel: 'Not now', details: null };
   }
   if (request?.tool === 'build_live_design') {
     // The live design's build (docs/LIVE_DESIGN.md); the panel shows this inline when it is open.

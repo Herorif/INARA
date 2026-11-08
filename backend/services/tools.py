@@ -67,6 +67,12 @@ class ToolSpec:
     # Always asks the owner, whatever the stored policy says (True, False or
     # "allow_within_scope"); "deny" still disables it. Enforced in dispatch().
     always_ask: bool = False
+    # Optional (validated, context) -> bool. True forces the owner's approval for this
+    # call whatever the stored policy says, like always_ask but per call (e.g. a Home
+    # Assistant device set to "ask"); False leaves the stored policy in charge. "deny" is
+    # checked first and still disables the tool. May raise ServiceError to refuse the call
+    # before any approval card. Enforced in dispatch().
+    ask_when: Callable | None = None
 
 
 def inline_tool_schema(model):
@@ -154,7 +160,11 @@ class ToolDispatcher:
             or self.permissions().get(spec.alias_for) == "deny"
         ):
             raise ServiceError("permission_denied", "This action is disabled.")
-        if force_approval or spec.always_ask or policy not in (False, "allow_within_scope"):
+        # ask_when runs on every call, so a refusal it raises comes before any approval card.
+        asks = spec.ask_when is not None and (
+            spec.ask_when(validated, {**context, "principal": principal}) is True
+        )
+        if force_approval or spec.always_ask or asks or policy not in (False, "allow_within_scope"):
             if request_approval is None:
                 raise ServiceError("approval_required", "This action requires owner approval.")
             review_args = approval_arguments(validated.model_dump())

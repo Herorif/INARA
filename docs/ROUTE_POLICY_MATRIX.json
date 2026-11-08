@@ -1002,6 +1002,72 @@
       "replacement": "CalendarService / CalendarTransport (backend/services/calendar*.py)",
       "status": "implemented"
     },
+    "home_status": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "home_assistant.url and access settings, token presence only, the in-memory device list",
+      "effects": "Read status: connected, url, host, insecure (http), devices, rooms, grouped_by (area|domain), legacy_token_ignored, last_error {code, message} | null. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {home}; never the token; pydantic details never echoed",
+      "lifetime": "Request-only snapshot",
+      "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
+      "status": "implemented"
+    },
+    "home_connect": {
+      "schema": "HomeConnect (url, token: str; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The address (http only on the home network; https verifies with the provider TLS context) and the pasted long-lived access token (home_assistant_token format check)",
+      "effects": "GET /api/ (must answer API running.), GET /api/states, POST /api/template (areas) and GET /api/config; on success the token goes to the internal encrypted secret home_assistant_token and the address to home_assistant.url (an old home_assistant.token setting is dropped); home_status and settings to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {home}; invalid_token (401/403), unreachable, timeout, tls, not_home_assistant and format errors as fixed plain messages; the token is never echoed or logged",
+      "lifetime": "Up to four bounded requests (10 s each, redirects off)",
+      "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
+      "status": "implemented"
+    },
+    "home_disconnect": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The stored token and the in-memory device list",
+      "effects": "Deletes home_assistant_token and the device list; keeps the address and access overrides; drops an old home_assistant.token setting. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {home}; home_status to the owner's renderers",
+      "lifetime": "Synchronous",
+      "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
+      "status": "implemented"
+    },
+    "home_devices": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The connected Home Assistant; refused with home_not_connected otherwise",
+      "effects": "GET /api/states, POST /api/template (rooms from areas; grouped by domain when it fails) and GET /api/config; refreshes the in-memory list",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {devices, rooms, grouped_by, home}; each device {entity_id, name, domain, room, state, state_text, available, access, toggle, on, dimmable, brightness, climate}",
+      "lifetime": "Three bounded requests (10 s each)",
+      "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
+      "status": "implemented"
+    },
+    "home_set_access": {
+      "schema": "HomeAccessRequest (entity_id, access can|ask|off; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "home_assistant.access overrides; an included domain only",
+      "effects": "Persist the owner's choice through SettingsService (a choice equal to the default removes the override); settings snapshot to the owner's renderers. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; the only way a device becomes off limits",
+      "response": "Origin ACK {entity_id, access}",
+      "lifetime": "Synchronous settings save",
+      "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
+      "status": "implemented"
+    },
+    "home_control_direct": {
+      "schema": "HomeControl (entity_id, action, value?; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's own tile controls in Home, any access level",
+      "effects": "GET the entity, POST one /api/services call from the fixed action table, GET it again",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; acts at once without an approval card because the owner is clicking",
+      "response": "Origin ACK {device}; failures as fixed plain messages",
+      "lifetime": "Three bounded requests (10 s each)",
+      "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
+      "status": "implemented"
+    },
     "calls_list": {
       "schema": "CallsList (filter needs_you|all|done|spam; limit 1-100, default 50; extra fields forbidden)",
       "caller": "Authenticated unlocked owner renderer",
@@ -1726,6 +1792,22 @@
       "context": "Authenticated desktop owner; primary calendar, Asia/Kuala_Lumpur",
       "lifetime": "One events.insert after approval; 30 s execution timeout",
       "replacement": "P3 Google Calendar (services/calendar_tools.py)",
+      "model_visible": true
+    },
+    "home_devices": {
+      "schema": "HomeDevicesQuery",
+      "policy": "Own permissions[home_devices] (default False: never asks); deny rejects. Refused when not connected. Off limits devices are listed by name and room only (no entity_id, state or actions)",
+      "context": "Authenticated desktop owner; the connected Home Assistant",
+      "lifetime": "Three bounded requests (10 s each); 30 s execution timeout",
+      "replacement": "H1 Home Assistant (services/home_assistant_tools.py)",
+      "model_visible": true
+    },
+    "home_control": {
+      "schema": "HomeControl",
+      "policy": "Own permissions[home_control] (default False); ToolSpec.ask_when asks the owner on screen for 'ask' devices and for unlock, open, arm_home, arm_away and disarm on any device, and refuses off limits devices, unsupported actions and a disconnected server before any card; deny rejects. Review facts carry the approval sentence and approve label",
+      "context": "Authenticated desktop owner; the connected Home Assistant",
+      "lifetime": "Three bounded requests (10 s each) after any approval; 30 s execution timeout",
+      "replacement": "H1 Home Assistant (services/home_assistant_tools.py)",
       "model_visible": true
     },
     "place_task_call": {

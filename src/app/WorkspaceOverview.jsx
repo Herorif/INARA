@@ -37,7 +37,7 @@ export default function WorkspaceOverview({ page, gaming, onOpen }) {
     <div className="tool-grid connections-grid">
       <FeatureCard icon={Smartphone} title="Phone companion" description="Pair your Android phone with the permissions you choose." onClick={() => onOpen('phone')}/>
       <FeatureCard icon={Cpu} title="Desktop" description="Apps and selected system tools." onClick={() => onOpen('desktop')}/>
-      <FeatureCard icon={Zap} title="Smart home" description="Supported lights, plugs and devices." onClick={() => onOpen('kasa')}/>
+      <FeatureCard icon={Zap} title="Home" description="Supported lights, plugs and devices." onClick={() => onOpen('kasa')}/>
     </div>
   </div>;
 }

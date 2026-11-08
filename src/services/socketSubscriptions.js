@@ -13,6 +13,7 @@ import { registerLocalVoiceEvents } from './events/localVoice';
 import { registerLiveDesignEvents } from './events/liveDesign';
 import { registerCallAlertEvents } from './events/callAlerts';
 import { registerCalendarEvents } from './events/calendar';
+import { registerHomeEvents } from './events/home';
 import { registerBriefingEvents } from './events/briefing';
 import { registerVisionCaptureEvents } from './events/visionCapture';
 import useStore from '../store';
@@ -216,6 +217,7 @@ export function initSocketListeners() {
     registerLiveDesignEvents(dependencies);
     registerCallAlertEvents(dependencies);
     registerCalendarEvents(dependencies);
+    registerHomeEvents(dependencies);
     registerBriefingEvents(dependencies);
     registerVisionCaptureEvents(dependencies);
 

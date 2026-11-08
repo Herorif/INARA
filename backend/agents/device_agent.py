@@ -5,6 +5,10 @@ Combines TP-Link Kasa devices (via KasaSmartHomeAgent) with
 Home Assistant entities (via HomeAssistantBridge) behind a single
 set of tools.  The LLM calls list_all_devices / control_device and
 never has to know which protocol a device uses.
+
+Home Assistant control goes only through the access-aware home_control tool
+(services/home_assistant*.py, docs/HOME_ASSISTANT.md): control_device refuses Home
+Assistant entity IDs so per-device access and approvals can't be bypassed here.
 """
 
 import logging
@@ -76,7 +80,10 @@ class DeviceAgent(BaseAgent):
     async def initialize(self):
         # Kasa is initialized by server.py — don't double-init here.
         if self._ha:
-            reachable = await self._ha.ping()
+            try:
+                reachable = await self._ha.ping()
+            except Exception:
+                reachable = False
             if reachable:
                 logger.info("[DeviceAgent] Home Assistant connected.")
             else:
@@ -175,34 +182,12 @@ class DeviceAgent(BaseAgent):
         color: Optional[str],
         temperature: Optional[float],
     ) -> AgentResult:
-        try:
-            kwargs: dict[str, Any] = {}
-            if brightness is not None:
-                # HA uses 0-255 for brightness
-                kwargs["brightness"] = max(0, min(255, int(brightness * 2.55)))
-            if temperature is not None:
-                kwargs["temperature"] = temperature
-
-            if action == "turn_on":
-                ok = await self._ha.turn_on(entity_id, **kwargs)
-            elif action == "turn_off":
-                ok = await self._ha.turn_off(entity_id)
-            elif action == "toggle":
-                ok = await self._ha.toggle(entity_id)
-            elif action == "set":
-                ok = await self._ha.turn_on(entity_id, **kwargs)
-            else:
-                return AgentResult(success=False, message=f"Unknown action: {action}")
-
-            msg = f"{action} {entity_id}: {'OK' if ok else 'FAILED'}"
-            self._bus.emit_nowait(Event(
-                type=Events.DEVICE_CONTROL,
-                data={"device_id": entity_id, "action": action, "success": ok},
-                source=self.name,
-            ))
-            return AgentResult(success=ok, message=msg)
-        except Exception as e:
-            return AgentResult(success=False, message=f"HA control error: {e}")
+        # Per-device access ("can", "ask", "off") and the always-ask actions live in
+        # home_control; this path never controls a Home Assistant device directly.
+        return AgentResult(
+            success=False,
+            message="Use home_control for Home Assistant devices (find them with home_devices).",
+        )
 
     async def _control_kasa(
         self,
@@ -262,7 +247,8 @@ class DeviceAgent(BaseAgent):
                     ),
                 )
             except Exception as e:
-                return AgentResult(success=False, message=f"HA state error: {e}")
+                # The text can carry the server address; only the class is reported.
+                return AgentResult(success=False, message=f"HA state error ({type(e).__name__}).")
 
         # Kasa: look up directly in cached devices
         if self._kasa and hasattr(self._kasa, "devices"):

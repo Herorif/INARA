@@ -71,6 +71,10 @@ DEFAULT_SETTINGS = {
         # asks (calendar_add_event also sets always_ask).
         "calendar_read": False,
         "calendar_write": True,
+        # Home Assistant (docs/HOME_ASSISTANT.md): listing never asks; home_control's
+        # ToolSpec.ask_when asks per device ("ask" devices and unlock/open/arm/disarm).
+        "home_devices": False,
+        "home_control": False,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}

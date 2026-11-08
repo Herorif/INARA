@@ -1,0 +1,368 @@
+/* Home Assistant (docs/HOME_ASSISTANT.md): the Connections card (follows the Google Calendar
+   card) and the Home view. */
+
+/* --- Connections card ------------------------------------------------------------------- */
+.connections-readiness .home-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.home-card__title svg {
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+.home-card .home-card__chip[data-tone="idle"] {
+  color: var(--text-2);
+}
+.home-card .home-card__chip[data-tone="ok"] {
+  color: var(--ok);
+}
+.connections-readiness .home-card__account {
+  color: var(--text-1);
+}
+.connections-readiness .home-card__legacy {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--warn);
+  background: var(--warn-subtle);
+  color: var(--text-1);
+  font-size: var(--text-sm);
+}
+.home-card__form {
+  margin-top: var(--space-4);
+}
+.home-card__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+.home-card__fields label {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.home-card__fields input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.connections-readiness .home-card__note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.home-card__help {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.home-card__help summary {
+  cursor: pointer;
+  color: var(--accent);
+  width: max-content;
+}
+.home-card__help summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.home-card__help ol {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  line-height: var(--leading-normal);
+}
+.connections-readiness .home-card__error {
+  margin: var(--space-3) 0 0;
+  color: var(--text-1);
+}
+.home-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+@media (max-width: 650px) {
+  .home-card__fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Home view ---------------------------------------------------------------------------- */
+.home-view {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.home-view__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.home-view__line {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.home-view__bar .btn {
+  flex-shrink: 0;
+}
+.home-view__error {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--danger);
+  background: var(--danger-subtle);
+  font-size: var(--text-sm);
+  color: var(--text-1);
+}
+.home-view__loading {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.home-room {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.home-room__label {
+  margin: 0;
+}
+.home-room__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-3);
+}
+
+/* --- Tiles -------------------------------------------------------------------------------- */
+.home-tile {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.home-tile:hover {
+  border-color: var(--line-strong);
+}
+.home-tile__top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.home-tile__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--text-2);
+}
+.home-tile.is-on .home-tile__icon {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.home-tile__text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.home-tile__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-1);
+}
+.home-tile__state {
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.home-tile__climate {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.home-tile__setpoint {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--text-1);
+}
+.home-tile__mode {
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.home-tile__brightness {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.tool-panel .home-tile__brightness input {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 4px;
+  margin: 0;
+  border-radius: 999px;
+  appearance: none;
+  background: linear-gradient(to right, var(--accent) var(--level), var(--line-strong) var(--level));
+  cursor: pointer;
+}
+.home-tile__brightness input::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--bg-raised);
+  border-radius: 999px;
+  appearance: none;
+  background: var(--text-1);
+}
+.home-tile__brightness input:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.home-tile__level {
+  min-width: 2.5rem;
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.home-tile__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+.home-tile__access {
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.home-tile__access[data-tone="warn"] {
+  color: var(--warn);
+}
+.home-tile__access[data-tone="danger"] {
+  color: var(--danger);
+}
+.home-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.tool-panel .home-switch {
+  min-height: 0;
+  margin-top: .375rem;
+}
+.home-switch > span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: .875rem;
+  height: .875rem;
+  border-radius: 999px;
+  background: var(--text-2);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.home-switch.is-on {
+  border-color: transparent;
+  background: var(--accent);
+}
+.home-switch.is-on > span {
+  transform: translateX(1rem);
+  background: var(--text-on-accent);
+}
+.home-switch:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.home-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- Access menu -------------------------------------------------------------------------- */
+.home-tile__menu {
+  position: relative;
+}
+.home-menu {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  top: calc(100% + var(--space-1));
+  display: grid;
+  min-width: 12rem;
+  padding: var(--space-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-overlay);
+  box-shadow: var(--shadow-overlay);
+}
+.tool-panel .home-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2rem;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-sm);
+  text-align: left;
+  color: var(--text-1);
+  cursor: pointer;
+}
+.home-menu__item:hover,
+.home-menu__item:focus-visible {
+  background: var(--bg-hover);
+  outline: none;
+}
+.home-menu__check {
+  display: inline-flex;
+  width: 14px;
+  color: var(--accent);
+}
+
+/* --- Kasa group ----------------------------------------------------------------------------- */
+.home-kasa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-switch,
+  .home-switch > span,
+  .home-tile {
+    transition: none;
+  }
+}
+@media (max-width: 540px) {
+  .home-room__grid {
+    grid-template-columns: 1fr;
+  }
+}

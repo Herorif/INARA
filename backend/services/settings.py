@@ -2,6 +2,7 @@
 
 import copy
 from datetime import datetime
+import ipaddress
 import json
 import logging
 import os
@@ -10,7 +11,8 @@ import re
 import shutil
 import tempfile
 import threading
-from typing import Literal
+from typing import Annotated, Literal
+from urllib.parse import urlsplit
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -18,6 +20,7 @@ from pydantic import (
     StrictBool,
     StrictInt,
     StrictStr,
+    StringConstraints,
     field_validator,
     model_validator,
 )
@@ -372,6 +375,137 @@ def briefing_settings(settings):
     return values
 
 
+# --- Home Assistant (docs/HOME_ASSISTANT.md) -------------------------------------------------
+# ``home_assistant.url`` is the server address; the long-lived access token is never a
+# setting (it is the encrypted secret home_assistant_token). An old ``home_assistant.token``
+# in settings.json is ignored and dropped the next time this section is saved.
+HOME_ENTITY_ID = r"^[a-z0-9_]{1,64}\.[a-z0-9_]{1,190}$"
+HomeAccess = Literal["can", "ask", "off"]
+HomeEntityId = Annotated[StrictStr, StringConstraints(pattern=HOME_ENTITY_ID, max_length=255)]
+HOME_ACCESS_LIMIT = 1000
+HOME_URL_EXAMPLE = "http://homeassistant.local:8123"
+HOME_URL_MESSAGE = f"Use the full address, for example {HOME_URL_EXAMPLE}."
+_HOME_HOST = re.compile(
+    r"^(?=.{1,253}$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+)
+_HOME_PATH = re.compile(r"^[A-Za-z0-9._~/-]*$")
+# Names that only resolve on a home network (mDNS, router DNS, the RFC 8375 home zone).
+_LOCAL_SUFFIXES = (".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain")
+_SHARED_SPACE = ipaddress.ip_network("100.64.0.0/10")  # carrier-grade NAT / Tailscale
+
+
+def home_address_is_local(host):
+    """True for addresses on the home network: private, loopback or link-local IPs, the
+    100.64/10 shared space, single-label names and home-network suffixes such as .local."""
+    host = (host or "").strip("[]").lower()
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return host == "localhost" or "." not in host or host.endswith(_LOCAL_SUFFIXES)
+    if address.version == 4 and address in _SHARED_SPACE:
+        return True
+    return address.is_private or address.is_loopback or address.is_link_local
+
+
+def home_assistant_url(value):
+    """The normalised server address (scheme, host, port and optional path, no trailing
+    slash or /api), or "" for blank. Raises ValueError with a plain message otherwise.
+    http is accepted only for an address on the home network."""
+    if not isinstance(value, str):
+        raise ValueError(HOME_URL_MESSAGE)
+    text = value.strip()
+    if not text:
+        return ""
+    if len(text) > 300 or any(ord(char) < 33 or ord(char) == 127 for char in text):
+        raise ValueError(HOME_URL_MESSAGE)
+    try:
+        parts = urlsplit(text)
+        port = parts.port
+    except ValueError:
+        raise ValueError(HOME_URL_MESSAGE) from None
+    scheme = parts.scheme.lower()
+    host = (parts.hostname or "").lower()
+    if scheme not in ("http", "https") or not host:
+        raise ValueError(
+            f"Start the address with http:// or https://, for example {HOME_URL_EXAMPLE}."
+        )
+    if parts.username is not None or parts.password is not None or parts.query or parts.fragment:
+        raise ValueError("Use only the server address, without a sign-in name or anything after ?.")
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is None and not _HOME_HOST.fullmatch(host):
+        raise ValueError(HOME_URL_MESSAGE)
+    if not _HOME_PATH.fullmatch(parts.path):
+        raise ValueError(HOME_URL_MESSAGE)
+    if scheme == "http" and not home_address_is_local(host):
+        raise ValueError("Use https for an address outside your home network.")
+    path = parts.path.rstrip("/")
+    if path.endswith("/api"):
+        path = path[: -len("/api")]
+    shown = f"[{host}]" if literal is not None and literal.version == 6 else host
+    return f"{scheme}://{shown}{'' if port is None else ':' + str(port)}{path}"
+
+
+class HomeAssistantSettings(EmptyRequest):
+    """``home_assistant.*``: the server address and the owner's per-device access overrides
+    (entity_id -> "can" | "ask" | "off"). ``access`` is replaced whole on each update; only
+    overrides are stored (a device at its default has no entry)."""
+
+    url: StrictStr | None = Field(default=None, max_length=300)
+    access: dict[HomeEntityId, HomeAccess] | None = Field(
+        default=None, max_length=HOME_ACCESS_LIMIT
+    )
+
+    @field_validator("url", "access", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @field_validator("url")
+    @classmethod
+    def address(cls, value):
+        return home_assistant_url(value)
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a Home Assistant setting to update.")
+        return self
+
+
+HOME_ASSISTANT_DEFAULTS = {"url": "", "access": {}}
+
+
+def home_assistant_settings(settings):
+    """Validated ``home_assistant.*`` with defaults: a stale or malformed URL reads as "",
+    and malformed access entries are skipped. Never returns an old ``token`` key."""
+    saved = settings.get("home_assistant") if isinstance(settings, dict) else None
+    saved = saved if isinstance(saved, dict) else {}
+    try:
+        url = home_assistant_url(saved.get("url", ""))
+    except ValueError:
+        url = ""
+    access = saved.get("access")
+    access = [
+        (key, value)
+        for key, value in (access.items() if isinstance(access, dict) else ())
+        if isinstance(key, str)
+        and re.fullmatch(HOME_ENTITY_ID, key)
+        and value in ("can", "ask", "off")
+    ]
+    return {"url": url, "access": dict(access[:HOME_ACCESS_LIMIT])}
+
+
+def legacy_home_assistant_token(settings):
+    """True while settings.json still has the old plaintext ``home_assistant.token``."""
+    saved = settings.get("home_assistant") if isinstance(settings, dict) else None
+    return isinstance(saved, dict) and "token" in saved
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
@@ -381,6 +515,7 @@ class SettingsPatch(EmptyRequest):
     calls: CallsSettings | None = None
     calendar: CalendarSettings | None = None
     briefing: BriefingSettings | None = None
+    home_assistant: HomeAssistantSettings | None = None
 
     @field_validator(
         "tool_permissions",
@@ -391,6 +526,7 @@ class SettingsPatch(EmptyRequest):
         "calls",
         "calendar",
         "briefing",
+        "home_assistant",
         mode="before",
     )
     @classmethod
@@ -469,9 +605,13 @@ class SettingsService:
             ("calls", CALLS_DEFAULTS),
             ("calendar", CALENDAR_DEFAULTS),
             ("briefing", BRIEFING_DEFAULTS),
+            ("home_assistant", HOME_ASSISTANT_DEFAULTS),
         ):
             if section in patch:
                 current = candidate.get(section)
+                if section == "home_assistant" and isinstance(current, dict):
+                    # The old plaintext token is never carried forward (docs/HOME_ASSISTANT.md).
+                    current = {key: value for key, value in current.items() if key != "token"}
                 candidate[section] = {
                     **defaults,
                     **(current if isinstance(current, dict) else {}),
@@ -483,7 +623,10 @@ class SettingsService:
             start, end = merged.get("window_start"), merged.get("window_end")
             if isinstance(start, str) and isinstance(end, str) and start >= end:
                 raise ServiceError("invalid_arguments", BRIEFING_WINDOW_ORDER)
-        sections = ("tool_permissions", "assistant", "voice", "calls", "calendar", "briefing")
+        sections = (
+            "tool_permissions", "assistant", "voice", "calls", "calendar", "briefing",
+            "home_assistant",
+        )
         candidate.update({key: value for key, value in patch.items() if key not in sections})
         try:
             self.store.save(candidate)

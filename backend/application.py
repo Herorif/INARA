@@ -141,12 +141,16 @@ class Application:
         self.calendar = CalendarService(self)
         self.calendar_transport = CalendarTransport(self)
         register_calendar_tools(self.dispatcher, self.calendar)
-        self.delivery = EventDelivery(sio, self.sessions, reminders, self.dispatcher, resources)
-        # V2 Show JARVIS (docs/VISION_STUDIO.md): vision_ask, vision_capture_result and the
-        # brain's look_through_camera (always asks). Photos are never stored.
-        from services.vision_ask import ShowJarvis
+        # H1 Home Assistant (docs/HOME_ASSISTANT.md): the owner-only home_* routes for the
+        # Connections card and Home view, and the brain's home_devices and home_control.
+        from services.home_assistant import HomeAssistantService
+        from services.home_assistant_tools import register_home_tools
+        from services.home_assistant_transport import HomeAssistantTransport
 
-        self.show_jarvis = ShowJarvis(self)
+        self.home = HomeAssistantService(self)
+        self.home_transport = HomeAssistantTransport(self)
+        register_home_tools(self.dispatcher, self.home)
+        self.delivery = EventDelivery(sio, self.sessions, reminders, self.dispatcher, resources)
         self.cad = CadService(database, resources, partial(self.delivery.publish_job, "cad_job"))
         self.images = ImageService(
             database, resources, partial(self.delivery.publish_job, "image_job")
@@ -188,6 +192,11 @@ class Application:
         self.conversation_transport = ConversationTransport(
             sio, self.conversation, self.dispatcher, self.sessions
         )
+        # V2 Show JARVIS (docs/VISION_STUDIO.md): vision_ask, vision_capture_result and the
+        # brain's look_through_camera (always asks). Photos are never stored.
+        from services.vision_ask import ShowJarvis
+
+        self.show_jarvis = ShowJarvis(self)
         self.mobile = MobileService(self)
         self.mobile_transport = MobileTransport(self)
         self.speech = SpeechService(self)

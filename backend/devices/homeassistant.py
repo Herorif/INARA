@@ -1,167 +1,259 @@
 """
-Home Assistant REST API bridge.
+Home Assistant REST API bridge (docs/HOME_ASSISTANT.md).
 
-Provides a thin async wrapper around the HA REST API so DeviceAgent
-can query and control any entity exposed by Home Assistant — lights,
-switches, sensors, media players, climate, etc.
+A thin async client on httpx for one Home Assistant server: ``ping`` (``GET /api/``),
+``states``, ``state``, ``areas`` (rendered through ``POST /api/template``), ``config``,
+``call_service`` and ``list_devices``. Each call is one bounded request (10 s) with
+redirects off; https verifies against the OS certificate store through
+``services.tls.provider_ssl_context()`` (antivirus HTTPS scanning still verifies).
 
-Configuration (from settings.json):
-  home_assistant.url      — e.g. "http://homeassistant.local:8123"
-  home_assistant.token    — Long-lived access token from HA profile page
+The address comes from the ``home_assistant.url`` setting and the long-lived access token
+from the encrypted secret ``home_assistant_token`` (services/home_assistant.py); the bridge
+never reads settings.json itself. The token and exception text (which can carry the
+address) are never logged.
 """
 
-import logging
-from typing import Any, Optional
+import json
+import ssl
 
-logger = logging.getLogger(__name__)
+from services.log import get_logger
+
+logger = get_logger(__name__)
+
+TIMEOUT = 10.0
+BODY_LIMIT = 8 * 1024 * 1024
+API_RUNNING = "API running."
+
+# The device domains JARVIS shows and controls, in display order.
+INCLUDED_DOMAINS = (
+    "light",
+    "switch",
+    "input_boolean",
+    "fan",
+    "cover",
+    "climate",
+    "media_player",
+    "lock",
+    "alarm_control_panel",
+    "scene",
+    "script",
+)
+
+# Rooms are Home Assistant areas. The template reads the area registry order and each
+# included entity's area name; no caller data is placed in it.
+AREAS_TEMPLATE = (
+    "{% set ns = namespace(rows=[]) %}"
+    "{% for s in states if s.domain in " + json.dumps(list(INCLUDED_DOMAINS)) + " %}"
+    "{% set ns.rows = ns.rows + [[s.entity_id, area_name(s.entity_id)]] %}"
+    "{% endfor %}"
+    '{{ {"areas": areas() | map("area_name") | list, "entities": ns.rows} | to_json }}'
+)
+
+
+class HomeAssistantError(Exception):
+    """A failed request. ``code``: invalid_token, unreachable, timeout, tls,
+    not_home_assistant, not_found, refused or unexpected."""
+
+    def __init__(self, code, status=None):
+        super().__init__(code)
+        self.code = code
+        self.status = status
+
+
+def classify_exception(exc):
+    """invalid_token / timeout / tls / unreachable / unexpected for a transport failure."""
+    import httpx
+
+    seen, current = set(), exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, ssl.SSLError) or "CERTIFICATE_VERIFY_FAILED" in str(current):
+            return "tls"
+        current = current.__cause__ or current.__context__
+    if isinstance(exc, httpx.TimeoutException):
+        return "timeout"
+    if isinstance(exc, (httpx.TransportError, OSError)):
+        return "unreachable"
+    if isinstance(exc, TimeoutError):
+        return "timeout"
+    return "unexpected"
 
 
 class HomeAssistantBridge:
-    """Async REST client for the Home Assistant API."""
+    """Async REST client for one Home Assistant server.
 
-    def __init__(self, url: str, token: str):
-        # Strip trailing slash for clean URL joins
+    ``transport`` is an httpx transport for tests (httpx.MockTransport)."""
+
+    def __init__(self, url: str, token: str, *, transport=None, timeout: float = TIMEOUT):
         self._base = url.rstrip("/")
         self._token = token
-        self._session = None   # aiohttp.ClientSession, created lazily
+        self._transport = transport
+        self._timeout = timeout
 
-    # ------------------------------------------------------------------
-    # Session management
-    # ------------------------------------------------------------------
+    def __repr__(self):  # never shows the token
+        return "HomeAssistantBridge()"
 
-    async def _get_session(self):
-        if self._session is None or self._session.closed:
-            import aiohttp
-            headers = {
-                "Authorization": f"Bearer {self._token}",
-                "Content-Type": "application/json",
-            }
-            self._session = aiohttp.ClientSession(headers=headers)
-        return self._session
+    @property
+    def secure(self):
+        return self._base.lower().startswith("https://")
 
     async def close(self):
-        if self._session and not self._session.closed:
-            await self._session.close()
-            self._session = None
+        """Nothing to release: each request uses its own short-lived client."""
 
     # ------------------------------------------------------------------
-    # Core REST helpers
+    # Core REST helper
     # ------------------------------------------------------------------
 
-    async def _get(self, path: str) -> Any:
-        session = await self._get_session()
-        url = f"{self._base}/api{path}"
-        async with session.get(url) as resp:
-            resp.raise_for_status()
-            return await resp.json()
+    async def _request(self, method, path, *, json_body=None):
+        import httpx
 
-    async def _post(self, path: str, payload: dict | None = None) -> Any:
-        session = await self._get_session()
-        url = f"{self._base}/api{path}"
-        async with session.post(url, json=payload or {}) as resp:
-            resp.raise_for_status()
-            try:
-                return await resp.json()
-            except Exception:
-                return {}
+        options = {"timeout": self._timeout, "follow_redirects": False}
+        if self._transport is not None:
+            options["transport"] = self._transport
+        elif self.secure:
+            from services.tls import provider_ssl_context
+
+            options["verify"] = provider_ssl_context()
+        headers = {"Authorization": f"Bearer {self._token}", "Accept": "application/json"}
+        try:
+            async with httpx.AsyncClient(**options) as client:
+                response = await client.request(
+                    method, f"{self._base}/api{path}", json=json_body, headers=headers
+                )
+        except Exception as exc:  # the text can carry the address: only the class is logged
+            code = classify_exception(exc)
+            logger.warning("Home Assistant request failed (%s, %s)", code, type(exc).__name__)
+            raise HomeAssistantError(code) from None
+        if response.status_code in (401, 403):
+            raise HomeAssistantError("invalid_token", response.status_code)
+        if len(response.content) > BODY_LIMIT:
+            raise HomeAssistantError("unexpected", response.status_code)
+        return response
+
+    async def _json(self, method, path, *, json_body=None):
+        response = await self._request(method, path, json_body=json_body)
+        if response.status_code == 404:
+            raise HomeAssistantError("not_found", 404)
+        if response.status_code == 400:
+            raise HomeAssistantError("refused", 400)
+        if not 200 <= response.status_code < 300:
+            raise HomeAssistantError("unexpected", response.status_code)
+        try:
+            return response.json() if response.content else None
+        except ValueError:
+            raise HomeAssistantError("unexpected", response.status_code) from None
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     async def ping(self) -> bool:
-        """Check if HA is reachable. Returns True on success."""
+        """``GET /api/`` must answer {"message": "API running."}; raises otherwise."""
         try:
-            result = await self._get("/")
-            return isinstance(result, dict) and result.get("message") == "API running."
-        except Exception as e:
-            logger.warning(f"[HA] Ping failed: {e}")
-            return False
+            body = await self._json("GET", "/")
+        except HomeAssistantError as exc:
+            if exc.code in ("not_found", "refused", "unexpected"):
+                raise HomeAssistantError("not_home_assistant", exc.status) from None
+            raise
+        if not isinstance(body, dict) or body.get("message") != API_RUNNING:
+            raise HomeAssistantError("not_home_assistant")
+        return True
 
-    async def get_states(self, domain: Optional[str] = None) -> list[dict]:
-        """
-        Return all entity states, optionally filtered by domain
-        (e.g. 'light', 'switch', 'sensor', 'climate', 'media_player').
-        """
-        states: list[dict] = await self._get("/states")
+    async def states(self) -> list[dict]:
+        """Every entity state (``GET /api/states``); malformed rows are dropped."""
+        body = await self._json("GET", "/states")
+        if not isinstance(body, list):
+            raise HomeAssistantError("unexpected")
+        return [row for row in body if isinstance(row, dict) and isinstance(row.get("entity_id"), str)]
+
+    async def get_states(self, domain=None) -> list[dict]:
+        states = await self.states()
         if domain:
-            states = [s for s in states if s.get("entity_id", "").startswith(f"{domain}.")]
+            states = [s for s in states if s["entity_id"].startswith(f"{domain}.")]
         return states
 
-    async def get_state(self, entity_id: str) -> dict:
-        """Return the current state of a single entity."""
-        return await self._get(f"/states/{entity_id}")
+    async def state(self, entity_id: str) -> dict:
+        """One entity (``GET /api/states/<entity_id>``); not_found when it doesn't exist.
+        Callers pass a validated entity_id."""
+        body = await self._json("GET", f"/states/{entity_id}")
+        if not isinstance(body, dict) or body.get("entity_id") != entity_id:
+            raise HomeAssistantError("unexpected")
+        return body
 
-    async def call_service(self, domain: str, service: str, data: dict | None = None) -> Any:
-        """
-        Call any HA service.
-        Example: call_service("light", "turn_on", {"entity_id": "light.office", "brightness": 200})
-        """
-        return await self._post(f"/services/{domain}/{service}", data or {})
+    get_state = state
+
+    async def config(self) -> dict:
+        body = await self._json("GET", "/config")
+        return body if isinstance(body, dict) else {}
+
+    async def areas(self):
+        """(area names in registry order, {entity_id: area name or None}) for the included
+        entities, rendered through ``POST /api/template``. Raises HomeAssistantError when
+        the template can't be rendered (callers then group by domain)."""
+        response = await self._request("POST", "/template", json_body={"template": AREAS_TEMPLATE})
+        if not 200 <= response.status_code < 300:
+            raise HomeAssistantError("unexpected", response.status_code)
+        try:
+            body = json.loads(response.text)
+        except ValueError:
+            raise HomeAssistantError("unexpected") from None
+        if isinstance(body, str):  # a server that JSON-encodes the rendered string
+            try:
+                body = json.loads(body)
+            except ValueError:
+                raise HomeAssistantError("unexpected") from None
+        if not isinstance(body, dict):
+            raise HomeAssistantError("unexpected")
+        order = [name for name in body.get("areas") or [] if isinstance(name, str) and name]
+        rows = body.get("entities")
+        pairs = rows.items() if isinstance(rows, dict) else rows if isinstance(rows, list) else None
+        if pairs is None:
+            raise HomeAssistantError("unexpected")
+        mapping = {}
+        for pair in pairs:
+            if isinstance(pair, (list, tuple)) and len(pair) == 2 and isinstance(pair[0], str):
+                area = pair[1] if isinstance(pair[1], str) and pair[1] else None
+                mapping[pair[0]] = area
+        return order, mapping
+
+    async def call_service(self, domain: str, service: str, data: dict | None = None):
+        """``POST /api/services/<domain>/<service>``; refused (400) when Home Assistant
+        rejects the data. Callers pass a domain and service from their own table."""
+        return await self._json("POST", f"/services/{domain}/{service}", json_body=data or {})
 
     async def turn_on(self, entity_id: str, **kwargs) -> bool:
-        """Turn on any entity. Extra kwargs passed as service data (e.g. brightness=200)."""
-        try:
-            await self.call_service(
-                "homeassistant", "turn_on",
-                {"entity_id": entity_id, **kwargs},
-            )
-            return True
-        except Exception as e:
-            logger.warning(f"[HA] turn_on {entity_id} failed: {e}")
-            return False
+        domain = entity_id.split(".", 1)[0]
+        await self.call_service(domain, "turn_on", {"entity_id": entity_id, **kwargs})
+        return True
 
     async def turn_off(self, entity_id: str) -> bool:
-        """Turn off any entity."""
-        try:
-            await self.call_service("homeassistant", "turn_off", {"entity_id": entity_id})
-            return True
-        except Exception as e:
-            logger.warning(f"[HA] turn_off {entity_id} failed: {e}")
-            return False
+        domain = entity_id.split(".", 1)[0]
+        await self.call_service(domain, "turn_off", {"entity_id": entity_id})
+        return True
 
     async def toggle(self, entity_id: str) -> bool:
-        """Toggle the state of any entity."""
-        try:
-            await self.call_service("homeassistant", "toggle", {"entity_id": entity_id})
-            return True
-        except Exception as e:
-            logger.warning(f"[HA] toggle {entity_id} failed: {e}")
-            return False
+        domain = entity_id.split(".", 1)[0]
+        await self.call_service(domain, "toggle", {"entity_id": entity_id})
+        return True
 
     # ------------------------------------------------------------------
     # Convenience device list
     # ------------------------------------------------------------------
 
     async def list_devices(self) -> list[dict]:
-        """
-        Returns a simplified device list suitable for the DeviceAgent / frontend.
-        Includes lights, switches, and media players.
-        """
-        try:
-            states = await self._get("/states")
-        except Exception as e:
-            logger.warning(f"[HA] list_devices failed: {e}")
-            return []
-
-        include_domains = {"light", "switch", "input_boolean", "media_player", "climate", "fan", "cover"}
+        """A simplified list of the included domains (for the legacy DeviceAgent)."""
         devices = []
-        for s in states:
-            eid = s.get("entity_id", "")
+        for s in await self.states():
+            eid = s["entity_id"]
             domain = eid.split(".")[0] if "." in eid else ""
-            if domain not in include_domains:
+            if domain not in INCLUDED_DOMAINS:
                 continue
-            attrs = s.get("attributes", {})
+            attrs = s.get("attributes") if isinstance(s.get("attributes"), dict) else {}
             devices.append({
                 "id": eid,
                 "name": attrs.get("friendly_name", eid),
                 "domain": domain,
                 "state": s.get("state", "unknown"),
                 "source": "home_assistant",
-                "attributes": {
-                    k: v for k, v in attrs.items()
-                    if k in ("brightness", "color_temp", "rgb_color", "current_temperature",
-                             "temperature", "volume_level", "media_title")
-                },
             })
         return devices

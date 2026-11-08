@@ -283,6 +283,24 @@ REGISTRY = {
             format_message="Connect Google Calendar from Connections to set this.",
             internal=True,
         ),
+        # Home Assistant (docs/HOME_ASSISTANT.md): the owner's long-lived access token, a JWT
+        # (three base64url parts). Saved only by Connect on the Connections card, after the
+        # server accepted it with the address beside it; Disconnect deletes it.
+        SecretSpec(
+            name="home_assistant_token",
+            label="Home Assistant token",
+            provider="Home Assistant",
+            env="JARVIS_HOME_ASSISTANT_TOKEN",
+            pattern=(
+                r"(?=[A-Za-z0-9_\-.]{100,500}\Z)"
+                r"[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+"
+            ),
+            format_message=(
+                "That doesn't look like a long-lived access token. Copy the whole token from "
+                "your Home Assistant profile: it is a long string with two dots in it."
+            ),
+            internal=True,
+        ),
     )
 }
 # Names the owner manages (Preferences, Connections, scripts/jarvis-secrets.py).

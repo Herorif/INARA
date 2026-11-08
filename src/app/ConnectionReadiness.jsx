@@ -5,6 +5,7 @@ import useStore from "../store";
 import { createConnectionsClient } from "../transport/connectionsClient.ts";
 import StatusChip from "../shared/ui/StatusChip";
 import GoogleCalendarCard from "../features/calendar/GoogleCalendarCard";
+import HomeAssistantCard from "../features/home/HomeAssistantCard";
 import "./connection-readiness.css";
 const states = {
   missing_dependency: { label: "SETUP NEEDED", tone: "warn", detail: "Dependency missing" },
@@ -104,6 +105,7 @@ export default function ConnectionReadiness({ compact = false, onOpen }) {
           <h3 className="connections-readiness__title">Accounts</h3>
           <div className="connections-readiness__grid">
             <GoogleCalendarCard />
+            <HomeAssistantCard />
           </div>
         </>
       )}
