@@ -1,0 +1,177 @@
+/* World (docs/WORLD_VIEW.md): the God's Eye View globe in Studio. Tokens from
+   src/app/tokens.css; the tour bar follows the talking overlay panel (src/overlay/overlay.css). */
+
+.world-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.world-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+.world-page__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.world-page__title h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+.world-page__status[data-tone="idle"] { color: var(--text-2); }
+.world-page__status[data-tone="accent"] { color: var(--accent); }
+.world-page__status[data-tone="ok"] { color: var(--ok); }
+.world-page__status[data-tone="danger"] { color: var(--danger); }
+.world-page__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* The globe area fills the rest of the page. */
+.world-page__stage {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  overflow: hidden;
+  background: var(--bg-canvas);
+}
+.world-page__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: var(--bg-canvas);
+}
+
+/* Starting and error: the globe area dimmed, one line centred. */
+.world-page__veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: color-mix(in srgb, var(--bg-canvas) 72%, transparent);
+  text-align: center;
+}
+.world-page__veil p {
+  margin: 0;
+  max-width: 32rem;
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  color: var(--text-2);
+}
+.world-page[data-phase="error"] .world-page__veil p { color: var(--text-1); }
+
+/* Not set up: centred, like the shared empty state. */
+.world-page__setup {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  text-align: center;
+}
+.world-page__setup-icon {
+  display: inline-flex;
+  color: var(--text-3);
+}
+.world-page__setup-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--text-1);
+}
+.world-page__setup-body {
+  margin: 0;
+  max-width: 30rem;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-2);
+}
+.world-page__help {
+  margin-top: var(--space-2);
+  max-width: 32rem;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+  text-align: left;
+}
+.world-page__help summary {
+  cursor: pointer;
+  width: max-content;
+  margin: 0 auto;
+  color: var(--accent);
+}
+.world-page__help summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.world-page__help ol {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-7);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  line-height: var(--leading-normal);
+}
+.world-page__help li + li { margin-top: var(--space-1); }
+
+/* JARVIS tour bar: docked at the bottom of the globe. */
+.world-tour {
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-panel) 95%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+}
+.world-tour > .presence { flex-shrink: 0; }
+.world-tour__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.world-tour__label {
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.world-tour__caption {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+.world-tour__stop { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .world-page__header { padding: var(--space-3); }
+  .world-page__stage { min-height: 320px; }
+}

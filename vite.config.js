@@ -63,7 +63,11 @@ const CONTENT_SECURITY_POLICY = [
 const OVERLAY_CONTENT_SECURITY_POLICY = CONTENT_SECURITY_POLICY
     .replace("connect-src 'self' http://localhost:8000 ws://localhost:8000", "connect-src 'self'")
 if (OVERLAY_CONTENT_SECURITY_POLICY === CONTENT_SECURITY_POLICY) throw Error('Overlay CSP did not narrow connect-src')
-const PAGE_POLICIES = { 'index.html': CONTENT_SECURITY_POLICY, 'overlay.html': OVERLAY_CONTENT_SECURITY_POLICY }
+// World view (docs/WORLD_VIEW.md): the workspace may frame only the God's Eye View globe on
+// its default loopback port (world.port, 4173). The overlay frames nothing.
+const WORLD_VIEW_FRAME = 'http://127.0.0.1:4173'
+const WORKSPACE_CONTENT_SECURITY_POLICY = `${CONTENT_SECURITY_POLICY}; frame-src ${WORLD_VIEW_FRAME}`
+const PAGE_POLICIES = { 'index.html': WORKSPACE_CONTENT_SECURITY_POLICY, 'overlay.html': OVERLAY_CONTENT_SECURITY_POLICY }
 const contentSecurityPolicy = () => ({
     name: 'jarvis-content-security-policy',
     apply: 'build',

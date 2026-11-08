@@ -14,6 +14,7 @@ export const features = [
   { id: 'image', title: 'Images', group: 'Create', keywords: 'picture art generation png image atelier', heavy: true, flag: 'showImageStudio' },
   { id: 'camera', title: 'Vision', group: 'Observe', keywords: 'camera hand tracking preview vision studio', heavy: true },
   { id: 'browser', title: 'Web inspector', group: 'Explore', keywords: 'web research https read only', heavy: false, flag: 'showBrowserWindow' },
+  { id: 'world', title: 'World', group: 'Explore', keywords: "globe earth map flights satellites ships gods eye view world tour", heavy: true, flag: 'showWorldView' },
   { id: 'reminder', title: 'Reminders', group: 'Organize', keywords: 'schedule tasks alarm', flag: 'showReminderWindow' },
   { id: 'routines', title: 'Routines', group: 'Organize', keywords: 'automation routines routine manager', flag: 'showRoutineWindow' },
   { id: 'desktop', title: 'Desktop', group: 'Connect', keywords: 'apps clipboard system desktop controls', flag: 'showDesktopWindow' },

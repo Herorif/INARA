@@ -16,6 +16,7 @@ import { registerCalendarEvents } from './events/calendar';
 import { registerHomeEvents } from './events/home';
 import { registerBriefingEvents } from './events/briefing';
 import { registerVisionCaptureEvents } from './events/visionCapture';
+import { registerWorldEvents } from '../features/world/worldEvents.js';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
 import { defaultVoiceMode } from '../features/voice/defaultMode.js';
@@ -220,6 +221,7 @@ export function initSocketListeners() {
     registerHomeEvents(dependencies);
     registerBriefingEvents(dependencies);
     registerVisionCaptureEvents(dependencies);
+    registerWorldEvents(dependencies);
 
     // Return cleanup
     return () => {

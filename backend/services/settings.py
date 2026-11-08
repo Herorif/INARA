@@ -506,6 +506,117 @@ def legacy_home_assistant_token(settings):
     return isinstance(saved, dict) and "token" in saved
 
 
+# --- World view (docs/WORLD_VIEW.md) ---------------------------------------------------------
+# ``world.*`` runs the God's Eye View globe on this PC (services/world_view.py). ``root`` and
+# ``node`` are full paths; a leading %USERPROFILE% is expanded when they are read. The port is
+# loopback only and never the core's 8000.
+WORLD_ROOT_DEFAULT = r"%USERPROFILE%\tools\gods-eye-view"
+WORLD_NODE_DEFAULT = r"%USERPROFILE%\tools\node-v24.22.2-win-x64\node.exe"
+WORLD_CORE_PORT = 8000
+WORLD_PATH_MESSAGE = r"Use a full path, for example %USERPROFILE%\tools\gods-eye-view."
+_USERPROFILE = re.compile(r"^%USERPROFILE%(?=[\\/]|$)", re.IGNORECASE)
+
+
+def world_path(value):
+    """The path with a leading %USERPROFILE% expanded. Raises ValueError unless it is a full
+    path without control characters."""
+    if not isinstance(value, str) or not value.strip() or len(value) > 1024:
+        raise ValueError(WORLD_PATH_MESSAGE)
+    text = value.strip()
+    if any(ord(char) < 32 or ord(char) == 127 for char in text):
+        raise ValueError(WORLD_PATH_MESSAGE)
+    home = os.environ.get("USERPROFILE") or str(Path.home())
+    expanded = _USERPROFILE.sub(lambda _match: home, text)
+    if "%" in expanded or not Path(expanded).is_absolute():
+        raise ValueError(WORLD_PATH_MESSAGE)
+    return expanded
+
+
+def world_port(value):
+    if isinstance(value, bool) or not isinstance(value, int) or not 1024 <= value <= 65535:
+        raise ValueError("Choose a port from 1024 to 65535.")
+    if value == WORLD_CORE_PORT:
+        raise ValueError("Port 8000 belongs to the JARVIS core. Choose another port.")
+    return value
+
+
+class WorldSettings(EmptyRequest):
+    """``world.*``: where God's Eye View and Node 24 are, its loopback port, how long it may
+    sit unused before it stops, and whether it may start at all."""
+
+    root: StrictStr | None = Field(default=None, max_length=1024)
+    node: StrictStr | None = Field(default=None, max_length=1024)
+    port: StrictInt | None = None
+    idle_minutes: StrictInt | None = Field(default=None, ge=1, le=1440)
+    enabled: StrictBool | None = None
+
+    @field_validator("root", "node", "port", "idle_minutes", "enabled", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @field_validator("root", "node")
+    @classmethod
+    def full_path(cls, value):
+        world_path(value)
+        return value.strip()
+
+    @field_validator("node")
+    @classmethod
+    def program(cls, value):
+        # Node runs directly (never a shell): a .cmd or .bat would need cmd.exe.
+        if not value.lower().endswith(".exe"):
+            raise ValueError("Point to node.exe itself.")
+        return value
+
+    @field_validator("port")
+    @classmethod
+    def loopback_port(cls, value):
+        return world_port(value)
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a World view setting to update.")
+        return self
+
+
+WORLD_DEFAULTS = {
+    "root": WORLD_ROOT_DEFAULT,
+    "node": WORLD_NODE_DEFAULT,
+    "port": 4173,
+    "idle_minutes": 10,
+    "enabled": True,
+}
+
+
+def world_settings(settings):
+    """Validated ``world.*`` with defaults and the paths expanded: a stale or malformed saved
+    value falls back to its default."""
+    saved = settings.get("world") if isinstance(settings, dict) else None
+    saved = saved if isinstance(saved, dict) else {}
+    values = {}
+    for key in ("root", "node"):
+        try:
+            values[key] = world_path(saved.get(key))
+        except ValueError:
+            values[key] = world_path(WORLD_DEFAULTS[key])
+    if not values["node"].lower().endswith(".exe"):
+        values["node"] = world_path(WORLD_DEFAULTS["node"])
+    try:
+        values["port"] = world_port(saved.get("port"))
+    except ValueError:
+        values["port"] = WORLD_DEFAULTS["port"]
+    minutes = saved.get("idle_minutes")
+    valid = isinstance(minutes, int) and not isinstance(minutes, bool) and 1 <= minutes <= 1440
+    values["idle_minutes"] = minutes if valid else WORLD_DEFAULTS["idle_minutes"]
+    enabled = saved.get("enabled")
+    values["enabled"] = enabled if isinstance(enabled, bool) else WORLD_DEFAULTS["enabled"]
+    return values
+
+
 # --- MCP servers (docs/MCP.md) -----------------------------------------------------------
 # ``mcp.servers`` is the owner's list of local MCP servers (stdio). The command is an argv
 # list run without a shell; env values are literals or {"secret": name}, a name in the
@@ -619,6 +730,7 @@ class SettingsPatch(EmptyRequest):
     calendar: CalendarSettings | None = None
     briefing: BriefingSettings | None = None
     home_assistant: HomeAssistantSettings | None = None
+    world: WorldSettings | None = None
     mcp: McpSettings | None = None
 
     @field_validator(
@@ -631,6 +743,7 @@ class SettingsPatch(EmptyRequest):
         "calendar",
         "briefing",
         "home_assistant",
+        "world",
         "mcp",
         mode="before",
     )
@@ -711,6 +824,7 @@ class SettingsService:
             ("calendar", CALENDAR_DEFAULTS),
             ("briefing", BRIEFING_DEFAULTS),
             ("home_assistant", HOME_ASSISTANT_DEFAULTS),
+            ("world", WORLD_DEFAULTS),
         ):
             if section in patch:
                 current = candidate.get(section)
@@ -730,7 +844,7 @@ class SettingsService:
                 raise ServiceError("invalid_arguments", BRIEFING_WINDOW_ORDER)
         sections = (
             "tool_permissions", "assistant", "voice", "calls", "calendar", "briefing",
-            "home_assistant",
+            "home_assistant", "world",
         )
         candidate.update({key: value for key, value in patch.items() if key not in sections})
         try:

@@ -3,7 +3,7 @@ import { flags } from './features.js';
 /** Short decisions overlay current work; tools own one docked workspace. */
 export const dialogFeatures = new Set(['settings', 'reminder', 'usage', 'memory', 'capabilities']);
 export const featureWorkspace = feature => {
-  if (['cad', 'image', 'camera', 'browser', 'printer', 'activity'].includes(feature)) return 'studio';
+  if (['cad', 'image', 'camera', 'browser', 'world', 'printer', 'activity'].includes(feature)) return 'studio';
   if (['tasks', 'routines'].includes(feature)) return 'tasks';
   if (feature === 'inbox') return 'inbox';
   if (feature === 'callsview') return 'callsview';

@@ -1617,6 +1617,61 @@
       "status": "migrated",
       "effects": "End the in-memory draft; a running build continues into studio history",
       "policy": "Owner authorization; stale design rejected"
+    },
+    "world_status": {
+      "schema": "WorldStatusRequest (page?: bool; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "world.* settings, the install check (Node 24, the GEV folder, dist) and the sidecar state",
+      "effects": "Read status: state (not_installed|stopped|starting|ready|error), reason, message, port, url, enabled, tour {active, title, caption}, diagnostics {exit_code, stderr (bounded, redacted)} | null. page true/false records that this renderer's World page is open (it reports in every 30 s) or closed, which restarts the idle countdown. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {world}; pydantic details never echoed",
+      "lifetime": "Request-only snapshot",
+      "replacement": "WorldView / WorldTransport (backend/services/world_view.py)",
+      "status": "implemented"
+    },
+    "world_start": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer (the World page when it opens)",
+      "context": "world.enabled, the install check and the resource governor (a heavy studio resource: refused in gaming and resident mode)",
+      "effects": "If stopped: checks 127.0.0.1:<world.port> is free, then spawns Node 24 on God's Eye View's vite preview (explicit argv, no shell, cwd = world.root) in a kill-on-close Job Object with a minimal environment (no AI keys; GEV_ALLOWED_HOSTS loopback; GEV_EMBED_FRAME_ANCESTORS 'file: http://localhost:5173'); polls GET / and /api/mapillary/status until ready (60 s); world_status to the owner's renderers on each change. Marks this renderer's World page open",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; JARVIS never downloads or installs anything",
+      "response": "Origin ACK {world} at once (starting, ready, or error such as 'Port 4173 is in use by another program.'); world_disabled, world_not_installed and resource_policy as plain messages",
+      "lifetime": "The sidecar lives until Stop, world.idle_minutes without a World page or brain use, gaming or resident mode, or core shutdown",
+      "replacement": "WorldView / WorldTransport (backend/services/world_view.py)",
+      "status": "implemented"
+    },
+    "world_stop": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The running sidecar, if any",
+      "effects": "Terminates the sidecar's Job Object (Node and anything it started) and waits for it to exit; pending views fail with world_stopped; an active tour ends; world_status and world_tour to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {world}",
+      "lifetime": "Bounded (5 s exit wait)",
+      "replacement": "WorldView / WorldTransport (backend/services/world_view.py)",
+      "status": "implemented"
+    },
+    "world_view_result": {
+      "schema": "WorldViewResult (id: 32 hex, ok: bool, steps: [{step, ok, error?}] at most 64; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer the world_view event was sent to",
+      "context": "A pending show_view (core side, for the brain) awaiting God's Eye View's gev:view-applied, relayed by the World page's message bridge",
+      "effects": "Resolves that show_view with {ok, steps}; an unknown id or another renderer is refused with world_view_unknown",
+      "policy": "Independent owner/role/unlock gate; bound to the sid the view went to; not a dispatcher tool",
+      "response": "Origin ACK {}",
+      "lifetime": "show_view waits 15 s, then fails with world_view_timeout",
+      "replacement": "WorldView / WorldTransport (backend/services/world_view.py)",
+      "status": "implemented"
+    },
+    "world_tour_stop": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer (the tour bar's Stop tour)",
+      "context": "The active world tour, if any",
+      "effects": "Calls the tour driver's stop handler, ends the tour and sends world_tour {active: false} to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {tour}",
+      "lifetime": "Synchronous",
+      "replacement": "WorldView / WorldTransport (backend/services/world_view.py)",
+      "status": "implemented"
     }
   },
   "http_routes": {

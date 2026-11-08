@@ -293,6 +293,12 @@ class Application:
         from services.briefing_service import MorningBriefing
 
         self.briefing = MorningBriefing(self)
+        # W1 World view (docs/WORLD_VIEW.md): the God's Eye View sidecar on 127.0.0.1, the
+        # owner-only world_* routes, and show_view for the brain. Stops in gaming mode.
+        from services.world_view import WorldTransport, WorldView
+
+        self.world = WorldView(self)
+        self.world_transport = WorldTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -357,6 +363,7 @@ class Application:
             self.workspace_transport.stop_sid(),
             self.workspace.close(),
             self.connection.close(),
+            self.world.restrict(),
         ]
         results = await asyncio.gather(*operations, return_exceptions=True)
         for result in results:
@@ -484,6 +491,7 @@ class Application:
             await _isolated("wake", self.wake.close)
             await _isolated("voice_overlay", self.voice_overlay.close)
             await _isolated("audio_devices", self.audio_devices.close)
+            await _isolated("world", self.world.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:
                 await self.bus.drain()

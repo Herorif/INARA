@@ -14,6 +14,7 @@ const panels = {
   image: lazy(() => import('../features/images/ImageStudio')),
   cad: lazy(() => import('../features/cad/CadStudio')),
   browser: lazy(() => import('../components/BrowserWindow')),
+  world: lazy(() => import('../features/world/WorldPage')),
   kasa: lazy(() => import('../components/KasaWindow')),
   printer: lazy(() => import('../components/PrinterWindow')),
   phone: lazy(() => import('./MobileCompanion')),

@@ -36,12 +36,24 @@ const parse = value => {
   try { return new URL(value); } catch { return null; }
 };
 
-/** shell.openExternal policy: https anywhere, http only to private-LAN hosts. Returns the normalized URL or null. */
+/**
+ * World view's "Open in browser" (docs/WORLD_VIEW.md): exactly http://127.0.0.1:<port>/, the
+ * God's Eye View app on a loopback port other than the core's 8000. No path, query or sign-in.
+ */
+function worldViewUrl(url) {
+  const port = Number(url.port);
+  return url.protocol === 'http:' && url.hostname === '127.0.0.1' && /^\d{4,5}$/.test(url.port)
+    && port >= 1024 && port <= 65535 && port !== 8000 && url.pathname === '/'
+    && !url.search && !url.hash && !url.username && !url.password;
+}
+
+/** shell.openExternal policy: https anywhere, http only to private-LAN hosts and World view. Returns the normalized URL or null. */
 function externalUrl(value) {
   const url = parse(value);
   if (!url) return null;
   if (url.protocol === 'https:') return url.href;
   if (url.protocol === 'http:' && privateLanHost(url.hostname)) return url.href;
+  if (worldViewUrl(url)) return url.href;
   return null;
 }
 
