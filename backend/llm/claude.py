@@ -55,8 +55,26 @@ def anthropic_tools(schemas):
     ]
 
 
+IMAGE_TYPES = ("image/jpeg", "image/png", "image/webp", "image/gif")
+
+
+def image_block(data, mime_type="image/jpeg"):
+    """Image bytes -> an Anthropic image content block (base64 source), for one request only."""
+    import base64
+
+    media_type = mime_type if mime_type in IMAGE_TYPES else "image/jpeg"
+    return {
+        "type": "image",
+        "source": {"type": "base64", "media_type": media_type,
+                   "data": base64.b64encode(data).decode("ascii")},
+    }
+
+
 def message_to_api(message):
-    """A plain ``Message`` -> Anthropic message dict (dicts pass through unchanged)."""
+    """A plain ``Message`` -> Anthropic message dict (dicts pass through unchanged).
+
+    A user message's ``{"type": "image", "data": bytes, "mime_type"}`` attachments become
+    image blocks before its text."""
     if isinstance(message, dict):
         return message
     if message.role == MessageRole.TOOL:
@@ -69,6 +87,14 @@ def message_to_api(message):
         }
     role = {MessageRole.USER: "user", MessageRole.ASSISTANT: "assistant",
             MessageRole.SYSTEM: "system"}[message.role]
+    images = [
+        image_block(item["data"], item.get("mime_type", "image/jpeg"))
+        for item in message.attachments
+        if role == "user" and item.get("type") == "image" and isinstance(item.get("data"), bytes)
+    ]
+    if images:
+        text = [{"type": "text", "text": message.content}] if message.content else []
+        return {"role": role, "content": [*images, *text]}
     return {"role": role, "content": message.content}
 
 

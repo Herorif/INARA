@@ -170,6 +170,9 @@ export default function CommandDeck() {
       speakerDevices:devices.filter(device => device.kind === 'audiooutput'), webcamDevices:devices.filter(device => device.kind === 'videoinput')
     })).catch(() => {});
   }, [locked, gaming, activeFeature, currentProject, closeDialog, navigate, setQuick]);
+  // V2 Show JARVIS: the core asked this workspace for one photo (look_through_camera); open the Vision studio.
+  const visionFocus = useStore(state => state.visionFocus);
+  useEffect(() => { if (visionFocus && !locked && !gaming) { if (quick) setQuick(false); openFeature('camera'); useStore.setState({ visionFocus:null }); } }, [visionFocus, locked, gaming]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggleGaming = async () => {
     const value = !gaming;
     try { await window.electronAPI?.setGaming(value); }

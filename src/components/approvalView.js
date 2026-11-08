@@ -21,6 +21,10 @@ export function approvalView(request) {
     const summary = typeof args.summary === 'string' && args.summary.trim() ? args.summary.trim() : 'Build the live design as STL and GLB on this PC.';
     return { kind: 'live_design', title: 'Build live design', summary, approveLabel: 'Build', denyLabel: 'Not now', details: null };
   }
+  if (request?.tool === 'look_through_camera') {
+    // Show JARVIS by voice (docs/VISION_STUDIO.md#show-jarvis): one still photo per approval.
+    return { kind: 'camera_look', title: 'Look through your camera?', summary: 'JARVIS wants to look through your camera. It takes one still photo to answer you, then the camera turns off again.', approveLabel: 'Allow once', denyLabel: 'Not now', details: null };
+  }
   const title = typeof request?.tool === 'string' && request.tool ? request.tool.replaceAll('_', ' ') : 'Assistant action';
   return { kind: 'generic', title, summary: GENERIC_SUMMARY, approveLabel: 'Approve', denyLabel: 'Deny', details: args };
 }

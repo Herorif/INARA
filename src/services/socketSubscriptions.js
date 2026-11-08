@@ -14,6 +14,7 @@ import { registerLiveDesignEvents } from './events/liveDesign';
 import { registerCallAlertEvents } from './events/callAlerts';
 import { registerCalendarEvents } from './events/calendar';
 import { registerBriefingEvents } from './events/briefing';
+import { registerVisionCaptureEvents } from './events/visionCapture';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
 import { defaultVoiceMode } from '../features/voice/defaultMode.js';
@@ -216,6 +217,7 @@ export function initSocketListeners() {
     registerCallAlertEvents(dependencies);
     registerCalendarEvents(dependencies);
     registerBriefingEvents(dependencies);
+    registerVisionCaptureEvents(dependencies);
 
     // Return cleanup
     return () => {

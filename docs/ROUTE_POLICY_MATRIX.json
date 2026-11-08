@@ -1431,6 +1431,28 @@
       "replacement": "VoiceOverlayTransport (transport/voice_overlay.py) / VoiceService.stop_local (services/voice.py)",
       "status": "migrated"
     },
+    "vision_ask": {
+      "schema": "VisionAskRequest",
+      "caller": "Pinned authenticated unlocked owner renderer",
+      "context": "Registry owner and resolved current project; the conversation_id names the current conversation",
+      "effects": "One chat turn with one still JPEG (at most 1.5 MB decoded, JPEG magic bytes) sent to the current brain provider; tools and approvals as typed chat",
+      "policy": "Owner renderer only; refused while locked, in gaming mode or when the provider cannot take images; question 1-500 characters; extra fields forbidden",
+      "response": "Origin-only ACK {ok, request_id, conversation_id, project, text} or {ok: false, code, message}; text_status, transcription_delta, conversation_result, transcription and error events to the origin SID as typed chat",
+      "lifetime": "The photo lives for this request only; history and receipts keep the text line and the answer; cancel_conversation and disconnect stop it; never logged",
+      "replacement": "ShowJarvis (services/vision_ask.py)",
+      "status": "implemented"
+    },
+    "vision_capture_result": {
+      "schema": "CaptureResult",
+      "caller": "The owner renderer the matching vision_capture_request went to",
+      "context": "One pending look_through_camera capture per request_id",
+      "effects": "Answer one capture with one JPEG (at most 1.5 MB decoded, JPEG magic bytes) or an error code",
+      "policy": "Owner renderer, same SID and principal as the request; one use; a locked owner's photo is refused",
+      "response": "Origin-only ACK {ok} or {ok: false, code, message}; unknown_request after the request ended",
+      "lifetime": "Valid until the capture's 20 s timeout; the photo goes to one vision request and is dropped; never logged",
+      "replacement": "ShowJarvis (services/vision_ask.py)",
+      "status": "implemented"
+    },
     "cad_design_get": {
       "schema": "Ignored optional mapping",
       "caller": "Authenticated owner renderer",
@@ -1688,6 +1710,14 @@
       "context": "Authenticated desktop owner; primary calendar, Asia/Kuala_Lumpur",
       "lifetime": "One events.list (singleEvents, orderBy startTime, at most 25 events, 31-day range); 30 s execution timeout",
       "replacement": "P3 Google Calendar (services/calendar_tools.py)",
+      "model_visible": true
+    },
+    "look_through_camera": {
+      "schema": "LookArguments",
+      "policy": "Own permissions[look_through_camera] (default True); always asks the owner on screen (ToolSpec.always_ask); deny rejects. Refused in gaming mode, while locked, without an owner workspace renderer or when the provider cannot take images",
+      "context": "Authenticated desktop owner; one vision_capture_request to one owner workspace renderer",
+      "lifetime": "One frame per approval within 20 s, then one vision request with the current brain provider; 75 s execution timeout; the photo is never stored or logged",
+      "replacement": "V2 Show JARVIS (services/vision_ask.py)",
       "model_visible": true
     },
     "calendar_add_event": {

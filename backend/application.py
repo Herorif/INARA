@@ -142,6 +142,11 @@ class Application:
         self.calendar_transport = CalendarTransport(self)
         register_calendar_tools(self.dispatcher, self.calendar)
         self.delivery = EventDelivery(sio, self.sessions, reminders, self.dispatcher, resources)
+        # V2 Show JARVIS (docs/VISION_STUDIO.md): vision_ask, vision_capture_result and the
+        # brain's look_through_camera (always asks). Photos are never stored.
+        from services.vision_ask import ShowJarvis
+
+        self.show_jarvis = ShowJarvis(self)
         self.cad = CadService(database, resources, partial(self.delivery.publish_job, "cad_job"))
         self.images = ImageService(
             database, resources, partial(self.delivery.publish_job, "image_job")
