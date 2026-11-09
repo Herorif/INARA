@@ -759,7 +759,9 @@ async def test_rpcs_save_list_test_policy_and_remove(mcp_app):
     assert saved["server"]["status"]["state"] == "stopped"
     assert mcp_app.settings["mcp"]["servers"][0]["command"] == [sys.executable, str(FAKE)]
     listed = await rpc(mcp_app, "mcp_servers_list", {})
-    assert [item["id"] for item in listed["servers"]] == ["fake"]
+    # The built-in God's Eye View server follows the owner's (off: World view isn't set up).
+    assert [item["id"] for item in listed["servers"]] == ["fake", "gev"]
+    assert [item["status"]["builtin"] for item in listed["servers"]] == [None, "world"]
     tested = await rpc(mcp_app, "mcp_server_test", {"id": "fake"})
     assert tested["ok"] is True and tested["test"]["protocol_version"] == LATEST_PROTOCOL
     assert len(tested["test"]["tools"]) == 9 and "mcp__fake__echo" in mcp_app.dispatcher.tools

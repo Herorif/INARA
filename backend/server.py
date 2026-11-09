@@ -75,6 +75,9 @@ DEFAULT_SETTINGS = {
         # ToolSpec.ask_when asks per device ("ask" devices and unlock/open/arm/disarm).
         "home_devices": False,
         "home_control": False,
+        # World view (docs/WORLD_VIEW.md): showing places and tours on the globe never asks.
+        "world_show": False,
+        "world_tour": False,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}

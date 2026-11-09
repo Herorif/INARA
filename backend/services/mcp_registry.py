@@ -19,6 +19,10 @@ brain's view of their tools.
   clipped to 20,000 characters); images are "[image omitted]" because the conversation
   sends tool results as JSON text to both providers.
 - A crashed server is restarted lazily on its next use, at most 3 times in 5 minutes.
+- Built-in servers (``BuiltinServer``, added with ``add_builtin``) are owned by a JARVIS
+  feature, not by ``mcp.servers``: their config is built live from that feature's settings,
+  the owner RPCs can't save, remove or re-policy them, and their hooks run around each call
+  (God's Eye View, services/world_tools.py).
 """
 
 import asyncio
@@ -420,6 +424,38 @@ class ToolPolicySet(EmptyRequest):
     policy: McpPolicy
 
 
+class BuiltinServer:
+    """A server a JARVIS feature owns (docs/MCP.md "Built-in servers"). Subclasses set
+    ``id`` and ``owner`` and build ``config()`` from the feature's own settings."""
+
+    id = ""
+    owner = ""
+
+    def config(self):
+        """The live McpServerConfig, or None to hide the server."""
+        raise NotImplementedError
+
+    def disabled_message(self):
+        return "This MCP server is turned off."
+
+    async def before_call(self, tool):
+        """Runs before every call of one of its tools (core and brain callers)."""
+
+    def tool_schema(self, tool, schema):
+        return schema
+
+    def tool_description(self, tool, description):
+        return description
+
+    def split_arguments(self, tool, arguments):
+        """(arguments for the server, JARVIS's own extras) for a brain call."""
+        return arguments, {}
+
+    async def after_call(self, tool, title, raw, extras):
+        """Extra fields for the brain's result, or None."""
+        return None
+
+
 def _fingerprint(config):
     """What changes the running process: a different command, folder, env or timeout."""
     return json.dumps(
@@ -467,6 +503,7 @@ class McpRegistry:
         self.client_factory = client_factory or McpClient
         self.clock, self.sleep = clock, sleep
         self.runtimes = {}
+        self.builtins = {}
         self.tasks = set()
         self.closed = False
         # MCP tools get their policy from mcp.servers, not tool_permissions: the
@@ -479,8 +516,29 @@ class McpRegistry:
             app.sio.on(name, handler=handler)
 
     # --- configuration ------------------------------------------------------------------------
+    def add_builtin(self, builtin):
+        self.builtins[builtin.id] = builtin
+
+    def owner_configs(self):
+        """The owner's ``mcp.servers`` (an entry using a built-in id is ignored)."""
+        return [
+            config for config in mcp_server_configs(self.app.settings)
+            if config.id not in self.builtins
+        ]
+
     def configs(self):
-        return mcp_server_configs(self.app.settings)
+        """The owner's servers, then the built-in ones."""
+        builtin = [item.config() for item in self.builtins.values()]
+        return self.owner_configs() + [config for config in builtin if config is not None]
+
+    def _not_builtin(self, server_id):
+        builtin = self.builtins.get(server_id)
+        if builtin is not None:
+            config = builtin.config()
+            name = config.name if config is not None else "This server"
+            raise ServiceError(
+                "mcp_builtin", f"{name} is built into JARVIS, so it can't be changed here."
+            )
 
     def runtime(self, server_id):
         """The runtime for a configured server (config refreshed), or None."""
@@ -518,6 +576,7 @@ class McpRegistry:
         return value if isinstance(value, str) and value else None
 
     def _persist(self, configs):
+        configs = [config for config in configs if config.id not in self.builtins]
         request = SettingsPatch(
             mcp=McpSettings(servers=[config.model_dump() for config in configs])
         )
@@ -538,6 +597,7 @@ class McpRegistry:
         if not config.enabled or self.closed:
             return
         taken = set(self.app.dispatcher.tools)
+        builtin = self.builtins.get(config.id)
         names, skipped = {}, []
         for tool in runtime.tools:
             if runtime.policy(tool["name"]) == "deny":
@@ -548,10 +608,11 @@ class McpRegistry:
                 skipped.append({"tool": tool["name"], "reason": "unsupported_schema"})
                 continue
             name = brain_tool_name(config.id, tool["name"], taken | set(names))
-            description = _clip(
-                f"[{config.name}] {tool['description'] or tool['title'] or tool['name']}",
-                DESCRIPTION_LIMIT,
-            )
+            description = tool["description"] or tool["title"] or tool["name"]
+            if builtin is not None:
+                schema = builtin.tool_schema(tool["name"], schema)
+                description = builtin.tool_description(tool["name"], description)
+            description = _clip(f"[{config.name}] {description}", DESCRIPTION_LIMIT)
             spec = ToolSpec(
                 name,
                 description,
@@ -571,7 +632,7 @@ class McpRegistry:
         """(runtime, policy) for a brain call, or ServiceError if the tool is off."""
         runtime = self.runtime(server_id)
         if runtime is None or not runtime.config.enabled:
-            raise ServiceError("mcp_disabled", "This MCP server is turned off or was removed.")
+            raise ServiceError("mcp_disabled", self._disabled_message(server_id))
         policy = runtime.policy(tool)
         if policy == "deny":
             raise ServiceError("permission_denied", "This action is disabled.")
@@ -589,11 +650,28 @@ class McpRegistry:
             "mcp_tool": tool,
         }
 
+    def _disabled_message(self, server_id):
+        builtin = self.builtins.get(server_id)
+        if builtin is not None:
+            return builtin.disabled_message()
+        return "This MCP server is turned off or was removed."
+
     async def _execute(self, server_id, tool, args, context):
         self.app.authorize_owner(context)
         runtime, _ = self._live(server_id, tool)
-        raw = await self.call_tool(server_id, tool, args.arguments, runtime=runtime)
-        return wrap_result(runtime.config.name, tool, raw, runtime.redact)
+        builtin = self.builtins.get(server_id)
+        arguments, extras = args.arguments, {}
+        if builtin is not None:
+            arguments, extras = builtin.split_arguments(tool, dict(arguments))
+        raw = await self.call_tool(server_id, tool, arguments, runtime=runtime)
+        result = wrap_result(runtime.config.name, tool, raw, runtime.redact)
+        if builtin is not None:
+            listed = next((item for item in runtime.tools if item["name"] == tool), None)
+            title = (listed or {}).get("title") or tool
+            extra = await builtin.after_call(tool, title, raw, extras)
+            if extra:
+                result.update(extra)
+        return result
 
     # --- lifetimes ----------------------------------------------------------------------------
     async def call_tool(self, server_id, tool, arguments, *, timeout=None, runtime=None):
@@ -601,9 +679,12 @@ class McpRegistry:
         included) for core callers such as the World view. The brain's path wraps it."""
         runtime = runtime or self.runtime(server_id)
         if runtime is None or not runtime.config.enabled:
-            raise McpError("mcp_disabled", "This MCP server is turned off or was removed.")
+            raise McpError("mcp_disabled", self._disabled_message(server_id))
+        builtin = self.builtins.get(server_id)
         runtime.inflight += 1
         try:
+            if builtin is not None:
+                await builtin.before_call(tool)
             client = await self._ensure(runtime)
             runtime.last_used = self.clock()
             return await client.call_tool(tool, arguments, timeout)
@@ -615,9 +696,27 @@ class McpRegistry:
         """The server's listed tools, starting it if needed."""
         runtime = self.runtime(server_id)
         if runtime is None or not runtime.config.enabled:
-            raise McpError("mcp_disabled", "This MCP server is turned off or was removed.")
+            raise McpError("mcp_disabled", self._disabled_message(server_id))
         await self._ensure(runtime)
         return [dict(item) for item in runtime.tools]
+
+    async def sync_builtin(self, server_id):
+        """A built-in server's feature changed its settings: off stops it and removes its
+        tools; on lists them in the background (as autostart does) if none are registered."""
+        runtime = self.runtime(server_id)
+        if runtime is None or self.closed:
+            return
+        if not runtime.config.enabled:
+            if runtime.names or runtime.client is not None or runtime.tools:
+                await self.stop(server_id, reason="turned off")
+        elif not runtime.names and runtime.client is None and runtime.state != "starting":
+            self._spawn(self._quiet_start(runtime))
+
+    async def _quiet_start(self, runtime):
+        try:
+            await self._ensure(runtime)
+        except McpError as exc:
+            logger.warning("MCP server %s did not start (%s)", runtime.config.id, exc.code)
 
     async def _ensure(self, runtime):
         async with runtime.lock:
@@ -859,9 +958,12 @@ class McpRegistry:
         client = runtime.client if runtime else None
         brain = {tool: name for name, tool in (runtime.names if runtime else {}).items()}
         now = self.clock()
+        builtin = self.builtins.get(config.id)
         return {
             "id": config.id,
             "name": config.name,
+            # The JARVIS feature that owns a built-in server (not owner-editable), else None.
+            "builtin": builtin.owner if builtin else None,
             "enabled": config.enabled,
             "autostart": config.autostart,
             "state": runtime.state if runtime else "stopped",
@@ -948,7 +1050,8 @@ class McpRegistry:
 
     async def _mcp_server_save(self, data):
         config = ServerSave.model_validate(data).server
-        configs = self.configs()
+        self._not_builtin(config.id)
+        configs = self.owner_configs()
         index = next((i for i, item in enumerate(configs) if item.id == config.id), None)
         if index is None:
             if len(configs) >= MCP_SERVER_LIMIT:
@@ -975,7 +1078,8 @@ class McpRegistry:
 
     async def _mcp_server_remove(self, data):
         server_id = ServerReference.model_validate(data).id
-        configs = self.configs()
+        self._not_builtin(server_id)
+        configs = self.owner_configs()
         if not any(item.id == server_id for item in configs):
             raise ServiceError("mcp_not_found", "There's no MCP server with this id.")
         await self.stop(server_id, reason="removed")
@@ -1016,7 +1120,9 @@ class McpRegistry:
 
     async def _mcp_tool_policy_set(self, data):
         request = ToolPolicySet.model_validate(data)
-        configs = self.configs()
+        # Built-in policies are fixed defaults until Connections (M8) can change them.
+        self._not_builtin(request.id)
+        configs = self.owner_configs()
         index = next((i for i, item in enumerate(configs) if item.id == request.id), None)
         if index is None:
             raise ServiceError("mcp_not_found", "There's no MCP server with this id.")

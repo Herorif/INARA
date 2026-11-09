@@ -67,7 +67,9 @@ renderer.
     anything it starts die with the core, even if the core crashes;
   - the environment is minimal: `SystemRoot`, `SystemDrive`, `windir`, `TEMP`, `TMP`,
     `USERPROFILE`, `LOCALAPPDATA`, `APPDATA`, the processor variables, a `PATH` of Node's
-    folder and System32, `NO_COLOR`, `GEV_ALLOWED_HOSTS=127.0.0.1,localhost` and
+    folder and System32, `NO_COLOR`, `NODE_USE_SYSTEM_CA=1` (GEV's HTTPS feeds trust the Windows
+    certificate store, as Chromium does, so antivirus HTTPS scanning doesn't break them),
+    `GEV_ALLOWED_HOSTS=127.0.0.1,localhost` and
     `GEV_EMBED_FRAME_ANCESTORS=file: http://localhost:5173`. `OPENAI_API_KEY` and
     `GEMINI_API_KEY` are set empty, so GEV's own voice and chat agent stay unconfigured (a
     `.env` in the GEV folder can't fill them in either: GEV never overrides a variable that is
@@ -144,6 +146,119 @@ globe).
 - `app.world.touch()` counts as brain use for the idle timer; `ensure_ready()` starts the
   globe and waits.
 
+## Tools and tours
+
+Code: `backend/services/world_tools.py` (W3b, W4). Tests: `tests/test_world_tools.py`, with
+the fake globe `tests/fixtures/fake_gev.py` and the fake GEV MCP server
+`tests/fixtures/fake_gev_mcp.py`.
+
+### God's Eye View's tools (the built-in `gev` server)
+
+JARVIS runs GEV's own MCP server as the built-in MCP server `gev` (see docs/MCP.md, "Built-in
+servers"): `<world.node> <world.root>\server\mcp\stdio.js --api-base
+http://127.0.0.1:<world.port>`, cwd `world.root`, no shell, with JARVIS's minimal MCP
+environment plus `NODE_USE_SYSTEM_CA=1` (as the globe). World view owns it, so it isn't an
+owner-editable entry in `mcp.servers`.
+
+- **On only while World view can run**: `world.enabled` on, Node and the built GEV folder
+  present (as for the globe) and `server\mcp\stdio.js` there. Otherwise it is off, its
+  tools are hidden, and a call gets World view's plain message (for example "God's Eye View
+  isn't on this PC. Set it up from Studio > World.").
+- **Startup**: it starts with the core (autostart) to list its tools for the brain, without
+  starting the globe, and stops after `world.idle_minutes` with its tools kept. Changing
+  `world.*` lists or removes them at once.
+- **The globe first**: before every gev tool call (the brain's or the core's) JARVIS starts
+  the sidecar if needed and waits until it is ready (`WorldView.ensure_ready`), because GEV's
+  tools read the running globe's `/api` routes. Gaming and resident mode refuse it.
+- **Names and results**: `mcp__gev__<tool>`, described as `[God's Eye View] ...`; results are
+  untrusted data like any MCP server's.
+- **Default policies** (the owner can change them in Connections, M8):
+
+| Policy | Tools |
+| --- | --- |
+| `deny` | `get_cctv_snapshot`, `find_cctv_cameras`, `find_alpr_cameras` (camera tools stay off), `panel_request` (the GEV panel's loader), `show_in_gods_eye_view` (JARVIS shows views itself), `get_bhote_koshi_flood` (a bundled non-commercial demo scene) |
+| `ask` | `military_awareness`, `find_military_installations` |
+| `never_ask` | every other tool: earthquakes, fires, launches, aircraft, ships, satellites, traffic, weather maps, imagery, cables, infrastructure, cyclones, fire perimeters, terrain, map features and `situation_brief` |
+
+- **Automatic views**: JARVIS adds an optional `show` argument (default `true`) to every gev
+  tool's schema and removes it before the call. When `show` is true and the answer carries
+  `data.view`, JARVIS shows that view itself (`show_view(view, title=<the tool's title>)`, in
+  the background, so the answer reaches the brain at once) and adds
+  `world_view: "JARVIS is showing this on the World globe."` to the result. A view with a
+  camera layer isn't shown (`world_view` says why). The brain passes `show: false` while it
+  gathers data for a tour.
+
+### `world_show`
+
+Shows a place directly ("show me Penang"). Permission `world_show`, default `False` (never
+asks). Arguments, bounded to GEV's view shape (`src/view/index.js`):
+
+| Field | Shape |
+| --- | --- |
+| `area` | exactly one of `place` (1-200 characters), `bbox` (`[west, south, east, north]`, south below north) or `lat`, `lon` and `radius_km` (0.1-2000) |
+| `camera` | `lat`, `lon`, optional `altitude_m` (50-20,000,000), `heading_deg` (0-360), `pitch_deg` (-90-0) |
+| `layers` | up to 36 of GEV's layer ids; the schema leaves out `cctv` and `alpr-cameras`, and both are refused |
+| `style` | `normal`, `retro`, `surveillance`, `thermal`, `anime` or `noir` |
+| `follow` | `kind` (`aircraft`, `military_aircraft` or `satellite`), `id` (an ICAO address or NORAD number, `^[0-9A-Za-z~_-]{1,16}$`), optional `cockpit` (aircraft only) |
+| `annotations` | up to 24 marks: `type` (pin, highlight, area, arrow, route, label), a `target` place name, a point, an arrow's second point or 2-12 route `points`, an optional `label` (120) and `color` |
+| `title` | up to 80 characters |
+
+An area or a camera (not both), or something to follow, is required. GEV turns the fields
+into a full view: the core calls `show_in_gods_eye_view` on the gev server (the brain can't),
+takes its `data.view` and shows it with `show_view`. The reply is `{shown, camera, layers}`
+(plus `failed_steps` when the page couldn't apply part of it). A place GEV can't find is
+`world_view_unresolved` with GEV's reason. When World view isn't installed or is off, the tool
+is refused with the same plain message as above.
+
+### `world_tour`
+
+`{title (1-80), steps: [1-8 x {view | area | camera, layers?, follow?, caption (1-200), seconds (3-30)}]}`.
+Permission `world_tour`, default `False`. `view` is a `data.view` from a gev answer, shown as
+it is (other fields given with it change that part).
+
+- Every step is placed by GEV first; a step it can't place (or one with a camera layer)
+  refuses the whole tour before anything moves ("Step 2: ...").
+- The core plays the steps in order: `show_view`, then `world_tour {active, title, caption}`
+  (the tour bar), then the step's seconds. Step 1 is on screen before the tool returns; the
+  rest play in the background, and the bar closes at the end.
+- **The captions are what JARVIS says.** In a voice conversation (the owner has a live voice
+  session) the reply includes `speak`, the captions in order, so the voice model speaks them
+  while the bar shows each one. Typed, the bar shows them and the brain replies in one line.
+- **One tour at a time.** A new tour replaces the one playing. Stop tour (`world_tour_stop`),
+  the owner barging in on voice (Live's interruption, or "Hey Jarvis" while JARVIS speaks), a
+  new request to the brain (`ConversationService.on_request`), the globe stopping (Stop, idle,
+  `enabled` off, gaming mode) and core shutdown all end it. A stopped globe is never started
+  again by the tour.
+
+### How the brain uses them
+
+The tool descriptions teach it to answer world questions with the gev data tools (their
+answers show on the globe), to use `world_show` for "show me ...", and for "give me a tour of
+..." to gather data first (with `show: false`), then call `world_tour` with two to eight steps
+narrated in the Classic JARVIS voice ("Over 140 aircraft within 50 kilometres, sir..."). The
+voice's `ask_brain` lists "the world view (live flights, ships, satellites, weather, quakes and
+fires on a 3D globe, with tours)" among JARVIS's abilities.
+
+### Boundaries
+
+- No tracking of named private individuals and no face recognition: the descriptions say so,
+  and `follow` takes only an aircraft's ICAO address or a satellite's NORAD number.
+- Camera tools stay off (`deny`), and the `cctv` and `alpr-cameras` layers are refused by
+  `world_show`, `world_tour`, automatic views and `show_view`.
+- Logs carry codes and counts only ("World tour started (3 steps)"), never arguments,
+  captions, titles or results.
+
+### Follow-ups
+
+- The morning briefing could open with a short world tour (not built).
+- Place names: GEV resolves `area.place` through its own `/api/geocode`, which is off until
+  its operator sets `NOMINATIM_URL` (GEV's DATA_SOURCES.md, "Place search"). JARVIS doesn't
+  set it, so on a default install named places fail ("The tool failed; try again later") and
+  the brain is told to fall back to lat and lon with radius_km.
+- GEV installed while JARVIS runs: its tools appear after a `world.*` change or a restart.
+- Changing the gev policies waits for Connections (M8): until then `mcp_tool_policy_set`
+  refuses the built-in server.
+
 ## Routes
 
 All five are owner-only (the authenticated, unlocked desktop owner's renderer) and in
@@ -168,6 +283,5 @@ All five are owner-only (the authenticated, unlocked desktop owner's renderer) a
 - CCTV and licence-plate cameras are off: JARVIS never turns on the `cctv` or `alpr-cameras`
   layers (`show_view` refuses a view with them), and the embedded globe has no layer controls.
   GEV's CCTV and licence-plate tools (`find_cctv_cameras`, `get_cctv_snapshot`,
-  `find_alpr_cameras`) stay off too: World view doesn't expose GEV's tools, and the MCP
-  connector that will (W3b) is to deny them.
+  `find_alpr_cameras`) stay off too: the built-in gev server denies them (see Tools and tours).
 - Open in browser shows the full GEV app, where its own controls are yours to use.

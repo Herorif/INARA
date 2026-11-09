@@ -123,8 +123,11 @@ def application_factory(tmp_path):
         root.mkdir()
         # The morning briefing (P2) is off here: its trigger reads the real clock, so a
         # test run between 06:00 and 11:00 would otherwise play it. Its own tests turn it on.
+        # World view is off too: on a PC with God's Eye View installed, startup would list
+        # the real gev MCP server's tools. Its own tests point world.* at fakes.
         values = dict(settings={"face_auth_enabled": False, "tool_permissions": {},
-                                "kasa_devices": [], "briefing": {"enabled": False}},
+                                "kasa_devices": [], "briefing": {"enabled": False},
+                                "world": {"enabled": False}},
                       project_root=root, legacy_data_dir=root,
                       database=Database(root / "private"))
         values.update(overrides)

@@ -1,7 +1,8 @@
 # MCP servers
 
 JARVIS can use tools from local MCP (Model Context Protocol) servers that the owner adds,
-such as the God's Eye View globe (M6) and, later, GitHub, Notion or Spotify (M8). This
+such as GitHub, Notion or Spotify (M8), and from built-in ones such as God's Eye View's
+(`gev`, owned by World view; see Built-in servers). This
 page covers the core client and registry (W3a). The Connections UI for adding servers
 comes in M8; until then servers are added through the owner RPCs below or in
 `settings.json`.
@@ -191,6 +192,29 @@ disabled one stops it again afterwards.
   is redacted from stderr, error messages, status and tool results.
 - stderr is kept in memory (last 200 lines) for diagnostics and never logged. Logs carry
   server ids, states, counts and exit codes only, never tool arguments or results.
+
+## Built-in servers
+
+A JARVIS feature can own a server (`BuiltinServer` in `mcp_registry.py`, added with
+`McpRegistry.add_builtin`). Its config is built live from that feature's settings, never
+stored in `mcp.servers` (an owner entry using its id is ignored), and it comes after the
+owner's servers in `mcp_servers_list` and `mcp_status`, with `status.builtin` naming the
+owning feature (`null` for the owner's servers). `mcp_server_save`, `mcp_server_remove` and
+`mcp_tool_policy_set` refuse it with `mcp_builtin`: it isn't owner-editable in Connections'
+list (M8 will add changing its tool policies). `mcp_server_test` works as for any server.
+
+Its hooks: `before_call` runs before every call (core and brain), `tool_schema` and
+`tool_description` adjust what the brain sees, `split_arguments` removes JARVIS's own
+arguments before the call, and `after_call` adds fields to the brain's result.
+
+| id | Name | Owner | Command | Default policies |
+| --- | --- | --- | --- | --- |
+| `gev` | God's Eye View | World view (`services/world_tools.py`) | `<world.node> <world.root>\server\mcp\stdio.js --api-base http://127.0.0.1:<world.port>`, cwd `world.root`, env `NODE_USE_SYSTEM_CA=1` | `default_policy` never_ask; deny `get_cctv_snapshot`, `find_cctv_cameras`, `find_alpr_cameras`, `panel_request`, `show_in_gods_eye_view`, `get_bhote_koshi_flood`; ask `military_awareness`, `find_military_installations` |
+
+`gev` is enabled only while World view is installed and turned on, autostarts to list its
+tools (without starting the globe), idles out after `world.idle_minutes`, has a 60 s request
+timeout, starts and awaits the globe sidecar before every call, and adds an optional `show`
+argument to each tool (see docs/WORLD_VIEW.md, "Tools and tours").
 
 ## Testing a server
 

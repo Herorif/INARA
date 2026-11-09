@@ -2154,6 +2154,22 @@
       "replacement": "LiveDesigns (services/cad_design.py)",
       "model_visible": true,
       "policy": "generate_cad permission; absent/True asks with review facts; deny rejects"
+    },
+    "world_show": {
+      "schema": "WorldShow",
+      "policy": "Own permissions[world_show] (default False: never asks); deny rejects. Refused when World view isn't installed or is turned off, and for the cctv and alpr-cameras layers (world_view_private), before anything starts",
+      "context": "Authenticated, unlocked desktop owner; the World page in the owner's renderer (opened when none shows it)",
+      "lifetime": "GEV resolves the fields into a view (core-only show_in_gods_eye_view on the built-in gev MCP server, after the globe sidecar is ready), then one WorldView.show_view (15 s answer timeout); 150 s execution timeout",
+      "replacement": "W3b World tools (services/world_tools.py)",
+      "model_visible": true
+    },
+    "world_tour": {
+      "schema": "WorldTour",
+      "policy": "Own permissions[world_tour] (default False: never asks); deny rejects. Refused when World view isn't installed or is turned off, and for camera layers in any step, before anything starts",
+      "context": "Authenticated, unlocked desktop owner; the World page and its tour bar in the owner's renderers",
+      "lifetime": "Every step's view is resolved first; step 1 is shown and captioned before the tool returns, the rest play in the background (show_view, world_tour caption, the step's 3-30 s). One tour at a time: a new tour, Stop tour (world_tour_stop), a voice barge-in, a new conversation request, the globe stopping and core shutdown end it. In a voice session the reply lists the captions to speak; 240 s execution timeout",
+      "replacement": "W4 World tours (services/world_tools.py)",
+      "model_visible": true
     }
   },
   "voice_declarations": {

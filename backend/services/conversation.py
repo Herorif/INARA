@@ -262,6 +262,8 @@ class ConversationService:
         clock=None,
     ):
         self.dispatcher = dispatcher
+        # Optional callable(owner) at the start of each turn (World view ends a tour).
+        self.on_request = None
         self.settings = settings or (lambda: {})
         self.router = router or TaskRouter(self.settings)
         self.provider_factory = provider_factory or (lambda: self.router.provider(task))
@@ -414,6 +416,11 @@ class ConversationService:
         photo is never stored."""
         if authorize:
             authorize()
+        if self.on_request is not None:
+            try:
+                self.on_request(owner)
+            except Exception:
+                logger.warning("A new-request observer failed", exc_info=True)
         key = str(request.conversation_id)
         conversation = self.conversations.get(key)
         if conversation is None:

@@ -299,6 +299,13 @@ class Application:
 
         self.world = WorldView(self)
         self.world_transport = WorldTransport(self)
+        # W3b/W4 (docs/WORLD_VIEW.md "Tools and tours"): the built-in gev MCP server and the
+        # brain's world_show and world_tour (both never ask by default).
+        from services.world_tools import WorldTools
+
+        self.world_tools = WorldTools(self)
+        self.conversation.on_request = self.world_tools.new_request
+        self.settings_service.permission_names |= {"world_show", "world_tour"}
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -419,6 +426,8 @@ class Application:
             self.voice_overlay.settings_changed()
         if "voice" in patch or "tool_permissions" in patch:
             await self.wake.reconcile(fresh=True)
+        if "world" in patch:
+            await self.world_tools.settings_changed()
 
     async def resource_changed(self, state):
         await self.connection.resource_changed(state)
@@ -491,6 +500,7 @@ class Application:
             await _isolated("wake", self.wake.close)
             await _isolated("voice_overlay", self.voice_overlay.close)
             await _isolated("audio_devices", self.audio_devices.close)
+            await _isolated("world_tools", self.world_tools.close)
             await _isolated("world", self.world.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:

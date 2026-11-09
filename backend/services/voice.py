@@ -561,6 +561,7 @@ class VoiceService:
         session.last_activity = self.clock()
         audio.flush(reset_tail=True)
         self.overlay_event("barged", session)
+        self.end_world_tour()
         logger.info("Tray voice barge-in (answer %s)", "dropped" if session.drop_until else "done")
         await self.set_state(session, "listening")
         self.local_changed(session)
@@ -642,6 +643,12 @@ class VoiceService:
             getattr(briefing, name)(*args)
         except Exception:
             logger.warning("The morning briefing could not follow voice (%s)", name, exc_info=True)
+
+    def end_world_tour(self):
+        """A barge-in ends a World view tour (services/world_tools.py)."""
+        tools = getattr(self.app, "world_tools", None)
+        if tools is not None:
+            tools.interrupt("barge-in")
 
     def overlay_event(self, name, session, *args):
         """Tell the talking overlay (services/voice_overlay.py) about a tray session."""
@@ -909,6 +916,7 @@ class VoiceService:
             )
         if content.interrupted:
             session.model_streaming, session.drop_until = False, None
+            self.end_world_tour()  # the owner talked over JARVIS (barge-in)
             await self.emit(session, "voice_interrupted", {})
             await self.complete_turn(session)
         if content.model_turn and content.model_turn.parts:

@@ -381,12 +381,13 @@ async def test_environment_has_no_ai_keys_and_the_gev_variables(world_app, monke
     assert upper["OPENAI_API_KEY"] == "" and upper["GEMINI_API_KEY"] == ""
     assert upper["GEV_ALLOWED_HOSTS"] == "127.0.0.1,localhost"
     assert upper["GEV_EMBED_FRAME_ANCESTORS"] == "file: http://localhost:5173"
+    assert upper["NODE_USE_SYSTEM_CA"] == "1"  # GEV's HTTPS feeds trust the Windows store
     assert not any("parent-secret" in value for value in env.values())
     for name in ("ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "JARVIS_SESSION_TOKEN", "NODE_OPTIONS"):
         assert name not in upper
     built = WorldView.environment(world_settings(world_app.settings))
     allowed = set(world_view.ENV_PASSTHROUGH) | set(world_view.AI_KEYS) | {
-        "PATH", "GEV_ALLOWED_HOSTS", "GEV_EMBED_FRAME_ANCESTORS", "NO_COLOR"}
+        "PATH", "GEV_ALLOWED_HOSTS", "GEV_EMBED_FRAME_ANCESTORS", "NO_COLOR", "NODE_USE_SYSTEM_CA"}
     assert set(built) <= allowed
 
 

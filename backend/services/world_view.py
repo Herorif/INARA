@@ -55,6 +55,9 @@ ENV_PASSTHROUGH = (
     "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA",
     "APPDATA", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
 )
+# GEV's feeds are HTTPS fetched by Node: trust the Windows certificate store, as Chromium and
+# the setup script's Git (schannel) do, so a PC whose antivirus inspects HTTPS still works.
+SYSTEM_CA = {"NODE_USE_SYSTEM_CA": "1"}
 # Ready once the app page and one /api route (local, no network) both answer.
 HEALTH_PATHS = ("/", "/api/mapillary/status")
 # Layers JARVIS never turns on: public CCTV and licence-plate reader cameras.
@@ -284,6 +287,7 @@ class WorldView:
         env["GEV_ALLOWED_HOSTS"] = ALLOWED_HOSTS
         env["GEV_EMBED_FRAME_ANCESTORS"] = " ".join(FRAME_ANCESTORS)
         env["NO_COLOR"] = "1"
+        env.update(SYSTEM_CA)
         return env
 
     # --- status -----------------------------------------------------------------------------
