@@ -257,9 +257,12 @@ def test_matrix_covers_registered_routes_and_shared_tools():
         )
     from services.live_config import declarations
 
-    # Live voice declares only the brain hand-off and the hands-free goodbye.
-    live = {item["name"] for item in declarations("conversation")}
-    assert set(matrix["voice_declarations"]) == live == {"ask_brain", "end_conversation"}
+    # Live voice declares the brain hand-off, the read-only quick answers (quick_home only
+    # while Home Assistant is connected) and the hands-free goodbye.
+    live = {item["name"] for item in declarations("conversation", home=True)}
+    assert set(matrix["voice_declarations"]) == live == {
+        "ask_brain", "quick_weather", "quick_agenda", "quick_home", "end_conversation",
+    }
     for item in matrix["voice_declarations"].values():
         assert all(item.get(key) for key in ("target", "schema", "policy", "status"))
     assert set(ACTION_MODELS).issubset(matrix["shared_tools"])

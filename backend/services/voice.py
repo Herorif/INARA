@@ -39,6 +39,7 @@ from services.live_config import INPUT_RATE, OUTPUT_RATE, make_live_config
 from services.log import get_logger
 from services.tools import ServiceError
 from services.usage import live_usage_counts
+from services import voice_quick
 
 logger = get_logger(__name__)
 
@@ -180,6 +181,7 @@ class VoiceSession:
     jarvis_text: str = ""
     brain_turn: bool = False
     brain: dict = field(default_factory=dict)
+    quick: dict = field(default_factory=dict)  # quick answers in flight (services/voice_quick.py)
     ending: float | None = None
     stop_after_turn: ServiceError | None = None
     last_activity: float = 0.0
@@ -707,7 +709,16 @@ class VoiceService:
             mode=session.mode,
             handle=session.handle,
             max_output_tokens=ticket["max_output_tokens"] if ticket and ticket["capped"] else None,
+            home=self.home_connected(),
         )
+
+    def home_connected(self):
+        """quick_home is declared only while Home Assistant is connected."""
+        try:
+            home = getattr(self.app, "home", None)
+            return bool(home is not None and home.connected)
+        except Exception:
+            return False
 
     async def run(self, session):
         attempts = 0
@@ -844,13 +855,16 @@ class VoiceService:
         current = asyncio.current_task()
         tasks = [
             task
-            for task in (session.runner, session.watchdog, *session.brain.values())
+            for task in (
+                session.runner, session.watchdog, *session.brain.values(), *session.quick.values()
+            )
             if task and task is not current and not task.done()
         ]
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
         session.brain.clear()
+        session.quick.clear()
         while not session.outbound.empty():
             session.outbound.get_nowait()
         session.queued_audio = 0
@@ -900,7 +914,7 @@ class VoiceService:
         cancellation = getattr(message, "tool_call_cancellation", None)
         if cancellation:
             for identifier in cancellation.ids or []:
-                task = session.brain.get(identifier)
+                task = session.brain.get(identifier) or session.quick.get(identifier)
                 if task:
                     task.cancel()
         content = getattr(message, "server_content", None)
@@ -1016,6 +1030,11 @@ class VoiceService:
             session.brain[call.id] = task
             task.add_done_callback(lambda _: session.brain.pop(call.id, None))
             await self.set_state(session, "working")
+        elif call.name in voice_quick.QUICK_TOOLS:
+            # Read-only and bounded: answered here, with no brain turn and no history entry.
+            task = asyncio.create_task(self.quick_answer(session, call), name="voice-quick")
+            session.quick[call.id] = task
+            task.add_done_callback(lambda _: session.quick.pop(call.id, None))
         elif call.name == "end_conversation" and session.mode == "conversation":
             session.ending = self.clock()
             self.respond(session, call, {"result": "Ending the conversation."})
@@ -1025,6 +1044,28 @@ class VoiceService:
                 call,
                 {"error": "tool_unavailable", "message": "Use ask_brain for this request."},
             )
+
+    async def quick_answer(self, session, call):
+        """quick_weather / quick_agenda / quick_home: the same session checks as ask_brain
+        (owner, face lock, project, gaming mode, microphone permission), never an approval."""
+        try:
+            self.authorize(session)
+            async with asyncio.timeout(voice_quick.QUICK_SECONDS):
+                response = await voice_quick.answer(self.app, call.name, call.args)
+            self.authorize(session)
+        except asyncio.CancelledError:
+            raise
+        except TimeoutError:
+            logger.info("Voice quick answer timed out (%s)", call.name)
+            response = voice_quick.unavailable(voice_quick.TIMED_OUT)
+        except ServiceError as exc:
+            response = {"error": exc.code, "message": str(exc)}
+        except Exception as exc:
+            logger.warning("Voice quick answer failed (%s, %s)", call.name, type(exc).__name__)
+            response = voice_quick.unavailable(voice_quick.UNEXPECTED)
+        if not session.closed:
+            session.last_activity = self.clock()
+        self.respond(session, call, response)
 
     async def ask_brain(self, session, call):
         args = call.args if isinstance(call.args, dict) else {}

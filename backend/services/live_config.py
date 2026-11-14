@@ -13,6 +13,8 @@ Field names follow the Live API docs (checked 26 Oct 2026):
   blocking call and JARVIS acknowledges the request aloud before calling it)
 """
 
+from datetime import datetime, timedelta
+
 INPUT_RATE = 16000  # raw PCM16 mono little-endian into Live
 OUTPUT_RATE = 24000  # raw PCM16 mono little-endian out of Live
 VOICE_MODES = ("push_to_talk", "conversation")
@@ -101,7 +103,8 @@ ASK_BRAIN = {
         "tools might do; call ask_brain instead. Pass the owner's request in full with any "
         "context from this conversation. Before calling, tell the owner briefly that you are "
         "on it (for example 'One moment'). Returns the final answer to speak, condensed if "
-        "long; actions may wait for the owner's approval on screen."
+        "long; actions may wait for the owner's approval on screen. For the weather, today's "
+        "agenda and home status use quick_weather, quick_agenda and quick_home instead."
     ),
     "parameters": {
         "type": "OBJECT",
@@ -113,6 +116,47 @@ ASK_BRAIN = {
         },
         "required": ["request"],
     },
+}
+# Quick answers (S1.2): read-only lookups the voice layer answers itself, with no brain turn
+# (services/voice_quick.py). quick_home is declared only while Home Assistant is connected.
+QUICK_RULE = (
+    "Answer directly in one or two sentences from the result. Do not call ask_brain for this."
+)
+QUICK_WEATHER = {
+    "name": "quick_weather",
+    "description": (
+        "The weather now, today, tomorrow or over the next week, for a place the owner names "
+        "or else the owner's home town. If it answers need_place, ask the owner which town to "
+        "use, then call it again with that place. " + QUICK_RULE
+    ),
+    "parameters": {
+        "type": "OBJECT",
+        "properties": {
+            "place": {
+                "type": "STRING",
+                "description": "A town or city, only when the owner names one.",
+            },
+            "when": {
+                "type": "STRING",
+                "enum": ["now", "today", "tomorrow", "week"],
+                "description": "Which forecast; today when the owner doesn't say.",
+            },
+        },
+    },
+}
+QUICK_AGENDA = {
+    "name": "quick_agenda",
+    "description": (
+        "Today's calendar events and the reminders due today: what's on today, what's next, "
+        "anything to remember. " + QUICK_RULE
+    ),
+}
+QUICK_HOME = {
+    "name": "quick_home",
+    "description": (
+        "A one-line summary of the owner's home from Home Assistant: lights and switches on, "
+        "locks, the alarm, climate and covers. It only reads. " + QUICK_RULE
+    ),
 }
 END_CONVERSATION = {
     "name": "end_conversation",
@@ -142,8 +186,38 @@ def voice_instruction(settings):
     return persona(settings, VOICE_LINE)
 
 
-def declarations(mode):
-    return [ASK_BRAIN, *([END_CONVERSATION] if mode == "conversation" else [])]
+def declarations(mode, home=False):
+    """The desktop Live functions; ``home`` is True while Home Assistant is connected."""
+    return [
+        ASK_BRAIN,
+        QUICK_WEATHER,
+        QUICK_AGENDA,
+        *([QUICK_HOME] if home else []),
+        *([END_CONVERSATION] if mode == "conversation" else []),
+    ]
+
+
+def local_now():
+    """This PC's local time, time zone aware (monkeypatched by tests)."""
+    return datetime.now().astimezone()
+
+
+def clock_line(now=None):
+    """'At the start of this voice session it is Saturday 14 November 2026, 09:12,
+    Asia/Kuala_Lumpur (UTC+08:00). ...' for the Live system text."""
+    now = now or local_now()
+    if now.tzinfo is None:
+        now = now.astimezone()
+    zone = getattr(now.tzinfo, "key", None) or now.tzname() or "local time"
+    offset = now.utcoffset() or timedelta(0)
+    minutes = abs(int(offset.total_seconds())) // 60
+    utc = f"UTC{'-' if offset < timedelta(0) else '+'}{minutes // 60:02d}:{minutes % 60:02d}"
+    # A fixed-offset zone is named "UTC+08:00" already; say it once.
+    where = utc if zone.startswith("UTC") else f"{zone} ({utc})"
+    return (
+        f"At the start of this voice session it is {now:%A} {now.day} {now:%B %Y}, "
+        f"{now:%H:%M}, {where}. Use this for the date, the day and the time."
+    )
 
 
 def live_connect_config(*, system_instruction, voice_name, function_declarations,
@@ -200,14 +274,18 @@ def _turn_taking_fields(types, turn_taking):
     return fields
 
 
-def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_output_tokens=None):
-    """LiveConnectConfig for one desktop voice connection; ``handle`` resumes a dropped session."""
+def make_live_config(settings=None, *, mode="push_to_talk", handle=None, max_output_tokens=None,
+                     home=False, now=None):
+    """LiveConnectConfig for one desktop voice connection; ``handle`` resumes a dropped session.
+
+    ``home`` declares quick_home (Home Assistant connected); the system text ends with the
+    local date, time and time zone at connect (``now``, default this PC's clock)."""
     if mode not in VOICE_MODES:
         raise ValueError("Unknown voice mode")
     return live_connect_config(
-        system_instruction=voice_instruction(settings),
+        system_instruction=voice_instruction(settings) + " " + clock_line(now),
         voice_name=voice_settings(settings)["name"],
-        function_declarations=declarations(mode),
+        function_declarations=declarations(mode, home=home),
         # Push-to-talk: the renderer marks the hold. Conversation: server VAD.
         automatic_activity_detection=mode == "conversation",
         handle=handle,

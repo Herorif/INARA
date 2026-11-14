@@ -235,6 +235,8 @@ async def test_conversation_mode_uses_server_vad_and_barge_in(voice):
     assert live.config.realtime_input_config.automatic_activity_detection.disabled is False
     assert {item.name for item in live.config.tools[0].function_declarations} == {
         "ask_brain",
+        "quick_weather",
+        "quick_agenda",
         "end_conversation",
     }
     assert states(app)[-1] == "listening"

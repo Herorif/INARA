@@ -28,6 +28,26 @@ rain.") are public so the voice layer's quick answers can reuse them.
 
 Requests carry only the place name or coordinates. Logs carry codes only, never places.
 
+## Quick answers by voice
+
+The Gemini Live session answers plain weather questions itself, with no brain turn:
+`quick_weather(place?: string, when?: "now" | "today" | "tomorrow" | "week")`
+(`services/live_config.py`, run by `services/voice_quick.py`). It calls the same
+`WeatherService.lookup` and answers `{"answer": summary_line(result), "data": {place, when,
+now, days, units, source}}`, which the voice model speaks in one or two sentences.
+
+- The same session checks as `ask_brain` (owner, face lock, project, gaming mode, microphone
+  permission), and the `weather` permission must be one that never asks; `"deny"` refuses.
+- 5 s for the whole answer; past that, or when Open-Meteo fails, it answers
+  `{"error": "unavailable", "message": ...}` (`not_found` for an unknown place).
+- With no home town it answers `need_place` with the question to ask. It never saves a home
+  town: the owner's answer goes back through `quick_weather` with `place`, and saving it as
+  home is the brain's `weather` tool with `remember_as_home`.
+- Nothing is added to the conversation by the tool; the spoken exchange is recorded like any
+  other voice turn. `quick_agenda` (today's calendar and reminders) and `quick_home` (a
+  one-line Home Assistant summary, declared only while it is connected) work the same way
+  ([VOICE_CONNECTION_POLICY](VOICE_CONNECTION_POLICY.md#quick-answers-s12)).
+
 ## Home town
 
 - Setting `assistant.home_place`: `{name, lat, lon}` or `null` (default). The name is at most

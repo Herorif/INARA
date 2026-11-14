@@ -9,6 +9,8 @@ from services.settings import SettingsPatch, SettingsService, SettingsStore
 
 
 def test_push_to_talk_config_voice_compression_resumption_transcription_and_tools():
+    from services.live_config import clock_line
+
     config = make_live_config({})
     assert config.response_modalities == ["AUDIO"]
     assert config.speech_config.voice_config.prebuilt_voice_config.voice_name == "Kore"
@@ -18,7 +20,9 @@ def test_push_to_talk_config_voice_compression_resumption_transcription_and_tool
     assert config.session_resumption is not None and config.session_resumption.handle is None
     assert config.realtime_input_config.automatic_activity_detection.disabled is True
     (tool,) = config.tools
-    (brain,) = tool.function_declarations
+    # The brain hand-off plus the read-only quick answers (S1.2); no Home Assistant here.
+    brain, *quick = tool.function_declarations
+    assert [item.name for item in quick] == ["quick_weather", "quick_agenda"]
     assert brain.name == "ask_brain" and brain.parameters.required == ["request"]
     # Live run (7 Nov 2026): Live refused a NAS 3D model itself; the description now names
     # what JARVIS's tools can do and forbids claiming it can't.
@@ -33,10 +37,15 @@ def test_push_to_talk_config_voice_compression_resumption_transcription_and_tool
     detection = config.realtime_input_config.automatic_activity_detection
     assert detection.end_of_speech_sensitivity is None and detection.silence_duration_ms is None
     assert detection.prefix_padding_ms is None and detection.start_of_speech_sensitivity is None
-    # The brain's stable persona plus exactly one spoken-style line.
-    assert config.system_instruction == persona({}, VOICE_LINE)
-    assert config.system_instruction.startswith(PERSONA)
-    assert config.system_instruction.endswith(VOICE_LINE)
+    # The brain's stable persona plus exactly one spoken-style line, then the local date,
+    # time and time zone at connect (S1.2).
+    import datetime as dt
+
+    now = dt.datetime(2026, 11, 14, 9, 12, tzinfo=dt.timezone(dt.timedelta(hours=8)))
+    text = make_live_config({}, now=now).system_instruction
+    assert text == persona({}, VOICE_LINE) + " " + clock_line(now)
+    assert text.startswith(PERSONA)
+    assert config.system_instruction.startswith(persona({}, VOICE_LINE) + " At the start of")
     assert config.max_output_tokens is None
 
 
@@ -86,6 +95,8 @@ def test_conversation_config_resumes_with_handle_and_uses_the_chosen_voice():
     assert config.realtime_input_config.activity_handling.value == "START_OF_ACTIVITY_INTERRUPTS"
     assert [item.name for item in config.tools[0].function_declarations] == [
         "ask_brain",
+        "quick_weather",
+        "quick_agenda",
         "end_conversation",
     ]
     assert "Hiro" in config.system_instruction and config.max_output_tokens == 512

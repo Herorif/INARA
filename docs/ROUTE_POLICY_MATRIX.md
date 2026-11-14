@@ -168,11 +168,14 @@ Details: [CALL_ROUTING](CALL_ROUTING.md#implementation-status-c1).
 
 ## Live voice function declarations
 
-The Gemini Live session declares only these functions; `services/live_config.py` builds them. The dormant 32-name compatibility catalog (`VoiceBridge`) was removed with the live voice task.
+The Gemini Live session declares only these functions; `services/live_config.py` builds them (`quick_home` only while Home Assistant is connected). The dormant 32-name compatibility catalog (`VoiceBridge`) was removed with the live voice task.
 
 | Live function | Target | Schema | Policy |
 | --- | --- | --- | --- |
 | `ask_brain` | ConversationService.reply (feature voice_brain) | request: string (1-12000 chars) | Normal brain turn in the session's desktop conversation; every tool through the shared ToolDispatcher with unchanged approvals (tool_confirmation_request to the origin SID); session authorization before and after approval |
+| `quick_weather` | `services/voice_quick.py`: WeatherService.lookup + summary_line, no brain turn | place?: string (at most 120 chars); when?: now\|today\|tomorrow\|week | Read-only, never asks; `weather` must never ask; ask_brain's session authorization before and after; 5 s; never saves a home town |
+| `quick_agenda` | `services/voice_quick.py`: CalendarService.today_events + reminders due today, no brain turn | no arguments | Read-only, never asks; calendar needs `read_events` and a never-asking `calendar_read`; reminders refuse only on `list_reminders` deny; answers reminders without a calendar; 5 s |
+| `quick_home` | `services/voice_quick.py`: HomeAssistantService.list_for_brain in one line, no brain turn | no arguments | Declared only while Home Assistant is connected; read-only, never asks; `home_devices` must never ask; off limits devices counted, never described; 5 s |
 | `end_conversation` | VoiceService session end (conversation mode only) | no arguments | Ends only the calling hands-free session after the goodbye turn |
 
 ## Call agent function declarations (C2)

@@ -14,15 +14,11 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 
 ## Wave 0 — it must answer (S1, S2, S4)
 
-> Run session 1 stopped at the usage limit (14 Nov 2026) with S1.4 and S1.2 built by
-> workers but not reviewed or committed (uncommitted in the tree: conversation.py,
-> tools.py, llm/*.py, long_running flags, voice.py, live_config.py, tests). On resume:
-> review those diffs against the specs, run their tests, then commit or `git restore`.
 
 - [x] **S1.1** Weather service, `weather` brain tool, `assistant.home_place`, "Home town" field · S1 layer 2 · M · tests: `tests/test_weather.py` — f7a0284
 - [ ] **S1.2** Voice instant tools `quick_weather`, `quick_agenda`, `quick_home`; date and time in the Live system text · S1 layer 1 · C · needs S1.1 · tests: instant tool answers without a brain turn
 - [ ] **S1.3** Globe is opt-in: description edit, world tool group gate, `show_view` checks for a window before starting · S1 layer 4 · C
-- [ ] **S1.4** Turn budget, `ToolSpec.long_running`, tool caps, first-token fallback, truthful timeout answer · S1 layer 5 · C
+- [x] **S1.4** Turn budget, `ToolSpec.long_running`, tool caps, first-token fallback, truthful timeout answer · S1 layer 5 · C — 480715a
 - [ ] **S1.5** Two-phase `ask_brain` with progress phrases; `ASK_BRAIN` description rewrite · S1 layer 6 · C · needs S1.4
 - [ ] **S1.6** Claude web search and fetch tools, `pause_turn`, pricing · S1 layer 3 · C · read the `claude-api` skill first
 - [ ] **S1.7** `turn_timing` log line, `brain_check` RPC, "Run a check" button · S1 layer 7 · M

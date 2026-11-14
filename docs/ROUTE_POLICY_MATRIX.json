@@ -2198,6 +2198,24 @@
       "policy": "Normal brain turn in the session's desktop conversation; every tool through the shared ToolDispatcher with unchanged approvals (tool_confirmation_request to the origin SID); session authorization before and after approval",
       "status": "migrated"
     },
+    "quick_weather": {
+      "target": "services/voice_quick.py weather: WeatherService.lookup + summary_line (no brain turn)",
+      "schema": "place?: string (trimmed, at most 120 chars); when?: now|today|tomorrow|week (default today)",
+      "policy": "Read-only, never asks; permission weather must never ask (deny refuses, an asking policy answers approval_required); ask_brain's session authorization before and after; 5 s limit; never saves a home town (need_place asks the owner)",
+      "status": "migrated"
+    },
+    "quick_agenda": {
+      "target": "services/voice_quick.py agenda: CalendarService.today_events + reminder store list_reminders, shaped by the briefing helpers (no brain turn)",
+      "schema": "no arguments",
+      "policy": "Read-only, never asks; calendar needs the read_events switch and a never-asking calendar_read, reminders refuse only on list_reminders deny; without a calendar it still answers reminders; ask_brain's session authorization before and after; 5 s limit",
+      "status": "migrated"
+    },
+    "quick_home": {
+      "target": "services/voice_quick.py home: HomeAssistantService.list_for_brain summarised in one line (no brain turn)",
+      "schema": "no arguments",
+      "policy": "Declared only while Home Assistant is connected; read-only, never asks; permission home_devices must never ask; off limits devices are counted, never described; ask_brain's session authorization before and after; 5 s limit",
+      "status": "migrated"
+    },
     "end_conversation": {
       "target": "VoiceService session end (conversation mode only)",
       "schema": "no arguments",
