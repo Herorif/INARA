@@ -243,6 +243,17 @@
       "replacement": "ReminderTransport / owner-gated scheduler tools",
       "status": "migrated"
     },
+    "brain_models": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "assistant.gemini_model and the default Gemini text model; Gemini key presence only (a digest keys the cache)",
+      "effects": "Read-only: the fixed Claude choices, the efforts, and the account's gemini-* text models supporting generateContent from one google-genai models.list call (cached 1 hour per key; a failure retried after 5 minutes). No key or a failed call: just the default and saved Gemini models. Never changes settings",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok, claude: [{id, label, note}], gemini: [{id, label}], efforts}; brain_models_unavailable and invalid_arguments as plain messages; never the key",
+      "lifetime": "One bounded listing (10 s request timeout and 10 s overall), then the in-memory cache",
+      "replacement": "BrainCatalog (backend/llm/catalog.py) / SettingsTransport",
+      "status": "implemented"
+    },
     "get_settings": {
       "schema": "EmptyRequest",
       "caller": "Authenticated owner renderer only",

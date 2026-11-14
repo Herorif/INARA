@@ -25,6 +25,7 @@ from pydantic import (
     model_validator,
 )
 from services.audio_contracts import DeviceSelection
+from services.capability_profiles import MODEL_DEFAULTS
 from services.live_config import PREBUILT_VOICES, VOICE_DEFAULTS, VOICE_MODES, WAKE_SENSITIVITIES
 from services.tools import DEFAULT_DENY_PERMISSIONS, ServiceError
 
@@ -165,10 +166,20 @@ def home_place(settings):
         return None
 
 
+# The Claude brain models and efforts the owner can choose (llm/router.py, S2).
+CLAUDE_MODELS = ("claude-sonnet-5-5", "claude-haiku-5-5")
+EFFORTS = ("low", "medium", "high")
+# Today's Gemini text model, without the JARVIS_TEXT_MODEL override (which wins in the router).
+GEMINI_TEXT_DEFAULT = MODEL_DEFAULTS["text"][1]
+
+
 class AssistantSettings(EmptyRequest):
     """``assistant.*``: which AI is the brain, how JARVIS addresses the owner, the
-    owner's home town for weather (``home_place``: {name, lat, lon}, or null to clear) and
-    whether the Claude brain may search and fetch the web (``web_search``, default on)."""
+    owner's home town for weather (``home_place``: {name, lat, lon}, or null to clear),
+    whether the Claude brain may search and fetch the web (``web_search``, default on), the
+    Claude brain model (``claude_model``), its effort (``effort``: low, medium or high;
+    xhigh and max are left out on purpose) and the Gemini text model (``gemini_model``) for
+    a Gemini brain (docs/AI_PROVIDERS.md)."""
 
     brain: Literal["auto", "claude", "gemini"] | None = None
     # Printable text only: the name is placed in the system prompt.
@@ -181,8 +192,17 @@ class AssistantSettings(EmptyRequest):
     home_place: HomePlace | None = None
     # Claude web search and web fetch (docs/AI_PROVIDERS.md); Gemini never searches.
     web_search: StrictBool | None = None
+    claude_model: Literal[CLAUDE_MODELS] | None = None
+    effort: Literal[EFFORTS] | None = None
+    # A Gemini model id from the brain_models list; printable id characters only.
+    gemini_model: StrictStr | None = Field(
+        default=None, min_length=1, max_length=80, pattern=r"^gemini-[A-Za-z0-9._-]+$"
+    )
 
-    @field_validator("brain", "owner_name", "address", "web_search", mode="before")
+    @field_validator(
+        "brain", "owner_name", "address", "web_search", "claude_model", "effort",
+        "gemini_model", mode="before",
+    )
     @classmethod
     def reject_null(cls, value):
         if value is None:
@@ -203,7 +223,8 @@ class AssistantSettings(EmptyRequest):
 
 ASSISTANT_DEFAULTS = {
     "brain": "auto", "owner_name": "", "address": "sir", "home_place": None,
-    "web_search": True,
+    "web_search": True, "claude_model": CLAUDE_MODELS[0], "effort": "medium",
+    "gemini_model": GEMINI_TEXT_DEFAULT,
 }
 
 

@@ -106,7 +106,8 @@ def test_address_setting_defaults_merges_and_validates():
     service.apply(SettingsPatch(assistant={"brain": "claude"}))
     assert store["assistant"] == {
         "brain": "claude", "owner_name": "Hiro", "address": "sir", "home_place": None,
-        "web_search": True,
+        "web_search": True, "claude_model": "claude-sonnet-5-5", "effort": "medium",
+        "gemini_model": "gemini-3.8-flash",
     }
     for mode in ("maam", "name", "none", "sir"):
         service.apply(SettingsPatch.model_validate({"assistant": {"address": mode}}))

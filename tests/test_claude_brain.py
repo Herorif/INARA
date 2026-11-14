@@ -169,7 +169,8 @@ def test_assistant_settings_are_validated_and_merged():
     service.apply(SettingsPatch(assistant={"owner_name": "  Hiro   Tan "}))
     assert settings["assistant"] == {
         "brain": "gemini", "owner_name": "Hiro Tan", "address": "sir", "home_place": None,
-        "web_search": True,
+        "web_search": True, "claude_model": "claude-sonnet-5-5", "effort": "medium",
+        "gemini_model": "gemini-3.8-flash",
     }
     service.apply(SettingsPatch.model_validate({"assistant": {"brain": "claude"}}))
     assert settings["assistant"]["brain"] == "claude"

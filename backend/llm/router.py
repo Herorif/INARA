@@ -1,15 +1,17 @@
 """Task router: which provider and model serve each kind of AI work.
 
-- ``chat``: Claude Sonnet 5.5 (the brain) when an Anthropic key is configured,
-  otherwise the Gemini text model.
-- ``fast`` / ``summary``: Claude Haiku 5.5 when an Anthropic key is configured,
-  otherwise the Gemini text model.
+- ``chat``: the chosen Claude model (``assistant.claude_model``, Sonnet 5.5 by default) at
+  the chosen effort (``assistant.effort``, medium by default) when an Anthropic key is
+  configured, otherwise the chosen Gemini text model (``assistant.gemini_model``).
+- ``fast`` / ``summary``: Claude Haiku 5.5 at low effort when an Anthropic key is
+  configured, otherwise the default Gemini text model.
 - ``transcription``: always Gemini.
 
 The ``assistant.brain`` setting ("auto", "claude" or "gemini") overrides the
 automatic choice for chat and fast work. Choosing "claude" without an Anthropic
 key is a configuration error, never a silent fallback. ``assistant.web_search``
-(default on) gives the chat route Claude's web search and web fetch. Nothing here
+(default on) gives the chat route Claude's web search and web fetch. The env overrides
+``BRAIN_MODEL`` and ``JARVIS_TEXT_MODEL`` win over the saved models. Nothing here
 touches an SDK or the network; providers are created on request.
 """
 
@@ -22,6 +24,10 @@ from services.tools import ServiceError
 BRAIN_MODEL = "claude-sonnet-5-5"
 FAST_MODEL = "claude-haiku-5-5"
 BRAIN_SETTINGS = ("auto", "claude", "gemini")
+CLAUDE_MODELS = (BRAIN_MODEL, FAST_MODEL)
+EFFORTS = ("low", "medium", "high")
+DEFAULT_EFFORT = "medium"
+FAST_EFFORT = "low"
 TASKS = ("chat", "fast", "summary", "transcription")
 
 MODEL_LABELS = {
@@ -30,8 +36,37 @@ MODEL_LABELS = {
 }
 
 
-def brain_model():
-    return env.getenv("BRAIN_MODEL", "").strip() or BRAIN_MODEL
+def _assistant(settings):
+    assistant = (settings or {}).get("assistant") if isinstance(settings, dict) else None
+    return assistant if isinstance(assistant, dict) else {}
+
+
+def claude_model_setting(settings):
+    """``assistant.claude_model``; a missing or stale value reads as Sonnet 5.5."""
+    value = _assistant(settings).get("claude_model")
+    return value if value in CLAUDE_MODELS else BRAIN_MODEL
+
+
+def brain_model(settings=None):
+    """The chat model: env ``BRAIN_MODEL`` wins, else ``assistant.claude_model``."""
+    return env.getenv("BRAIN_MODEL", "").strip() or claude_model_setting(settings)
+
+
+def effort_setting(settings):
+    """``assistant.effort`` for the Claude brain; a missing or stale value reads as medium."""
+    value = _assistant(settings).get("effort")
+    return value if value in EFFORTS else DEFAULT_EFFORT
+
+
+def gemini_model(settings=None):
+    """The Gemini chat model: env ``JARVIS_TEXT_MODEL`` wins, else ``assistant.gemini_model``,
+    else today's default text model (an empty or non-string saved value never reaches Google)."""
+    override = env.getenv("JARVIS_TEXT_MODEL", "").strip()
+    if override:
+        return override
+    value = _assistant(settings).get("gemini_model")
+    value = value.strip() if isinstance(value, str) else ""
+    return value if value.startswith("gemini-") else model_id("text")
 
 
 def fast_model():
@@ -61,15 +96,13 @@ class Route:
 
 
 def brain_setting(settings):
-    assistant = (settings or {}).get("assistant") or {}
-    value = assistant.get("brain", "auto") if isinstance(assistant, dict) else "auto"
+    value = _assistant(settings).get("brain", "auto")
     return value if value in BRAIN_SETTINGS else "auto"
 
 
 def web_search_setting(settings):
     """``assistant.web_search`` (default on): offer Claude web search and web fetch."""
-    assistant = (settings or {}).get("assistant") or {}
-    value = assistant.get("web_search", True) if isinstance(assistant, dict) else True
+    value = _assistant(settings).get("web_search", True)
     return value if isinstance(value, bool) else True
 
 
@@ -85,15 +118,20 @@ class TaskRouter:
     def route(self, task):
         if task not in TASKS:
             raise ValueError(f"Unknown AI task: {task}")
-        gemini = Route(task, "gemini", model_id("speech" if task == "transcription" else "text"),
-                       bool(self._gemini()))
+        settings = self.settings()
+        if task == "transcription":
+            model = model_id("speech")
+        else:
+            model = gemini_model(settings) if task == "chat" else model_id("text")
+        gemini = Route(task, "gemini", model, bool(self._gemini()))
         if task == "transcription":
             return gemini
-        choice = brain_setting(self.settings())
+        choice = brain_setting(settings)
         has_claude = bool(self._anthropic())
         if choice == "gemini" or (choice == "auto" and not has_claude):
             return gemini
-        return Route(task, "claude", brain_model() if task == "chat" else fast_model(), has_claude)
+        model = brain_model(settings) if task == "chat" else fast_model()
+        return Route(task, "claude", model, has_claude)
 
     def provider(self, task):
         """Create the provider for ``task`` or raise a clear configuration error."""
@@ -112,8 +150,11 @@ class TaskRouter:
             # Web search is for the brain's own turns only: fast and summary work (call
             # triage, summaries) never offers it; a history that already holds search
             # results still declares the tools so it can replay (llm/claude.py).
-            web = task == "chat" and web_search_setting(self.settings())
-            return ClaudeProvider(api_key=key, model=route.model, web_search=web)
+            settings = self.settings()
+            web = task == "chat" and web_search_setting(settings)
+            # The owner's effort is for the brain's chat turns; fast work stays at low.
+            effort = effort_setting(settings) if task == "chat" else FAST_EFFORT
+            return ClaudeProvider(api_key=key, model=route.model, effort=effort, web_search=web)
         key = self._gemini()
         if not key:
             raise ServiceError(
@@ -123,13 +164,19 @@ class TaskRouter:
             )
         from llm.gemini import GeminiProvider
 
+        # Effort does not apply to Gemini: it manages its own thinking (llm/gemini.py).
         return GeminiProvider(api_key=key, model=route.model)
 
     def status(self):
         """Content-free summary for the capability center and status events."""
         chat, fast = self.route("chat"), self.route("fast")
+        settings = self.settings()
         return {
-            "setting": brain_setting(self.settings()),
+            "setting": brain_setting(settings),
+            # The saved choices, whichever brain is active (effort applies to Claude only).
+            "effort": effort_setting(settings),
+            "claude_model": brain_model(settings),
+            "gemini_model": gemini_model(settings),
             "provider": chat.provider,
             "model": chat.model,
             "label": chat.label,

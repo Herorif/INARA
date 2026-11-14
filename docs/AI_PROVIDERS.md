@@ -35,8 +35,8 @@ Checks: the Account SID and Auth Token are tested together with one `GET https:/
 
 `backend/llm/router.py` picks the provider for each request; nothing is decided at startup.
 
-- `chat` uses Claude Sonnet 5.5 when an Anthropic key is configured, otherwise the Gemini text model (`JARVIS_TEXT_MODEL`, default `gemini-3.8-flash`).
-- `fast` and `summary` use Claude Haiku 5.5 when an Anthropic key is configured, otherwise the Gemini text model.
+- `chat` uses the chosen Claude model (`assistant.claude_model`, Sonnet 5.5 by default) at the chosen effort (`assistant.effort`, medium by default) when an Anthropic key is configured, otherwise the chosen Gemini model (`assistant.gemini_model`, default `gemini-3.8-flash`).
+- `fast` and `summary` use Claude Haiku 5.5 at `low` effort when an Anthropic key is configured, otherwise the default Gemini text model. The model and effort settings never change them.
 - `transcription` always uses Gemini.
 
 Settings (`settings.json`, validated by `SettingsPatch`):
@@ -47,15 +47,24 @@ Settings (`settings.json`, validated by `SettingsPatch`):
 | `assistant.owner_name` | Up to 80 printable characters, default empty | Adds "The owner's name is ...; use it sparingly." to the system prompt. |
 | `assistant.address` | `sir` (default), `maam`, `name`, `none` | How the Classic JARVIS persona addresses the owner: "sir" ("tuan" in Malay), "ma'am" ("puan"), by name (needs `owner_name`), or no form of address. Preferences > AI, "How JARVIS addresses you". Calls to third parties never use it. |
 | `assistant.web_search` | `true` (default), `false` | Lets the Claude brain search and fetch the web (see "Web search and web fetch (Claude)"). The Gemini brain never searches. |
+| `assistant.claude_model` | `claude-sonnet-5-5` (default), `claude-haiku-5-5` | The Claude brain for chat: Sonnet 5.5 is the smartest, Haiku 5.5 the fastest and cheapest. |
+| `assistant.effort` | `low`, `medium` (default), `high` | `output_config.effort` on the Claude brain's chat turns. Higher effort thinks longer and costs more. `xhigh` and `max` are rejected on purpose: slow and costly for an assistant. Does not apply to Gemini, which manages its own thinking (every thinking config hung on `gemini-3.8-flash` on 7 Nov 2026, `llm/gemini.py`). |
+| `assistant.gemini_model` | A `gemini-` model id, 1-80 characters (letters, digits, `.`, `_`, `-`), default `gemini-3.8-flash` | The Gemini brain for chat, picked from the `brain_models` list. An empty or stale saved value falls back to the default; a model Google rejects gives the usual plain provider error. |
 
-Environment overrides: `JARVIS_BRAIN_MODEL` (default `claude-sonnet-5-5`) and `JARVIS_FAST_MODEL` (default `claude-haiku-5-5`).
+Environment overrides: `JARVIS_BRAIN_MODEL` (wins over `assistant.claude_model`), `JARVIS_FAST_MODEL` (default `claude-haiku-5-5`) and `JARVIS_TEXT_MODEL` (wins over `assistant.gemini_model`).
+
+**Switching model mid-conversation** drops the old reasoning: thinking blocks are bound to the model that wrote them, and requests send `block_binding.prefix_mismatch_behavior: "drop_block"`, so a switch drops them instead of failing. Prompt caches are per model, so the first turn after a switch is uncached.
+
+**`brain_models`** (owner-only socket route, read-only; `backend/llm/catalog.py`, served by `SettingsTransport`) answers `{ok, claude: [{id, label, note}], gemini: [{id, label}], efforts: ["low", "medium", "high"]}` for the Preferences picker. The Claude list is fixed (Sonnet 5.5 "Smartest", Haiku 5.5 "Fastest, cheapest"). The Gemini list comes from one google-genai `client.aio.models.list` call: `gemini-*` models whose `supported_actions` include `generateContent`, without TTS, Live, embedding, image or audio models. It is bounded to 10 s and cached for an hour per key (a failed call is retried after 5 minutes). The default text model and the saved `assistant.gemini_model` are always included; with no Gemini key, or when the call fails, the list is just those.
+
+`TaskRouter.status()` also reports the saved `effort`, `claude_model` and `gemini_model`.
 
 The capability center reports the active brain (`brain` in `capability_diagnostics`, and the text card's model and "AI model: Claude Sonnet 5.5" reason); the `text_ready` socket event carries the same `brain` object.
 
 ## How JARVIS calls Claude
 
 - One stable system prompt (the JARVIS persona) for both providers, with no timestamps. Volatile facts (local time, project name, and the memory-is-untrusted note when project memory is attached) go in a mid-conversation `{"role": "system"}` message right after that turn's user message.
-- Adaptive thinking with `output_config.effort`: `medium` for the desktop assistant (desktop chat, quick assistant and reviewed voice share one conversation), `low` for phone chat and Haiku routes. Effort never changes within a conversation. No `temperature`, `top_p` or `top_k`; `tool_choice` stays at its `auto` default.
+- Adaptive thinking with `output_config.effort`: `assistant.effort` (default `medium`) for the desktop assistant (desktop chat, quick assistant and reviewed voice share one conversation), `low` for phone chat and Haiku routes. Effort only changes within a conversation when the owner changes the setting. No `temperature`, `top_p` or `top_k`; `tool_choice` stays at its `auto` default.
 - Tools come from the existing dispatcher schemas, sorted by name, with `eager_input_streaming`. Every tool input is validated by the dispatcher; invalid input, a disabled tool or a declined approval goes back to Claude as a `tool_result` with `is_error: true`. All results of one assistant turn return in one user message.
 - Each assistant turn is stored verbatim, including thinking blocks and signatures, and replayed unchanged; history is append-only. Requests send beta `thinking-binding-controls-2026-08-01` with `block_binding.prefix_mismatch_behavior: "drop_block"`, so an unavoidable edit (history trimmed after 10 turns, a changed tool list) drops old reasoning instead of failing. The desktop and phone only ever receive the text of each turn.
 - Sonnet requests opt into server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). Haiku 5.5 has no server-side fallback, so its requests do not send it. A refusal shows a plain message; the category is not shown.
