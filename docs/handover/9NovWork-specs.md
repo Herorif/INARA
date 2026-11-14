@@ -54,7 +54,13 @@ Core: `src/app/JarvisCore.jsx`, `coreScene.js`, `PresenceRing.jsx`. Voice stage:
 
 **Verify.** ruff, eslint, tsc, pytest, client tests, `npm run build` (CSP intact),
 harnesses `scripts/verify-*` under the QA lock, captures in `.runtime/ui-qa/<feature>/`.
-Tests use fakes for network, audio and camera; nothing binds port 8000.
+Tests live in `tests/` (pytest; there is no `backend/tests`). They use fakes for
+network, audio and camera; nothing binds port 8000.
+
+**Installed in the core `.venv` [repo, 14 Nov 2026].** Python 3.13.0 · anthropic 2.3.0 ·
+google-genai 2.30.0 · httpx 0.28.1 · websockets 16.1.1 · psutil 7.2.2 ·
+python-socketio 5.17.0 · pydantic 2.14.1 · onnxruntime 1.31.0 · numpy 2.5.4 ·
+sounddevice 0.5.6 · truststore 0.10.5. Not installed: pyserial.
 
 **Machine quirks.** pip needs `--use-feature=truststore`; git needs
 `-c http.sslBackend=schannel`; system Node is 22.11; no Android SDK; the agent's shell
@@ -93,74 +99,138 @@ Rules:
 
 ---
 
-## S1. Everyday answers, real progress, deadlines (fixes the weather stall) — tier Careful
+## S1. No more stalls: instant answers, time budgets, real progress — tier Careful
 
-**Goal.** "What's the weather today?" answers in a few seconds by voice and by chat. The
-voice never invents status.
+**Goal.** A simple question never hangs, whatever the cause. This plan does not depend on
+the owner's log.
 
-**1a. Weather tool (no key).** New `backend/services/weather.py`.
+**Why it stalls today [repo].** Five things line up:
+1. There is no weather tool and no web search tool.
+2. `backend/services/world_tools.py:109-117` sends weather questions to the God's Eye
+   View tools, which only have weather map layers.
+3. A brain turn has no overall time limit. `backend/services/conversation.py`: up to
+   `TOOL_STEPS = 5` steps (line 64), 45 s of model time per step (line 251), so 225 s of
+   model time alone.
+4. Tools may wait a long time: each globe data tool up to 135 s
+   (`mcp_registry.py:621`, `GEV_TIMEOUT = 60`), the globe start up to 60 s
+   (`world_view.py:65`), `world_show` 150 s, `world_tour` 240 s.
+5. `backend/services/voice.py:1029` waits for the brain with no deadline, and the voice
+   model is told to say "One moment" and then fills the silence with invented status.
+
+Each layer below removes one cause. Layers 4 and 5 are the safety net: they bound the turn
+even if a cause nobody has found yet appears.
+
+### Layer 1 — instant tools at the voice layer (no brain hop)
+
+`backend/services/live_config.py`: add function declarations beside `ASK_BRAIN`:
+- `quick_weather(place?: STRING, when?: "now"|"today"|"tomorrow"|"week")`
+- `quick_agenda()` — today's calendar events and reminders
+- `quick_home()` — one-line home summary (only when Home Assistant is connected)
+
+Description for each: "Answer directly in one or two sentences. Do not call ask_brain for
+this." Put the current date, time and time zone in the Live system text at session start.
+
+`backend/services/voice.py` `tool_call`: add a branch for these names that calls the same
+service functions as the brain tools (weather service, calendar list, reminders, home
+summary), each inside `asyncio.timeout(5)`, read-only, never asking; on failure respond
+`{"error": "unavailable", "message": "<plain reason>"}`. They do not create a brain turn.
+
+### Layer 2 — a weather tool for the brain (no key)
+
+New `backend/services/weather.py` (`WeatherService(app)`, wired in `application.py`).
 - Geocode: `GET https://geocoding-api.open-meteo.com/v1/search?name=<place>&count=1&language=en`
 - Forecast: `GET https://api.open-meteo.com/v1/forecast?latitude=..&longitude=..&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`
+  (URLs are **[recall]**: fetch each once in a test script and adjust field names before coding.)
+- `httpx` with `provider_ssl_context()`, 6 s timeout, 10 minute cache per place.
 - Tool `weather(place: str | None, when: Literal["now","today","tomorrow","week"] = "today")`,
-  never asks. Default place from a new setting `assistant.home_place = {name, lat, lon}`
-  (Preferences field "Home town", geocoded once on save).
-- Map WMO `weather_code` to plain words; return a compact dict (now, today's high/low,
-  rain chance by part of day). Cache 10 minutes per place. Open-Meteo is free for
-  non-commercial use: note it in docs and flag for M5.
+  never asks. Map WMO `weather_code` to plain words. Return a compact dict.
+- Setting `assistant.home_place = {name, lat, lon}` or null. When null and no place is
+  given, return `{"need_place": true}`; JARVIS asks once for the home town and saves it
+  (a Preferences field "Home town" too).
+- Open-Meteo is free for non-commercial use: note it in `docs/` and flag for M5.
 
-**1b. Web search and fetch for Claude.** In `backend/llm/claude.py` `request()`, when
-`assistant.web_search` is on (default on), append server tools:
-`{"type": "web_search_20260209", "name": "web_search", "max_uses": 3}` and
+### Layer 3 — web search and fetch for Claude
+
+`backend/llm/claude.py` `request()`: when `assistant.web_search` is on (default on),
+append `{"type": "web_search_20260209", "name": "web_search", "max_uses": 3}` and
 `{"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 3}`.
-- Do not also declare code execution (the 20260209 tools run it internally).
-- Handle `stop_reason == "pause_turn"` by re-sending to continue. Server tool errors
-  arrive as result blocks (HTTP 200), not exceptions.
-- History is already kept verbatim, so the result blocks replay unchanged.
-- Add the per-search price to `backend/llm/pricing.py` and the usage receipt.
-- Before coding, read the claude-api skill files `shared/tool-use-concepts.md` and the
-  Python `tool-use.md` for the exact block types.
-- Gemini brain: Google Search grounding may not combine with function declarations on
-  every model **[recall]**; skip it unless a test shows it works.
+- Installed SDK: `anthropic 2.3.0` **[repo]**. Before coding, load the `claude-api` skill
+  and read `shared/tool-use-concepts.md` and `python/claude-api/tool-use.md` for the
+  exact block types and the `pause_turn` rule.
+- Do not also declare code execution. On `stop_reason == "pause_turn"`, re-send to
+  continue. Server tool errors arrive as result blocks, not exceptions.
+- History is already verbatim, so result blocks replay unchanged.
+- Add the search price to `backend/llm/pricing.py` and the usage receipt.
+- Gemini brain: leave search off unless a test proves grounding works with tools.
 
-**1c. Stop sending weather to the globe.** Edit `SHOW_DESCRIPTION` in
-`backend/services/world_tools.py`: drop "weather" from the "answer a question about the
-world" list and add: "For a plain weather question use the weather tool; use the globe
-only when the owner asks to see it."
+### Layer 4 — the globe is opt-in and fails fast
 
-**1d. Two-phase `ask_brain` (real progress, no invented delays).**
-`backend/services/voice.py` `ask_brain`, `backend/services/live_config.py`,
-`backend/services/conversation.py`.
-- `ConversationService.reply(..., on_progress=callback)`: call it when a tool starts,
-  with a phrase from a `PROGRESS_PHRASES` map keyed by tool-name prefix
-  (`weather` → "Checking the forecast", `web_search` → "Searching the web",
-  `mcp__gev__` → "Pulling the live map data", `calendar_` → "Checking your calendar",
-  default "Working on it").
-- Phase 1: if the brain has not finished after 4 s, answer the pending Live tool call
-  with `{"status": "working", "say": "<phrase>, sir.", "then": "wait silently"}`.
-- Phase 2: when the brain finishes, inject the answer as a Live text turn (the same
+- `SHOW_DESCRIPTION` in `world_tools.py`: remove "weather" from the list of questions to
+  answer with the globe; add "For a plain weather question use the weather tool. Use the
+  globe only when the owner asks to see something."
+- Tool gate in `ConversationService` (new `tool_groups.py`): the world group
+  (`world_show`, `world_tour`, every `mcp__gev__*`) is offered only when the request
+  mentions the globe (globe, world, map, flights, ships, vessels, satellites, earthquake,
+  quake, wildfire, tour, "show me" + place) or the World page is open. With S5 this
+  becomes "deferred" instead of dropped.
+- `world_view.py` `show_view`: check for an open window (`open_pages()` / `owner_rooms()`)
+  **before** `ensure_ready()`, so a voice request with no window fails in under a second
+  instead of starting the globe first.
+
+### Layer 5 — a budget for every turn
+
+`backend/services/conversation.py`:
+- `TURN_BUDGET_S`: 60 for voice (`usage_feature == "voice_brain"`), 120 for chat.
+- New `ToolSpec.long_running: bool = False` (`services/tools.py`). Set True on CAD build,
+  image generation, `world_tour`, call placement, web agent runs. While a long-running
+  tool executes, the budget clock is paused.
+- Every other tool is capped at `min(its own timeout, time left in the budget)`.
+- First-token deadline: if a model step yields nothing for 20 s, cancel it and retry once
+  on the fast route (Haiku 5.5 when the brain is Claude; otherwise the same model once).
+- When the budget runs out: stop the loop and return a truthful answer built from what
+  finished ("I couldn't finish that in time, sir. I got as far as …"). Log
+  `outcome=budget`. Never return silence.
+
+### Layer 6 — two-phase `ask_brain` (real progress only)
+
+`voice.py` `ask_brain`, `live_config.py`, `conversation.py`:
+- `ConversationService.reply(..., on_progress=callback)`: call it when a tool starts with
+  a phrase from `PROGRESS_PHRASES`, keyed by tool-name prefix (`weather` → "Checking the
+  forecast", `web_search` → "Searching the web", `mcp__gev__` → "Pulling the live map
+  data", `calendar_` → "Checking your calendar", default "Working on it").
+- Phase 1: no result after 4 s → answer the pending Live tool call with
+  `{"status": "working", "say": "<phrase>, sir.", "then": "wait silently"}`.
+- Phase 2: when the brain finishes → inject a Live text turn (the
   `send_realtime_input(text=...)` path the morning briefing uses): "Answer for the
   owner's request: <text>. Speak it now, unchanged in meaning."
-- Later progress phrases (at most one every 12 s) go the same way: "Say exactly: …".
-- Deadlines: at 75 s say "This is taking longer than it should, sir. I'll finish it and
-  put the answer in the workspace." and let the task complete into the conversation;
-  hard cancel at 240 s.
-- Tighten the `ask_brain` description in `live_config.py`: "Never describe delays or
-  status yourself. Say only the progress line you are given."
+- Further progress lines, at most one every 12 s, the same way: "Say exactly: …".
+- Rewrite the end of the `ASK_BRAIN` description: remove "(for example 'One moment')";
+  add "Never describe delays or status yourself. Say only a progress line you are given."
+- If the session closes mid-task, the answer still lands in the conversation.
 
-**1e. Timing line.** One content-free log line per turn in `conversation.py`:
-`turn_timing request_id=… origin=voice|chat provider=… model=… effort=… first_token_ms=…
-total_ms=… steps=[tool:ms,…] input_tokens=… output_tokens=…`.
+### Layer 7 — see it and prove it
 
-**Tests.** Fake httpx for Open-Meteo; provider request snapshot with the server tools;
-`pause_turn` continuation with a fake client; two-phase flow with a fake Live session
-(4 s boundary, phrase cadence, 75 s and 240 s paths, session closed mid-task).
+- One content-free log line per turn: `turn_timing request_id=… origin=voice|chat
+  provider=… model=… effort=… first_token_ms=… total_ms=… outcome=ok|budget|error
+  steps=[tool:ms,…] input_tokens=… output_tokens=…`.
+- RPC `brain_check` and a Preferences > AI button "Run a check": a one-line prompt with no
+  tools (latency), then `weather` for the home town; shows both timings; logs them.
+- `tests/test_no_stall.py` (fake providers, fake clock):
+  1. a weather turn is never offered the world tool group;
+  2. a model that never answers → fallback at 20 s, and an answer or a truthful failure
+     inside the budget;
+  3. a tool that hangs is cut at the budget and the turn still returns text;
+  4. a long-running tool pauses the budget;
+  5. `ask_brain`: interim reply at 4 s, final injection, closed-session path;
+  6. `quick_weather` answers without creating a brain turn;
+  7. `world_show` with no window fails in under 1 s and does not start the globe.
 
-**Done when.** Typed and spoken weather answers with no globe start; a search-style
-question ("who won … last night") answers with sources; the log shows `turn_timing`.
+**Done when.** All seven tests pass; the full suite is green; `docs/AI_PROVIDERS.md` and a
+new `docs/WEATHER.md` describe the tools, budgets and the check button.
 
 ---
 
-## S2. Brain model and effort picker — tier Medium (mockup first)
+## S2. Brain model and effort picker — tier Medium (design rule: RUNBOOK section 7)
 
 **API facts** (claude-api skill, cached 6 Oct 2026):
 - Request field: `output_config: {"effort": "low"|"medium"|"high"|"xhigh"|"max"}`.
@@ -255,14 +325,26 @@ counterbore), `slot`, `cut`, `union`, `fillet`, `chamfer`, `shell`, `text`, `pat
   `.venv-cad`, with hashes) for fresh installs; owner-run, never in-app.
 - Update the live-design tool descriptions: remove "no holes, fillets or booleans".
 
-**build123d calls [recall — confirm in 0.13.0 with `help()` before use].** Algebra mode:
-`Box(l, w, h)`, `Cylinder(radius, height)`, `Pos(x, y, z) * shape`, `a - b`, `a + b`,
-`fillet(part.edges().filter_by(Axis.Z), radius)`,
-`chamfer(part.edges().group_by(Axis.Z)[-1], length)`,
-`offset(part, amount=-t, openings=part.faces().sort_by(Axis.Z)[-1])`,
-`extrude(Text("JARVIS", font_size=8), amount=0.6)` placed on `Plane(face)`,
-`export_step(part, path)`, `export_stl(part, path)`, `export_gltf(part, path, binary=True)`,
-`part.volume`, `part.bounding_box()`, `part.is_valid`.
+**build123d 0.13.0 calls [repo — run in `.venv-cad` on 14 Nov 2026].** Algebra mode;
+all of these exist and were executed:
+- Shapes and placement: `Box(l, w, h)`, `Cylinder(radius, height)`, `Sphere`,
+  `Pos(x, y, z) * shape`, `Rot`, `Plane`, `Axis`, `Locations`, `GridLocations`,
+  `PolarLocations`, `Hole`, `CounterBoreHole`, `mirror`.
+- Booleans: `a - b`, `a + b`.
+- `fillet(objects, radius)` and `chamfer(objects, length, length2=None, angle=None)`
+  take edges, for example `fillet(edges, 3)`.
+- Shell: `offset(part, amount=-2, openings=top_face)` where
+  `top_face = part.faces().sort_by(Axis.Z)[-1]`.
+- Text: `extrude(Text("JARVIS", font_size=8), amount=0.6)`.
+- Export: `export_gltf(shape, path, unit=Unit.MM, binary=False, linear_deflection=0.001,
+  angular_deflection=0.1)` (pass `binary=True` for GLB; raise the deflections for fast
+  drafts), `export_step(shape, path)`, `export_stl(shape, path, tolerance=0.001,
+  angular_tolerance=0.1)`, `import_step`.
+- Facts: `part.volume` (float), `part.bounding_box().size`, `part.is_valid` is a **bool
+  property**, not a method.
+- Gotcha: `part.edges().filter_by(Axis.Z)` on a box with a through-hole returns 5 edges
+  (the four corners plus the hole's seam). For "vertical corner" fillets, keep only edges
+  whose midpoint lies on the bounding-box corners.
 
 **Tests.** Tree validation; worker protocol with a fake kernel; opt-in real-kernel tests
 (skipped without the venv): through-hole volume, fillet validity, STEP export re-import
@@ -347,7 +429,8 @@ conversation on 8 Nov" source link; pause; export. A read-only Markdown mirror a
 
 **v2 (needs a download OK).** `sqlite-vec` extension plus a local multilingual embedding
 model through `fastembed` (ONNX; English and Malay), then hybrid BM25 + vector ranking.
-Check first that `sqlite3` in this Python build allows `enable_load_extension`.
+This build can load it: Python 3.13.0, SQLite 3.45.3, FTS5 present and
+`enable_load_extension` available **[repo]**.
 
 **Not chosen.** mem0 (its open-source path needs its own LLM pipeline and adds a vector
 store), Letta (a whole agent runtime), Graphiti (needs a graph database) **[web]**.
@@ -437,7 +520,8 @@ messages → Signals and the Inbox), `telegram.py`, `whatsapp.py`.
   hard caps of 20 sends per hour and 100 per day; a tray kill switch; if WhatsApp logs
   the device out, stop and tell the owner — never re-pair automatically.
 - **Consent screen** in Preferences before pairing: unofficial, may break, the number
-  could be restricted. Read-only mode is offered as a choice.
+  could be restricted. Read-only mode is offered as a choice. The owner agreed to the
+  linked device on 14 Nov 2026; the screen still appears, because pairing is their step.
 - **No-risk alternative** if the owner declines: the Android companion's notification
   listener with direct-reply actions (the Inbox pipeline). Needs the Android SDK.
 
@@ -454,6 +538,12 @@ No library can carry WhatsApp call audio; they see the call offer and can reject
 ---
 
 ## S9. Phone calls: pluggable transport, GSM modem for Malaysia — tier Heavy (hardware spike first)
+
+**Decision (owner, 14 Nov 2026: "whichever you suggest").** Build the seam and the modem
+transport now, tested against a fake serial port. `calls.transport` stays `twilio` by
+default and switches to `modem` only when the owner picks it after a modem is found.
+Recommended hardware: a SIM7600G-H class USB LTE dongle whose listing says voice calls
+are supported, plus a prepaid SIM. The first real call test is the owner's step.
 
 **Seam.** `backend/telephony/transport_base.py`:
 
@@ -541,8 +631,9 @@ Approval and AI-disclosure rules for calls do not change.
   x64 **[web]**; PyPI listings showed wheels for CPython 3.8–3.12, so check for 3.13
   first. A small local model (through a llama.cpp server the owner installs) for lights,
   timers and routines when offline. Owner-deferred until the RAM/VRAM decision.
-- **10e. Voice choice.** Offer a deeper "Classic" Gemini voice next to Kore, with preview.
-  Never imitate the film actor.
+- **10e. Voice.** The owner keeps a woman's voice (decided 14 Nov 2026). Kore stays the
+  default. Preferences may list other female Gemini voices with a preview. No male
+  preset. Never imitate a real person's voice.
 - **10f. JARVIS in every room.** An OpenAI-compatible `/v1/chat/completions` endpoint on
   the core (off by default, LAN only, bearer token) so Home Assistant's voice pipeline and
   its room satellites can use JARVIS as the conversation agent. Opening the firewall is
@@ -578,23 +669,51 @@ Approval and AI-disclosure rules for calls do not change.
 - **Home Assistant events.** In `backend/services/home_assistant.py` add a WebSocket
   client (`/api/websocket`, auth with the stored token, `subscribe_events` for
   `state_changed`). Tiles update instantly; owner-selected entities publish Signals
-  (door open over 5 minutes, leak, alarm). Reuse a WebSocket library already in the core
-  lock if one is present.
+  (door open over 5 minutes, leak, alarm). Use `websockets` (16.1.1 is
+  already installed **[repo]**).
 - **Home page.** Its own navigation entry (not under Connections); a summary line per
   room; sensors (temperature, humidity, energy); a scenes row; camera tiles from
   `/api/camera_proxy/<entity>`.
-- **Homelab pack** `backend/services/homelab/`: one adapter per system, each
-  `status() -> list[Entity]`, read-only by default, secrets in the store. Build only what
-  the owner runs (question 2 in the index):
-  - Proxmox VE: `/api2/json/cluster/resources`, token header `PVEAPIToken=…`.
-  - Docker through Portainer: `/api/endpoints/{id}/docker/containers/json`, `X-API-Key`.
-  - Uptime Kuma: its Prometheus `/metrics` endpoint (stable; avoid the internal socket API).
-  - Glances `/api/4/all` or Netdata `/api/v1/allmetrics?format=json`.
-  - TrueNAS, Pi-hole or AdGuard stats, NUT for the UPS, Tailscale status.
-  (Endpoints are **[recall]**: confirm against each product's docs.)
-  Tools: `homelab_status(scope)` never asks; `homelab_action(target, action)` (start,
-  stop, reboot) always asks. Signals: service down, disk over 90 %, backup failed, UPS on
-  battery.
+- **Homelab that can run anything** `backend/services/homelab/` (owner: "make it so it
+  can run anything"). No new dependencies.
+  - `base.py`: `Entity(id, host, kind, name, state: ok|warn|down|unknown, metrics, detail)`;
+    `Adapter` protocol: `async probe() -> list[Entity]`, `actions: list[str]`,
+    `async act(action, args)`.
+  - `registry.py`: reads the setting `homelab.hosts`, a list of
+    `{id, name, adapter, address, options, secret, named_actions}`; polls each adapter
+    on its own interval; publishes Signals on threshold changes.
+  - **Generic adapters (these cover any system):**
+    - `ping` and `tcp`: reachability and open ports (stdlib sockets; `ping.exe` as a subprocess).
+    - `http_json`: GET a URL with an auth header from the secret store; map fields with
+      dotted paths to metrics; `ok_when` is a small comparison list, never code.
+    - `prometheus`: read any exporter's `/metrics` text, or query a Prometheus server
+      (`/api/v1/query`); pick series by name and labels.
+    - `ssh`: Windows' OpenSSH client (`%SystemRoot%\System32\OpenSSH\ssh.exe`, else
+      `ssh` on PATH) with key auth and `BatchMode=yes`. Read-only command presets per OS
+      (`uptime`, `df -P`, `free -m`, `systemctl is-active <unit>`,
+      `docker ps --format json`, `sensors -j`). The first connection shows the host key
+      fingerprint on an approval card. The model can never send free-form shell text.
+    - `wol`: Wake-on-LAN magic packet (stdlib socket).
+  - **Presets built on the generics:** Proxmox VE (`/api2/json/cluster/resources`, token
+    header `PVEAPIToken=…`), Docker through Portainer
+    (`/api/endpoints/{id}/docker/containers/json`, `X-API-Key`), Uptime Kuma (its
+    Prometheus `/metrics`), Glances (`/api/4/all`) or Netdata, TrueNAS, Pi-hole or
+    AdGuard, NUT for the UPS, Tailscale status. (Endpoints are **[recall]**: confirm each
+    against the product's docs when its preset is built; a preset is only a saved config
+    for a generic adapter plus a field map.)
+  - **Two more routes to "anything":** whatever Home Assistant already integrates shows
+    up through the Home page; any homelab MCP server added under Connections → Tools
+    works through the connector.
+  - **Add a system** (Preferences → Systems → Add): pick a preset or "Something else";
+    give the address; JARVIS probes ping and common ports (22, 80, 443, 8006, 9090,
+    9100, 3001, 8123, 9000) and proposes a config; the owner approves it. Brain tool
+    `homelab_propose(address, hint)` returns a config for approval.
+  - **Actions:** only owner-defined named actions per host (for example "restart plex" =
+    one fixed command). `homelab_action(host, action)` and `homelab_wake(host)` always
+    ask, and the card shows the exact command. `homelab_status(scope)` never asks.
+  - Signals: host down, service down, disk over 90 %, high temperature, backup failed,
+    UPS on battery.
+  - Tests: fake subprocess for `ssh` and `ping`, fake httpx, a sample `/metrics` text.
 - **Cameras.** Frigate (MIT) events → "Someone is at the front door" with a snapshot on
   the overlay. Object labels only (person, car, package). No face recognition.
 - **PC vitals** for the Systems rail: `backend/services/vitals.py` with `psutil` and
@@ -603,7 +722,7 @@ Approval and AI-disclosure rules for calls do not change.
 
 ---
 
-## S13. The JARVIS design language — tier Careful, design by the orchestrator, mockups first
+## S13. The JARVIS design language — tier Careful (design rule: RUNBOOK section 7)
 
 ### S13a. Language, life and sound (no layout change)
 
@@ -659,8 +778,10 @@ gaming mode, during calls, and when Windows is muted.
   People, Work, Systems, then Preferences. The project chip moves into the title bar.
 - **One page header** component; remove the "feature workspace inside a page" header and
   its close button; World and Home become full-bleed pages.
-- **Ambient mode** (`src/features/ambient/`, route `?ambient=1`, an Electron full-screen
-  window on a chosen display): large core, clock, weather, next event, home summary, a
+- **Ambient mode, an option that is off by default** (owner, 14 Nov 2026). Settings
+  `ambient.enabled`, `ambient.display`, `ambient.idle_minutes`; a tray item "Ambient
+  mode" when enabled. (`src/features/ambient/`, route `?ambient=1`, an Electron
+  full-screen window on the chosen display): large core, clock, weather, next event, home summary, a
   slowly turning globe, the latest proactive item. Starts after a set idle time or from
   the tray. Serve the same view to a LAN tablet later.
 - **Overlay cards:** extend the talking overlay to show proactive cards (incoming call

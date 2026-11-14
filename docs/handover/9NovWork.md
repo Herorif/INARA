@@ -1,6 +1,9 @@
 # 9NovWork — checkpoint and handover index
 
-Saved 14 Nov 2026. To resume, the owner says **"continue 9NovWork"**.
+Saved 14 Nov 2026. To resume, the owner says **"continue 9NovWork"**. To build
+everything that is left in one unattended run, the owner says **"continue finishing
+jarvis"**: follow `docs/handover/RUNBOOK.md` and tick tasks off in
+`docs/handover/PROGRESS.md`.
 
 **How to resume without wasting tokens.** Read this file only. Then open just the one
 spec section you are about to build in `9NovWork-specs.md` (sections are self-contained).
@@ -9,6 +12,8 @@ Read `9NovWork-audit.md` only for UI work or when asked "why".
 | File | What it holds | Read when |
 |---|---|---|
 | `docs/handover/9NovWork.md` | State, in-flight work, decisions, build order, owner actions | Always, first |
+| `docs/handover/RUNBOOK.md` | How to run the whole build unattended: start-up, approvals, the task loop, stop rules | Before the run |
+| `docs/handover/PROGRESS.md` | The ordered task ledger with acceptance checks; the run ticks it off | Every session |
 | `docs/handover/9NovWork-specs.md` | Build specs S1–S16: libraries, file layout, tools, settings, tests | Before building that item |
 | `docs/handover/9NovWork-audit.md` | Critical design audit, technical audit, comparison with public projects, sources | UI work, or to justify a decision |
 | `C:\Users\nojiq\.claude\plans\for-this-whole-project-vectorized-fountain.md` | Full roadmap history M1–M10 | Only for history |
@@ -50,8 +55,11 @@ What the code shows **[repo]**:
   `output_config.effort`, default effort `medium`, caching, refusal fallback). The router
   picks Claude in Auto when an Anthropic key exists (`backend/llm/router.py`).
 
-Not confirmed: the owner's real log. My shell cannot read the owner's real AppData. Ask
-the owner to run this in a normal terminal, then read the file:
+Deeper cause found on 14 Nov **[repo]**: a brain turn has no overall time limit (5 steps
+× 45 s of model time, globe tools up to 135–240 s each), so a wrong tool choice can
+legally take minutes. S1 now fixes this by construction and does not need the log.
+
+Optional, if the owner ever wants the log read (my shell cannot read their real AppData):
 
 ```powershell
 Get-Content "$env:LOCALAPPDATA\JARVIS\logs\jarvis.log" -Tail 300 | Set-Content C:\Users\nojiq\code\INARA\.runtime\live-logs\jarvis-latest.log
@@ -62,8 +70,8 @@ Look for `provider`, `timing`, `gev`, `ask_brain`, `credit`. Fix = spec **S1**.
 ### 2.2 Model and effort picker — requested, not designed yet
 
 Owner's words: choose Haiku 5.5 or Sonnet 5.5, default medium effort, effort changeable,
-and Gemini selectable too. Spec **S2** has the API facts, settings keys and UI. Project
-rule: show a mockup and get the owner's OK before building.
+and Gemini selectable too. Spec **S2** has the API facts, settings keys and UI. In the
+unattended run, build it to the spec and save captures (`RUNBOOK.md` section 7).
 
 ### 2.3 M7 K1 real CAD engine — engine installed, worker not briefed yet
 
@@ -94,6 +102,9 @@ rule: show a mockup and get the owner's OK before building.
 
 ## 4. Build order
 
+The task-level order to follow is `PROGRESS.md`. It moves the taint rule (S15) ahead of
+the channels. This table is the overview.
+
 | Wave | Items | Notes |
 |---|---|---|
 | 0 | S1 everyday answers and progress, S2 model picker, S4 diagnostics export | Unblocks daily use. Then one live check with the owner. |
@@ -104,22 +115,31 @@ rule: show a mockup and get the owner's OK before building.
 | 5 | S9 modem calls (hardware), S14 work pack, S13b Stage and Ambient mode | |
 | 6 | S15 hardening pass, S16 evals, then M5 release, K2–K4 printing | S15's taint rule should land with S8 at the latest. |
 
-## 5. What the owner must do or answer
+## 5. The owner's answers (14 Nov 2026) and what is left for them
 
-Answer at resume (each changes what gets built):
-1. Copy the log (command in 2.1).
-2. Which homelab services run at home (Proxmox, Docker/Portainer, TrueNAS, Uptime Kuma, Pi-hole, UPS, cameras)?
-3. Accept the WhatsApp linked-device risk (unofficial, the number could be restricted)? Yes / read-only / no.
-4. Telegram bot as the remote channel: OK?
-5. Buy a USB GSM modem (SIM7600G-H class) and a second prepaid SIM for calls? Or stay on Twilio?
-6. Keep the Kore voice, or add a deeper "Classic" voice as an option?
-7. Is there a second monitor or a tablet for an always-on wallboard?
+| Question | Answer | Effect |
+|---|---|---|
+| Copy the log for the weather stall | "Just make a plan so there won't be a weather stall" | S1 was rewritten to remove every cause found in code and to bound every turn. It no longer needs the log. |
+| Which homelab services | "It's planned, make it so it can run anything" | S12 homelab is generic: ping, TCP, HTTP-JSON, Prometheus, SSH and Wake-on-LAN adapters, presets on top, an "Add a system" flow. |
+| WhatsApp linked device | Yes | S8b is in scope. Pairing (the QR code) is still the owner's step. |
+| Telegram bot | Yes | S8a is in scope. Creating the bot and saving its token is the owner's step. |
+| GSM modem or Twilio | "Whichever you suggest" | Build the transport seam and the modem transport; Twilio stays the default until a modem is plugged in. Suggested hardware in S9. |
+| Voice | Keep a woman's voice | Kore stays. No male preset (S10e). |
+| Wallboard | "Make it an option" | Ambient mode is built, off by default (S13b). |
 
-Still open from before: copy the wake-word models into the real
-`%LOCALAPPDATA%\JARVIS\models\wake-word`, run `scripts/install-shortcuts.ps1`, create the
-Google OAuth client, add a Home Assistant token, decide `NOMINATIM_URL` for place search.
+Owner-only steps (the run cannot do these; it prepares everything up to them):
+- Start the live JARVIS and run the live checklist at the end.
+- Approve the download list once at the start of the run (`RUNBOOK.md`, step 2).
+- Telegram: create a bot with BotFather, paste the token, send the pairing code.
+- WhatsApp: accept the consent screen and scan the QR code.
+- Calls: buy and plug in the modem, install its driver, make the first test call.
+- Home Assistant token, Google OAuth client (with the Gmail read scope), homelab addresses and keys.
+- Copy the wake-word models into the real `%LOCALAPPDATA%\JARVIS\models\wake-word`,
+  run `scripts/install-shortcuts.ps1`, decide `NOMINATIM_URL` for place search.
 
 ## 6. Downloads that will need the owner's OK (state name, source, size first)
+
+The launch list, with the fallback for each item, is in `RUNBOOK.md` section 6.
 
 | For | What | Known facts |
 |---|---|---|
@@ -145,6 +165,7 @@ Google OAuth client, add a Home Assistant token, decide `NOMINATIM_URL` for plac
 - The owner starts the live JARVIS. My shell sees a private, virtualised AppData.
 - No in-app downloads of third-party code; fresh installs use owner-run pinned scripts.
 - World view: no tracking of individuals, no face recognition, CCTV and plate-reader layers off.
-- Design is shown as a mockup and approved by the owner before building.
+- Design is shown as a mockup and approved by the owner before building, except in the
+  unattended run, where `RUNBOOK.md` section 7 applies.
 - The owner said bugs get fixed after the whole project is complete: keep building, live checks wait.
 - WhatsApp sending was excluded until now. It stays off until the owner turns it on in the consent screen (S8).
