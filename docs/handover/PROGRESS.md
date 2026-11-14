@@ -14,7 +14,12 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 
 ## Wave 0 — it must answer (S1, S2, S4)
 
-- [ ] **S1.1** Weather service, `weather` brain tool, `assistant.home_place`, "Home town" field · S1 layer 2 · M · tests: `tests/test_weather.py`
+> Run session 1 stopped at the usage limit (14 Nov 2026) with S1.4 and S1.2 built by
+> workers but not reviewed or committed (uncommitted in the tree: conversation.py,
+> tools.py, llm/*.py, long_running flags, voice.py, live_config.py, tests). On resume:
+> review those diffs against the specs, run their tests, then commit or `git restore`.
+
+- [x] **S1.1** Weather service, `weather` brain tool, `assistant.home_place`, "Home town" field · S1 layer 2 · M · tests: `tests/test_weather.py` — f7a0284
 - [ ] **S1.2** Voice instant tools `quick_weather`, `quick_agenda`, `quick_home`; date and time in the Live system text · S1 layer 1 · C · needs S1.1 · tests: instant tool answers without a brain turn
 - [ ] **S1.3** Globe is opt-in: description edit, world tool group gate, `show_view` checks for a window before starting · S1 layer 4 · C
 - [ ] **S1.4** Turn budget, `ToolSpec.long_running`, tool caps, first-token fallback, truthful timeout answer · S1 layer 5 · C
@@ -118,13 +123,30 @@ Android companion acceptance (no SDK on this PC), the Bluetooth hands-free node 
 
 ---
 
+## Launch approvals (14 Nov 2026, run session 1)
+
+The owner approved every item, with these measured versions and sizes. Approvals are for
+this session only (`RUNBOOK.md` step 2.4); a resumed session asks again.
+- npm (registry.npmjs.org): motion 14.14.0 + @fontsource-variable/saira 5.3.0 (5 pkgs,
+  4.9 MB); uplot 1.6.32 (0.2 MB); @react-three/postprocessing 2.19.1 (4 pkgs, 1.4 MB);
+  @whiskeysockets/baileys 7.0.0-rc14 (71 pkgs, 17.5 MB, own sidecar folder);
+  @playwright/mcp 0.0.85 + playwright-core (3 pkgs, 4.2 MB, uses the installed Edge, no
+  Chromium download).
+- pip (pypi.org): pyserial 3.5 (0.1 MB); livekit 1.2.1 (11 MB new); mss 10.2.0 (0.1 MB);
+  markitdown[docx,pdf,pptx,xlsx] (36 pkgs, up to 82 MB); sqlite-vec 0.1.9 + fastembed
+  (31 pkgs, 47 MB); windows-mcp 0.8.5 (not measured: network errors; measure at Wave 4,
+  install only if under 50 MB).
+- Not yet asked: the fastembed embedding model (ask at S6.5 with its size). Dropped:
+  sherpa-onnx (S10d is owner-deferred) and Playwright's Chromium (Edge is used instead).
+
 ## Deviations (write one line whenever reality differs from the spec)
 
-- (none yet)
+- S14.6: Playwright MCP runs with the installed Microsoft Edge (`--browser msedge`), so no
+  Chromium download is needed.
 
 ## Owner checklist (the run appends to this; nothing here can be done by the agent)
 
-- [ ] Approve the download list at the start of the run.
+- [x] Approve the download list at the start of the run (14 Nov 2026, all items).
 - [ ] Start JARVIS from the Desktop shortcut and run the live checklist the final report gives.
 - [ ] Preferences > AI: set "Home town"; press "Run a check".
 - [ ] Telegram: create a bot with BotFather, paste the token, send the pairing code.
