@@ -150,6 +150,13 @@ class Application:
         self.home = HomeAssistantService(self)
         self.home_transport = HomeAssistantTransport(self)
         register_home_tools(self.dispatcher, self.home)
+        # S1 weather (docs/WEATHER.md): Open-Meteo, no key; the brain's weather tool (never
+        # asks) and the owner-only weather_home_set route for Preferences.
+        from services.weather import WeatherService
+        from transport.weather import WeatherTransport
+
+        self.weather = WeatherService(self)
+        self.weather_transport = WeatherTransport(self)
         # W3a MCP servers (docs/MCP.md): owner-only mcp_* routes, mcp_status, and each
         # enabled server's tools for the brain as mcp__<server>__<tool>.
         from services.mcp_registry import McpRegistry

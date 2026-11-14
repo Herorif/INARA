@@ -1002,6 +1002,17 @@
       "replacement": "CalendarService / CalendarTransport (backend/services/calendar*.py)",
       "status": "implemented"
     },
+    "weather_home_set": {
+      "schema": "HomePlaceRequest (place: str 1-120 chars or null; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "assistant.home_place ({name, lat, lon} or null)",
+      "effects": "A place: one Open-Meteo geocoding GET (place name only, no key), then assistant.home_place saved through SettingsService. Null: clears it, no network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; same validation as update_settings {assistant: {home_place}}",
+      "response": "Origin ACK {ok, home_place}; not_found, weather_unavailable and invalid_arguments as plain messages; settings snapshot to the owner's renderers",
+      "lifetime": "One bounded request (6 s, redirects off, 9 s overall) and a synchronous settings save",
+      "replacement": "WeatherService / WeatherTransport (backend/services/weather.py, backend/transport/weather.py)",
+      "status": "implemented"
+    },
     "home_status": {
       "schema": "EmptyRequest",
       "caller": "Authenticated unlocked owner renderer",
@@ -2169,6 +2180,14 @@
       "context": "Authenticated, unlocked desktop owner; the World page and its tour bar in the owner's renderers",
       "lifetime": "Every step's view is resolved first; step 1 is shown and captioned before the tool returns, the rest play in the background (show_view, world_tour caption, the step's 3-30 s). One tour at a time: a new tour, Stop tour (world_tour_stop), a voice barge-in, a new conversation request, the globe stopping and core shutdown end it. In a voice session the reply lists the captions to speak; 240 s execution timeout",
       "replacement": "W4 World tours (services/world_tools.py)",
+      "model_visible": true
+    },
+    "weather": {
+      "schema": "WeatherQuery",
+      "policy": "Own permissions[weather] (default False: never asks); deny rejects. Read-only; remember_as_home saves assistant.home_place only for the authenticated desktop owner",
+      "context": "Any authenticated principal; the owner's assistant.home_place when no place is given (need_place when unset)",
+      "lifetime": "Open-Meteo geocoding and forecast GETs (6 s each, 9 s overall, 10 minute in-memory cache per place and per coordinates); errors come back as {error: unavailable|not_found}, never raised; 10 s execution timeout",
+      "replacement": "S1 weather (services/weather.py)",
       "model_visible": true
     }
   },

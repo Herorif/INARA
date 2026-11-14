@@ -122,6 +122,32 @@ export function addressOption(assistant) {
   return ADDRESS_OPTIONS.some(entry => entry.id === value) ? value : 'sir';
 }
 
+// assistant.home_place: the owner's home town for weather (docs/WEATHER.md).
+export const HOME_PLACE_LABEL = 'Home town';
+export const HOME_PLACE_PLACEHOLDER = 'e.g. Kuala Lumpur';
+export const HOME_PLACE_HELP = "Used for weather when you don't name a place.";
+export const HOME_PLACE_UNSET = 'Not set';
+export const HOME_PLACE_EMPTY = 'Type a town or city first.';
+export const HOME_PLACE_MAX = 120;
+
+/** The saved home town's name ("Kuala Lumpur, Malaysia"), or '' when unset or malformed. */
+export function homePlaceName(assistant) {
+  const place = assistant && typeof assistant === 'object' ? assistant.home_place : null;
+  if (!place || typeof place !== 'object' || typeof place.name !== 'string') return '';
+  if (!Number.isFinite(place.lat) || !Number.isFinite(place.lon)) return '';
+  return place.name.trim();
+}
+
+/** Status line under the Home town row. */
+export function homePlaceStatus(assistant) {
+  return homePlaceName(assistant) || HOME_PLACE_UNSET;
+}
+
+/** The typed town with spaces collapsed, or '' when there is nothing to save. */
+export function homePlaceInput(raw) {
+  return typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim().slice(0, HOME_PLACE_MAX) : '';
+}
+
 /** Hint under the control: "By name" with no saved name has nothing to address the owner by. */
 export function addressHint(address, savedName) {
   const named = typeof savedName === 'string' && savedName.trim() !== '';

@@ -78,6 +78,8 @@ DEFAULT_SETTINGS = {
         # World view (docs/WORLD_VIEW.md): showing places and tours on the globe never asks.
         "world_show": False,
         "world_tour": False,
+        # Weather (docs/WEATHER.md): a read-only Open-Meteo lookup never asks.
+        "weather": False,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}

@@ -6,8 +6,9 @@ import BriefingSettings from './BriefingSettings';
 import SecretKeyRow, { ResultMessage } from './SecretKeyRow';
 import SegmentedControl from './SegmentedControl';
 import {
-  ADDRESS_LABEL, ADDRESS_OPTIONS, AUTO_HELP, BRAIN_OPTIONS, NAME_HELP, PROVIDERS, activeModelText, addressHint, addressOption,
-  brainOption, brainProblem, rpcFailureMessage,
+  ADDRESS_LABEL, ADDRESS_OPTIONS, AUTO_HELP, BRAIN_OPTIONS, HOME_PLACE_EMPTY, HOME_PLACE_HELP, HOME_PLACE_LABEL, HOME_PLACE_MAX,
+  HOME_PLACE_PLACEHOLDER, NAME_HELP, PROVIDERS, activeModelText, addressHint, addressOption,
+  brainOption, brainProblem, homePlaceInput, homePlaceStatus, rpcFailureMessage,
 } from './aiSettingsModel';
 
 const ROW = 'flex flex-col gap-2 rounded-md border border-line bg-raised px-3 py-2';
@@ -39,6 +40,9 @@ export default function AiSettings({ assistant, voice, briefing }) {
   const savedName = typeof assistant?.owner_name === 'string' ? assistant.owner_name : '';
   const [name, setName] = useState(savedName);
   const [addressResult, setAddressResult] = useState(null);
+  const [homeInput, setHomeInput] = useState('');
+  const [homeBusy, setHomeBusy] = useState(false);
+  const [homeResult, setHomeResult] = useState(null);
   const setting = brainOption(assistant);
   const address = addressOption(assistant);
   const hint = addressHint(address, savedName);
@@ -102,6 +106,21 @@ export default function AiSettings({ assistant, voice, briefing }) {
     setAddressResult(failure ? { tone: 'danger', text: failure } : null);
   };
 
+  const saveHomePlace = async (event) => {
+    event.preventDefault();
+    const next = homePlaceInput(homeInput);
+    if (!next) { setHomeResult({ tone: 'warn', text: HOME_PLACE_EMPTY }); return; }
+    setHomeBusy(true);
+    setHomeResult(null);
+    try {
+      // The settings event carries the saved value to the status line.
+      await client.setHomePlace(next);
+      setHomeInput('');
+    } catch (error) {
+      setHomeResult({ tone: 'warn', text: rpcFailureMessage(error) });
+    } finally { setHomeBusy(false); }
+  };
+
   const problem = brainError || brainProblem(setting, brain);
 
   return <section className="flex flex-col gap-4" aria-labelledby="ai-settings-heading">
@@ -146,6 +165,20 @@ export default function AiSettings({ assistant, voice, briefing }) {
         {hint && <p className={HINT} data-address-hint>{hint}</p>}
         <ResultMessage id="assistant-address-result" result={addressResult} />
       </div>
+      <form className={ROW} data-assistant-home-place autoComplete="off" onSubmit={saveHomePlace}>
+        <label htmlFor="assistant-home-place" className="text-sm text-ink-1">{HOME_PLACE_LABEL}</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <input id="assistant-home-place" type="text" maxLength={HOME_PLACE_MAX} autoComplete="off" spellCheck={false}
+            placeholder={HOME_PLACE_PLACEHOLDER} value={homeInput} disabled={homeBusy}
+            aria-describedby="assistant-home-place-help assistant-home-place-status assistant-home-place-result"
+            className="min-w-0 flex-1 basis-48 rounded-md border border-line-strong bg-panel px-2 py-1.5 text-sm text-ink-1"
+            onChange={(event) => { setHomeInput(event.target.value); setHomeResult(null); }} />
+          <button type="submit" className="btn btn--primary btn--sm" disabled={homeBusy}>{homeBusy ? 'Saving…' : 'Save'}</button>
+        </div>
+        <p id="assistant-home-place-help" className={HELP}>{HOME_PLACE_HELP}</p>
+        <p id="assistant-home-place-status" className="text-[0.75rem] leading-snug text-ink-1" data-home-place-status>{homePlaceStatus(assistant)}</p>
+        <ResultMessage id="assistant-home-place-result" result={homeResult} />
+      </form>
       <BriefingSettings briefing={briefing} patch={patchSettings} />
     </div>
 

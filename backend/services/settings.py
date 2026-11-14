@@ -136,8 +136,38 @@ class EmptyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class HomePlace(EmptyRequest):
+    """``assistant.home_place``: the owner's home town for weather (docs/WEATHER.md)."""
+
+    # Printable text only: the name can reach the brain's and the voice's context.
+    name: StrictStr = Field(min_length=1, max_length=120, pattern=r"^[^\x00-\x1f\x7f<>{}\[\]]*$")
+    lat: float = Field(ge=-90, le=90, strict=True, allow_inf_nan=False)
+    lon: float = Field(ge=-180, le=180, strict=True, allow_inf_nan=False)
+
+    @field_validator("name")
+    @classmethod
+    def trim(cls, value):
+        value = " ".join(value.split())
+        if not value:
+            raise ValueError("Name the home town.")
+        return value
+
+
+def home_place(settings):
+    """The saved ``assistant.home_place`` as a dict, or None (unset or stale)."""
+    assistant = settings.get("assistant") if isinstance(settings, dict) else None
+    saved = assistant.get("home_place") if isinstance(assistant, dict) else None
+    if saved is None:
+        return None
+    try:
+        return HomePlace.model_validate(saved).model_dump()
+    except ValueError:
+        return None
+
+
 class AssistantSettings(EmptyRequest):
-    """``assistant.*``: which AI is the brain, and how JARVIS addresses the owner."""
+    """``assistant.*``: which AI is the brain, how JARVIS addresses the owner, and the
+    owner's home town for weather (``home_place``: {name, lat, lon}, or null to clear)."""
 
     brain: Literal["auto", "claude", "gemini"] | None = None
     # Printable text only: the name is placed in the system prompt.
@@ -146,6 +176,8 @@ class AssistantSettings(EmptyRequest):
     )
     # How JARVIS addresses the owner (services/conversation.persona); "sir" by default.
     address: Literal["sir", "maam", "name", "none"] | None = None
+    # Null is meaningful here: it clears the home town.
+    home_place: HomePlace | None = None
 
     @field_validator("brain", "owner_name", "address", mode="before")
     @classmethod
@@ -166,7 +198,7 @@ class AssistantSettings(EmptyRequest):
         return self
 
 
-ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": "", "address": "sir"}
+ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": "", "address": "sir", "home_place": None}
 
 
 class VoiceSettings(EmptyRequest):

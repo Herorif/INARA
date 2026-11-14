@@ -104,7 +104,9 @@ def test_address_setting_defaults_merges_and_validates():
     store = {"tool_permissions": {}, "assistant": {"brain": "gemini", "owner_name": "Hiro"}}
     service = SettingsService(store, SettingsStore(None), [])
     service.apply(SettingsPatch(assistant={"brain": "claude"}))
-    assert store["assistant"] == {"brain": "claude", "owner_name": "Hiro", "address": "sir"}
+    assert store["assistant"] == {
+        "brain": "claude", "owner_name": "Hiro", "address": "sir", "home_place": None,
+    }
     for mode in ("maam", "name", "none", "sir"):
         service.apply(SettingsPatch.model_validate({"assistant": {"address": mode}}))
         assert store["assistant"]["address"] == mode

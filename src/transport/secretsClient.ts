@@ -28,6 +28,15 @@ const PREVIEW_TIMEOUT = 40000;
 // About 20 s of 48 kHz PCM16, base64-encoded.
 const PREVIEW_LIMIT = 2_600_000;
 
+// weather_home_set makes one geocoding request with a 9 s budget on the core.
+const HOME_PLACE_TIMEOUT = 15000;
+export type HomePlace = { name: string; lat: number; lon: number };
+const isHomePlace = (value: unknown): value is HomePlace => {
+  const place = value as HomePlace;
+  return !!place && typeof place === 'object' && typeof place.name === 'string'
+    && Number.isFinite(place.lat) && Number.isFinite(place.lon);
+};
+
 export type VoicePreview = { name: string; cached: boolean; sample_rate: number; pcm_base64: string };
 export const isVoicePreview = (value: unknown): value is VoicePreview => {
   const preview = value as VoicePreview;
@@ -94,6 +103,17 @@ export function createSecretsClient(socket: RpcSocket) {
       if (!isVoicePreview(response) || response.name !== name)
         throw new RpcError('The core returned an invalid voice preview. Try again.', 'invalid_response');
       return response;
+    },
+    /**
+     * Geocodes and saves the owner's home town for weather (assistant.home_place), or
+     * clears it with null. Failures carry the core's code (not_found, weather_unavailable).
+     */
+    async setHomePlace(place: string | null): Promise<HomePlace | null> {
+      const response = await scope.call<{ home_place?: unknown }>('weather_home_set', { place }, HOME_PLACE_TIMEOUT);
+      if (response.home_place === null) return null;
+      if (!isHomePlace(response.home_place))
+        throw new RpcError('The core returned an invalid home town. Reopen Preferences and try again.', 'invalid_response');
+      return response.home_place;
     },
     /** Settings patch with an acknowledgement; failures carry the core's code. */
     async updateSettings(patch: Record<string, unknown>): Promise<void> {
