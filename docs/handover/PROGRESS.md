@@ -19,7 +19,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S1.2** Voice instant tools `quick_weather`, `quick_agenda`, `quick_home`; date and time in the Live system text · S1 layer 1 · C · needs S1.1 · tests: instant tool answers without a brain turn — 9390198
 - [x] **S1.3** Globe is opt-in: description edit, world tool group gate, `show_view` checks for a window before starting · S1 layer 4 · C — 3926985
 - [x] **S1.4** Turn budget, `ToolSpec.long_running`, tool caps, first-token fallback, truthful timeout answer · S1 layer 5 · C — 480715a
-- [ ] **S1.5** Two-phase `ask_brain` with progress phrases; `ASK_BRAIN` description rewrite · S1 layer 6 · C · needs S1.4
+- [x] **S1.5** Two-phase `ask_brain` with progress phrases; `ASK_BRAIN` description rewrite · S1 layer 6 · C · needs S1.4 — 5759510
 - [x] **S1.6** Claude web search and fetch tools, `pause_turn`, pricing · S1 layer 3 · C · read the `claude-api` skill first — a109ea2
 - [ ] **S1.7** `turn_timing` log line, `brain_check` RPC, "Run a check" button · S1 layer 7 · M
 - [ ] **S1.8** `tests/test_no_stall.py` (all seven cases), docs, full suite · S1 layer 7 · C · needs S1.1–S1.7
