@@ -12,6 +12,7 @@ stays append-only for preserved thinking and prompt caching.
 """
 
 import asyncio
+import inspect
 import json
 import time
 import uuid
@@ -73,10 +74,12 @@ FIRST_TOKEN_S = 20.0
 # Time kept back from tools so the model can still answer after a tool is cut.
 ANSWER_RESERVE_S = 10.0
 CANCEL_GRACE_S = 5.0  # how long a cancelled step or tool may take to unwind
-# Plain words for finished tool steps, matched by tool-name prefix (task S1.5 reuses it).
+# Plain words for tool steps, matched by tool-name prefix: the budget answer's finished
+# steps, and the progress lines a voice brain turn speaks (``reply(on_progress=...)``).
 PROGRESS_PHRASES = {
     "weather": "checking the forecast",
     "web_search": "searching the web",
+    "web_fetch": "reading the page",
     "mcp__gev__": "pulling the live map data",
     "calendar_": "checking your calendar",
 }
@@ -150,6 +153,38 @@ def progress_phrase(tool):
         if str(tool).startswith(prefix):
             return phrase
     return PROGRESS_DEFAULT
+
+
+def progress_notifier(on_progress):
+    """A plain ``notify(tool_name)`` for ``reply(on_progress=...)``, or None.
+
+    ``on_progress`` (sync or async) receives the tool's phrase, capitalised ("Searching the
+    web"). Its failures are logged by type only and never reach the turn; an async callback
+    runs as its own task, so a slow one never delays the turn either."""
+    if on_progress is None:
+        return None
+    pending = set()
+
+    def failed(exc):
+        logger.warning("A progress callback failed (%s)", type(exc).__name__)
+
+    def finished(task):
+        pending.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            failed(task.exception())
+
+    def notify(tool):
+        phrase = progress_phrase(tool)
+        try:
+            outcome = on_progress(phrase[:1].upper() + phrase[1:])
+            if inspect.isawaitable(outcome):
+                task = asyncio.ensure_future(outcome)
+                pending.add(task)
+                task.add_done_callback(finished)
+        except Exception as exc:
+            failed(exc)
+
+    return notify
 
 
 def budget_answer(settings, finished):
@@ -616,6 +651,7 @@ class ConversationService:
         stream=None,
         image=None,
         turn_budget=None,
+        on_progress=None,
     ):
         """One typed turn. ``stream`` (optional, typed desktop chat only) receives the
         reply as it is written; see ``StreamedReply``. The returned result is final.
@@ -626,7 +662,11 @@ class ConversationService:
 
         ``turn_budget`` (seconds) bounds the whole turn; by default ``VOICE_TURN_BUDGET_S``
         for a voice brain turn and ``TURN_BUDGET_S`` otherwise (see ``TurnBudget``). When
-        it runs out the turn answers truthfully with what finished instead of failing."""
+        it runs out the turn answers truthfully with what finished instead of failing.
+
+        ``on_progress`` (optional, sync or async) is called with a short phrase from
+        ``PROGRESS_PHRASES`` each time a tool starts, including Claude's server-side web
+        search and fetch, which are never dispatched here. Its errors never break the turn."""
         if authorize:
             authorize()
         if self.on_request is not None:
@@ -689,6 +729,7 @@ class ConversationService:
                     "streamed": None,
                     "image": image,
                     "budget": None,
+                    "progress": progress_notifier(on_progress),
                 }
                 outcome, started = "failed", None
                 try:
@@ -862,6 +903,9 @@ class ConversationService:
                 holds -= 1
                 budget.release()
 
+        notify = context.get("progress")
+        if notify is not None and call.name not in context.get("hidden", ()):
+            notify(call.name)
         if long_running:
             budget.hold()
         task = asyncio.ensure_future(
@@ -1026,7 +1070,7 @@ class ConversationService:
 
     async def _claude_turn(self, provider, *, owner, project, request, history, usage,
                            origin_sid, authorize, request_approval, operation, streamed=None,
-                           image=None, budget=None):
+                           image=None, budget=None, progress=None):
         budget = budget or TurnBudget(TURN_BUDGET_S)
         memory = self.memory.context(owner, project, request.text, origin_sid) if self.memory else None
         attached = bool(memory and memory["items"])
@@ -1057,8 +1101,12 @@ class ConversationService:
             "owner": owner, "project": project, "origin_sid": origin_sid, "authorize": authorize,
             "request_approval": request_approval, "operation": operation,
             "conversation_id": str(request.conversation_id), "hidden": hidden,
+            "progress": progress,
         }
         def generate(target, extra):
+            if progress is not None and getattr(target, "name", None) == "claude":
+                # Server tools (web search, web fetch) run inside the model step.
+                extra = {**extra, "on_tool": progress}
             return (usage.generate if usage else metered_generate)(
                 target,
                 [*prefix, *turn],
@@ -1116,7 +1164,7 @@ class ConversationService:
 
     async def _text_turn(self, provider, *, owner, project, request, history, usage,
                          origin_sid, authorize, request_approval, operation, streamed=None,
-                         image=None, budget=None):
+                         image=None, budget=None, progress=None):
         """Gemini (and generic) loop: text history, signed tool content kept in-request."""
         budget = budget or TurnBudget(TURN_BUDGET_S)
         # The photo rides in this request only; the stored entry is the text alone.
@@ -1131,6 +1179,7 @@ class ConversationService:
             "owner": owner, "project": project, "origin_sid": origin_sid, "authorize": authorize,
             "request_approval": request_approval, "operation": operation,
             "conversation_id": str(request.conversation_id), "hidden": frozenset(),
+            "progress": progress,
         }
         system = self.system_prompt()
         for step in range(TOOL_STEPS):

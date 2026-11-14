@@ -31,7 +31,8 @@ def test_push_to_talk_config_voice_compression_resumption_transcription_and_tool
                     "3D printers", "careful reasoning"):
         assert ability in brain.description
     assert "Never tell the owner JARVIS can't do something its tools might do; call ask_brain instead." in brain.description
-    assert "in full" in brain.description and "One moment" in brain.description
+    assert "in full" in brain.description and "One moment" not in brain.description
+    assert "Never describe delays or status yourself." in brain.description  # S1.5
     assert "approval on screen" in brain.description
     # Push-to-talk: the client marks turns, so no server tuning applies.
     detection = config.realtime_input_config.automatic_activity_detection

@@ -10,7 +10,8 @@ Field names follow the Live API docs (checked 26 Oct 2026):
   session_resumption handle, go_away)
 - https://ai.google.dev/gemini-api/docs/live-tools (function_declarations; asynchronous
   NON_BLOCKING calls are documented only for Gemini 2.5 Flash Live, so ask_brain is a normal
-  blocking call and JARVIS acknowledges the request aloud before calling it)
+  blocking call; a slow one is answered "working" with a real progress line and its answer
+  follows as a text turn, see services/voice.py ``ask_brain``)
 """
 
 from datetime import datetime, timedelta
@@ -98,12 +99,14 @@ ASK_BRAIN = {
         "workspace, changed on request, then built after approval), images, reminders and "
         "routines, phone calls to businesses such as reservations, the owner's files and "
         "projects, apps, screenshots and the clipboard, smart devices, 3D printers, and the world "
-        "view (live flights, ships, satellites, weather, quakes and fires on a 3D globe, with "
+        "view (live flights, ships, satellites, quakes and fires on a 3D globe, with "
         "tours). Never tell the owner JARVIS can't do something its "
         "tools might do; call ask_brain instead. Pass the owner's request in full with any "
-        "context from this conversation. Before calling, tell the owner briefly that you are "
-        "on it (for example 'One moment'). Returns the final answer to speak, condensed if "
-        "long; actions may wait for the owner's approval on screen. For the weather, today's "
+        "context from this conversation. Returns the final answer to speak, condensed if "
+        "long; actions may wait for the owner's approval on screen. If it returns status "
+        "working, say its 'say' line and then wait silently: the answer follows as a message. "
+        "Never describe delays or status yourself. Say only a progress line you are given. "
+        "For the weather, today's "
         "agenda and home status use quick_weather, quick_agenda and quick_home instead."
     ),
     "parameters": {

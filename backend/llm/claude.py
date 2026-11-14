@@ -449,7 +449,9 @@ class ClaudeProvider(BaseLLMProvider):
         ``on_text`` (an async callable) receives the same deltas, for callers that
         go through ``generate``. ``on_progress`` (a plain callable, no arguments) runs on
         every streamed content event (``PROGRESS_EVENTS``), for the conversation's
-        first-token deadline.
+        first-token deadline. ``on_tool`` (a plain callable) receives a server tool's name
+        (``web_search``, ``web_fetch``) when its block starts: server tools run inside the
+        step, so this is the only sign that one started.
 
         A turn that stops with ``pause_turn`` (a long server tool loop) is resumed: the
         paused content goes back verbatim as the trailing assistant message, at most
@@ -461,6 +463,7 @@ class ClaudeProvider(BaseLLMProvider):
         )
         on_text = kwargs.get("on_text")
         on_progress = kwargs.get("on_progress")
+        on_tool = kwargs.get("on_tool")
         client = self._ensure_client()
         parts, earlier = [], []  # paused messages so far, and their replayable blocks
         emitted, separated = "", False  # streamed text, and a non-text block since then
@@ -472,10 +475,12 @@ class ClaudeProvider(BaseLLMProvider):
                         if on_progress is not None and kind in PROGRESS_EVENTS:
                             on_progress()
                         if kind == "content_block_start":
-                            block_type = getattr(getattr(event, "content_block", None),
-                                                 "type", None)
+                            block = getattr(event, "content_block", None)
+                            block_type = getattr(block, "type", None)
                             if block_type != "text" and emitted:
                                 separated = True
+                            if block_type == "server_tool_use" and on_tool is not None:
+                                on_tool(str(getattr(block, "name", None) or ""))
                         if kind == "text" and event.text:
                             delta = event.text
                             if (separated and not emitted[-1:].isspace()

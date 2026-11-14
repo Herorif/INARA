@@ -245,8 +245,8 @@ answers show on the globe), to use `world_show` for "show me ...", and for "give
 narrated in the Classic JARVIS voice ("Over 140 aircraft within 50 kilometres, sir..."). A
 plain weather question goes to the weather tool (docs/WEATHER.md): `world_show`'s description
 says so, and the globe is used only when the owner asks to see something. The
-voice's `ask_brain` lists "the world view (live flights, ships, satellites, weather, quakes and
-fires on a 3D globe, with tours)" among JARVIS's abilities.
+voice's `ask_brain` lists "the world view (live flights, ships, satellites, quakes and fires
+on a 3D globe, with tours)" among JARVIS's abilities; spoken weather is `quick_weather`.
 
 ### When the brain is offered the globe
 

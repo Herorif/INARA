@@ -24,7 +24,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [ ] **S1.7** `turn_timing` log line, `brain_check` RPC, "Run a check" button · S1 layer 7 · M
 - [ ] **S1.8** `tests/test_no_stall.py` (all seven cases), docs, full suite · S1 layer 7 · C · needs S1.1–S1.7
 - [x] **S2.1** Settings `assistant.claude_model`, `assistant.effort`, `assistant.gemini_model`; router; `brain_models` RPC · S2 · M — c258a80
-- [ ] **S2.2** Preferences: Brain select and Effort control; captures · S2 · M · needs S2.1
+- [x] **S2.2** Preferences: Brain select and Effort control; captures · S2 · M · needs S2.1 — 0479190 (captures `.runtime/ui-qa/brain-picker/`)
 - [ ] **S4.1** Turn trace ring buffer (`services/trace.py`) fed by the conversation and voice paths · S4 · M · needs S1.7
 - [ ] **S4.2** "Export diagnostics" (tray and Preferences), redaction tests · S4 · M · needs S4.1
 - [ ] **S4.3** "Activity → What JARVIS did" list · S4 · M · needs S4.1
@@ -143,6 +143,8 @@ this session only (`RUNBOOK.md` step 2.4); a resumed session asks again.
   5.5 cache reads at $0.20/MTok while the claude-api skill says $0.10 — check in S16.
 - S1.6: CAD planning (`create_text_provider()` in conversation.py, no settings) gets web
   search by default; pass `web_search=False` there in S1.7.
+- S2.2: the shared SegmentedControl draws its option labels at 11 px (0.6875rem), below
+  the 12 px minimum; S13a.1 raises it for every segmented control at once.
 - S14.6: Playwright MCP runs with the installed Microsoft Edge (`--browser msedge`), so no
   Chromium download is needed.
 
