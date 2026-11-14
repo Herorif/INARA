@@ -7,11 +7,38 @@ export const PROVIDERS = [
   { name: 'gemini_api_key', title: 'Google Gemini', provider: 'Google', purpose: 'Transcription and voice' },
 ];
 
-export const BRAIN_OPTIONS = [
-  { id: 'auto', label: 'Auto' },
-  { id: 'claude', label: 'Claude' },
+// assistant.brain values the core accepts (backend llm/router.py BRAIN_SETTINGS).
+const BRAIN_SETTINGS = ['auto', 'claude', 'gemini'];
+export const SONNET = 'claude-sonnet-5-5';
+export const HAIKU = 'claude-haiku-5-5';
+
+// The "Brain" select: one choice per brain/model pair (S2).
+export const BRAIN_LABEL = 'Brain';
+export const BRAIN_CHOICES = [
+  { id: 'auto', label: 'Auto (Claude when a key is set)' },
+  { id: 'sonnet', label: 'Claude Sonnet 5.5 — smartest' },
+  { id: 'haiku', label: 'Claude Haiku 5.5 — fastest, cheapest' },
   { id: 'gemini', label: 'Gemini' },
 ];
+const CHOICE_PATCH = {
+  auto: { brain: 'auto' },
+  sonnet: { brain: 'claude', claude_model: SONNET },
+  haiku: { brain: 'claude', claude_model: HAIKU },
+  gemini: { brain: 'gemini' },
+};
+
+export const GEMINI_MODEL_LABEL = 'Gemini model';
+export const GEMINI_LIST_FAILED = "Couldn't load the model list.";
+
+// assistant.effort: Claude's output_config.effort (xhigh/max left out on purpose).
+export const EFFORT_LABEL = 'Effort';
+export const EFFORT_OPTIONS = [
+  { id: 'low', label: 'Low' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'high', label: 'High' },
+];
+export const EFFORT_HELP = 'Higher effort thinks longer and costs more. Medium suits most requests.';
+export const EFFORT_GEMINI_HELP = 'Gemini manages its own thinking.';
 
 export const ENV_NOTE = 'Set by a developer environment variable';
 export const REMOVE_CONFIRM = 'Remove this key? JARVIS will stop using it.';
@@ -86,13 +113,35 @@ export function testResultMessage(name, status) {
   return { tone: 'warn', text: `${provider} gave an unexpected answer. Try again later.` };
 }
 
-/** "Active model: …" line from the capability snapshot's brain object. */
-export function activeModelText(brain) {
+const assistantOf = (assistant) => (assistant && typeof assistant === 'object' ? assistant : {});
+const geminiId = (value) => (typeof value === 'string' && value.trim().startsWith('gemini-') ? value.trim() : '');
+
+/** The saved effort; 'medium' when missing or stale, as the core reads it. */
+export function effortOption(assistant) {
+  const value = assistantOf(assistant).effort;
+  return EFFORT_OPTIONS.some(entry => entry.id === value) ? value : 'medium';
+}
+
+const effortLabel = (effort) => (EFFORT_OPTIONS.find(entry => entry.id === effort) || EFFORT_OPTIONS[1]).label;
+
+/**
+ * "Using …" line from the capability snapshot's brain object: Claude with its effort,
+ * Gemini with its model id. `assistant` (saved settings) supplies the effort when the
+ * snapshot has none.
+ */
+export function activeModelText(brain, assistant) {
   if (!brain || typeof brain !== 'object') return '';
-  const label = brain.label || brain.model || 'unknown';
-  if (!brain.configured) return `Active model: ${label} (not configured)`;
-  if (brain.provider === 'gemini' && brain.setting === 'auto') return `Active model: ${label} (fallback)`;
-  return `Active model: ${label}`;
+  let text;
+  if (brain.provider === 'gemini') {
+    const model = geminiId(brain.model) || geminiId(brain.gemini_model);
+    text = model ? `Using Gemini (${model})` : 'Using Gemini';
+  } else {
+    const effort = EFFORT_OPTIONS.some(entry => entry.id === brain.effort) ? brain.effort : effortOption(assistant);
+    text = `Using ${brain.label || brain.model || 'Claude'} · ${effortLabel(effort)} effort`;
+  }
+  if (!brain.configured) return `${text} (not configured)`;
+  if (brain.provider === 'gemini' && brain.setting === 'auto') return `${text} (fallback)`;
+  return text;
 }
 
 /** Inline problem for the chosen brain, or '' when it can run. */
@@ -102,8 +151,75 @@ export function brainProblem(setting, brain) {
 }
 
 export function brainOption(assistant) {
-  const value = assistant && typeof assistant === 'object' ? assistant.brain : undefined;
-  return BRAIN_OPTIONS.some(entry => entry.id === value) ? value : 'auto';
+  const value = assistantOf(assistant).brain;
+  return BRAIN_SETTINGS.includes(value) ? value : 'auto';
+}
+
+/** The "Brain" select's choice for the saved settings (a stale Claude model reads as Sonnet). */
+export function brainChoice(assistant) {
+  const setting = brainOption(assistant);
+  if (setting === 'claude') return assistantOf(assistant).claude_model === HAIKU ? 'haiku' : 'sonnet';
+  return setting;
+}
+
+/** The settings patch for picking `choice`, or null when nothing changes. Auto keeps claude_model. */
+export function brainChoicePatch(choice, assistant) {
+  if (!CHOICE_PATCH[choice] || choice === brainChoice(assistant)) return null;
+  return { assistant: { ...CHOICE_PATCH[choice] } };
+}
+
+/**
+ * True when the chosen brain resolves to Gemini, where effort does not apply: brain=gemini,
+ * or Auto with the snapshot on Gemini (no Anthropic key). Before the snapshot loads, Auto
+ * falls back to the key status (`anthropicConfigured`: true, false or unknown).
+ */
+export function effortDisabled(setting, brain, anthropicConfigured) {
+  if (setting === 'gemini') return true;
+  if (setting !== 'auto') return false;
+  if (brain && typeof brain === 'object' && typeof brain.provider === 'string') return brain.provider === 'gemini';
+  return anthropicConfigured === false;
+}
+
+/** Helper line under the Effort control. */
+export function effortHelp(disabled) {
+  return disabled ? EFFORT_GEMINI_HELP : EFFORT_HELP;
+}
+
+/** The effort patch, or null when it is already saved or not a known effort. */
+export function effortPatch(next, assistant) {
+  if (!EFFORT_OPTIONS.some(entry => entry.id === next) || next === effortOption(assistant)) return null;
+  return { assistant: { effort: next } };
+}
+
+/** The saved Gemini model: assistant.gemini_model, else the snapshot's, else ''. */
+export function geminiModelValue(assistant, brain) {
+  const saved = geminiId(assistantOf(assistant).gemini_model);
+  if (saved) return saved;
+  if (!brain || typeof brain !== 'object') return '';
+  return geminiId(brain.gemini_model) || (brain.provider === 'gemini' ? geminiId(brain.model) : '');
+}
+
+/**
+ * <select> options for the Gemini model: the fetched list (or nothing before it loads or when
+ * it failed), with the saved value added first when the list does not carry it.
+ */
+export function geminiModelOptions(list, saved) {
+  const options = [];
+  for (const entry of Array.isArray(list) ? list : []) {
+    const id = entry && typeof entry === 'object' ? geminiId(entry.id) : '';
+    if (!id || options.some(option => option.value === id)) continue;
+    options.push({ value: id, label: typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : id });
+  }
+  const current = geminiId(saved);
+  if (current && !options.some(option => option.value === current)) options.unshift({ value: current, label: current });
+  return options;
+}
+
+/** The gemini_model patch, or null when it is already saved or not a Gemini id. */
+export function geminiModelPatch(next, saved) {
+  const id = geminiId(next);
+  if (!id || id === geminiId(saved)) return null;
+  return { assistant: { gemini_model: id } };
 }
 
 // assistant.address: how JARVIS addresses the owner (backend services/conversation.persona).

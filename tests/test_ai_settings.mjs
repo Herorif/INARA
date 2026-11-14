@@ -52,12 +52,12 @@ test('transport failures never surface Studio wording', () => {
 });
 
 test('brain helper text and Claude-without-key problem', () => {
-  assert.equal(activeModelText({ setting: 'auto', provider: 'claude', model: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', configured: true }), 'Active model: Claude Sonnet 5.5');
-  assert.equal(activeModelText({ setting: 'auto', provider: 'gemini', model: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', configured: true }), 'Active model: Gemini 2.5 Flash (fallback)');
-  assert.equal(activeModelText({ setting: 'gemini', provider: 'gemini', label: 'Gemini 2.5 Flash', configured: true }), 'Active model: Gemini 2.5 Flash');
+  assert.equal(activeModelText({ setting: 'auto', provider: 'claude', model: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', configured: true }), 'Using Claude Sonnet 5.5 · Medium effort');
+  assert.equal(activeModelText({ setting: 'auto', provider: 'gemini', model: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', configured: true }), 'Using Gemini (gemini-2.5-flash) (fallback)');
+  assert.equal(activeModelText({ setting: 'gemini', provider: 'gemini', model: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', configured: true }), 'Using Gemini (gemini-2.5-flash)');
   assert.equal(activeModelText(null), '');
   const noKey = { setting: 'claude', provider: 'claude', label: 'Claude Sonnet 5.5', configured: false };
-  assert.equal(activeModelText(noKey), 'Active model: Claude Sonnet 5.5 (not configured)');
+  assert.equal(activeModelText(noKey), 'Using Claude Sonnet 5.5 · Medium effort (not configured)');
   assert.equal(brainProblem('claude', noKey), CLAUDE_WITHOUT_KEY);
   assert.equal(brainProblem('claude', { ...noKey, configured: true }), '');
   assert.equal(brainProblem('auto', noKey), '');

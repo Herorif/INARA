@@ -19,6 +19,30 @@ export type BrainStatus = {
   model: string;
   label: string | null;
   configured: boolean;
+  /** The saved choices, whichever brain is active (S2; effort applies to Claude only). */
+  effort?: 'low' | 'medium' | 'high';
+  claude_model?: string;
+  gemini_model?: string;
+};
+
+export type BrainModels = {
+  claude: { id: string; label: string; note: string }[];
+  gemini: { id: string; label: string }[];
+  efforts: string[];
+};
+// brain_models may list Gemini models with a 10 s budget on the core.
+const BRAIN_MODELS_TIMEOUT = 15000;
+const isModel = (value: unknown, withNote: boolean) => {
+  const model = value as { id?: unknown; label?: unknown; note?: unknown };
+  return !!model && typeof model === 'object' && typeof model.id === 'string' && model.id.length > 0
+    && typeof model.label === 'string' && (!withNote || typeof model.note === 'string');
+};
+const isBrainModels = (value: unknown): value is BrainModels => {
+  const models = value as BrainModels;
+  return !!models && typeof models === 'object'
+    && Array.isArray(models.claude) && models.claude.every((entry) => isModel(entry, true))
+    && Array.isArray(models.gemini) && models.gemini.every((entry) => isModel(entry, false))
+    && Array.isArray(models.efforts) && models.efforts.every((entry) => typeof entry === 'string');
 };
 
 // The provider check makes one outbound request with a 10 s budget on the core.
@@ -96,6 +120,14 @@ export function createSecretsClient(socket: RpcSocket) {
       const response = await scope.call<{ brain?: unknown }>('capability_diagnostics', {});
       const brain = response.brain as BrainStatus | undefined;
       return brain && typeof brain === 'object' && typeof brain.provider === 'string' ? brain : null;
+    },
+    /** The brain models and efforts the owner can choose (read-only; Gemini list cached on the core). */
+    async brainModels(): Promise<BrainModels> {
+      const response = await scope.call<Record<string, unknown>>('brain_models', {}, BRAIN_MODELS_TIMEOUT);
+      const models = { claude: response.claude, gemini: response.gemini, efforts: response.efforts };
+      if (!isBrainModels(models))
+        throw new RpcError('The core returned an invalid model list. Reopen Preferences and try again.', 'invalid_response');
+      return models;
     },
     /** Spoken sample of one prebuilt voice (PCM16 mono); the core caches it per voice. */
     async voicePreview(name: string): Promise<VoicePreview> {

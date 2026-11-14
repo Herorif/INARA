@@ -23,7 +23,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S1.6** Claude web search and fetch tools, `pause_turn`, pricing · S1 layer 3 · C · read the `claude-api` skill first — a109ea2
 - [ ] **S1.7** `turn_timing` log line, `brain_check` RPC, "Run a check" button · S1 layer 7 · M
 - [ ] **S1.8** `tests/test_no_stall.py` (all seven cases), docs, full suite · S1 layer 7 · C · needs S1.1–S1.7
-- [ ] **S2.1** Settings `assistant.claude_model`, `assistant.effort`, `assistant.gemini_model`; router; `brain_models` RPC · S2 · M
+- [x] **S2.1** Settings `assistant.claude_model`, `assistant.effort`, `assistant.gemini_model`; router; `brain_models` RPC · S2 · M — c258a80
 - [ ] **S2.2** Preferences: Brain select and Effort control; captures · S2 · M · needs S2.1
 - [ ] **S4.1** Turn trace ring buffer (`services/trace.py`) fed by the conversation and voice paths · S4 · M · needs S1.7
 - [ ] **S4.2** "Export diagnostics" (tray and Preferences), redaction tests · S4 · M · needs S4.1
