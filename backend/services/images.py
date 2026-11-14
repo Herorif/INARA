@@ -133,5 +133,6 @@ def register_image_tool(dispatcher, service):
             "Generate one local PNG using a separately configured image model. Prompt, dimensions, seed and quality steps are bounded; returns a scoped creative job.",
             ImageRequest,
             service.start,
+            long_running=True,
         )
     )

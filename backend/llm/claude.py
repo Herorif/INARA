@@ -35,6 +35,13 @@ THINKING_TYPES = ("thinking", "redacted_thinking")
 REFUSAL_MESSAGE = (
     "I can't help with that request. Try rephrasing it, or ask for something else."
 )
+# Stream events that count as progress for the first-token deadline: the start of any
+# content block or any delta into one (text, thinking, signature, tool-use input JSON,
+# server tool blocks), plus the SDK's derived text/thinking/input_json events. message_start
+# is not progress: it only shows the request was accepted, before anything is generated.
+PROGRESS_EVENTS = frozenset(
+    {"content_block_start", "content_block_delta", "text", "thinking", "input_json"}
+)
 
 
 def supports_fallback(model):
@@ -262,6 +269,9 @@ def provider_error(exc, model=None):
 class ClaudeProvider(BaseLLMProvider):
     """Anthropic Claude provider. ``generate`` streams and returns the final turn."""
 
+    # generate()/stream() accept ``on_progress`` (see PROGRESS_EVENTS).
+    reports_progress = True
+
     def __init__(self, api_key=None, model="claude-sonnet-5-5", effort="medium", client=None):
         if not api_key:
             from services.capability_profiles import anthropic_key
@@ -330,17 +340,22 @@ class ClaudeProvider(BaseLLMProvider):
         """Yield text deltas as they arrive, then the final turn (``is_partial`` False).
 
         ``on_text`` (an async callable) receives the same deltas, for callers that
-        go through ``generate``.
+        go through ``generate``. ``on_progress`` (a plain callable, no arguments) runs on
+        every streamed content event (``PROGRESS_EVENTS``), for the conversation's
+        first-token deadline.
         """
         params = self.request(
             messages, tools, system_instruction, kwargs.get("effort"),
             kwargs.get("max_output_tokens"),
         )
         on_text = kwargs.get("on_text")
+        on_progress = kwargs.get("on_progress")
         client = self._ensure_client()
         try:
             async with client.beta.messages.stream(**params) as stream:
                 async for event in stream:
+                    if on_progress is not None and getattr(event, "type", None) in PROGRESS_EVENTS:
+                        on_progress()
                     if getattr(event, "type", None) == "text" and event.text:
                         if on_text is not None:
                             await on_text(event.text)

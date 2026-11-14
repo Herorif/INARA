@@ -343,6 +343,7 @@ class LiveDesigns:
                 self.tool_build,
                 permission="generate_cad",
                 review=self.review_build,
+                long_running=True,
             )
         )
 

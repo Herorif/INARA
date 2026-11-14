@@ -68,6 +68,8 @@ class WorkspaceService:
                     permission=permission,
                     execution_timeout=timeout,
                     model_visible=name == "save_memory",
+                    # Generated CAD and web agent runs take minutes: they pause the turn budget.
+                    long_running=name != "save_memory",
                 )
             )
 

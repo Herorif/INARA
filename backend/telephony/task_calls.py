@@ -320,5 +320,5 @@ def register_task_call_tool(dispatcher, app):
 
     dispatcher.register(ToolSpec(
         TOOL, DESCRIPTION, PlaceTaskCall, execute, permission=TOOL, review=review,
-        always_ask=True,
+        always_ask=True, long_running=True,
     ))

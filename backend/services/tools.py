@@ -73,6 +73,11 @@ class ToolSpec:
     # checked first and still disables the tool. May raise ServiceError to refuse the call
     # before any approval card. Enforced in dispatch().
     ask_when: Callable | None = None
+    # True for tools the owner expects to take a while (CAD builds, image generation,
+    # world_tour, call placement, web agent runs): a brain turn's time budget is paused
+    # while one runs, so only its own execution_timeout bounds it. Every other tool is
+    # cut at the time left in the turn's budget (services/conversation.py).
+    long_running: bool = False
 
 
 def inline_tool_schema(model):

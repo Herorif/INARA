@@ -136,6 +136,7 @@ class ExtendedActions:
                     alias,
                     permission=spec.permission or target,
                     execution_timeout=spec.execution_timeout,
+                    long_running=spec.long_running,
                     model_visible=False,
                     alias_for=target,
                 )

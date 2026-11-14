@@ -402,7 +402,10 @@ class WorldTools:
             ToolSpec(SHOW, SHOW_DESCRIPTION, WorldShow, self._show, execution_timeout=150)
         )
         app.dispatcher.register(
-            ToolSpec(TOUR, TOUR_DESCRIPTION, WorldTour, self._tour, execution_timeout=240)
+            ToolSpec(
+                TOUR, TOUR_DESCRIPTION, WorldTour, self._tour, execution_timeout=240,
+                long_running=True,
+            )
         )
 
     @property

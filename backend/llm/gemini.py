@@ -257,6 +257,11 @@ def gemini_tools(tools):
 class GeminiProvider(BaseLLMProvider):
     """Gemini provider for text generation and tool calling."""
 
+    # generate() accepts ``on_progress`` (a plain callable): a streamed turn calls it for
+    # every chunk carrying content parts (text, thought or function call). A non-streamed
+    # turn has no partial progress: the response itself is its first content.
+    reports_progress = True
+
     def __init__(
         self,
         api_key: Optional[str] = None,
@@ -317,6 +322,7 @@ class GeminiProvider(BaseLLMProvider):
         config = self._config(tools, system_instruction, temperature, kwargs)
         contents = _messages_to_gemini_contents(messages)
         on_text = kwargs.get("on_text")
+        on_progress = kwargs.get("on_progress")
 
         # The budget is the caller's timeout for this call (ConversationService passes its
         # own), measured from here: the caller's asyncio.wait_for starts at the same moment.
@@ -333,7 +339,9 @@ class GeminiProvider(BaseLLMProvider):
                         config=config,
                     )
                 else:
-                    response = await self._streamed(contents, config, on_text, progress)
+                    response = await self._streamed(
+                        contents, config, on_text, progress, on_progress
+                    )
                 break
             except Exception as exc:
                 remaining = budget - (time.monotonic() - started) - RETRY_DELAY
@@ -354,7 +362,7 @@ class GeminiProvider(BaseLLMProvider):
                 raise
         return _parse(response)
 
-    async def _streamed(self, contents, config, on_text, progress):
+    async def _streamed(self, contents, config, on_text, progress, on_progress=None):
         """Stream one attempt; returns a response assembled from every streamed part."""
         from google.genai import types
 
@@ -366,6 +374,8 @@ class GeminiProvider(BaseLLMProvider):
         parts, usage, finish = [], None, None
         try:
             async for chunk in stream:
+                if on_progress is not None and _has_parts(chunk):
+                    on_progress()
                 for response in _chunk_responses(chunk):
                     if response.text:
                         progress["text"] = True
@@ -440,6 +450,15 @@ def _parse(response):
         thinking="".join(thinking_parts) if thinking_parts else None,
         raw=response,
     )
+
+
+def _has_parts(chunk):
+    """True when a streamed chunk carries any content part (progress for the deadline)."""
+    candidates = getattr(chunk, "candidates", None)
+    if not candidates:
+        return False
+    content = getattr(candidates[0], "content", None)
+    return bool(content and getattr(content, "parts", None))
 
 
 def _chunk_responses(chunk):

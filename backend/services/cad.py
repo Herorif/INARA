@@ -269,6 +269,7 @@ def register_cad_tools(dispatcher, service, designs=None):
             BuildRequest,
             service.start,
             model_visible=False,
+            long_running=True,
         )
     )
     if designs is not None:
