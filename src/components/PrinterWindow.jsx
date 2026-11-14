@@ -114,7 +114,7 @@ const PrinterWindow = () => {
         <section className="rounded-md border border-line bg-raised p-3">
                             <div className="mb-2 flex justify-between gap-2">
                                 <h3 className="hud-label">Preparation pipeline</h3>
-                                <span className="font-mono text-[0.6875rem] text-ink-1">{slicingProgress.percent}%</span>
+                                <span className="font-mono text-[0.75rem] text-ink-1">{slicingProgress.percent}%</span>
                             </div>
                             <div className="mb-2 flex items-center gap-2 text-[0.75rem] text-ink-3">
                                 <div className={`flex items-center gap-1.5 ${slicingProgress.percent < 100 ? 'text-ink-1' : ''}`}>
@@ -142,7 +142,7 @@ const PrinterWindow = () => {
                                 <div className="mb-2 flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <div className="truncate text-sm font-medium text-ink-1">{printer.name}</div>
-                                        <div className="truncate font-mono text-[0.6875rem] text-ink-3">{printer.host}:{printer.port} · {printer.printer_type}</div>
+                                        <div className="truncate font-mono text-[0.75rem] text-ink-3">{printer.host}:{printer.port} · {printer.printer_type}</div>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
                                         {webUrl ?
@@ -152,7 +152,7 @@ const PrinterWindow = () => {
                                                 <ExternalLink size={12} aria-hidden="true" />
                                                 <span>Open</span>
                                             </button> :
-                <span className="text-[0.6875rem] text-ink-3">Not a local address</span>
+                <span className="text-[0.75rem] text-ink-3">Not a local address</span>
                 }
                                         {printer.status &&
                 <StatusChip tone={getStatusTone(printer.status.state)}>{printer.status.state || 'Idle'}</StatusChip>

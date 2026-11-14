@@ -46,7 +46,7 @@ const DeviceRow = ({ device }) => {
             <div className="min-w-0 flex-1">
                 <div className="truncate text-sm text-ink-1">{device.name}</div>
                 <div className="mt-1 flex items-center gap-1.5">
-                    <span className="rounded border border-line px-1 font-mono text-[0.6875rem] text-ink-3">
+                    <span className="rounded border border-line px-1 font-mono text-[0.75rem] text-ink-3">
                         {device.source === 'home_assistant' ? 'HA' : (device.source || 'N/A').toUpperCase()}
                     </span>
                     <StatusChip tone={on ? 'ok' : 'idle'}>{device.state || 'unknown'}</StatusChip>

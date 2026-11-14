@@ -7,7 +7,7 @@ export function Segmented({ label, labelledBy, name, options, value, disabled, o
       <label key={entry.id} className="relative cursor-pointer">
         <input type="radio" className="peer sr-only" name={name} value={entry.id} disabled={disabled}
           checked={value === entry.id} onChange={() => onChange(entry.id)} />
-        <span className="flex min-h-[1.75rem] items-center rounded px-2.5 text-[0.6875rem] text-ink-2 transition-colors hover:text-ink-1 peer-checked:bg-[var(--accent-subtle)] peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-[color:var(--accent)] [@media(pointer:coarse)]:min-h-[2.75rem]">
+        <span className="flex min-h-[1.75rem] items-center rounded px-2.5 text-[0.75rem] text-ink-2 transition-colors hover:text-ink-1 peer-checked:bg-[var(--accent-subtle)] peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-[color:var(--accent)] [@media(pointer:coarse)]:min-h-[2.75rem]">
           {entry.label}
         </span>
       </label>

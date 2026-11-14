@@ -8,7 +8,7 @@ import EmptyState from '../shared/ui/EmptyState';
 // Row actions stay hidden until hover, but always appear for keyboard focus and touch.
 const REVEAL = 'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(pointer:coarse)]:opacity-100';
 const ROW = 'group rounded-md border border-line px-3 py-2.5 transition-colors hover:border-line-strong hover:bg-[var(--bg-hover)]';
-const META = 'text-[0.6875rem] text-ink-3';
+const META = 'text-[0.75rem] text-ink-3';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -69,7 +69,7 @@ const ReminderRow = ({ reminder }) => {
                     <div className="min-w-0">
                         <p className="truncate text-sm leading-snug text-ink-1">{reminder.task}</p>
                         <div className="mt-0.5 flex items-center gap-2">
-                            <span className={`font-mono text-[0.6875rem] ${isOverdue ? 'text-danger' : 'text-ink-3'}`}>
+                            <span className={`font-mono text-[0.75rem] ${isOverdue ? 'text-danger' : 'text-ink-3'}`}>
                                 {formatTriggerAt(reminder.trigger_at)}
                             </span>
                             {reminder.recurring &&

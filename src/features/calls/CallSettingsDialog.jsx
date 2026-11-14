@@ -150,7 +150,7 @@ export default function CallSettingsDialog({ settings, briefingPinSet, focus, on
               onChange={event => { setFacts(event.target.value); setResults(current => ({ ...current, facts: null })); }} onBlur={saveFacts} />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p id="calls-facts-help" className={HELP}>JARVIS shares only what you write here.</p>
-              <span id="calls-facts-count" className="font-mono text-[0.6875rem] text-ink-2">{`${facts.length.toLocaleString('en-US')} / ${FACTS_LIMIT.toLocaleString('en-US')}`}</span>
+              <span id="calls-facts-count" className="font-mono text-[0.75rem] text-ink-2">{`${facts.length.toLocaleString('en-US')} / ${FACTS_LIMIT.toLocaleString('en-US')}`}</span>
             </div>
             <ResultMessage id="calls-facts-result" result={results.facts} />
           </div>

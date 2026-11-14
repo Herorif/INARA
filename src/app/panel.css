@@ -51,7 +51,7 @@
 .feature-dialog > .panel-header { padding: 18px 24px; }
 .panel-header-mark { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border: 1px solid var(--line-accent); border-radius: var(--radius-lg) var(--radius-sm) var(--radius-lg) var(--radius-sm); color: var(--accent); background: var(--bg-selected); }
 .panel-header-title { flex: 1; min-width: 0; }
-.panel-header-mode { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 8px; color: var(--text-2); font-size: 0.5625rem; letter-spacing: .12em; white-space: nowrap; }
+.panel-header-mode { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 8px; color: var(--text-2); font-size: var(--text-xs); letter-spacing: .12em; white-space: nowrap; }
 @media (max-width: 540px) {
   .feature-dialog > .panel-header { padding: 15px; gap: 10px; }
   .panel-header-mark { width: 35px; height: 35px; }

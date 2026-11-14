@@ -95,7 +95,7 @@ const KasaDevices = () => {
                             <div className="flex min-w-0 flex-col gap-1">
                                 <span className="truncate text-sm font-medium text-ink-1">{dev.alias}</span>
                                 <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="font-mono text-[0.6875rem] text-ink-3">{dev.ip}</span>
+                                    <span className="font-mono text-[0.75rem] text-ink-3">{dev.ip}</span>
                                     {dev.online === false ?
                 <StatusChip tone="warn">Offline or unverified</StatusChip> :
                 <StatusChip tone="idle">Cached observation</StatusChip>

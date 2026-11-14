@@ -136,9 +136,9 @@ const ProcessList = ({ processes }) => {
       <div key={p.pid} className="flex items-center justify-between rounded px-2 py-1 transition-colors hover:bg-[var(--bg-hover)]">
                     <span className="mr-2 flex-1 truncate font-mono text-[0.75rem] text-ink-1">{p.name}</span>
                     <div className="flex shrink-0 items-center gap-2">
-                        <span className="w-16 text-right font-mono text-[0.6875rem] text-ink-3">{p.memory_mb} MB</span>
+                        <span className="w-16 text-right font-mono text-[0.75rem] text-ink-3">{p.memory_mb} MB</span>
                         {p.cpu_percent > 0 &&
-          <span className="w-12 text-right font-mono text-[0.6875rem] text-ink-2">{p.cpu_percent.toFixed(1)}%</span>
+          <span className="w-12 text-right font-mono text-[0.75rem] text-ink-2">{p.cpu_percent.toFixed(1)}%</span>
           }
                     </div>
                 </div>

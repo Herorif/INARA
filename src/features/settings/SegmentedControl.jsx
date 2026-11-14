@@ -12,7 +12,7 @@ export default function SegmentedControl({ name, options, value, onChange, disab
       <label key={entry.id} className={disabled ? 'relative cursor-not-allowed' : 'relative cursor-pointer'}>
         <input type="radio" className="peer sr-only" name={name} value={entry.id}
           checked={entry.checked} disabled={disabled} onChange={() => onChange(entry.id)} />
-        <span className="flex min-h-[1.75rem] items-center rounded px-2.5 text-[0.6875rem] text-ink-2 transition-colors hover:text-ink-1 peer-checked:bg-[var(--accent-subtle)] peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-[color:var(--accent)] peer-disabled:opacity-50 peer-disabled:hover:text-ink-2 [@media(pointer:coarse)]:min-h-[2.75rem]">
+        <span className="flex min-h-[1.75rem] items-center rounded px-2.5 text-[0.75rem] text-ink-2 transition-colors hover:text-ink-1 peer-checked:bg-[var(--accent-subtle)] peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-[color:var(--accent)] peer-disabled:opacity-50 peer-disabled:hover:text-ink-2 [@media(pointer:coarse)]:min-h-[2.75rem]">
           {entry.label}
         </span>
       </label>

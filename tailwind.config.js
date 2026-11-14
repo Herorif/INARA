@@ -10,6 +10,8 @@ module.exports = {
                 // Mirrors --font-sans / --font-mono in src/app/tokens.css (fonts bundled via src/shared/ui/fonts.js).
                 sans: ['"Inter Variable"', '"Segoe UI Variable"', '"Segoe UI"', 'system-ui', 'sans-serif'],
                 mono: ['"JetBrains Mono Variable"', 'Consolas', 'ui-monospace', 'monospace'],
+                // Mirrors --font-display; the Saira face is bundled later (S13a.2), until then it falls back to sans.
+                display: ['"Saira Variable"', '"Inter Variable"', '"Segoe UI Variable"', '"Segoe UI"', 'system-ui', 'sans-serif'],
             },
             colors: {
                 // Full scale anchored on the brand cyan (#70e0ed = 400). Hex keeps opacity modifiers working.
@@ -43,6 +45,17 @@ module.exports = {
                 accent: {
                     DEFAULT: 'var(--accent)',
                     hover: 'var(--accent-hover)',
+                    warm: 'var(--accent-warm)',
+                    hot: 'var(--accent-hot)',
+                },
+                // Colour roles (tokens.css --role-*): name the role, not the hue.
+                role: {
+                    system: 'var(--role-system)',
+                    acting: 'var(--role-acting)',
+                    ok: 'var(--role-ok)',
+                    warn: 'var(--role-warn)',
+                    danger: 'var(--role-danger)',
+                    owner: 'var(--role-owner)',
                 },
                 ok: 'var(--ok)',
                 warn: 'var(--warn)',

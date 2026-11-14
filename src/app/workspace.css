@@ -273,7 +273,7 @@ button:disabled { cursor:not-allowed; opacity:.45; }
   .nav-caption,.nav-project,.navigation button>span,.navigation .quit-button { display:none; }
   .navigation button { justify-content:center; min-height:2.75rem; padding:0; }
   .navigation nav button.selected { border-radius:var(--radius-sm); }
-  .navigation button>span.nav-badge { position:absolute; top:.25rem; right:.25rem; margin:0; min-width:1rem; height:1rem; font-size:.625rem; }
+  .navigation button>span.nav-badge { position:absolute; top:.25rem; right:.25rem; margin:0; min-width:1rem; height:1rem; font-size:var(--text-xs); }
   .deck-clock { display:none; }
   .command-trigger { min-width:14rem; }
   .workspace-body.with-inspector { grid-template-columns:minmax(0,1fr) 16rem; }

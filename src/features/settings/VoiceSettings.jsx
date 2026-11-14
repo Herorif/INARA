@@ -27,7 +27,7 @@ function VoiceRow({ voice, selected, preview, previewAvailable, onChoose, onPrev
         className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-[var(--accent)]" />
       <span className="min-w-0">
         <span className="text-sm text-ink-1">{voice.name}</span>
-        {voice.isDefault && <span className="ml-2 text-[0.6875rem] text-ink-2">Default</span>}
+        {voice.isDefault && <span className="ml-2 text-[0.75rem] text-ink-2">Default</span>}
         <span className="block text-[0.75rem] leading-snug text-ink-2">{voice.descriptor}</span>
       </span>
     </label>
