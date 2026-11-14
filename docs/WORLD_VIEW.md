@@ -135,11 +135,18 @@ globe).
 ## The view push contract (for the brain)
 
 - `app.world.show_view(view, *, title=None)`: checks the view (a JSON object of at most
-  16 KiB; never the `cctv` or `alpr-cameras` layers), starts the globe if needed and waits
-  until it is ready, then sends `world_view {id, view, title}` to the owner's renderer whose
-  World page is open (else the first owner renderer, which opens the page). It awaits that
-  renderer's `world_view_result {id, ok, steps}` for 15 s (`world_view_timeout` after) and
-  returns `{ok, steps}`. It needs the unlocked owner and refuses in gaming mode.
+  16 KiB; never the `cctv` or `alpr-cameras` layers), then checks there is somewhere to show
+  it (`require_window`, below), starts the globe if needed and waits until it is ready, then
+  sends `world_view {id, view, title}` to the owner's renderer whose World page is open (else
+  the first owner renderer, which opens the page). It awaits that renderer's
+  `world_view_result {id, ok, steps}` for 15 s (`world_view_timeout` after) and returns
+  `{ok, steps}`. It needs the unlocked owner and refuses in gaming mode.
+- **Fast failure with no window**: `app.world.require_window()` refuses at once, before the
+  globe sidecar is started, when the owner is locked (`world_locked`) or no JARVIS window is
+  open (`world_no_window`, "Open JARVIS on the World page to see the globe."). `show_view`
+  runs it first, and `world_show` and `world_tour` run it before they place their views
+  (placing is a gev call, which would start the globe), so a voice request with no window
+  answers in well under a second instead of starting the globe first.
 - `app.world.set_tour(active, *, title=None, caption=None)` sends `world_tour {active, title,
   caption}` to the owner's renderers (the tour bar). `world_tour_stop` (Stop tour) calls
   `app.world.on_tour_stop` (set by the tour's driver), then ends the tour.
@@ -235,9 +242,37 @@ it is (other fields given with it change that part).
 The tool descriptions teach it to answer world questions with the gev data tools (their
 answers show on the globe), to use `world_show` for "show me ...", and for "give me a tour of
 ..." to gather data first (with `show: false`), then call `world_tour` with two to eight steps
-narrated in the Classic JARVIS voice ("Over 140 aircraft within 50 kilometres, sir..."). The
+narrated in the Classic JARVIS voice ("Over 140 aircraft within 50 kilometres, sir..."). A
+plain weather question goes to the weather tool (docs/WEATHER.md): `world_show`'s description
+says so, and the globe is used only when the owner asks to see something. The
 voice's `ask_brain` lists "the world view (live flights, ships, satellites, weather, quakes and
 fires on a 3D globe, with tours)" among JARVIS's abilities.
+
+### When the brain is offered the globe
+
+`backend/services/tool_groups.py` gates the **world group**: `world_show`, `world_tour` and
+every `mcp__gev__*` tool. `ConversationService` declares the group on a turn (typed chat and
+the voice brain alike) only when one of these holds; otherwise the group's tools are simply
+not declared that turn, and a call to one anyway gets `tool_unavailable` ("This tool isn't
+offered for this request.") without running:
+
+- **The request mentions the globe**: a whole word from `WORLD_WORDS` in any case (globe,
+  world, map, flights, flight, planes, aircraft, ships, vessels, satellites, satellite,
+  earthquake, quake, wildfire, fires, tour, each also with a plural "s"), or "show me"
+  followed by a place-like phrase: one that leads with where, around, over, near, above or
+  across, or with a capitalised name ("show me Penang", "show me the Strait of Malacca"), or
+  holds a place word (city, island, airport, ...). A "show me" phrase that names the weather
+  ("show me the weather in KL") or leads with my, this, how and the like is not a place.
+- **The World page is open** for the owner (`WorldTools.page_open`, from
+  `WorldView.open_pages()`; set as `ConversationService.world_page_open`).
+- **A follow-up**: the conversation's last assistant entry used a world tool. A turn that
+  called one stores `tool_groups: ["world"]` on its assistant entry (both providers); older
+  Claude entries are read from their stored `tool_use` blocks. So "now zoom closer" after
+  "show me Penang" still reaches the globe.
+
+A plain weather question ("what's the weather in KL", "will it rain tomorrow", "cuaca hari
+ini") never brings the group in. Later (task S5) the gated tools become deferred instead of
+left out. Tests: `tests/test_tool_groups.py`.
 
 ### Boundaries
 

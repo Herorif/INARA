@@ -26,6 +26,7 @@ from llm.base import Message, MessageRole
 from llm.router import TaskRouter
 from services.log import get_logger
 from services.memory_contracts import MemorySource
+from services.tool_groups import groups_used, offer_world, select_tools
 from services.tools import ServiceError
 from services.usage import metered_generate
 
@@ -88,6 +89,11 @@ TOOL_TIMED_OUT = {
 TOOL_NOT_RUN = {
     "error": "action_timeout",
     "message": "There was no time left to run this action, so it did not run.",
+}
+# The result for a call to a tool this turn did not declare (services/tool_groups.py).
+TOOL_NOT_OFFERED = {
+    "error": "tool_unavailable",
+    "message": "This tool isn't offered for this request.",
 }
 # Providers that take a photo with a turn (Show JARVIS, docs/VISION_STUDIO.md).
 IMAGE_PROVIDERS = ("claude", "gemini")
@@ -458,6 +464,9 @@ class ConversationService:
         self.dispatcher = dispatcher
         # Optional callable(owner) at the start of each turn (World view ends a tour).
         self.on_request = None
+        # Optional callable(owner) -> bool: the owner's World page is open, so the turn
+        # declares the world tools (services/tool_groups.py).
+        self.world_page_open = None
         self.settings = settings or (lambda: {})
         self.router = router or TaskRouter(self.settings)
         self.provider_factory = provider_factory or (lambda: self.router.provider(task))
@@ -772,8 +781,26 @@ class ConversationService:
         finally:
             conversation.active -= 1
 
+    def _offer_world(self, owner, request, history):
+        """Whether this turn declares the world tools (services/tool_groups.py)."""
+        page_open = False
+        if self.world_page_open is not None:
+            try:
+                page_open = bool(self.world_page_open(owner))
+            except Exception:
+                logger.warning("The World page check failed")
+        return offer_world(request.text, page_open=page_open, history=history)
+
+    @staticmethod
+    def _groups(budget):
+        """Extra fields for the assistant entry: the tool groups this turn called."""
+        groups = groups_used(item["tool"] for item in budget.steps if item["kind"] == "tool")
+        return {"tool_groups": groups} if groups else {}
+
     async def _dispatch(self, call, step, index, context, before_execute=None):
         """Run one tool call through the validating dispatcher; errors become data."""
+        if call.name in context.get("hidden", ()):
+            return dict(TOOL_NOT_OFFERED), True
         try:
             output = await self.dispatcher.dispatch(
                 context["owner"],
@@ -1021,12 +1048,15 @@ class ConversationService:
         prefix = claude_messages(history)
         from llm.claude import anthropic_tools, tool_result_content
 
-        tools = anthropic_tools(self.dispatcher.schemas()) or None
+        schemas, hidden = select_tools(
+            self.dispatcher.schemas(), world=self._offer_world(owner, request, history)
+        )
+        tools = anthropic_tools(schemas) or None
         system = self.system_prompt()
         context = {
             "owner": owner, "project": project, "origin_sid": origin_sid, "authorize": authorize,
             "request_approval": request_approval, "operation": operation,
-            "conversation_id": str(request.conversation_id),
+            "conversation_id": str(request.conversation_id), "hidden": hidden,
         }
         def generate(target, extra):
             return (usage.generate if usage else metered_generate)(
@@ -1049,7 +1079,7 @@ class ConversationService:
                 tail.append({"role": "assistant", "content": [{"type": "text", "text": text}]})
                 return result, [
                     {"role": "user", "content": request.text, "claude": [stored_user, turn[1]]},
-                    self._assistant_entry(result, claude=tail, model=None),
+                    self._assistant_entry(result, claude=tail, model=None, **self._groups(budget)),
                 ]
             if authorize:
                 authorize()
@@ -1063,7 +1093,8 @@ class ConversationService:
                 return result, [
                     {"role": "user", "content": request.text, "claude": [stored_user, turn[1]]},
                     self._assistant_entry(
-                        result, claude=turn[2:], model=getattr(used, "_model", None)
+                        result, claude=turn[2:], model=getattr(used, "_model", None),
+                        **self._groups(budget),
                     ),
                 ]
             if streamed:
@@ -1095,10 +1126,11 @@ class ConversationService:
             Message(MessageRole.USER, request.text, attachments=list(photo)),
         ]
         request_index = len(messages) - 1
+        world = self._offer_world(owner, request, history)
         context = {
             "owner": owner, "project": project, "origin_sid": origin_sid, "authorize": authorize,
             "request_approval": request_approval, "operation": operation,
-            "conversation_id": str(request.conversation_id),
+            "conversation_id": str(request.conversation_id), "hidden": frozenset(),
         }
         system = self.system_prompt()
         for step in range(TOOL_STEPS):
@@ -1115,7 +1147,7 @@ class ConversationService:
                     request.text + MEMORY_HEADER + json.dumps(memory["items"]),
                     attachments=list(photo),
                 )
-            schemas = self.dispatcher.schemas()
+            schemas, context["hidden"] = select_tools(self.dispatcher.schemas(), world=world)
 
             def generate(target, extra, provider_messages=provider_messages, schemas=schemas,
                          attached=attached):
@@ -1136,7 +1168,7 @@ class ConversationService:
                 # Text history only: in-request tool content is never stored.
                 return result, [
                     {"role": "user", "content": request.text},
-                    self._assistant_entry(result),
+                    self._assistant_entry(result, **self._groups(budget)),
                 ]
             if authorize:
                 authorize()
@@ -1149,7 +1181,7 @@ class ConversationService:
                 # Store completed text turns only; signed tool content lives within this request.
                 return result, [
                     {"role": "user", "content": request.text},
-                    self._assistant_entry(result),
+                    self._assistant_entry(result, **self._groups(budget)),
                 ]
             if streamed:
                 await streamed.tool_step()

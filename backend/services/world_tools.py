@@ -113,9 +113,10 @@ SHOW_DESCRIPTION = (
     "layers (for example flights, ais-live-vessels, satellites, earthquakes, local-firms, "
     "weather-radar), a visual style, marks on the map, or one aircraft (ICAO address) or "
     "satellite (NORAD number) to follow. Use it for 'show me ...' requests. To answer a "
-    "question about the world (flights, ships, satellites, weather, earthquakes, fires), call "
-    "the God's Eye View tools (mcp__gev__...) first: their answers already show on the globe. "
-    + PLACE_FALLBACK + BOUNDARIES
+    "question about the world (flights, ships, satellites, earthquakes, fires), call the God's "
+    "Eye View tools (mcp__gev__...) first: their answers already show on the globe. For a "
+    "plain weather question use the weather tool. Use the globe only when the owner asks to "
+    "see something. " + PLACE_FALLBACK + BOUNDARIES
 )
 TOUR_DESCRIPTION = (
     "Give the owner a guided tour on the World globe: 1 to 8 steps (2 to 8 for a real tour), "
@@ -424,6 +425,11 @@ class WorldTools:
         if problem:
             raise ServiceError(*problem)
 
+    def page_open(self, _owner=None):
+        """True while the owner's World page is open: the conversation then offers the
+        world tools on every turn (ConversationService.world_page_open)."""
+        return bool(self.world.open_pages())
+
     def speaking(self, principal):
         """True while the owner has a live voice session (its answers are spoken)."""
         voice = getattr(self.app, "voice", None)
@@ -470,6 +476,8 @@ class WorldTools:
     async def _show(self, args, context):
         self.app.authorize_owner(context)
         self.require_world()
+        # Before resolve: placing the view is a gev call, which starts the globe.
+        self.world.require_window()
         view = await self.resolve(args.view_fields())
         self.cancel_shows()
         result = await self.world.show_view(view, title=args.title)
@@ -485,6 +493,7 @@ class WorldTools:
     async def _tour(self, args, context):
         self.app.authorize_owner(context)
         self.require_world()
+        self.world.require_window()
         title = clean_text(args.title, TITLE_CHARS) or "World"
 
         async def place(index, step):

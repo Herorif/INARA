@@ -312,6 +312,7 @@ class Application:
 
         self.world_tools = WorldTools(self)
         self.conversation.on_request = self.world_tools.new_request
+        self.conversation.world_page_open = self.world_tools.page_open
         self.settings_service.permission_names |= {"world_show", "world_tour"}
         self.lifecycle = LifecycleTransport(
             sio,

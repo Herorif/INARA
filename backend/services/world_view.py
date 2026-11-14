@@ -14,7 +14,8 @@ code; the last stderr lines, bounded and redacted, are in the status's diagnosti
 
 The view push contract (for the brain): ``show_view(view, title=None)`` sends
 ``world_view {id, view, title}`` to the owner's renderer showing the World page (it opens the
-page when none does), and awaits its ``world_view_result {id, ok, steps}`` for 15 s. A
+page when none does), and awaits its ``world_view_result {id, ok, steps}`` for 15 s. With no
+JARVIS window open it fails at once (``require_window``), before the globe is started. A
 ``world_tour {active, title, caption}`` event drives the page's tour bar; ``world_tour_stop``
 is its Stop tour.
 
@@ -82,6 +83,7 @@ NOT_INSTALLED = {
     "root_missing": "God's Eye View isn't on this PC.",
     "dist_missing": "God's Eye View isn't built yet.",
 }
+NO_WINDOW = "Open JARVIS on the World page to see the globe."
 MESSAGES = {
     "busy": "Port {port} is in use by another program.",
     "spawn": "The globe couldn't start on this PC.",
@@ -556,19 +558,32 @@ class WorldView:
             raise ServiceError("world_unavailable", self.message or "World view isn't running.")
 
     # --- the view push contract -------------------------------------------------------------
-    async def show_view(self, view, *, title=None):
-        """Show ``view`` on the owner's World page; returns {ok, steps} from God's Eye View."""
-        view, title = check_view(view), clean_text(title, TITLE_CHARS)
+    def window(self):
+        """The renderer a view goes to: the newest open World page, else the first owner
+        renderer (it opens the page), else None."""
+        pages = self.open_pages()
+        rooms = self.owner_rooms()
+        return pages[0] if pages else (rooms[0] if rooms else None)
+
+    def require_window(self):
+        """Refuse at once, before anything starts, when the globe has nowhere to show: the
+        owner is locked, or no JARVIS window is open."""
         owner = self.owner()
         if owner is None or not self.app.sessions.authenticated(owner):
             raise ServiceError("world_locked", "Unlock JARVIS to show the globe.")
+        if self.window() is None:
+            raise ServiceError("world_no_window", NO_WINDOW)
+
+    async def show_view(self, view, *, title=None):
+        """Show ``view`` on the owner's World page; returns {ok, steps} from God's Eye View."""
+        view, title = check_view(view), clean_text(title, TITLE_CHARS)
+        # The window check comes first, so a request with nowhere to show never starts the globe.
+        self.require_window()
         self.touch()
         await self.ensure_ready()
-        pages = self.open_pages()
-        rooms = self.owner_rooms()
-        sid = pages[0] if pages else (rooms[0] if rooms else None)
+        sid = self.window()
         if sid is None:
-            raise ServiceError("world_no_window", "Open JARVIS to show the globe.")
+            raise ServiceError("world_no_window", NO_WINDOW)
         view_id = uuid.uuid4().hex
         future = asyncio.get_running_loop().create_future()
         self.pending[view_id] = (sid, future)

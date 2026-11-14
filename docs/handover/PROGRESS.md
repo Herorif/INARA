@@ -20,7 +20,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [ ] **S1.3** Globe is opt-in: description edit, world tool group gate, `show_view` checks for a window before starting · S1 layer 4 · C
 - [x] **S1.4** Turn budget, `ToolSpec.long_running`, tool caps, first-token fallback, truthful timeout answer · S1 layer 5 · C — 480715a
 - [ ] **S1.5** Two-phase `ask_brain` with progress phrases; `ASK_BRAIN` description rewrite · S1 layer 6 · C · needs S1.4
-- [ ] **S1.6** Claude web search and fetch tools, `pause_turn`, pricing · S1 layer 3 · C · read the `claude-api` skill first
+- [x] **S1.6** Claude web search and fetch tools, `pause_turn`, pricing · S1 layer 3 · C · read the `claude-api` skill first — a109ea2
 - [ ] **S1.7** `turn_timing` log line, `brain_check` RPC, "Run a check" button · S1 layer 7 · M
 - [ ] **S1.8** `tests/test_no_stall.py` (all seven cases), docs, full suite · S1 layer 7 · C · needs S1.1–S1.7
 - [ ] **S2.1** Settings `assistant.claude_model`, `assistant.effort`, `assistant.gemini_model`; router; `brain_models` RPC · S2 · M
@@ -137,6 +137,12 @@ this session only (`RUNBOOK.md` step 2.4); a resumed session asks again.
 
 ## Deviations (write one line whenever reality differs from the spec)
 
+- S1.6: web search and fetch are added only to Claude requests that already carry client
+  tools, so phone chat and the camera look stay tool-free. A history that holds server
+  blocks keeps the tools declared even with the setting off. Open: `pricing.py` has Sonnet
+  5.5 cache reads at $0.20/MTok while the claude-api skill says $0.10 — check in S16.
+- S1.6: CAD planning (`create_text_provider()` in conversation.py, no settings) gets web
+  search by default; pass `web_search=False` there in S1.7.
 - S14.6: Playwright MCP runs with the installed Microsoft Edge (`--browser msedge`), so no
   Chromium download is needed.
 
