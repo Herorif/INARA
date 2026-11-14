@@ -16,7 +16,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 
 
 - [x] **S1.1** Weather service, `weather` brain tool, `assistant.home_place`, "Home town" field · S1 layer 2 · M · tests: `tests/test_weather.py` — f7a0284
-- [ ] **S1.2** Voice instant tools `quick_weather`, `quick_agenda`, `quick_home`; date and time in the Live system text · S1 layer 1 · C · needs S1.1 · tests: instant tool answers without a brain turn
+- [x] **S1.2** Voice instant tools `quick_weather`, `quick_agenda`, `quick_home`; date and time in the Live system text · S1 layer 1 · C · needs S1.1 · tests: instant tool answers without a brain turn — 9390198
 - [ ] **S1.3** Globe is opt-in: description edit, world tool group gate, `show_view` checks for a window before starting · S1 layer 4 · C
 - [x] **S1.4** Turn budget, `ToolSpec.long_running`, tool caps, first-token fallback, truthful timeout answer · S1 layer 5 · C — 480715a
 - [ ] **S1.5** Two-phase `ask_brain` with progress phrases; `ASK_BRAIN` description rewrite · S1 layer 6 · C · needs S1.4

@@ -7,7 +7,11 @@ Request rules for Claude Sonnet 5.5 / Haiku 5.5 (see docs/AI_PROVIDERS.md):
   and replayed unchanged. ``block_binding.prefix_mismatch_behavior: drop_block``
   is the safety net for the rare unavoidable edit (trimmed history, a changed
   tool list), so such a request loses old reasoning instead of failing;
-- top-level automatic prompt caching; server-side refusal fallback on Sonnet.
+- top-level automatic prompt caching; server-side refusal fallback on Sonnet;
+- web search and web fetch (server tools, ``assistant.web_search``): their blocks
+  (``server_tool_use``, ``web_search_tool_result``, ``web_fetch_tool_result``, cited text)
+  stay in the turn verbatim; only ``tool_use`` blocks are client calls. A turn that stops
+  with ``pause_turn`` is resumed here, so callers see one finished turn.
 
 No SDK import, client or key access happens until the first request.
 """
@@ -42,6 +46,79 @@ REFUSAL_MESSAGE = (
 PROGRESS_EVENTS = frozenset(
     {"content_block_start", "content_block_delta", "text", "thinking", "input_json"}
 )
+# Server tools (docs/AI_PROVIDERS.md "Web search and web fetch"). The _20260209 versions
+# filter results with code execution under the hood, so code execution is never declared.
+WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 3}
+WEB_FETCH_TOOL = {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 3}
+# Requests resumed after ``pause_turn`` before the turn is given up.
+MAX_CONTINUATIONS = 3
+INCOMPLETE_MESSAGE = "Claude's web search didn't finish in time. Try again."
+
+
+def web_tools(model):
+    """The web search and fetch tool definitions for ``model``.
+
+    Haiku calls them directly (``allowed_callers: ["direct"]``): the API requires that on
+    models without programmatic tool calling, and it is valid on every model."""
+    tools = [dict(WEB_SEARCH_TOOL), dict(WEB_FETCH_TOOL)]
+    if "haiku" in str(model):
+        for tool in tools:
+            tool["allowed_callers"] = ["direct"]
+    return tools
+
+
+def is_server_block(block):
+    """A server tool call or result (web search, web fetch, the code execution behind
+    dynamic filtering): kept in history, never run by JARVIS."""
+    kind = block.get("type") if isinstance(block, dict) else None
+    return isinstance(kind, str) and (
+        kind == "server_tool_use" or (kind.endswith("_tool_result") and kind != "tool_result")
+    )
+
+
+def has_server_blocks(messages):
+    """True when an assistant message in ``messages`` carries server tool blocks; such a
+    history only replays with the web tools declared."""
+    return any(
+        message.get("role") == "assistant"
+        and isinstance(message.get("content"), list)
+        and any(is_server_block(block) for block in message["content"])
+        for message in messages
+        if isinstance(message, dict)
+    )
+
+
+def answer_text(blocks):
+    """The turn's readable text: text blocks only (citations stay in the blocks).
+
+    Cited answers arrive split into consecutive text blocks, joined as is. Text separated
+    by other blocks (a search between "Let me check." and the answer) gets one space."""
+    text, separated = "", False
+    for block in blocks:
+        if block.get("type") != "text":
+            separated = separated or bool(text)
+            continue
+        value = block.get("text") or ""
+        if separated and value and not text[-1:].isspace() and not value[:1].isspace():
+            text += " "
+        if value:
+            text += value
+            separated = False
+    return text
+
+
+class ResumedTurn:
+    """A turn finished over several requests (``pause_turn``): the final message's stop
+    reason and identity, every part's content in order, and ``parts`` for usage."""
+
+    def __init__(self, parts):
+        self.parts = list(parts)
+        final = self.parts[-1]
+        self.content = [block for part in self.parts for block in part.content]
+        self.stop_reason = getattr(final, "stop_reason", None)
+        self.usage = getattr(final, "usage", None)
+        self.model = getattr(final, "model", None)
+        self.id = getattr(final, "id", None)
 
 
 def supports_fallback(model):
@@ -133,8 +210,24 @@ def strip_thinking(messages):
     return result
 
 
+SERVER_TOOL_COUNTERS = ("web_search_requests", "web_fetch_requests")
+
+
 def usage_counts(message):
-    """Token counters summed across attempts (``usage.iterations`` when present)."""
+    """Token counters summed across attempts (``usage.iterations`` when present) and across
+    the requests of a resumed turn, plus ``usage.server_tool_use`` request counts (kept
+    out of ``total_tokens``)."""
+    parts = getattr(message, "parts", None)
+    if parts:
+        merged = {}
+        for part in parts:
+            for name, value in (_usage_counts(part) or {}).items():
+                merged[name] = merged.get(name, 0) + value
+        return merged or None
+    return _usage_counts(message)
+
+
+def _usage_counts(message):
     usage = getattr(message, "usage", None)
     if usage is None:
         return None
@@ -157,6 +250,11 @@ def usage_counts(message):
                           for item in iterations):
         counts["fallback_attempts"] = sum(
             1 for item in iterations if item.type == "fallback_message")
+    server = getattr(usage, "server_tool_use", None)
+    for name in SERVER_TOOL_COUNTERS:
+        value = getattr(server, name, None)
+        if type(value) is int and value > 0:
+            counts[name] = value
     return counts or None
 
 
@@ -272,7 +370,8 @@ class ClaudeProvider(BaseLLMProvider):
     # generate()/stream() accept ``on_progress`` (see PROGRESS_EVENTS).
     reports_progress = True
 
-    def __init__(self, api_key=None, model="claude-sonnet-5-5", effort="medium", client=None):
+    def __init__(self, api_key=None, model="claude-sonnet-5-5", effort="medium", client=None,
+                 web_search=True):
         if not api_key:
             from services.capability_profiles import anthropic_key
 
@@ -281,6 +380,8 @@ class ClaudeProvider(BaseLLMProvider):
         self._model = model
         self.effort = effort
         self._client = client
+        # Offer web search and web fetch (the router sets this from assistant.web_search).
+        self.web_search = bool(web_search)
 
     @property
     def name(self) -> str:
@@ -307,10 +408,16 @@ class ClaudeProvider(BaseLLMProvider):
             raise ValueError(f"Unknown effort: {effort}")
         if tools and isinstance(tools[0], dict) and "function_declarations" in tools[0]:
             tools = anthropic_tools(tools[0]["function_declarations"])
+        api_messages = [message_to_api(message) for message in messages]
+        # Web search joins a tool-using turn's tools; a deliberately tool-free request (phone
+        # chat, a camera look) stays tool-free. A history with server tool blocks needs the
+        # tools declared to replay, so they stay on for it even when search is off here.
+        if (tools and self.web_search) or has_server_blocks(api_messages):
+            tools = [*(tools or []), *web_tools(self._model)]
         params = {
             "model": self._model,
             "max_tokens": min(MAX_TOKENS, max_output_tokens) if max_output_tokens else MAX_TOKENS,
-            "messages": [message_to_api(message) for message in messages],
+            "messages": api_messages,
             "thinking": THINKING,
             "output_config": {"effort": effort},
             "cache_control": {"type": "ephemeral"},
@@ -343,6 +450,10 @@ class ClaudeProvider(BaseLLMProvider):
         go through ``generate``. ``on_progress`` (a plain callable, no arguments) runs on
         every streamed content event (``PROGRESS_EVENTS``), for the conversation's
         first-token deadline.
+
+        A turn that stops with ``pause_turn`` (a long server tool loop) is resumed: the
+        paused content goes back verbatim as the trailing assistant message, at most
+        ``MAX_CONTINUATIONS`` times, and the final turn carries every part's blocks.
         """
         params = self.request(
             messages, tools, system_instruction, kwargs.get("effort"),
@@ -351,39 +462,80 @@ class ClaudeProvider(BaseLLMProvider):
         on_text = kwargs.get("on_text")
         on_progress = kwargs.get("on_progress")
         client = self._ensure_client()
-        try:
-            async with client.beta.messages.stream(**params) as stream:
-                async for event in stream:
-                    if on_progress is not None and getattr(event, "type", None) in PROGRESS_EVENTS:
-                        on_progress()
-                    if getattr(event, "type", None) == "text" and event.text:
-                        if on_text is not None:
-                            await on_text(event.text)
-                        yield LLMResponse(text=event.text, is_partial=True)
-                message = await stream.get_final_message()
-        except ServiceError:
-            raise
-        except ValueError as exc:
-            # Tool input JSON the SDK could not parse at all (eager input streaming).
-            log_provider_failure("claude", exc, reason="unreadable_tool_input")
-            raise ServiceError(
-                "provider_failed", "Claude sent an unreadable tool request. Try again."
-            ) from exc
-        except Exception as exc:
-            import anthropic
+        parts, earlier = [], []  # paused messages so far, and their replayable blocks
+        emitted, separated = "", False  # streamed text, and a non-text block since then
+        while True:
+            try:
+                async with client.beta.messages.stream(**params) as stream:
+                    async for event in stream:
+                        kind = getattr(event, "type", None)
+                        if on_progress is not None and kind in PROGRESS_EVENTS:
+                            on_progress()
+                        if kind == "content_block_start":
+                            block_type = getattr(getattr(event, "content_block", None),
+                                                 "type", None)
+                            if block_type != "text" and emitted:
+                                separated = True
+                        if kind == "text" and event.text:
+                            delta = event.text
+                            if (separated and not emitted[-1:].isspace()
+                                    and not delta[:1].isspace()):
+                                delta = " " + delta  # the same join as answer_text
+                            separated = False
+                            emitted += delta
+                            if on_text is not None:
+                                await on_text(delta)
+                            yield LLMResponse(text=delta, is_partial=True)
+                    message = await stream.get_final_message()
+            except ServiceError:
+                raise
+            except ValueError as exc:
+                # Tool input JSON the SDK could not parse at all (eager input streaming).
+                log_provider_failure("claude", exc, reason="unreadable_tool_input")
+                raise ServiceError(
+                    "provider_failed", "Claude sent an unreadable tool request. Try again."
+                ) from exc
+            except Exception as exc:
+                import anthropic
 
-            if isinstance(exc, anthropic.AnthropicError):
-                raise provider_error(exc, self._model) from exc
-            raise
-        yield self.parse(message)
+                if isinstance(exc, anthropic.AnthropicError):
+                    raise provider_error(exc, self._model) from exc
+                raise
+            if getattr(message, "stop_reason", None) != "pause_turn":
+                break
+            if len(parts) >= MAX_CONTINUATIONS:
+                error = ServiceError("provider_incomplete", INCOMPLETE_MESSAGE)
+                log_provider_failure("claude", error, reason="pause_turn_limit")
+                raise error
+            parts.append(message)
+            earlier = [*earlier, *replayable_blocks([b.to_dict() for b in message.content])]
+            if emitted:
+                separated = True  # the resumed request starts a new text run
+            # No "continue" message: the trailing assistant content tells the API to resume.
+            params = {
+                **params,
+                "messages": [*self._base_messages(params, len(parts)),
+                             {"role": "assistant", "content": list(earlier)}],
+            }
+        if parts:
+            yield self.parse(ResumedTurn([*parts, message]), earlier)
+        else:
+            yield self.parse(message)
 
-    def parse(self, message: Any) -> LLMResponse:
+    @staticmethod
+    def _base_messages(params, resumed):
+        # The request's own messages, without the paused-content message added before.
+        messages = params["messages"]
+        return messages[:-1] if resumed > 1 else messages
+
+    def parse(self, message: Any, earlier=()) -> LLMResponse:
         stop = getattr(message, "stop_reason", None)
         if stop == "refusal":
             # Branch on stop_reason before reading content; the category stays private.
             raise ServiceError("provider_refused", REFUSAL_MESSAGE)
-        blocks = replayable_blocks([block.to_dict() for block in message.content])
-        text = "".join(block["text"] for block in blocks if block.get("type") == "text")
+        final = message.parts[-1] if isinstance(message, ResumedTurn) else message
+        blocks = [*earlier, *replayable_blocks([block.to_dict() for block in final.content])]
+        text = answer_text(blocks)
         calls = [
             ToolCall(block["id"], block["name"], block.get("input") or {})
             for block in blocks

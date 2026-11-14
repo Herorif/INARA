@@ -8,8 +8,9 @@
 
 The ``assistant.brain`` setting ("auto", "claude" or "gemini") overrides the
 automatic choice for chat and fast work. Choosing "claude" without an Anthropic
-key is a configuration error, never a silent fallback. Nothing here touches an
-SDK or the network; providers are created on request.
+key is a configuration error, never a silent fallback. ``assistant.web_search``
+(default on) gives the chat route Claude's web search and web fetch. Nothing here
+touches an SDK or the network; providers are created on request.
 """
 
 from dataclasses import dataclass
@@ -65,6 +66,13 @@ def brain_setting(settings):
     return value if value in BRAIN_SETTINGS else "auto"
 
 
+def web_search_setting(settings):
+    """``assistant.web_search`` (default on): offer Claude web search and web fetch."""
+    assistant = (settings or {}).get("assistant") or {}
+    value = assistant.get("web_search", True) if isinstance(assistant, dict) else True
+    return value if isinstance(value, bool) else True
+
+
 class TaskRouter:
     def __init__(self, settings=None, anthropic=anthropic_key, gemini=provider_key):
         # ``settings`` is a callable returning the live settings dict (or None).
@@ -101,7 +109,11 @@ class TaskRouter:
                 )
             from llm.claude import ClaudeProvider
 
-            return ClaudeProvider(api_key=key, model=route.model)
+            # Web search is for the brain's own turns only: fast and summary work (call
+            # triage, summaries) never offers it; a history that already holds search
+            # results still declares the tools so it can replay (llm/claude.py).
+            web = task == "chat" and web_search_setting(self.settings())
+            return ClaudeProvider(api_key=key, model=route.model, web_search=web)
         key = self._gemini()
         if not key:
             raise ServiceError(

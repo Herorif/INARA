@@ -23,6 +23,16 @@ CLAUDE_PRICES = {
     ),
 }
 
+# Claude server tools, US dollars per 1,000 requests (not per million tokens), counted from
+# ``usage.server_tool_use``. Source: the Claude web search tool docs, "Usage and pricing"
+# ($10 per 1,000 searches; a search that fails with an error is not billed; checked
+# 14 Nov 2026). Web fetch has no per-request charge: fetched content is billed as input
+# tokens, which the token rates above already price. Search results are input tokens too.
+CLAUDE_SERVER_TOOL_PRICES = {
+    "web_search_requests": 10.00,
+    "web_fetch_requests": 0.00,
+}
+
 # Gemini Live, paid Standard tier, per modality. Source: https://ai.google.dev/gemini-api/docs/pricing
 # section "Gemini 3.8 Live, Gemini 3.8 Live Extended Thinking, and Gemini 3.1 Flash Live
 # Preview" (page last updated 2026-10-22 UTC; checked 26 Oct 2026). Output text includes
@@ -96,6 +106,9 @@ def estimate_microusd(model, counts, today=None):
     rates = long_prompt if limit is not None and prompt > limit else base
     # Dollars per million tokens == micro-dollars per token.
     total = sum(rates[name] * counts.get(field, 0) for name, field in COUNTERS.items())
+    # Dollars per 1,000 requests == 1,000 micro-dollars per request.
+    total += sum(price * 1000 * counts.get(field, 0)
+                 for field, price in CLAUDE_SERVER_TOOL_PRICES.items())
     return int(math.ceil(round(total, 6)))
 
 

@@ -46,6 +46,7 @@ Settings (`settings.json`, validated by `SettingsPatch`):
 | `assistant.brain` | `auto` (default), `claude`, `gemini` | `auto` follows the rules above. `claude` without an Anthropic key is a configuration error (`provider_not_configured`), never a silent switch to Gemini. `gemini` always uses Gemini. |
 | `assistant.owner_name` | Up to 80 printable characters, default empty | Adds "The owner's name is ...; use it sparingly." to the system prompt. |
 | `assistant.address` | `sir` (default), `maam`, `name`, `none` | How the Classic JARVIS persona addresses the owner: "sir" ("tuan" in Malay), "ma'am" ("puan"), by name (needs `owner_name`), or no form of address. Preferences > AI, "How JARVIS addresses you". Calls to third parties never use it. |
+| `assistant.web_search` | `true` (default), `false` | Lets the Claude brain search and fetch the web (see "Web search and web fetch (Claude)"). The Gemini brain never searches. |
 
 Environment overrides: `JARVIS_BRAIN_MODEL` (default `claude-sonnet-5-5`) and `JARVIS_FAST_MODEL` (default `claude-haiku-5-5`).
 
@@ -60,6 +61,22 @@ The capability center reports the active brain (`brain` in `capability_diagnosti
 - Sonnet requests opt into server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). Haiku 5.5 has no server-side fallback, so its requests do not send it. A refusal shows a plain message; the category is not shown.
 - Top-level automatic prompt caching (`cache_control: {"type": "ephemeral"}`), streaming with the SDK's stream helper and `max_tokens` 32000 (lower when a usage cap is enabled). The SDK's default retries (2) stay on.
 - Errors: rejected key (`provider_key_invalid`), rate limited (`provider_rate_limited`, with the retry-after time), provider unavailable including overloaded (`provider_unavailable`), network or TLS (`provider_network`), timeout (`provider_timeout`), refusal (`provider_refused`), anything else `provider_failed`. Keys and prompts are never logged.
+
+## Web search and web fetch (Claude)
+
+With `assistant.web_search` on (the default), `backend/llm/router.py` builds the `chat` route's `ClaudeProvider` with `web_search=True`, and `ClaudeProvider.request()` appends two Anthropic server tools after the dispatcher's tools:
+
+```json
+{"type": "web_search_20260209", "name": "web_search", "max_uses": 3}
+{"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 3}
+```
+
+- Anthropic runs them; JARVIS executes nothing. The `_20260209` versions filter results with code execution under the hood, so the code execution tool is never declared. `max_uses` caps each tool at 3 uses per turn (a resumed turn counts as the same turn). Web fetch only opens URLs already in the conversation (typed by the owner or found by a search).
+- Only tool-using brain turns get them: desktop chat, the Quick assistant and reviewed voice. Deliberately tool-free requests stay tool-free (phone chat, a camera look), and the `fast` and `summary` routes (call triage, summaries, the stalled-step retry) are built with `web_search=False`. Exception: a request whose history already holds server tool blocks always declares both tools so the history can replay; on Haiku they are declared with `allowed_callers: ["direct"]`. Turning the setting off therefore takes full effect in a new conversation.
+- Results arrive as content blocks, never exceptions: `server_tool_use` (the query or URL), `web_search_tool_result`, `web_fetch_tool_result`, and with dynamic filtering the code execution blocks behind it. A failed search or fetch is a result block whose `content` is an error object (for example `max_uses_exceeded`); Claude reads it and answers. All of these stay in the stored turn verbatim (including `encrypted_content` and `encrypted_index`, which the API needs back) and replay unchanged. Only `tool_use` blocks are client calls; server blocks never reach the dispatcher.
+- Cited answers come back split into several `text` blocks, each cited one carrying a `citations` list. The spoken and visible text is the text blocks joined (one space where a search sits between two runs); citation objects stay only in the stored blocks.
+- `pause_turn`: a long server tool loop can stop with `stop_reason: "pause_turn"`. The provider sends the same request again with the paused content appended verbatim as the trailing assistant message (no "continue" user message), up to 3 times, so callers see one finished turn whose blocks are every part's blocks in order. A turn still paused after that fails with `provider_incomplete` ("Claude's web search didn't finish in time. Try again.") and nothing is stored. Each resumed request's content block starts count as progress for the first-token deadline, and the whole loop runs inside the step's time budget.
+- Queries, URLs and results are never logged.
 
 ## Streamed replies (typed chat)
 
@@ -85,6 +102,8 @@ Every Claude request has a usage receipt (Usage center) with `input_tokens`, `ou
 | Claude Haiku 5.5, prompts over 100K tokens | $0.50 | $2.50 | $0.625 | $0.05 |
 
 Prices are US dollars per million tokens. When a refused Sonnet request is rescued by the server-side fallback, the receipt sums every attempt (`usage.iterations`) and records `fallback_attempts`.
+
+Web search is billed per request on top of tokens: **$10 per 1,000 searches** ($0.01 each; a search that fails with an error is not billed). Web fetch has no per-request charge. Search results and fetched pages are billed as input tokens, in the turn and every later turn that replays them. The receipt records `web_search_requests` and `web_fetch_requests` from `usage.server_tool_use` (summed over a resumed `pause_turn`, kept out of `total_tokens`), and the estimate adds the search price (`CLAUDE_SERVER_TOOL_PRICES` in `pricing.py`). With `max_uses: 3`, one turn adds at most $0.03 in search fees.
 
 ## Fallback to Gemini
 

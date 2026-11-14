@@ -12,6 +12,8 @@ from pydantic import ValidationError
 from llm.claude import (
     SERVER_FALLBACK_BETA,
     THINKING_BINDING_BETA,
+    WEB_FETCH_TOOL,
+    WEB_SEARCH_TOOL,
     ClaudeProvider,
     anthropic_tools,
     map_error,
@@ -167,6 +169,7 @@ def test_assistant_settings_are_validated_and_merged():
     service.apply(SettingsPatch(assistant={"owner_name": "  Hiro   Tan "}))
     assert settings["assistant"] == {
         "brain": "gemini", "owner_name": "Hiro Tan", "address": "sir", "home_place": None,
+        "web_search": True,
     }
     service.apply(SettingsPatch.model_validate({"assistant": {"brain": "claude"}}))
     assert settings["assistant"]["brain"] == "claude"
@@ -212,7 +215,8 @@ def test_request_shape_follows_current_claude_rules():
         "betas": [THINKING_BINDING_BETA, SERVER_FALLBACK_BETA],
         "fallbacks": "default",
         "system": "SYSTEM",
-        "tools": tools,
+        # assistant.web_search is on by default (tests/test_claude_web_search.py).
+        "tools": [*tools, WEB_SEARCH_TOOL, WEB_FETCH_TOOL],
     }
     assert not {"temperature", "top_p", "top_k", "tool_choice"} & request.keys()
     assert provider.request([], max_output_tokens=4096)["max_tokens"] == 4096

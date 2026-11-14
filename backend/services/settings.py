@@ -166,8 +166,9 @@ def home_place(settings):
 
 
 class AssistantSettings(EmptyRequest):
-    """``assistant.*``: which AI is the brain, how JARVIS addresses the owner, and the
-    owner's home town for weather (``home_place``: {name, lat, lon}, or null to clear)."""
+    """``assistant.*``: which AI is the brain, how JARVIS addresses the owner, the
+    owner's home town for weather (``home_place``: {name, lat, lon}, or null to clear) and
+    whether the Claude brain may search and fetch the web (``web_search``, default on)."""
 
     brain: Literal["auto", "claude", "gemini"] | None = None
     # Printable text only: the name is placed in the system prompt.
@@ -178,8 +179,10 @@ class AssistantSettings(EmptyRequest):
     address: Literal["sir", "maam", "name", "none"] | None = None
     # Null is meaningful here: it clears the home town.
     home_place: HomePlace | None = None
+    # Claude web search and web fetch (docs/AI_PROVIDERS.md); Gemini never searches.
+    web_search: StrictBool | None = None
 
-    @field_validator("brain", "owner_name", "address", mode="before")
+    @field_validator("brain", "owner_name", "address", "web_search", mode="before")
     @classmethod
     def reject_null(cls, value):
         if value is None:
@@ -198,7 +201,10 @@ class AssistantSettings(EmptyRequest):
         return self
 
 
-ASSISTANT_DEFAULTS = {"brain": "auto", "owner_name": "", "address": "sir", "home_place": None}
+ASSISTANT_DEFAULTS = {
+    "brain": "auto", "owner_name": "", "address": "sir", "home_place": None,
+    "web_search": True,
+}
 
 
 class VoiceSettings(EmptyRequest):
