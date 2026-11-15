@@ -353,6 +353,14 @@ class Application:
         self.conversation.on_request = self.world_tools.new_request
         self.conversation.world_page_open = self.world_tools.page_open
         self.settings_service.permission_names |= {"world_show", "world_tour"}
+        # S7.1 signals (docs/SIGNALS.md): the hub (bus topics signal, signal.<kind>), its
+        # producers (calendar, weather, battery, calls, jobs) and owner-only signals_pending.
+        from services.signals import SignalHub, SignalProducers
+        from transport.signals import SignalsTransport
+
+        self.signals = SignalHub(self)
+        self.signal_producers = SignalProducers(self, self.signals)
+        self.signals_transport = SignalsTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -498,6 +506,7 @@ class Application:
         )
         self.tasks.append(self.briefing.start())
         self.mcp.start()  # autostart servers in the background; mcp.close() owns the task
+        self.signal_producers.start()  # signal_producers.stop() in close() owns the tasks
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
         await self.wake.begin()  # no-op outside the native resident
@@ -542,6 +551,7 @@ class Application:
                 if isinstance(result, BaseException):
                     raise result
         finally:
+            await _isolated("signal_producers", self.signal_producers.stop)
             await _isolated("briefing", self.briefing.close)
             await _isolated("mcp", self.mcp.close)
             await _isolated("call_orchestrator", self.call_orchestrator.close)

@@ -1167,6 +1167,17 @@
       "replacement": "VitalsService / VitalsTransport (backend/services/vitals.py, backend/transport/vitals.py)",
       "status": "implemented"
     },
+    "signals_pending": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The signal hub's in-memory pending list (at most 100, newest kept; expired signals dropped)",
+      "effects": "Read only: no acknowledgement, no delivery, no network, no files",
+      "policy": "Independent owner/role/unlock gate; a debug route for the later Activity view; not a dispatcher tool and not model-visible; titles never logged",
+      "response": "Origin ACK {ok: true, signals: [{title, kind, urgency, at}]} newest first (at is ISO 8601); invalid_arguments as a plain message",
+      "lifetime": "Request-only snapshot",
+      "replacement": "SignalHub / SignalsTransport (backend/services/signals.py, backend/transport/signals.py)",
+      "status": "implemented"
+    },
     "home_status": {
       "schema": "EmptyRequest",
       "caller": "Authenticated unlocked owner renderer",

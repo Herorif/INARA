@@ -10,6 +10,10 @@ spoken sentences. Both are reused by the voice layer's quick answers (S1.2).
 The brain's ``weather`` tool (permission ``weather``, default False: never asks) wraps
 ``lookup``; with ``remember_as_home`` it saves the resolved place as the home town.
 
+``rain_soon(now)`` (S7.1, docs/SIGNALS.md) reads the next hours' precipitation chance and
+amount at the home town (one small hourly request, ``forecast_hours`` only) for the weather
+signal producer; it never raises either.
+
 Requests carry only the place name or coordinates. Answers are cached in memory for 10
 minutes per place name and per resolved coordinates. Logs carry codes only, never places.
 """
@@ -17,7 +21,7 @@ minutes per place name and per resolved coordinates. Logs carry codes only, neve
 import asyncio
 import math
 import time
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 import httpx
@@ -45,6 +49,11 @@ DAILY_FIELDS = (
     "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
 )
 FORECAST_DAYS = 7
+HOURLY_FIELDS = "precipitation_probability,precipitation"
+HOURLY_HOURS = 3  # the current hour and the two after it: enough for "rain within 2 hours"
+RAIN_WINDOW = timedelta(hours=2)
+RAIN_PROBABILITY = 60  # percent: an hour at or above this counts as rainy
+RAIN_MM = 0.5  # or this much precipitation in the hour
 REQUEST_TIMEOUT = 6.0
 LOOKUP_BUDGET = 9.0  # geocode + forecast, inside the tool's 10 s execution timeout
 CACHE_SECONDS = 600
@@ -220,6 +229,41 @@ def parse_forecast(body):
     }
 
 
+def parse_hourly(body):
+    """[{start, probability, precipitation}] (aware hour starts) from an hourly answer."""
+    if not isinstance(body, dict) or not isinstance(body.get("hourly"), dict):
+        raise WeatherUnavailable(UNEXPECTED)
+    hourly = body["hourly"]
+    times = hourly.get("time")
+    if not isinstance(times, list) or not times:
+        raise WeatherUnavailable(UNEXPECTED)
+    size = len(times)
+    chances = _list(hourly, "precipitation_probability", size)
+    amounts = _list(hourly, "precipitation", size)
+    offset = _number(body.get("utc_offset_seconds"))
+    zone = timezone(timedelta(seconds=int(offset or 0)))
+    hours = []
+    for index in range(size):
+        try:
+            start = datetime.fromisoformat(str(times[index]))
+        except ValueError:
+            continue
+        start = start.replace(tzinfo=zone) if start.tzinfo is None else start
+        hours.append({
+            "start": start,
+            "probability": _number(chances[index]),
+            "precipitation": _number(amounts[index]),
+        })
+    return hours
+
+
+def rainy(hour):
+    chance, amount = hour.get("probability"), hour.get("precipitation")
+    return (chance is not None and chance >= RAIN_PROBABILITY) or (
+        amount is not None and amount >= RAIN_MM
+    )
+
+
 def select_days(days, when):
     if when == "now":
         return []
@@ -388,6 +432,62 @@ class WeatherService:
         parsed = parse_forecast(body)
         self._store(key, parsed)
         return parsed
+
+    async def hourly(self, lat, lon):
+        """The hourly precipitation for the next ``HOURLY_HOURS`` hours (cached like forecasts)."""
+        key = ("hourly", round(lat, 3), round(lon, 3))
+        cached = self._cached(key)
+        if cached is not None:
+            return cached
+        body = await self._get(
+            FORECAST_URL,
+            {
+                "latitude": round(lat, 4),
+                "longitude": round(lon, 4),
+                "hourly": HOURLY_FIELDS,
+                "timezone": "auto",
+                "forecast_hours": HOURLY_HOURS,
+            },
+        )
+        parsed = parse_hourly(body)
+        self._store(key, parsed)
+        return parsed
+
+    async def rain_soon(self, now=None):
+        """S7.1: rain at the home town within ``RAIN_WINDOW`` of ``now``. Never raises.
+
+        ``{"need_place": True}`` without a home town, ``{"error": "unavailable"}`` on a
+        failure, ``{"rain": False}``, or ``{"rain": True, "start", "end", "probability",
+        "precipitation"}``: the first and last rainy hours in the window (aware datetimes;
+        ``end`` is the end of the last rainy hour), the highest chance and the total mm."""
+        home = self.home_place()
+        if home is None:
+            return dict(NEED_PLACE)
+        now = now or datetime.now(timezone.utc)
+        try:
+            async with asyncio.timeout(LOOKUP_BUDGET):
+                hours = await self.hourly(home["lat"], home["lon"])
+        except (WeatherUnavailable, TimeoutError):
+            return {"error": "unavailable"}
+        except Exception as exc:  # never raise to the caller
+            logger.warning("Rain lookup failed (%s)", type(exc).__name__)
+            return {"error": "unavailable"}
+        wet = [
+            hour for hour in hours
+            if hour["start"] + timedelta(hours=1) > now and hour["start"] < now + RAIN_WINDOW
+            and rainy(hour)
+        ]
+        if not wet:
+            return {"rain": False}
+        chances = [hour["probability"] for hour in wet if hour["probability"] is not None]
+        amounts = [hour["precipitation"] for hour in wet if hour["precipitation"] is not None]
+        return {
+            "rain": True,
+            "start": wet[0]["start"],
+            "end": wet[-1]["start"] + timedelta(hours=1),
+            "probability": max(chances) if chances else None,
+            "precipitation": round(sum(amounts), 1) if amounts else None,
+        }
 
     # --- public ------------------------------------------------------------------------------
     def home_place(self):

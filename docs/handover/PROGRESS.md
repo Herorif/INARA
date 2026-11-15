@@ -53,7 +53,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [ ] **S6.2** Extractor after idle (Haiku, structured output), rules, pause switch · S6 · C · needs S6.1
 - [ ] **S6.3** Read path: pinned profile and top facts placed after the cache breakpoint · S6 · C · needs S6.1
 - [x] **S6.4** "What JARVIS knows" page and the Markdown mirror · S6 · M · needs S6.1 — see the commit "Add the What JARVIS knows page" (captures `.runtime/ui-qa/memory/`; page id `knows`; mirror at `<data-v1>\memory\MEMORY.md`)
-- [ ] **S7.1** `Signal`, the bus contract, producers for calendar, weather, calls and jobs · S7 · C · needs S1.1
+- [x] **S7.1** `Signal`, the bus contract, producers for calendar, weather, calls and jobs · S7 · C · needs S1.1 — see the commit "Add the signals bus and its first producers" (not yet: travel time, task-queue jobs, persistence across restarts)
 - [ ] **S7.2** Proactive engine: scoring, chattiness, quiet hours, delivery by presence, mute rules, Activity list · S7 · C · needs S7.1
 - [ ] **S7.3** Heartbeat and `HEARTBEAT.md` · S7 · M · needs S7.2
 - [ ] **S7.4** Routines: store, triggers, `routine_run`, `routine_save`, the Routines page · S7 · C · needs S7.1
