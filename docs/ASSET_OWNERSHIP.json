@@ -74,6 +74,14 @@
       "decision": "pending"
     },
     {
+      "path": "node_modules/@fontsource-variable/saira/files/saira-latin-wght-normal.woff2",
+      "sha256": "7eb811eb14b2ee22e3fba942b25c6cd062ff050bde10d29af1a4e16f99712e17",
+      "origin": "npm:@fontsource-variable/saira@5.3.0 (Saira variable font, latin subset; The Saira Project Authors / Omnibus-Type; package license OFL-1.1)",
+      "owner": null,
+      "license_evidence": [],
+      "decision": "pending"
+    },
+    {
       "path": "public/hand_landmarker.task",
       "sha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1",
       "origin": "unverified-local-asset",

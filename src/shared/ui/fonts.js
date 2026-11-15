@@ -2,6 +2,7 @@
  * Bundled UI fonts (SIL Open Font License 1.1), latin subset only; no runtime network requests.
  * Inter by Rasmus Andersson / The Inter Project Authors, via @fontsource-variable/inter.
  * JetBrains Mono by JetBrains, via @fontsource-variable/jetbrains-mono.
+ * Saira by The Saira Project Authors (Omnibus-Type), via @fontsource-variable/saira (--font-display).
  *
  * The files are imported with `?url` (the same pattern as the MediaPipe WASM in
  * src/features/vision/tracker.js) so the renderer provenance plugin records them as inputs and
@@ -10,6 +11,7 @@
  */
 import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
 import monoLatin from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2?url';
+import displayLatin from '@fontsource-variable/saira/files/saira-latin-wght-normal.woff2?url';
 
 const LATIN = 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
 
@@ -17,6 +19,7 @@ const LATIN = 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U
 const FACES = [
   ['Inter Variable', '100 900', interLatin],
   ['JetBrains Mono Variable', '100 800', monoLatin],
+  ['Saira Variable', '100 900', displayLatin],
 ];
 
 if (typeof document !== 'undefined' && document.fonts && typeof FontFace !== 'undefined') {

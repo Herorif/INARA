@@ -119,6 +119,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .assistant-view[data-layout="split"] .composer-foot__keys { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .assistant-view[data-layout="split"] .assistant-view__pane--design { flex:3 1 0; min-width:420px; border-left:1px solid var(--line); }
 .assistant-view[data-layout="tabbed"] .assistant-view__pane--design { flex:1; min-height:34rem; overflow:hidden; border:1px solid var(--line); border-radius:var(--radius-md); }
+.assistant-view__design { flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; }
+.assistant-view__design-frame { flex:1; }
 .assistant-view__switch { display:inline-flex; align-self:flex-start; flex-shrink:0; padding:2px; border:1px solid var(--line-strong); border-radius:var(--radius-md); background:var(--bg-panel); }
 .assistant-view__segment { min-height:1.875rem; padding:0 .875rem; border:0; border-radius:var(--radius-sm); background:transparent; color:var(--text-2); font-size:var(--text-sm); font-weight:500; }
 .assistant-view__segment:hover { color:var(--text-1); }

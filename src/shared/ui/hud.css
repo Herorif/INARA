@@ -1,0 +1,109 @@
+/*
+ * HudFrame (HudFrame.jsx): the JARVIS HUD frame for Stage panels and overlays only.
+ * Token-based only. The lines are drawn with clip-path, not with a background colour, so the
+ * frame works over light and dark content alike.
+ */
+.hudframe {
+  --hud-chamfer: 8px;
+  --hud-chamfer-in: 8.414px;           /* the chamfer line moved 1px inwards: 8 + (sqrt 2 - 1) */
+  --hud-bracket: 12px;
+  --hud-bracket-w: 1.5px;
+  --hud-line: var(--line-strong);
+  --hud-mark: var(--accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Content: clipped to the chamfered outline. */
+.hudframe__surface {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  clip-path: polygon(
+    var(--hud-chamfer) 0, 100% 0,
+    100% calc(100% - var(--hud-chamfer)), calc(100% - var(--hud-chamfer)) 100%,
+    0 100%, 0 var(--hud-chamfer)
+  );
+}
+.hudframe__body {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Index label, "01 · WORLD". */
+.hudframe__index {
+  flex-shrink: 0;
+  padding: 6px calc(var(--hud-bracket) + 6px) 4px;
+  overflow: hidden;
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: .2em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Lines: border, brackets and ruler, above the content and never in the way of the pointer. */
+.hudframe__chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.hudframe[data-glow="true"] .hudframe__chrome { filter: drop-shadow(var(--glow-accent)); }
+.hudframe__draw {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* A 1px ring: the chamfered outline minus the same outline 1px in (even-odd). */
+.hudframe__border {
+  position: absolute;
+  inset: 0;
+  background: var(--hud-line);
+  clip-path: polygon(evenodd,
+    var(--hud-chamfer) 0, 100% 0,
+    100% calc(100% - var(--hud-chamfer)), calc(100% - var(--hud-chamfer)) 100%,
+    0 100%, 0 var(--hud-chamfer), var(--hud-chamfer) 0,
+    var(--hud-chamfer-in) 1px, 1px var(--hud-chamfer-in), 1px calc(100% - 1px),
+    calc(100% - var(--hud-chamfer-in)) calc(100% - 1px), calc(100% - 1px) calc(100% - var(--hud-chamfer-in)),
+    calc(100% - 1px) 1px, var(--hud-chamfer-in) 1px
+  );
+}
+
+.hudframe__bracket {
+  position: absolute;
+  width: var(--hud-bracket);
+  height: var(--hud-bracket);
+  border: 0 solid var(--hud-mark);
+}
+.hudframe__bracket--tl { top: 0; left: 0; border-top-width: var(--hud-bracket-w); border-left-width: var(--hud-bracket-w); }
+.hudframe__bracket--tr { top: 0; right: 0; border-top-width: var(--hud-bracket-w); border-right-width: var(--hud-bracket-w); }
+.hudframe__bracket--bl { bottom: 0; left: 0; border-bottom-width: var(--hud-bracket-w); border-left-width: var(--hud-bracket-w); }
+.hudframe__bracket--br { right: 0; bottom: 0; border-right-width: var(--hud-bracket-w); border-bottom-width: var(--hud-bracket-w); }
+
+/* Tick ruler along the top edge: a minor tick every 8px, a major one every 40px. */
+.hudframe__ruler {
+  position: absolute;
+  top: 1px;
+  right: calc(var(--hud-bracket) + 8px);
+  left: calc(var(--hud-bracket) + 8px);
+  height: 6px;
+  background:
+    repeating-linear-gradient(90deg, var(--line-accent) 0 1px, transparent 1px 40px) top left / 100% 6px no-repeat,
+    repeating-linear-gradient(90deg, var(--line-accent) 0 1px, transparent 1px 8px) top left / 100% 3px no-repeat;
+}
