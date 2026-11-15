@@ -65,3 +65,62 @@ finishes and again when its speech spans arrive (same `id`; replace the row).
 
 Tracing never breaks a turn or a voice session. A hook that fails logs one warning with
 the exception type only, never the text.
+
+## Diagnostics export (S4.2)
+
+The builder cannot read the owner's AppData, so JARVIS can pack what a bug report needs
+into one zip. Export it from the tray ("Export diagnostics": a balloon says "Saved to
+<folder>") or from Preferences > Diagnostics ("Export diagnostics"; the saved path is shown
+under the button). The service is `backend/services/diagnostics.py` (`DiagnosticsService`,
+wired as `app.diagnostics`); the route is `backend/transport/diagnostics.py`.
+
+### Where it goes
+
+`diagnostics-<YYYYMMDD-HHMMSS>.zip` (a second export in the same second adds `-1`) in the
+folder named by `diagnostics.folder`. Empty (the default) means:
+
+- in a dev checkout (no `desktop-pilot.json` at the repo root, the same marker
+  `backend/resident/layout.py` reads): `<repo>\.runtime\live-logs`;
+- otherwise: `%USERPROFILE%\Documents\JARVIS diagnostics`.
+
+`diagnostics.folder` accepts an absolute path (up to 240 characters) or `""`, through
+`update_settings` as `{diagnostics: {folder: "D:\Support"}}`.
+
+### What the zip contains
+
+| File | Contents |
+| --- | --- |
+| `log.txt` | The last 2,000 lines of `<user data>\logs\jarvis.log`, preceded by `jarvis.log.1` when the current file is shorter |
+| `turn_timing.txt` | Every `turn_timing` and `brain_check` line in those files |
+| `settings.json` | The settings snapshot, redacted (below) |
+| `keys.json` | `[{name, configured}]` for every secret JARVIS knows; never a value or a hint |
+| `versions.json` | App version, Python, OS and build, Electron (Node is not known to the core: `null`), whether this is a dev checkout, and the anthropic, google-genai, httpx and websockets versions |
+| `sidecars.json` | State strings for world view, each MCP server (`{id, state}`), the CAD kernel (`running`, `available` or `unavailable`), the wake word and tray voice |
+| `audio.json` | Microphone and speaker names from the device list, and the chosen ones (`default` or a name) |
+| `traces.json` | The last 20 flight-recorder traces. `request_text`/`answer_text` only while `diagnostics.include_text` is on at export time |
+
+### What is removed
+
+In `settings.json`:
+
+- the value of every key whose name contains a word starting or ending with token, key,
+  secret, password, auth, cookie or pin (`api_key`, `authToken`, `pairing_pin`); a
+  true/false value is kept;
+- phone numbers (nine or more digits with phone punctuation) in any text value;
+- `assistant.owner_name`, `assistant.home_place` and `calls.facts`.
+
+Then a last pass over every file in the zip replaces with `[removed]`:
+
+- Anthropic (`sk-ant-…`) and Google (`AIza…`, `AQ.…`) keys, `Bearer …` tokens;
+- runs of 32 or more base64/hex characters that mix letters and digits (UUIDs, such as
+  trace ids, are kept);
+- email addresses;
+- the owner's name and home place, and each of their words of three letters or more.
+
+The log records the number of replacements only. Key values are never read into the zip.
+
+### Route
+
+`diagnostics_export {}` (owner-only, unlocked renderer) answers `{ok: true, path}`, or
+`{ok: false, code, message}` with `authentication_required`, `permission_denied`,
+`invalid_arguments` or `diagnostics_failed`. One export runs at a time.

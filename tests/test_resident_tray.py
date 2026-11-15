@@ -286,7 +286,7 @@ def test_tray_menu_and_balloon_paths_are_unchanged(fakes, tmp_path):
     assert shell.calls[-1] == (NIM_MODIFY, NIF_TIP, value.icons["ready"])
     value.talking, value.wake_word = False, True
     assert [item[0] for item in value.menu_items()] == [
-        "open", "quick", "talk", "wake_word", "gaming", "retry", "quit"]
+        "open", "quick", "talk", "wake_word", "gaming", "diagnostics", "retry", "quit"]
 
 
 # --- the host ------------------------------------------------------------------------------

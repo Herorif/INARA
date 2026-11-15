@@ -4,6 +4,7 @@ import socket, { emitSocket } from '../services/socket';
 import { PERMISSION_OPTIONS, permissionOption, permissionValue } from './toolPermissions';
 import AiSettings from '../features/settings/AiSettings';
 import Switch from '../features/settings/Switch';
+import DiagnosticsSettings from '../features/settings/DiagnosticsSettings';
 
 const TOOLS = [
 { id: 'generate_cad', label: 'Generate CAD' },
@@ -54,6 +55,7 @@ const SettingsWindow = () => {
   const [assistant, setAssistant] = useState(null);
   const [voice, setVoice] = useState(null);
   const [briefing, setBriefing] = useState(null);
+  const [diagnostics, setDiagnostics] = useState(null);
 
   useEffect(() => {
     emitSocket('get_settings');
@@ -63,6 +65,7 @@ const SettingsWindow = () => {
         setAssistant(settings.assistant && typeof settings.assistant === 'object' ? settings.assistant : {});
         setVoice(settings.voice && typeof settings.voice === 'object' ? settings.voice : {});
         setBriefing(settings.briefing && typeof settings.briefing === 'object' ? settings.briefing : {});
+        setDiagnostics(settings.diagnostics && typeof settings.diagnostics === 'object' ? settings.diagnostics : {});
         if (typeof settings.face_auth_enabled !== 'undefined') {
           setFaceAuthEnabled(settings.face_auth_enabled);
           localStorage.setItem('face_auth_enabled', settings.face_auth_enabled);
@@ -152,6 +155,8 @@ const SettingsWindow = () => {
           )}
                 </div>
             </section>
+
+            <DiagnosticsSettings diagnostics={diagnostics} />
         </div>);
 
 };

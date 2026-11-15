@@ -211,6 +211,12 @@ class Application:
         self.trace = TraceService(self)
         self.conversation.tracer = self.trace
         self.trace_transport = TraceTransport(self)
+        # S4.2 diagnostics export (docs/DIAGNOSTICS.md): one redacted zip, tray or Preferences.
+        from services.diagnostics import DiagnosticsService
+        from transport.diagnostics import DiagnosticsTransport
+
+        self.diagnostics = DiagnosticsService(self)
+        self.diagnostics_transport = DiagnosticsTransport(self)
         # V2 Show JARVIS (docs/VISION_STUDIO.md): vision_ask, vision_capture_result and the
         # brain's look_through_camera (always asks). Photos are never stored.
         from services.vision_ask import ShowJarvis

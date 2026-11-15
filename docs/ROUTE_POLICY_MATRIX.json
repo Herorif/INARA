@@ -287,6 +287,17 @@
       "replacement": "TraceService (backend/services/trace.py) / TraceTransport (backend/transport/trace.py)",
       "status": "implemented"
     },
+    "diagnostics_export": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer (the native tray calls the service in process)",
+      "context": "The owner's logs, settings, key status, versions, sidecar states, audio device names and last 20 traces",
+      "effects": "Writes one diagnostics-<YYYYMMDD-HHMMSS>.zip to diagnostics.folder (default .runtime/live-logs in a dev checkout, else Documents/JARVIS diagnostics). Secret-like settings, phone numbers, the owner's name and home place, keys, tokens and emails are removed; key values are never read into it",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true, path}; authentication_required, permission_denied, invalid_arguments and diagnostics_failed as plain messages",
+      "lifetime": "One export at a time; bounded file reads and a 5 s audio device listing",
+      "replacement": "DiagnosticsService (backend/services/diagnostics.py) / DiagnosticsTransport (backend/transport/diagnostics.py)",
+      "status": "implemented"
+    },
     "get_settings": {
       "schema": "EmptyRequest",
       "caller": "Authenticated owner renderer only",

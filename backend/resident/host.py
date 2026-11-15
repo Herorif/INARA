@@ -25,6 +25,8 @@ STARTING = "JARVIS is still starting. Try again in a moment."
 # The talking overlay normally quits after its fade-out; this closes one that did not.
 OVERLAY_CLOSE_SECONDS = 30.0
 CORE_URL = "http://127.0.0.1:8000"
+DIAGNOSTICS_TITLE = "JARVIS diagnostics"
+DIAGNOSTICS_FAILED = "Diagnostics couldn't be saved. Try again from the tray."
 
 logger = get_logger(__name__)
 
@@ -571,6 +573,34 @@ class NativeHost:
             return None
         return self._submit(wake.toggle(), 'toggle "Hey Jarvis"')
 
+    def export_diagnostics(self):
+        """Tray "Export diagnostics" (S4.2): the core writes the zip; a balloon names the folder."""
+        application = getattr(self.runtime, "runtime", None)
+        diagnostics = getattr(application, "diagnostics", None)
+        if self.state.phase != "ready" or diagnostics is None or not self.loop or not self.loop.is_running():
+            self.show_diagnostics({"ok": False, "message": STARTING})
+            return None
+        future = self._submit(diagnostics.export(self.state.identity.owner), "export diagnostics")
+        future.add_done_callback(lambda done: self.tray.post(lambda: self.diagnostics_done(done)))
+        return future
+
+    def diagnostics_done(self, future):
+        try:
+            result = future.result()
+        except Exception:
+            result = None
+        self.show_diagnostics(result if isinstance(result, dict) else {"ok": False})
+
+    def show_diagnostics(self, result):
+        if result.get("ok") and isinstance(result.get("path"), str):
+            text = f"Saved to {Path(result['path']).parent}"
+        else:
+            text = result.get("message") if isinstance(result.get("message"), str) else DIAGNOSTICS_FAILED
+        try:
+            return bool(self.tray.notify(DIAGNOSTICS_TITLE, _balloon_line(text, 255)))
+        except Exception:
+            return False
+
     def open_call(self, record_id):
         """A VIP balloon was clicked (P1): open the workspace on Calls with that record."""
         application = getattr(self.runtime, "runtime", None)
@@ -595,6 +625,8 @@ class NativeHost:
         elif action == "gaming":
             self.state.mode(not self.state.identity.gaming)
             self.publish()
+        elif action == "diagnostics":
+            self.export_diagnostics()
         elif action == "retry":
             self.start_core()
         elif action == "quit":

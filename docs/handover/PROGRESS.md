@@ -27,7 +27,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S2.2** Preferences: Brain select and Effort control; captures · S2 · M · needs S2.1 — 0479190 (captures `.runtime/ui-qa/brain-picker/`)
 - [x] **S4.1** Turn trace ring buffer (`services/trace.py`) fed by the conversation and voice paths · S4 · M · needs S1.7 — ee793ea
 - [ ] **S4.2** "Export diagnostics" (tray and Preferences), redaction tests · S4 · M · needs S4.1
-- [ ] **S4.3** "Activity → What JARVIS did" list · S4 · M · needs S4.1
+- [x] **S4.3** "Activity → What JARVIS did" list · S4 · M · needs S4.1 — e093859 (captures `.runtime/ui-qa/activity/`)
 - [ ] **W0** Wave check: full pytest, client tests, build
 
 ## Wave 1 — real CAD and the JARVIS look (S3, S13a) — the two groups may run in parallel

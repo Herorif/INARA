@@ -632,6 +632,7 @@ class Tray:
             talk,
             ("wake_word", 'Listen for "Hey Jarvis"'),
             ("gaming", "Toggle gaming mode"),
+            ("diagnostics", "Export diagnostics"),
             ("retry", "Retry backend"),
             ("quit", "Quit JARVIS"),
         )

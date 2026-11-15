@@ -782,15 +782,28 @@ def mcp_server_configs(settings):
 class DiagnosticsSettings(EmptyRequest):
     """``diagnostics.*`` (docs/DIAGNOSTICS.md). ``include_text``: the flight recorder
     (services/trace.py) also keeps each turn's request and answer, cut to 500 characters.
-    Off by default: traces then hold timings, counts and tool names only."""
+    Off by default: traces then hold timings, counts and tool names only. ``folder``: where
+    "Export diagnostics" saves its zip (services/diagnostics.py); empty is the default
+    folder (``.runtime/live-logs`` in a dev checkout, else ``Documents/JARVIS diagnostics``)."""
 
     include_text: StrictBool | None = None
+    folder: StrictStr | None = Field(
+        default=None, max_length=240, pattern=r"^[^\x00-\x1f\x7f<>\"|?*]*$"
+    )
 
-    @field_validator("include_text", mode="before")
+    @field_validator("include_text", "folder", mode="before")
     @classmethod
     def reject_null(cls, value):
         if value is None:
             raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @field_validator("folder")
+    @classmethod
+    def absolute(cls, value):
+        value = value.strip()
+        if value and not os.path.isabs(value):
+            raise ValueError("Choose a full folder path, or leave it empty for the default.")
         return value
 
     @model_validator(mode="after")
@@ -800,15 +813,16 @@ class DiagnosticsSettings(EmptyRequest):
         return self
 
 
-DIAGNOSTICS_DEFAULTS = {"include_text": False}
+DIAGNOSTICS_DEFAULTS = {"include_text": False, "folder": ""}
 
 
 def diagnostics_settings(settings):
-    """The saved ``diagnostics`` block over its defaults; a non-bool value reads as off."""
+    """The saved ``diagnostics`` block over its defaults; a value of the wrong type reads as
+    the default (so a non-bool include_text is off)."""
     saved = (settings or {}).get("diagnostics")
     saved = saved if isinstance(saved, dict) else {}
     return {
-        key: saved[key] if isinstance(saved.get(key), bool) else default
+        key: saved[key] if type(saved.get(key)) is type(default) else default
         for key, default in DIAGNOSTICS_DEFAULTS.items()
     }
 

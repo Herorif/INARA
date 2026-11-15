@@ -486,10 +486,10 @@ def test_application_wires_the_recorder(application_factory):
 
 
 def test_include_text_setting_default_and_validation():
-    assert DIAGNOSTICS_DEFAULTS == {"include_text": False}
-    assert diagnostics_settings({}) == {"include_text": False}
-    assert diagnostics_settings({"diagnostics": {"include_text": "yes"}}) == {"include_text": False}
-    assert diagnostics_settings({"diagnostics": {"include_text": True}}) == {"include_text": True}
+    assert DIAGNOSTICS_DEFAULTS == {"include_text": False, "folder": ""}
+    assert diagnostics_settings({}) == {"include_text": False, "folder": ""}
+    assert diagnostics_settings({"diagnostics": {"include_text": "yes"}}) == {"include_text": False, "folder": ""}
+    assert diagnostics_settings({"diagnostics": {"include_text": True}}) == {"include_text": True, "folder": ""}
     for bad in ({"include_text": None}, {"include_text": "true"}, {"include_text": 1}, {},
                 {"other": True}):
         with pytest.raises(ValidationError):
@@ -497,6 +497,6 @@ def test_include_text_setting_default_and_validation():
     saved = []
     service = SettingsService({}, SimpleNamespace(save=saved.append), [])
     snapshot = service.apply(SettingsPatch.model_validate({"diagnostics": {"include_text": True}}))
-    assert snapshot["diagnostics"] == {"include_text": True}
+    assert snapshot["diagnostics"] == {"include_text": True, "folder": ""}
     trace = TraceService(settings=service.snapshot)
     assert trace.include_text() is True

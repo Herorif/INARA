@@ -810,7 +810,7 @@ async def test_a_speaker_that_cannot_open_skips_the_cue(wake, caplog):
 def test_tray_menu_has_the_wake_switch_checked_when_on():
     items = Tray.menu_items(SimpleNamespace(talking=False, wake_word=True))
     assert [action for action, _ in items] == [
-        "open", "quick", "talk", "wake_word", "gaming", "retry", "quit",
+        "open", "quick", "talk", "wake_word", "gaming", "diagnostics", "retry", "quit",
     ]
     assert items[3] == ("wake_word", 'Listen for "Hey Jarvis"')
     assert Tray.menu_flags(SimpleNamespace(wake_word=True), "wake_word") == MF_CHECKED == 0x8

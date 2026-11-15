@@ -823,7 +823,7 @@ def test_tray_menu_offers_talk_or_stop():
 
     assert [item[1] for item in Tray.menu_items(SimpleNamespace(talking=False))] == [
         "Open JARVIS", "Quick assistant", "Talk to JARVIS", 'Listen for "Hey Jarvis"',
-        "Toggle gaming mode", "Retry backend", "Quit JARVIS",
+        "Toggle gaming mode", "Export diagnostics", "Retry backend", "Quit JARVIS",
     ]
     assert Tray.menu_items(SimpleNamespace(talking=True))[2] == ("stop_talking", "Stop talking")
 
