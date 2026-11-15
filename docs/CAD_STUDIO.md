@@ -1,5 +1,30 @@
 # Offline CAD Studio and owned creative jobs
 
+## CAD engine (build123d), November 2026
+
+Live design can now build real solids with [build123d](https://github.com/gumyr/build123d) 0.13.0 on OpenCascade. The brain never writes Python: it emits a validated **feature tree** and an isolated worker (`backend/workers/cad_kernel_worker.py`, run as `.venv-cad\Scripts\python.exe -I`, JSON lines, no network, a temp job folder) turns it into geometry and exports. When `.venv-cad` is missing, or a tree uses an unsupported op, JARVIS falls back to the original box engine described below.
+
+**Feature tree (v1).** Shapes `box`, `cylinder`, `sphere`, `l_bracket`, `enclosure`; features `hole` (through, blind, counterbore), `slot`, `cut`, `union`, `fillet`, `chamfer`, `shell`, `text` (engrave/emboss), `pattern` (linear, polar) and `mirror`. Edge selectors: `all`, `vertical`, `top`, `bottom`. Limits: at most 40 features, sizes 0.1–2000 mm, text at most 40 characters. Exports: GLB (preview), STL and STEP. See docs/handover/9NovWork-specs.md S3 for the schema.
+
+**Setup (owner-run).** JARVIS never downloads the engine. On a fresh install run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup-cad-engine.ps1
+```
+
+It needs Python 3.13 (py launcher `-3.13`, or `python` on PATH; it installs nothing system-wide and stops if 3.13 is missing), creates `.venv-cad` at the repo root, shows the download (57 wheels, about 227 MB; roughly 670 MB once installed) and asks you to type Y (`-Yes` skips the prompt). It installs with `--require-hashes --only-binary=:all: --use-feature=truststore`, then runs a smoke check: `Box(20,20,10) - Cylinder(3,10)` must have a volume of about 3717.3 mm³. Running it again when the smoke check passes does nothing. It never touches PATH, system settings, the core's `.venv` or other environments.
+
+**Lock.** `requirements-cad-kernel.lock` pins every package in `.venv-cad` (pip and setuptools excluded) with the sha256 of the cp313 win_amd64 / abi3 / py3-none-any wheel. It is separate from `requirements-core.lock`. To regenerate after changing `.venv-cad`: `pip freeze --all` (drop pip/setuptools), then `pip install --use-feature=truststore --dry-run --ignore-installed --only-binary=:all: --report cad-report.json -r freeze.txt` (index metadata only, no wheels downloaded) and write one `name==version --hash=sha256:<hash>` line per entry from `download_info.archive_info.hashes`. The lock header repeats these steps. `tests/test_cad_engine_setup.py` checks the format.
+
+**Troubleshooting.**
+- *"CAD engine unavailable"* or only plain boxes: `.venv-cad` is missing or broken. Run the setup script; it reports the smoke-check result.
+- *Slow first build*: the first build after start loads OpenCascade and takes about 3–8 s; later steps reuse the worker and the draft cache.
+- *Shell or fillet fails*: apply `shell` before `fillet`/`chamfer` on the same body, and keep fillet radii smaller than the shortest selected edge allows ("A 3 mm fillet does not fit a 4 mm edge").
+
+**Licences.** build123d is Apache-2.0; OCP (cadquery-ocp) and OpenCascade are LGPL-2.1 with the OCCT exception. Fine for personal use. **Flag for release review in M5** before any redistribution of `.venv-cad` or bundling of the wheels; the other locked dependencies' licences have not been reviewed.
+
+## Original solid milestone (October 2026)
+
 Implemented 14 October 2026. **Update:** [Scene Studio](SCENE_STUDIO.md) now adds multiple objects, transforms/materials and an optional installation-aware Blender bridge. The sections below record the original solid milestone; current scene limits and verification are in that follow-up. Open **Studio → 3D studio** after `scripts/start.ps1`. Build a solid box, L bracket or open enclosure with editable millimetre dimensions, inspect it with orbit/zoom or wireframe, and download STL, GLB or its editable JSON recipe. Each successful build creates a separate revision. The previous voice CAD view remains available when a legacy design is present.
 
 The interface follows the JARVIS command deck, with a blueprint sidebar, model viewport, validation summary, export actions and recent revisions. Narrow layouts stack these sections and scroll within the modal. [Desktop preview](qa/cad-desktop.png), [narrow controls](qa/cad-mobile.png), [narrow model view](qa/cad-mobile-preview.png).

@@ -34,9 +34,9 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 
 - [x] **S3.1** `cad_features.py`: feature tree models, limits, stable hash · S3 · C — 3fcb382
 - [x] **S3.2** `cad_kernel_worker.py` (build123d in `.venv-cad`) and `cad_kernel.py` (start, reuse, timeout, kill tree, error mapping, fallback to the box engine) · S3 · C · needs S3.1 · opt-in real-kernel tests — 113fb59 (application wiring lands with S3.3)
-- [ ] **S3.3** Live design: feature steps (hole, fillet, chamfer, cut, shell, text, pattern), tool descriptions · S3 · C · needs S3.2
+- [x] **S3.3** Live design: feature steps (hole, fillet, chamfer, cut, shell, text, pattern), tool descriptions · S3 · C · needs S3.2 — 3adef02 (real bracket: start 4–8 s, each step ~0.3 s, final build ~0.3 s)
 - [ ] **S3.4** Live design canvas loads the kernel's GLB draft with the blueprint material · S3 · M · needs S3.3
-- [ ] **S3.5** `scripts/setup-cad-engine.ps1`, `requirements-cad-kernel.lock`, `docs/CAD_STUDIO.md` · S3 · L
+- [x] **S3.5** `scripts/setup-cad-engine.ps1`, `requirements-cad-kernel.lock`, `docs/CAD_STUDIO.md` · S3 · L — see the commit "Add an owner-run setup script and a hashed lock for the CAD engine"
 - [x] **S13a.1** New tokens, 12 px minimum label size, colour roles, alias cleanup · S13a · M — 844dae0 (captures `.runtime/ui-qa/jarvis-language/tokens/`)
 - [x] **S13a.2** `HudFrame` and the materialise motion helper · S13a · C · D (`motion`; fallback CSS) — 8cfb2a9 (captures `.runtime/ui-qa/jarvis-language/hud/`)
 - [x] **S13a.3** Core glow sprite, breathing glow, dot grid with pointer parallax · S13a · C — 34efbdf (captures `.runtime/ui-qa/jarvis-language/glow/`)
