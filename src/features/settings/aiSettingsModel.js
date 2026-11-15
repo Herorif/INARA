@@ -269,3 +269,45 @@ export function addressHint(address, savedName) {
   const named = typeof savedName === 'string' && savedName.trim() !== '';
   return address === 'name' && !named ? ADDRESS_NAME_HINT : '';
 }
+
+// "Run a check" under the Brain row (brain_check, S1.7): one short test message through
+// the chat route and a weather lookup for the home town, each timed by the core.
+export const BRAIN_CHECK_LABEL = 'Check the brain';
+export const BRAIN_CHECK_HELP = 'Sends one short test message and a weather lookup, and shows how long each took.';
+export const BRAIN_CHECK_BUTTON = 'Run a check';
+export const BRAIN_CHECK_BUSY = 'Checking…';
+const BRAIN_CHECK_FAILED = "The brain didn't answer. Try again.";
+const WEATHER_CHECK_FAILED = "The weather lookup didn't finish. Try again.";
+
+/** "1.8 s" from milliseconds; "under 0.1 s" below 100 ms; '' when unknown. */
+export function checkSeconds(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  if (ms < 100) return 'under 0.1 s';
+  return `${(ms / 1000).toFixed(1)} s`;
+}
+
+const plain = (value) => (typeof value === 'string' && value.trim() ? value.trim() : '');
+const inTime = (ms) => { const time = checkSeconds(ms); return time ? ` in ${time}` : ''; };
+
+/** The brain half's line: "Claude Sonnet 5.5 · Medium effort answered in 1.8 s", or the core's message. */
+export function brainCheckLine(brain) {
+  if (!brain || typeof brain !== 'object') return { tone: 'warn', text: BRAIN_CHECK_FAILED };
+  if (!brain.ok) return { tone: 'warn', text: plain(brain.message) || BRAIN_CHECK_FAILED };
+  const name = plain(brain.label) || plain(brain.model) || 'The brain';
+  const effort = EFFORT_OPTIONS.find(entry => entry.id === brain.effort);
+  return { tone: 'ok', text: `${name}${effort ? ` · ${effort.label} effort` : ''} answered${inTime(brain.ms)}` };
+}
+
+/** The weather half's line: "Weather for Kuala Lumpur, Malaysia in 0.4 s", the skip note, or the core's message. */
+export function weatherCheckLine(weather) {
+  if (!weather || typeof weather !== 'object') return { tone: 'warn', text: WEATHER_CHECK_FAILED };
+  if (weather.skipped) return { tone: 'idle', text: plain(weather.message) || 'Set your home town to include a weather check.' };
+  if (!weather.ok) return { tone: 'warn', text: plain(weather.message) || WEATHER_CHECK_FAILED };
+  const place = plain(weather.place);
+  return { tone: 'ok', text: `Weather${place ? ` for ${place}` : ''}${inTime(weather.ms)}` };
+}
+
+/** Both result lines for a brain_check answer ({ brain, weather }). */
+export function brainCheckLines(result) {
+  return [brainCheckLine(result?.brain), weatherCheckLine(result?.weather)];
+}

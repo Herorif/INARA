@@ -465,6 +465,7 @@ class UsageService:
                 "voice_live",
                 "voice_brain",
                 "voice_preview",
+                "brain_check",
                 "call_live",
                 "call_triage",
                 "call_twilio",

@@ -254,6 +254,17 @@
       "replacement": "BrainCatalog (backend/llm/catalog.py) / SettingsTransport",
       "status": "implemented"
     },
+    "brain_check": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The chat route's provider, model and effort (llm/router.py); assistant.home_place for the weather half",
+      "effects": "Owner-pressed only: one tool-free, web-search-off prompt through the chat route (metered as brain_check, 30 s cap), then one Open-Meteo lookup for the home town (skipped with need_place when unset). One content-free log line (provider, model, brain_ms, weather_ms, outcome). Never changes settings",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true, brain: {ok, provider, model, label, effort, ms, code?, message?}, weather: {ok, place?, ms?, code?, message?, skipped?}}; brain_check_failed, brain_check_unavailable and invalid_arguments as plain messages; never the prompt, the reply text or a key",
+      "lifetime": "One bounded check: up to 30 s for the brain and the weather lookup's 9 s budget",
+      "replacement": "BrainCheck (backend/services/brain_check.py) / SettingsTransport",
+      "status": "implemented"
+    },
     "get_settings": {
       "schema": "EmptyRequest",
       "caller": "Authenticated owner renderer only",

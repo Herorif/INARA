@@ -273,12 +273,20 @@ class Application:
         self.settings_service.permission_names |= frozenset(self.dispatcher.tools) | {
             spec.permission for spec in self.dispatcher.tools.values() if spec.permission
         }
+        from services.brain_check import BrainCheck
+
         self.settings_transport = SettingsTransport(
             sio,
             self.sessions,
             self.settings_service,
             self.settings_changed,
             self.connection.validate_settings,
+            checker=BrainCheck(
+                self.conversation.router,
+                self.weather,
+                usage=self.usage,
+                project=lambda: self.projects.get_current_project_path().resolve(),
+            ),
         )
         self.secrets_transport = SecretsTransport(self)
         # Telephony gateway (docs/CALL_ROUTING.md): its own loopback listener, idle

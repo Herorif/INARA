@@ -6,7 +6,7 @@ import BriefingSettings from './BriefingSettings';
 import SecretKeyRow, { ResultMessage } from './SecretKeyRow';
 import SegmentedControl from './SegmentedControl';
 import {
-  ADDRESS_LABEL, ADDRESS_OPTIONS, AUTO_HELP, BRAIN_CHOICES, BRAIN_LABEL, EFFORT_LABEL, EFFORT_OPTIONS, GEMINI_LIST_FAILED,
+  ADDRESS_LABEL, ADDRESS_OPTIONS, AUTO_HELP, BRAIN_CHECK_BUSY, BRAIN_CHECK_BUTTON, BRAIN_CHECK_HELP, BRAIN_CHECK_LABEL, brainCheckLines, BRAIN_CHOICES, BRAIN_LABEL, EFFORT_LABEL, EFFORT_OPTIONS, GEMINI_LIST_FAILED,
   GEMINI_MODEL_LABEL, HOME_PLACE_EMPTY, HOME_PLACE_HELP, HOME_PLACE_LABEL, HOME_PLACE_MAX,
   HOME_PLACE_PLACEHOLDER, NAME_HELP, PROVIDERS, activeModelText, addressHint, addressOption,
   brainChoice, brainChoicePatch, brainOption, brainProblem, effortDisabled, effortHelp, effortOption, effortPatch,
@@ -35,6 +35,8 @@ export default function AiSettings({ assistant, voice, briefing }) {
   const [homeInput, setHomeInput] = useState('');
   const [homeBusy, setHomeBusy] = useState(false);
   const [homeResult, setHomeResult] = useState(null);
+  const [checkBusy, setCheckBusy] = useState(false);
+  const [checkLines, setCheckLines] = useState([]);
   const setting = brainOption(assistant);
   const choice = brainChoice(assistant);
   const effort = effortOption(assistant);
@@ -136,6 +138,16 @@ export default function AiSettings({ assistant, voice, briefing }) {
     } finally { setHomeBusy(false); }
   };
 
+  const runCheck = async () => {
+    setCheckBusy(true);
+    setCheckLines([]);
+    try {
+      setCheckLines(brainCheckLines(await client.brainCheck()));
+    } catch (error) {
+      setCheckLines([{ tone: 'warn', text: rpcFailureMessage(error) }]);
+    } finally { setCheckBusy(false); }
+  };
+
   const problem = brainError || brainProblem(setting, brain);
   const geminiOptions = geminiModelOptions(geminiList, geminiValue);
   const noEffort = effortDisabled(setting, brain, statuses.anthropic_api_key ? !!statuses.anthropic_api_key.configured : undefined);
@@ -177,6 +189,19 @@ export default function AiSettings({ assistant, voice, briefing }) {
         <p id="assistant-effort-help" className={HELP} data-effort-help>{effortHelp(noEffort)}</p>
         {brain && <p id="assistant-brain-active" className={HELP} data-active-model>{activeModelText(brain, assistant)}</p>}
         <p id="assistant-brain-problem" aria-live="polite" className="text-[0.75rem] leading-snug text-danger">{problem}</p>
+      </div>
+      <div className={ROW} data-brain-check>
+        <div className={LINE}>
+          <span id="assistant-brain-check-label" className="text-sm text-ink-1">{BRAIN_CHECK_LABEL}</span>
+          <button type="button" className="btn btn--secondary btn--sm" disabled={checkBusy} onClick={runCheck}
+            aria-describedby="assistant-brain-check-help assistant-brain-check-result">
+            {checkBusy ? BRAIN_CHECK_BUSY : BRAIN_CHECK_BUTTON}
+          </button>
+        </div>
+        <p id="assistant-brain-check-help" className={HELP}>{BRAIN_CHECK_HELP}</p>
+        <div id="assistant-brain-check-result" aria-live="polite" data-brain-check-result>
+          {checkLines.map((line, index) => <ResultMessage key={index} result={line} />)}
+        </div>
       </div>
       <div className={ROW}>
         <label htmlFor="assistant-owner-name" className="text-sm text-ink-1">Your name <span className="text-ink-2">(optional)</span></label>

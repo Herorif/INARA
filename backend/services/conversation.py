@@ -14,6 +14,7 @@ stays append-only for preserved thinking and prompt caching.
 import asyncio
 import inspect
 import json
+import re
 import time
 import uuid
 from collections import OrderedDict
@@ -29,7 +30,7 @@ from services.log import get_logger
 from services.memory_contracts import MemorySource
 from services.tool_groups import groups_used, offer_world, select_tools
 from services.tools import ServiceError
-from services.usage import metered_generate
+from services.usage import metered_generate, usage_counts
 
 PERSONA = (
     "You are JARVIS, the owner's personal assistant on this Windows PC, with the manner of a "
@@ -100,6 +101,8 @@ TOOL_NOT_OFFERED = {
 }
 # Providers that take a photo with a turn (Show JARVIS, docs/VISION_STUDIO.md).
 IMAGE_PROVIDERS = ("claude", "gemini")
+# A tool name the turn_timing line may carry (anything else is logged as ``tool``).
+TOOL_NAME = re.compile(r"[A-Za-z0-9_]{1,64}")
 CONVERSATION_LIMIT = 128  # live per-process conversations; idle ones are evicted LRU-first
 
 logger = get_logger(__name__)
@@ -205,6 +208,59 @@ def turn_budget_s(usage_feature):
     return VOICE_TURN_BUDGET_S if usage_feature == VOICE_FEATURE else TURN_BUDGET_S
 
 
+def step_name(item):
+    """``model`` for a model step, else the tool's identifier (``tool`` if it is not one)."""
+    if item.get("kind") == "model":
+        return "model"
+    name = item.get("tool")
+    return name if isinstance(name, str) and TOOL_NAME.fullmatch(name) else "tool"
+
+
+def timing_steps(steps):
+    """``[model:1200,weather:340,model:800]`` from ``TurnBudget.steps``: tool names and
+    model steps with their ms (``?`` for a step that never recorded one)."""
+    parts = []
+    for item in steps:
+        name = step_name(item)
+        ms = item.get("ms")
+        parts.append(f"{name}:{ms if isinstance(ms, int) else '?'}")
+    return "[" + ",".join(parts) + "]"
+
+
+def turn_timing(request_id, origin, provider, model, effort, budget, total_ms, outcome):
+    """The content-free timing of one brain turn: identifiers, counts and milliseconds only."""
+    return {
+        "request_id": request_id,
+        "origin": origin,
+        "provider": provider,
+        "model": model,
+        "effort": effort,
+        "first_token_ms": budget.first_token_ms if budget else None,
+        "total_ms": int(total_ms),
+        "outcome": outcome,
+        "steps": [
+            {"name": step_name(item), "ms": item.get("ms")}
+            for item in (budget.steps if budget else [])
+        ],
+        "input_tokens": budget.tokens["input"] if budget else 0,
+        "output_tokens": budget.tokens["output"] if budget else 0,
+    }
+
+
+def log_turn_timing(timing, budget):
+    def field(value):
+        return "-" if value is None or value == "" else value
+
+    logger.info(
+        "turn_timing request_id=%s origin=%s provider=%s model=%s effort=%s first_token_ms=%s "
+        "total_ms=%s outcome=%s steps=%s input_tokens=%s output_tokens=%s",
+        field(timing["request_id"]), timing["origin"], field(timing["provider"]),
+        field(timing["model"]), field(timing["effort"]), field(timing["first_token_ms"]),
+        timing["total_ms"], timing["outcome"], timing_steps(budget.steps if budget else []),
+        timing["input_tokens"], timing["output_tokens"],
+    )
+
+
 def close_tool_uses(messages):
     """Copy of a turn's Anthropic messages in which every tool_use of the last assistant
     message has a tool_result (a synthetic timed-out one where none came back), so the
@@ -272,6 +328,10 @@ class TurnBudget:
         self.steps = []
         self.finished = []
         self.expired = False
+        # For the turn_timing line: wall ms from the turn's start to the first progress of
+        # the first model step, and token counts summed over the turn's model steps.
+        self.first_token_ms = None
+        self.tokens = {"input": 0, "output": 0}
         self._holds = 0
         self._held_at = None
         self._held_total = 0.0
@@ -303,6 +363,25 @@ class TurnBudget:
             self._held_total += self.clock() - self._held_at
             self._held_at = None
         self._signal()
+
+    def first_progress(self, step):
+        """Record ``first_token_ms`` once, on the first progress of step 0."""
+        if step == 0 and self.first_token_ms is None:
+            self.first_token_ms = int((self.clock() - self.started) * 1000)
+
+    def add_tokens(self, response):
+        """Add one model step's token counts (content-free) to the turn's totals."""
+        try:
+            counts = usage_counts(response) or {}
+        except Exception:  # telemetry never breaks a turn
+            counts = {}
+        # Claude reports cached prompt tokens apart from input_tokens; Gemini's
+        # prompt_token_count already includes them.
+        self.tokens["input"] += sum(
+            counts.get(name, 0)
+            for name in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
+        )
+        self.tokens["output"] += counts.get("output_tokens", 0)
 
     def _signal(self):
         self._changed.set()
@@ -473,7 +552,8 @@ class StreamedReply:
 
 def create_text_provider():
     # SDK and credentials are touched only on a request, never during server startup.
-    return TaskRouter().provider("chat")
+    # CAD planning (services/cad.py, cad_changes.py) uses this: it never searches the web.
+    return TaskRouter().provider("chat", web_search=False)
 
 
 class ConversationService:
@@ -490,7 +570,9 @@ class ConversationService:
         settings=None,
         router=None,
         task="chat",
-        effort="medium",
+        # None: each step uses the provider's own effort (the router sets the owner's
+        # assistant.effort on the chat route). A caller may pin one (phone chat: "low").
+        effort=None,
         instructions_suffix=None,
         clock=None,
         fast_provider_factory=None,
@@ -521,6 +603,8 @@ class ConversationService:
         self.instructions_suffix = instructions_suffix
         self.clock = clock
         self.pointers = {}  # (owner, project) -> pointer, without a durable store
+        # The last brain turn's content-free timing (see ``turn_timing``), or None.
+        self.last_turn_timing = None
 
     def current_conversation(self, owner, project):
         """The conversation tray voice joins for ``project``: the one the workspace last
@@ -731,7 +815,8 @@ class ConversationService:
                     "budget": None,
                     "progress": progress_notifier(on_progress),
                 }
-                outcome, started = "failed", None
+                outcome, started, cancelled = "failed", None, False
+                turn_started = time.monotonic()
                 try:
                     provider = self.provider_factory()
                     if image is not None and getattr(provider, "name", None) not in IMAGE_PROVIDERS:
@@ -782,6 +867,9 @@ class ConversationService:
                     error = ServiceError("provider_timeout", "The AI request timed out. Try again.")
                     conversation.results[request_id] = (request.text, error)
                     raise error from exc
+                except asyncio.CancelledError:
+                    cancelled = True
+                    raise
                 except Exception as exc:
                     # Do not expose SDK errors: they can contain credentials or private request data.
                     error = provider_failure(provider, exc)
@@ -789,6 +877,13 @@ class ConversationService:
                     conversation.results[request_id] = (request.text, error)
                     raise error from exc
                 finally:
+                    self._record_turn_timing(
+                        request_id, usage_feature, provider, context["budget"],
+                        time.monotonic() - turn_started,
+                        "cancelled" if cancelled else (
+                            outcome if outcome in ("ok", "budget") else "error"
+                        ),
+                    )
                     if started is not None:
                         from llm.base import log_provider_timing
 
@@ -821,6 +916,31 @@ class ConversationService:
                         conversation.results.pop(next(iter(conversation.results)))
         finally:
             conversation.active -= 1
+
+    def _turn_effort(self, provider):
+        """The effort a Claude turn sends (``reply`` passes ``self.effort`` with each step,
+        else the provider's own); None for providers without effort (Gemini)."""
+        if getattr(provider, "name", None) != "claude":
+            return None
+        return self.effort or getattr(provider, "effort", None)
+
+    def _record_turn_timing(self, request_id, usage_feature, provider, budget, elapsed, outcome):
+        """Log the turn_timing line and keep it as ``last_turn_timing``. Never raises."""
+        try:
+            timing = turn_timing(
+                request_id,
+                "voice" if usage_feature == VOICE_FEATURE else "chat",
+                getattr(provider, "name", None),
+                getattr(provider, "_model", None),
+                self._turn_effort(provider),
+                budget,
+                elapsed * 1000,
+                outcome,
+            )
+            self.last_turn_timing = timing
+            log_turn_timing(timing, budget)
+        except Exception:
+            logger.warning("The turn timing could not be recorded", exc_info=True)
 
     def _offer_world(self, owner, request, history):
         """Whether this turn declares the world tools (services/tool_groups.py)."""
@@ -985,16 +1105,21 @@ class ConversationService:
                     raise TurnBudgetExpired()
                 budget_capped = left <= self.timeout
                 progress = asyncio.Event()
+
+                def mark(progress=progress):
+                    progress.set()
+                    budget.first_progress(step)
+
                 extra = {}
                 if streamed:
 
-                    async def on_text(chunk, progress=progress):
-                        progress.set()
+                    async def on_text(chunk, mark=mark):
+                        mark()
                         await streamed.delta(chunk)
 
                     extra["on_text"] = on_text
                 if getattr(target, "reports_progress", False) is True:
-                    extra["on_progress"] = progress.set
+                    extra["on_progress"] = mark
                 if getattr(target, "name", None) != "claude":
                     # Gemini's one 503 retry must fit inside this same cap.
                     extra["budget"] = cap
@@ -1034,7 +1159,11 @@ class ConversationService:
                 record["ms"] = int((budget.clock() - started) * 1000)
                 failed = task.cancelled() or task.exception() is not None
                 record["outcome"] = "error" if failed else "ok"
-                return task.result(), target
+                response = task.result()
+                # A call that does not stream: its response is its first content.
+                budget.first_progress(step)
+                budget.add_tokens(response)
+                return response, target
         finally:
             if created:
                 await self._close_quietly(target)

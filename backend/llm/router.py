@@ -133,8 +133,11 @@ class TaskRouter:
         model = brain_model(settings) if task == "chat" else fast_model()
         return Route(task, "claude", model, has_claude)
 
-    def provider(self, task):
-        """Create the provider for ``task`` or raise a clear configuration error."""
+    def provider(self, task, web_search=None):
+        """Create the provider for ``task`` or raise a clear configuration error.
+
+        ``web_search=False`` turns Claude's web search off for this provider whatever the
+        setting (CAD planning, the brain check); None follows ``assistant.web_search``."""
         route = self.route(task)
         if route.provider == "claude":
             key = self._anthropic()
@@ -151,7 +154,7 @@ class TaskRouter:
             # triage, summaries) never offers it; a history that already holds search
             # results still declares the tools so it can replay (llm/claude.py).
             settings = self.settings()
-            web = task == "chat" and web_search_setting(settings)
+            web = task == "chat" and web_search_setting(settings) and web_search is not False
             # The owner's effort is for the brain's chat turns; fast work stays at low.
             effort = effort_setting(settings) if task == "chat" else FAST_EFFORT
             return ClaudeProvider(api_key=key, model=route.model, effort=effort, web_search=web)

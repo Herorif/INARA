@@ -59,6 +59,16 @@ now, days, units, source}}`, which the voice model speaks in one or two sentence
   saves it, or clears it with `null`. Answers `{ok, home_place}` or `{ok: false, code,
   message}` (`not_found`, `weather_unavailable`, `invalid_arguments`).
 
+## The brain check
+
+Preferences > AI > **Run a check** (RPC `brain_check`, [AI_PROVIDERS.md](AI_PROVIDERS.md#turn-timing-and-the-brain-check))
+times a weather lookup for the home town after the brain's test message: `lookup(None, "now")`,
+inside its usual 9 s budget. The weather half answers `{ok: true, place, ms}` (shown as
+"Weather for Kuala Lumpur, Malaysia in 0.4 s"), `{ok: false, code, message, ms}` for
+`unavailable`, or, with no home town saved, `{ok: false, skipped: true, code: "need_place",
+message}` (no request is made). The place goes to the owner's page only; the `brain_check` log
+line carries `weather_ms` and the outcome, never the place.
+
 ## Source and licence
 
 Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), geocoding from

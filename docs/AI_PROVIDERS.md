@@ -86,6 +86,7 @@ With `assistant.web_search` on (the default), `backend/llm/router.py` builds the
 - Cited answers come back split into several `text` blocks, each cited one carrying a `citations` list. The spoken and visible text is the text blocks joined (one space where a search sits between two runs); citation objects stay only in the stored blocks.
 - `pause_turn`: a long server tool loop can stop with `stop_reason: "pause_turn"`. The provider sends the same request again with the paused content appended verbatim as the trailing assistant message (no "continue" user message), up to 3 times, so callers see one finished turn whose blocks are every part's blocks in order. A turn still paused after that fails with `provider_incomplete` ("Claude's web search didn't finish in time. Try again.") and nothing is stored. Each resumed request's content block starts count as progress for the first-token deadline, and the whole loop runs inside the step's time budget.
 - Queries, URLs and results are never logged.
+- CAD planning (`services/cad.py`, `services/cad_changes.py`, through `create_text_provider()`) builds the chat route with `web_search=False`: planning never searches the web. `TaskRouter.provider(task, web_search=False)` forces it off whatever the setting.
 
 ## Streamed replies (typed chat)
 
@@ -158,6 +159,26 @@ Exit codes: `0` ok, `2` invalid input, `3` the provider check failed, `4` storag
 A check makes one cheap authenticated request with a 10 second timeout: Anthropic `GET /v1/models`, Gemini list models. Results are `ok`, `invalid_key` (401/403, or Google's invalid-key 400), `rate_limited` (429), `network_error`, `tls_error` or `unexpected`.
 
 Provider requests verify HTTPS against the Windows certificate store (the `truststore` package), so antivirus HTTPS scanning and corporate proxies whose root is trusted by Windows work. This applies only to provider calls (`services.tls.provider_ssl_context()`); JARVIS's own pinned connections, such as the mobile companion, keep their own certificate checks.
+
+## Turn timing and the brain check
+
+Every brain turn (desktop chat, the Quick assistant, phone chat and reviewed voice) ends with one content-free INFO line from `services.conversation`, whatever its outcome:
+
+```
+turn_timing request_id=6f0c… origin=voice provider=claude model=claude-sonnet-5-5 effort=medium first_token_ms=1430 total_ms=4210 outcome=ok steps=[model:1610,weather:380,model:2190] input_tokens=10520 output_tokens=212
+```
+
+- `origin`: `voice` for a voice brain turn (usage feature `voice_brain`), else `chat`.
+- `provider`, `model`: the turn's brain (a stalled step's retry on the fast route still shows the brain; its step appears as another `model:` entry). `effort`: what a Claude turn sends; `-` for Gemini.
+- `first_token_ms`: wall time from the turn's start to the first progress (any streamed content) of the first model step; a step that does not stream counts its answer. `-` when no model step answered.
+- `total_ms`: the whole turn, wall time (approval waits included).
+- `outcome`: `ok`, `budget` (the turn budget ran out and JARVIS answered with what finished), `error` (any failure, including no provider configured) or `cancelled`.
+- `steps`: every model step and tool in order with its ms (`?` if it never recorded one). Tool names only; a name that is not a plain identifier reads `tool`. Claude's server-side web search runs inside a model step.
+- `input_tokens`, `output_tokens`: summed over the turn's model steps (Claude's cached prompt tokens included in input).
+- Never message text, places, tool arguments or results. The service keeps the last one as `ConversationService.last_turn_timing` (a dict with the same fields; `steps` as `[{name, ms}]`).
+- The older lines stay: `AI provider request: …` (per request, with the failure code and the first streamed text time) and, on a budget stop, `Brain turn stopped: … outcome=budget` (with the budget and the unheld time used).
+
+**Run a check** (Preferences > AI, under Brain; RPC `brain_check`, owner renderer only): sends "Reply with the single word: ready." through the chat route with no tools and web search off (30 s cap, metered as `brain_check`), then looks up the weather for the home town ([WEATHER.md](WEATHER.md#the-brain-check)). The answer is `{ok: true, brain: {ok, provider, model, label, effort, ms, code?, message?}, weather: {...}}`; `ok: true` means the check ran, each half says how it went. The page shows lines such as "Claude Sonnet 5.5 · Medium effort answered in 1.8 s", and a failure in the warn colour with the core's plain message. One log line: `brain_check provider=… model=… brain_ms=… weather_ms=… outcome=ok|brain_<code>|weather_<code>`. It spends a few tokens, so it runs only when the owner presses the button; tests use fakes.
 
 ## Developer override
 

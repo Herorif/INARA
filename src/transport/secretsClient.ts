@@ -45,6 +45,29 @@ const isBrainModels = (value: unknown): value is BrainModels => {
     && Array.isArray(models.efforts) && models.efforts.every((entry) => typeof entry === 'string');
 };
 
+// brain_check: up to 30 s for the brain prompt plus the weather lookup's 9 s on the core.
+const BRAIN_CHECK_TIMEOUT = 45000;
+export type BrainCheckBrain = {
+  ok: boolean; provider: string; model: string; label?: string | null; effort?: string | null;
+  ms?: number; code?: string; message?: string;
+};
+export type BrainCheckWeather = { ok: boolean; place?: string; ms?: number; code?: string; message?: string; skipped?: boolean };
+export type BrainCheck = { brain: BrainCheckBrain; weather: BrainCheckWeather };
+const optional = (value: unknown, type: string) => value === undefined || value === null || typeof value === type;
+const isMs = (value: unknown) => value === undefined || (typeof value === 'number' && Number.isFinite(value) && value >= 0);
+export const isBrainCheck = (value: unknown): value is BrainCheck => {
+  const check = value as { brain?: Record<string, unknown>; weather?: Record<string, unknown> };
+  if (!check || typeof check !== 'object') return false;
+  const { brain, weather } = check;
+  return !!brain && typeof brain === 'object' && typeof brain.ok === 'boolean'
+    && typeof brain.provider === 'string' && typeof brain.model === 'string'
+    && optional(brain.label, 'string') && optional(brain.effort, 'string') && isMs(brain.ms)
+    && optional(brain.message, 'string')
+    && !!weather && typeof weather === 'object' && typeof weather.ok === 'boolean'
+    && optional(weather.place, 'string') && isMs(weather.ms) && optional(weather.message, 'string')
+    && optional(weather.skipped, 'boolean');
+};
+
 // The provider check makes one outbound request with a 10 s budget on the core.
 const TEST_TIMEOUT = 25000;
 // A voice preview is one TTS request with a 30 s budget on the core.
@@ -128,6 +151,17 @@ export function createSecretsClient(socket: RpcSocket) {
       if (!isBrainModels(models))
         throw new RpcError('The core returned an invalid model list. Reopen Preferences and try again.', 'invalid_response');
       return models;
+    },
+    /**
+     * Owner's "Run a check": one short test message through the chat route and a weather
+     * lookup for the home town, each with its own ok, timing and plain message.
+     */
+    async brainCheck(): Promise<BrainCheck> {
+      const response = await scope.call<Record<string, unknown>>('brain_check', {}, BRAIN_CHECK_TIMEOUT);
+      const check = { brain: response.brain, weather: response.weather };
+      if (!isBrainCheck(check))
+        throw new RpcError('The core returned an incomplete check result. Try again.', 'invalid_response');
+      return check;
     },
     /** Spoken sample of one prebuilt voice (PCM16 mono); the core caches it per voice. */
     async voicePreview(name: string): Promise<VoicePreview> {
