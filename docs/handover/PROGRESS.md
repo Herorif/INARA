@@ -40,7 +40,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S13a.1** New tokens, 12 px minimum label size, colour roles, alias cleanup · S13a · M — 844dae0 (captures `.runtime/ui-qa/jarvis-language/tokens/`)
 - [x] **S13a.2** `HudFrame` and the materialise motion helper · S13a · C · D (`motion`; fallback CSS) — 8cfb2a9 (captures `.runtime/ui-qa/jarvis-language/hud/`)
 - [x] **S13a.3** Core glow sprite, breathing glow, dot grid with pointer parallax · S13a · C — 34efbdf (captures `.runtime/ui-qa/jarvis-language/glow/`)
-- [ ] **S13a.4** Interface sounds (eight synthesized cues), setting and volume · S13a · M
+- [x] **S13a.4** Interface sounds (eight synthesized cues), setting and volume · S13a · M — see the commit "Give JARVIS interface sounds" (capture `.runtime/ui-qa/jarvis-language/sound/`; Windows mute is not detectable from the renderer; Live design panel approvals have no cue yet)
 - [x] **S13a.5** `services/vitals.py` and the Systems rail replacing the inspector content · S13a · C · needs S1.1 — 25b219c (captures `.runtime/ui-qa/jarvis-language/systems-rail/`; the old `.system-details` / `.today-*` CSS in workspace.css is now unused — remove in M5.5)
 - [ ] **W1** Wave check; captures in `.runtime/ui-qa/jarvis-language/`
 

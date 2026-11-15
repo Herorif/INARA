@@ -5,6 +5,7 @@ import { PERMISSION_OPTIONS, permissionOption, permissionValue } from './toolPer
 import AiSettings from '../features/settings/AiSettings';
 import Switch from '../features/settings/Switch';
 import DiagnosticsSettings from '../features/settings/DiagnosticsSettings';
+import SoundSettings from '../features/settings/SoundSettings';
 
 const TOOLS = [
 { id: 'generate_cad', label: 'Generate CAD' },
@@ -56,6 +57,7 @@ const SettingsWindow = () => {
   const [voice, setVoice] = useState(null);
   const [briefing, setBriefing] = useState(null);
   const [diagnostics, setDiagnostics] = useState(null);
+  const [sound, setSound] = useState(null);
 
   useEffect(() => {
     emitSocket('get_settings');
@@ -66,6 +68,7 @@ const SettingsWindow = () => {
         setVoice(settings.voice && typeof settings.voice === 'object' ? settings.voice : {});
         setBriefing(settings.briefing && typeof settings.briefing === 'object' ? settings.briefing : {});
         setDiagnostics(settings.diagnostics && typeof settings.diagnostics === 'object' ? settings.diagnostics : {});
+        setSound(settings.sound && typeof settings.sound === 'object' ? settings.sound : {});
         if (typeof settings.face_auth_enabled !== 'undefined') {
           setFaceAuthEnabled(settings.face_auth_enabled);
           localStorage.setItem('face_auth_enabled', settings.face_auth_enabled);
@@ -95,6 +98,8 @@ const SettingsWindow = () => {
   return (
     <div className="tool-panel tool-panel--settings">
             <AiSettings assistant={assistant} voice={voice} briefing={briefing} />
+
+            <SoundSettings sound={sound} />
 
             <section className="flex flex-col gap-2">
                 <h3 className="hud-label">Security</h3>

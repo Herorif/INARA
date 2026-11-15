@@ -5,6 +5,8 @@ import { useDialogFocus } from '../app/useDialogFocus';
 import HudLabel from '../shared/ui/HudLabel';
 import { approvalView } from './approvalView';
 import { popupQueue } from '../features/liveDesign/model.js';
+import { playCue } from '../services/sound/uiSounds.js';
+import { approvalCue } from '../services/sound/uiSoundsModel.js';
 
 /**
  * Shows the oldest pending approval; answering removes exactly that request id. While the
@@ -21,6 +23,7 @@ export default function ConfirmationPopup() {
   const respond = useCallback(confirmed => {
     if (!request) return;
     emitSocket('confirm_tool', { id: request.id, confirmed });
+    playCue(approvalCue(confirmed));
     useStore.getState().resolveConfirmation(request.id);
   }, [request]);
   const decline = useCallback(() => respond(false), [respond]);

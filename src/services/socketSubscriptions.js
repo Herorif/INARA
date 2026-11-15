@@ -16,6 +16,7 @@ import { registerCalendarEvents } from './events/calendar';
 import { registerHomeEvents } from './events/home';
 import { registerBriefingEvents } from './events/briefing';
 import { registerVisionCaptureEvents } from './events/visionCapture';
+import { registerSoundEvents } from './events/sound';
 import { registerWorldEvents } from '../features/world/worldEvents.js';
 import useStore from '../store';
 import { conversationForProject } from '../store/chatSlice';
@@ -222,10 +223,12 @@ export function initSocketListeners() {
     registerBriefingEvents(dependencies);
     registerVisionCaptureEvents(dependencies);
     registerWorldEvents(dependencies);
+    const stopSounds = registerSoundEvents(dependencies);
 
     // Return cleanup
     return () => {
         stopApprovalSync();
+        stopSounds();
         approvalTimers.forEach(timer => clearTimeout(timer));
         approvalTimers.clear();
         scope.dispose();

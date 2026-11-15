@@ -18,6 +18,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
+    StrictFloat,
     StrictInt,
     StrictStr,
     StringConstraints,
@@ -827,6 +828,61 @@ def diagnostics_settings(settings):
     }
 
 
+# --- Interface sounds (docs/SOUND.md) --------------------------------------------------------
+# The renderer synthesises short WebAudio cues; the core only stores the switches and volume.
+
+
+class SoundSettings(EmptyRequest):
+    """``sound.*``: JARVIS interface sounds. ``volume`` is 0..1 with at most two decimals;
+    ``thinking`` adds a very quiet pulse while JARVIS works (off by default). A volume is
+    stored rounded to two decimals."""
+
+    enabled: StrictBool | None = None
+    volume: StrictFloat | StrictInt | None = Field(default=None, ge=0, le=1)
+    thinking: StrictBool | None = None
+
+    @field_validator("enabled", "volume", "thinking", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @field_validator("volume")
+    @classmethod
+    def two_decimals(cls, value):
+        return round(float(value), 2)
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a sound setting to update.")
+        return self
+
+
+SOUND_DEFAULTS = {"enabled": True, "volume": 0.5, "thinking": False}
+
+
+def sound_settings(settings):
+    """The saved ``sound`` block over its defaults; a wrong type or an out-of-range volume
+    reads as the default."""
+    saved = (settings or {}).get("sound") if isinstance(settings, dict) else None
+    saved = saved if isinstance(saved, dict) else {}
+    values = {}
+    for key, default in SOUND_DEFAULTS.items():
+        value = saved.get(key)
+        if isinstance(default, bool):
+            values[key] = value if isinstance(value, bool) else default
+        else:
+            valid = (
+                isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and 0 <= value <= 1
+            )
+            values[key] = round(float(value), 2) if valid else default
+    return values
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
@@ -840,6 +896,7 @@ class SettingsPatch(EmptyRequest):
     world: WorldSettings | None = None
     mcp: McpSettings | None = None
     diagnostics: DiagnosticsSettings | None = None
+    sound: SoundSettings | None = None
 
     @field_validator(
         "tool_permissions",
@@ -854,6 +911,7 @@ class SettingsPatch(EmptyRequest):
         "world",
         "mcp",
         "diagnostics",
+        "sound",
         mode="before",
     )
     @classmethod
@@ -935,6 +993,7 @@ class SettingsService:
             ("home_assistant", HOME_ASSISTANT_DEFAULTS),
             ("world", WORLD_DEFAULTS),
             ("diagnostics", DIAGNOSTICS_DEFAULTS),
+            ("sound", SOUND_DEFAULTS),
         ):
             if section in patch:
                 current = candidate.get(section)
@@ -954,7 +1013,7 @@ class SettingsService:
                 raise ServiceError("invalid_arguments", BRIEFING_WINDOW_ORDER)
         sections = (
             "tool_permissions", "assistant", "voice", "calls", "calendar", "briefing",
-            "home_assistant", "world", "diagnostics",
+            "home_assistant", "world", "diagnostics", "sound",
         )
         candidate.update({key: value for key, value in patch.items() if key not in sections})
         try:

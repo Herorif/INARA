@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { MaterialiseContext, useMaterialise, useMaterialiseLayers } from './materialise.js';
+import { playCue } from '../../services/sound/uiSounds.js';
+import { panelCue } from '../../services/sound/uiSoundsModel.js';
 
 // AnimatePresence keeps rendering a leaving child's last element; the children come through this
 // context instead, so they still get fresh props (for example `visible={false}`) while they leave.
@@ -11,9 +13,17 @@ function LatestChildren() { return useContext(ChildrenContext); }
  * Materialises its children on show and reverses on hide (timings: ./materialise.js, ./motionModel.js). Put a
  * <HudFrame> inside to get the border draw; other children simply fade and rise with it.
  * Reduced motion and low battery give a plain opacity fade, gaming mode no animation at all.
+ * `sound` (Stage panels): the panelOpen / panelClose interface cue as it enters and leaves
+ * (docs/SOUND.md); the sound engine keeps it silent while the page settles after a restore.
  */
-export default function Materialise({ show = true, gaming = false, as = 'div', className = '', onExitComplete, children, ...rest }) {
+export default function Materialise({ show = true, gaming = false, sound = false, as = 'div', className = '', onExitComplete, children, ...rest }) {
   const { mode, variants } = useMaterialise({ gaming });
+  const shown = useRef(undefined);
+  useEffect(() => {
+    const cue = sound ? panelCue(shown.current, show) : null;
+    shown.current = show;
+    if (cue) playCue(cue);
+  }, [show, sound]);
   const Root = useMemo(() => (typeof as === 'string' ? motion[as] : motion.create(as)), [as]);
   return <ChildrenContext.Provider value={children}>
     <AnimatePresence initial={mode !== 'instant'} onExitComplete={onExitComplete}>

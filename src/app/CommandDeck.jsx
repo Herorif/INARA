@@ -26,6 +26,7 @@ import { bannerVisible } from '../features/liveDesign/model.js';
 import { useMotionMode } from '../shared/motion/materialise.js';
 import { parallaxEnabled } from './glowModel.js';
 import useGridParallax from './useGridParallax.js';
+import useUiSoundContext from '../services/sound/useUiSoundContext.js';
 import './workspace.css';
 
 const CommandPalette = lazy(() => import('./CommandPalette'));
@@ -93,6 +94,7 @@ export default function CommandDeck() {
   const gaming = resident.gaming || resource.state === 'gaming';
   const { status: calls } = useCallsStatus(connected && !locked);
   const needsYou = calls?.needs_you_count || 0;
+  useUiSoundContext({ gaming, onCall: !!calls?.active_call });
   // Tells the core the owner is at the PC, so urgent briefings are not phoned in meanwhile.
   useEffect(() => (connected && !locked ? startPresencePing({ socket }) : undefined), [connected, locked]);
   const activeFeature = camera ? 'camera' : activeFlag;

@@ -56,7 +56,7 @@ export default function AssistantView({ onOpen, gaming = false }) {
       </div>
       {design && <div className="assistant-view__pane assistant-view__pane--design" hidden={designHidden}>
         {/* A hidden pane has nothing to animate: it comes and goes at once, like gaming mode. */}
-        <Materialise show={!leaving} gaming={gaming || designHidden} className="assistant-view__design" onExitComplete={() => setHeld(null)}>
+        <Materialise show={!leaving} gaming={gaming || designHidden} sound className="assistant-view__design" onExitComplete={() => setHeld(null)}>
           <HudFrame index="02" title="Design" className="assistant-view__design-frame">
             <LiveDesignPanel design={design} visible={!leaving && (split || tab === 'design')} gaming={gaming} onOpen={onOpen} />
           </HudFrame>
