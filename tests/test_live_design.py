@@ -471,6 +471,17 @@ async def test_rpc_build_respects_gaming_mode(app):
 
 
 @pytest.mark.asyncio
+async def test_rpc_build_refuses_when_the_host_is_short_of_memory(app):
+    await start(app)
+    app.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 64, "vram_mb": None}
+    app.resources.probed_at = None  # re-read the (fake) host now
+    response = await rpc(app, "build")("ui", {"design_id": snap(app)["id"]})
+    assert response["ok"] is False and response["code"] == "resource_capacity"
+    assert snap(app)["status"] == "draft" and snap(app)["job"] is None
+    assert not app.resources.reservations
+
+
+@pytest.mark.asyncio
 async def test_change_during_build_keeps_draft_and_end_lets_build_finish(app):
     await start(app)
     await rpc(app, "build")("ui", {"design_id": snap(app)["id"]})

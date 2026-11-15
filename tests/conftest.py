@@ -135,6 +135,10 @@ def application_factory(tmp_path):
         # The real CAD engine (.venv-cad) never starts in tests: live designs use the box
         # engine unless a test gives LiveDesigns a (fake) kernel of its own.
         runtime.cad_kernel.python = root / "no-cad-engine" / "python.exe"
+        # Job admission never reads this PC's free RAM: a fixed, roomy host by default. A test
+        # that needs a tight host sets app.resources.probe (and clears probed_at) itself.
+        runtime.resources.probe = lambda: {"cpu_count": 8, "ram_available_mb": 16000,
+                                           "ram_total_mb": 32000, "vram_mb": None}
         runtime.sio.emit = AsyncMock()
         from types import SimpleNamespace
         runtime.connection.check_setup = lambda: None

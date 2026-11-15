@@ -43,7 +43,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S13a.4** Interface sounds (eight synthesized cues), setting and volume · S13a · M — see the commit "Give JARVIS interface sounds" (capture `.runtime/ui-qa/jarvis-language/sound/`; Windows mute is not detectable from the renderer; Live design panel approvals have no cue yet)
 - [x] **S13a.5** `services/vitals.py` and the Systems rail replacing the inspector content · S13a · C · needs S1.1 — 25b219c (captures `.runtime/ui-qa/jarvis-language/systems-rail/`; the old `.system-details` / `.today-*` CSS in workspace.css is now unused — remove in M5.5)
 - [x] **W1** Wave check; captures in `.runtime/ui-qa/jarvis-language/` — at 06d399c: build passed, client 494 passed, pytest 3716 passed / 7 failed (all `test_live_design.py`, `resource_capacity`: the CAD job admission reads the host's real free RAM, ~1.4 GB here). Follow-up task T1 below makes those tests independent of host memory.
-- [ ] **T1** Live design tests fake the memory admission probe so they pass on a busy PC · M
+- [x] **T1** Live design tests fake the memory admission probe so they pass on a busy PC · M — see the commit "Keep the test app's job admission independent of this PC's free memory" (test_live_design 43 passed ×3)
 
 ## Wave 2 — trust, memory, initiative (S15, S6, S7, S5)
 
