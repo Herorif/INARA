@@ -158,6 +158,13 @@ class Application:
 
         self.weather = WeatherService(self)
         self.weather_transport = WeatherTransport(self)
+        # S13a.5 Systems rail (docs/SYSTEMS_RAIL.md): PC vitals while a rail watches, and the
+        # owner-only vitals_watch, weather_now, agenda_next and home_summary routes.
+        from services.vitals import VitalsService
+        from transport.vitals import VitalsTransport
+
+        self.vitals = VitalsService(self)
+        self.vitals_transport = VitalsTransport(self)
         # W3a MCP servers (docs/MCP.md): owner-only mcp_* routes, mcp_status, and each
         # enabled server's tools for the brain as mcp__<server>__<tool>.
         from services.mcp_registry import McpRegistry
@@ -432,6 +439,7 @@ class Application:
                 ("local_actions", self.local_transport.stop_sid),
                 ("compatibility", self.compat_transport.stop_sid),
                 ("reminders", self.reminder_transport.stop_sid),
+                ("vitals", self.vitals.stop_sid),
                 ("workspace_transport", self.workspace_transport.stop_sid),
                 ("workspace", self.workspace.disconnect),
             ):
@@ -533,6 +541,7 @@ class Application:
             await _isolated("wake", self.wake.close)
             await _isolated("voice_overlay", self.voice_overlay.close)
             await _isolated("audio_devices", self.audio_devices.close)
+            await _isolated("vitals", self.vitals.close)
             await _isolated("world_tools", self.world_tools.close)
             await _isolated("world", self.world.close)
             await _isolated("cad_kernel", self.cad_kernel.close)

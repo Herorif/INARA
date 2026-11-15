@@ -1,0 +1,32 @@
+/* The Systems rail (docs/SYSTEMS_RAIL.md) inside the context inspector. Tokens only. */
+.systems-rail { display:flex; flex-direction:column; min-width:0; }
+.rail-section { display:flex; flex-direction:column; gap:.375rem; min-width:0; padding:.75rem 0; border-top:1px solid var(--line); }
+.rail-section:first-child { padding-top:.25rem; border-top:0; }
+.rail-section .rail-label { margin:0 0 .125rem; font-family:var(--font-display); font-size:var(--text-xs); }
+
+.rail-clock { display:block; font-family:var(--font-display); font-size:28px; font-weight:500; line-height:1.1; color:var(--text-1); font-variant-numeric:tabular-nums; }
+.rail-date { margin:0; font-size:var(--text-sm); color:var(--text-2); }
+
+.rail-line { margin:0; min-width:0; font-size:var(--text-sm); line-height:var(--leading-normal); color:var(--text-2); overflow-wrap:anywhere; }
+.rail-line--strong { color:var(--text-1); }
+.rail-paused { color:var(--text-3); }
+.rail-link { align-self:flex-start; margin-left:-.625rem; }
+
+.rail-vitals { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.5rem; }
+.rail-vital { display:flex; align-items:center; justify-content:space-between; gap:.5rem; min-width:0; }
+.rail-vital__text { display:flex; flex-direction:column; gap:.125rem; min-width:0; }
+.rail-vital__label { font-size:var(--text-xs); color:var(--text-3); }
+.rail-vital__value { font-family:var(--font-mono); font-size:var(--text-xs); color:var(--text-1); overflow-wrap:anywhere; }
+.rail-nowrap { white-space:nowrap; }
+.rail-spark { flex:none; width:120px; height:24px; overflow:hidden; }
+.rail-spark .uplot, .rail-spark .u-wrap { width:120px; height:24px; }
+
+.rail-facts { margin:0; display:flex; flex-direction:column; gap:.375rem; }
+.rail-facts>div { display:flex; justify-content:space-between; gap:.75rem; font-size:var(--text-sm); }
+.rail-facts dt { color:var(--text-2); }
+.rail-facts dd { margin:0; color:var(--text-1); text-align:right; }
+
+.rail-jobs { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.375rem; }
+.rail-jobs li { display:flex; justify-content:space-between; gap:.75rem; min-width:0; font-size:var(--text-sm); }
+.rail-jobs__name { min-width:0; color:var(--text-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rail-jobs__phase { flex-shrink:0; color:var(--text-2); }

@@ -1068,6 +1068,50 @@
       "replacement": "WeatherService / WeatherTransport (backend/services/weather.py, backend/transport/weather.py)",
       "status": "implemented"
     },
+    "vitals_watch": {
+      "schema": "VitalsWatch (on: bool, low_battery: bool = false; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "This socket's Systems rail watch; the resource state (gaming pauses sampling)",
+      "effects": "on: adds this socket as a watcher and starts the vitals loop (psutil every 2 s, 5 s on low battery: the hint or this PC discharging at 20% or less). off: removes it; the loop stops when nobody watches. No settings, no files, no network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; values never logged",
+      "response": "Origin ACK {ok, watching, paused, interval}; invalid_arguments as a plain message. Samples arrive as vitals {t, cpu, mem: {used, total}, disk: {used, total}, net: {up, down}, battery?: {percent, plugged}, gpu?: {percent}} to watching owner renderers only",
+      "lifetime": "Watch held until off, disconnect or shutdown; no sampling in gaming mode",
+      "replacement": "VitalsService / VitalsTransport (backend/services/vitals.py, backend/transport/vitals.py)",
+      "status": "implemented"
+    },
+    "weather_now": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "assistant.home_place; the weather service's 10-minute forecast cache",
+      "effects": "No home town: nothing. Else WeatherService.lookup(None, 'now'): at most one Open-Meteo forecast GET (no key) when the cache is cold",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; place never logged",
+      "response": "Origin ACK {ok: true, home: false} or {ok: true, home: true, line, temp, condition}; weather_unavailable as a plain message",
+      "lifetime": "One bounded lookup (9 s overall); the rail asks every 15 min while visible",
+      "replacement": "VitalsService / VitalsTransport (backend/services/vitals.py, backend/transport/vitals.py)",
+      "status": "implemented"
+    },
+    "agenda_next": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Today's calendar events (calendar connected, read_events switch, calendar_read permission) and the reminder store (list_reminders permission), as quick_agenda reads them",
+      "effects": "Read only: CalendarService.today_events and list_reminders; no writes",
+      "policy": "Independent owner/role/unlock gate; the quick_agenda gates; not a dispatcher tool and not model-visible; titles never logged",
+      "response": "Origin ACK {ok, calendar: connected|not_connected|off|needs_approval|unavailable, event: {title, time, at} | null, reminders: {count, first: {title, time}} | null}; titles only, no places, attendees or notes",
+      "lifetime": "One bounded read (calendar 4 s); the rail asks every minute while visible",
+      "replacement": "VitalsService / VitalsTransport (backend/services/vitals.py, backend/transport/vitals.py)",
+      "status": "implemented"
+    },
+    "home_summary": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Home Assistant connection and the home_devices permission, as quick_home reads them",
+      "effects": "Read only: HomeAssistantService.list_for_brain shaped by voice_quick.home_summary; off limits devices are counted, never described",
+      "policy": "Independent owner/role/unlock gate; the quick_home gate; not a dispatcher tool and not model-visible; device names never logged",
+      "response": "Origin ACK {ok, connected, line}; line is null when it couldn't be read",
+      "lifetime": "One bounded Home Assistant read; the rail asks every minute while visible",
+      "replacement": "VitalsService / VitalsTransport (backend/services/vitals.py, backend/transport/vitals.py)",
+      "status": "implemented"
+    },
     "home_status": {
       "schema": "EmptyRequest",
       "caller": "Authenticated unlocked owner renderer",
