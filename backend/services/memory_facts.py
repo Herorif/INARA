@@ -639,7 +639,7 @@ def mirror_markdown(facts):
 
 class MarkdownMirror:
     """Rewrites ``path`` from ``facts()`` (the current facts) ``delay`` seconds after the last
-    ``changed()``. The file is replaced atomically and left read-only; when its text would
+    ``changed()``. The file is replaced atomically (and stays writable); when its text would
     not change, nothing is written. Errors are logged by type only, never with fact text."""
 
     def __init__(self, path, facts, delay=MIRROR_DELAY, timer=threading.Timer):
@@ -687,8 +687,9 @@ class MarkdownMirror:
             partial.write_text(text, encoding="utf-8", newline="\n")
             if self.path.exists():
                 os.chmod(self.path, stat.S_IREAD | stat.S_IWRITE)  # Windows: replace needs it
+            # Left writable on purpose: a read-only file blocks deleting the data folder
+            # (profile cleanup, the owner's own tidy-up). Its header says edits are not read.
             os.replace(partial, self.path)
-            os.chmod(self.path, stat.S_IREAD)
             return True
         except Exception as exc:
             logger.warning("Memory mirror could not be written (%s)", type(exc).__name__)

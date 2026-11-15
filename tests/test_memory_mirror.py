@@ -126,7 +126,8 @@ def test_changes_are_debounced_into_one_write(store, clock, mirror, timers):
     timers.fire()
     text = mirror.path.read_text(encoding="utf-8")
     assert "- **Tea** — Likes teh tarik." in text and "- **Office** — Works in Bangsar." in text
-    assert not os.stat(mirror.path).st_mode & stat.S_IWRITE  # left read-only
+    # Left writable, so deleting the data folder (profile cleanup) never fails on it.
+    assert os.stat(mirror.path).st_mode & stat.S_IWRITE
     assert not mirror.path.with_name("MEMORY.md.tmp").exists()
 
 
@@ -138,7 +139,7 @@ def test_every_kind_of_change_reaches_the_mirror(store, clock, mirror, timers):
     text = mirror.path.read_text(encoding="utf-8")
     assert "teh o ais" in text and "teh tarik" not in text  # superseded facts are left out
     assert store.forget(newer["id"])
-    timers.fire()  # a read-only file is still replaced
+    timers.fire()
     assert "Nothing remembered yet." in mirror.path.read_text(encoding="utf-8")
     assert not store.forget(newer["id"])  # nothing deleted: no new rewrite
     assert timers.live() == []
