@@ -33,7 +33,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 ## Wave 1 — real CAD and the JARVIS look (S3, S13a) — the two groups may run in parallel
 
 - [x] **S3.1** `cad_features.py`: feature tree models, limits, stable hash · S3 · C — 3fcb382
-- [ ] **S3.2** `cad_kernel_worker.py` (build123d in `.venv-cad`) and `cad_kernel.py` (start, reuse, timeout, kill tree, error mapping, fallback to the box engine) · S3 · C · needs S3.1 · opt-in real-kernel tests
+- [x] **S3.2** `cad_kernel_worker.py` (build123d in `.venv-cad`) and `cad_kernel.py` (start, reuse, timeout, kill tree, error mapping, fallback to the box engine) · S3 · C · needs S3.1 · opt-in real-kernel tests — 113fb59 (application wiring lands with S3.3)
 - [ ] **S3.3** Live design: feature steps (hole, fillet, chamfer, cut, shell, text, pattern), tool descriptions · S3 · C · needs S3.2
 - [ ] **S3.4** Live design canvas loads the kernel's GLB draft with the blueprint material · S3 · M · needs S3.3
 - [ ] **S3.5** `scripts/setup-cad-engine.ps1`, `requirements-cad-kernel.lock`, `docs/CAD_STUDIO.md` · S3 · L
@@ -143,6 +143,9 @@ this session only (`RUNBOOK.md` step 2.4); a resumed session asks again.
   5.5 cache reads at $0.20/MTok while the claude-api skill says $0.10 — check in S16.
 - S1.6: CAD planning (`create_text_provider()` in conversation.py, no settings) gets web
   search by default; pass `web_search=False` there in S1.7.
+- S3.2: the spec's sample tree does not build as written: OpenCascade cannot shell a body
+  after its fillets and chamfers, and a 1 mm chamfer uses up a 2 mm wall. Order shells
+  first in examples and tool descriptions; the kernel reports the failure plainly.
 - S2.2: the shared SegmentedControl draws its option labels at 11 px (0.6875rem), below
   the 12 px minimum; S13a.1 raises it for every segmented control at once.
 - S14.6: Playwright MCP runs with the installed Microsoft Edge (`--browser msedge`), so no

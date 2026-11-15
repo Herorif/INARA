@@ -204,6 +204,13 @@ class Application:
         self.conversation_transport = ConversationTransport(
             sio, self.conversation, self.dispatcher, self.sessions
         )
+        # S4.1 flight recorder (docs/DIAGNOSTICS.md): the last 200 turns, in memory only.
+        from services.trace import TraceService
+        from transport.trace import TraceTransport
+
+        self.trace = TraceService(self)
+        self.conversation.tracer = self.trace
+        self.trace_transport = TraceTransport(self)
         # V2 Show JARVIS (docs/VISION_STUDIO.md): vision_ask, vision_capture_result and the
         # brain's look_through_camera (always asks). Photos are never stored.
         from services.vision_ask import ShowJarvis
@@ -211,6 +218,7 @@ class Application:
         self.show_jarvis = ShowJarvis(self)
         self.mobile = MobileService(self)
         self.mobile_transport = MobileTransport(self)
+        self.mobile.chat.tracer = self.trace  # phone chat turns are traced too
         self.speech = SpeechService(self)
         self.speech_transport = SpeechTransport(self)
         # This PC's microphone/speaker for tray voice; the audio library loads on first use.

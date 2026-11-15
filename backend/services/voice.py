@@ -375,6 +375,7 @@ class VoiceService:
         # Admission before any provider connection: budget caps apply per Live turn.
         session.ticket, session.ticket_started = session.usage.begin(model_id("voice")), now
         self.sessions[owner] = session
+        self.trace_event(session, "started", model=model_id("voice"))
         session.runner = asyncio.create_task(self.run(session), name="voice-live")
         session.watchdog = asyncio.create_task(self.watch(session), name="voice-watchdog")
         return {"session_id": session.id, "input_rate": INPUT_RATE, "output_rate": OUTPUT_RATE}
@@ -530,6 +531,7 @@ class VoiceService:
         )
         # Hold the one-per-owner slot while the devices open.
         self.sessions[owner] = session
+        self.trace_event(session, "started", model=model_id("voice"))
         if source != "briefing":
             self.briefing_event("presence", "voice")  # the owner is at the PC
         # How it started is known before the first snapshot (session.wake follows the
@@ -811,6 +813,7 @@ class VoiceService:
                 try:
                     async with self.connector(model_id("voice"), self.config(session)) as live:
                         session.live, session.connected, attempts = live, True, 0
+                        self.trace_event(session, "connected")
                         await self.set_state(session, self.rest_state(session))
                         if session.say is not None and not session.said:
                             # The morning briefing: one text turn, once (not again on resume).
@@ -1024,12 +1027,14 @@ class VoiceService:
                 -CAPTION_LIMIT:
             ]
             session.last_activity = self.clock()
+            self.trace_event(session, "speech_in")
             await self.emit(
                 session, "voice_caption", {"role": "user", "text": session.user_text, "final": False}
             )
         if content.interrupted:
             session.model_streaming, session.drop_until = False, None
             self.end_world_tour()  # the owner talked over JARVIS (barge-in)
+            self.trace_event(session, "interrupted")
             await self.emit(session, "voice_interrupted", {})
             await self.complete_turn(session)
         if content.model_turn and content.model_turn.parts:
@@ -1043,6 +1048,7 @@ class VoiceService:
                             continue  # the answer the owner barged in on; never "speaking"
                         session.drop_until = None
                     session.last_activity = self.clock()
+                    self.trace_event(session, "audio_out")
                     if session.state != "speaking":
                         await self.set_state(session, "speaking")
                     session.out_seq += 1
@@ -1063,6 +1069,10 @@ class VoiceService:
     async def complete_turn(self, session, final=False):
         user, jarvis = session.user_text.strip(), session.jarvis_text.strip()
         session.user_text = session.jarvis_text = ""
+        self.trace_event(
+            session, "turn_complete", pending=bool(session.brain), final=final, user=user,
+            jarvis=jarvis,
+        )
         brain = session.brain_turn
         if not session.brain:  # the answer after a hand-off belongs to the same exchange
             session.brain_turn = False
@@ -1125,6 +1135,8 @@ class VoiceService:
 
     async def tool_call(self, session, call):
         session.last_activity = self.clock()
+        if call.name == "ask_brain" or call.name in voice_quick.QUICK_TOOLS:
+            self.trace_event(session, "tool", call_id=call.id, name=call.name)
         if call.name == "ask_brain":
             session.brain_turn, session.brain_stop = True, None
             task = asyncio.create_task(self.ask_brain(session, call), name="voice-brain")
@@ -1149,14 +1161,18 @@ class VoiceService:
     async def quick_answer(self, session, call):
         """quick_weather / quick_agenda / quick_home: the same session checks as ask_brain
         (owner, face lock, project, gaming mode, microphone permission), never an approval."""
+        outcome = "error"
         try:
             self.authorize(session)
             async with asyncio.timeout(voice_quick.QUICK_SECONDS):
                 response = await voice_quick.answer(self.app, call.name, call.args)
             self.authorize(session)
+            outcome = "ok"
         except asyncio.CancelledError:
+            self.trace_event(session, "tool_done", call_id=call.id, outcome="cancelled")
             raise
         except TimeoutError:
+            outcome = "timeout"
             logger.info("Voice quick answer timed out (%s)", call.name)
             response = voice_quick.unavailable(voice_quick.TIMED_OUT)
         except ServiceError as exc:
@@ -1164,6 +1180,7 @@ class VoiceService:
         except Exception as exc:
             logger.warning("Voice quick answer failed (%s, %s)", call.name, type(exc).__name__)
             response = voice_quick.unavailable(voice_quick.UNEXPECTED)
+        self.trace_event(session, "tool_done", call_id=call.id, outcome=outcome)
         if not session.closed:
             session.last_activity = self.clock()
         self.respond(session, call, response)
@@ -1207,6 +1224,7 @@ class VoiceService:
                     await self.app.sio.emit("tool_confirmation_request", request, room=room)
 
             turn = ConversationRequest(text=request.strip(), conversation_id=session.conversation_id)
+            self.trace_event(session, "brain", call_id=call.id, request_id=turn.request_id)
             pacer = asyncio.create_task(
                 self.brain_pacer(session, call, progress), name="voice-brain-progress"
             )
@@ -1268,6 +1286,15 @@ class VoiceService:
                 pacer.cancel()
                 await asyncio.gather(pacer, return_exceptions=True)
         await self.answered(session, call, response, interim=progress.interim)
+
+    def trace_event(self, session, kind, **data):
+        """One flight-recorder hook (services/trace.py); it never raises into the session."""
+        try:
+            tracer = getattr(self.app, "trace", None)
+            if tracer is not None and hasattr(tracer, "voice_event"):
+                tracer.voice_event(session, kind, **data)
+        except Exception as exc:
+            logger.warning("Voice trace hook failed (%s)", type(exc).__name__)
 
     def progress_line(self, phrase):
         """``<phrase>, <address>.`` in the persona's form of address (none: no address)."""

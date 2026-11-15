@@ -332,6 +332,9 @@ class TurnBudget:
         # the first model step, and token counts summed over the turn's model steps.
         self.first_token_ms = None
         self.tokens = {"input": 0, "output": 0}
+        # List-price estimate summed over priced model steps (llm/pricing.py), for the
+        # flight recorder (services/trace.py); None while no step was priced.
+        self.cost_microusd = None
         self._holds = 0
         self._held_at = None
         self._held_total = 0.0
@@ -369,12 +372,22 @@ class TurnBudget:
         if step == 0 and self.first_token_ms is None:
             self.first_token_ms = int((self.clock() - self.started) * 1000)
 
-    def add_tokens(self, response):
-        """Add one model step's token counts (content-free) to the turn's totals."""
+    def add_tokens(self, response, model=None):
+        """Add one model step's token counts (content-free) to the turn's totals, and its
+        list-price estimate when ``model`` is priced."""
         try:
             counts = usage_counts(response) or {}
         except Exception:  # telemetry never breaks a turn
             counts = {}
+        if model and counts:
+            try:
+                from llm.pricing import estimate_microusd
+
+                cost = estimate_microusd(model, counts)
+            except Exception:
+                cost = None
+            if isinstance(cost, int):
+                self.cost_microusd = (self.cost_microusd or 0) + cost
         # Claude reports cached prompt tokens apart from input_tokens; Gemini's
         # prompt_token_count already includes them.
         self.tokens["input"] += sum(
@@ -605,6 +618,8 @@ class ConversationService:
         self.pointers = {}  # (owner, project) -> pointer, without a durable store
         # The last brain turn's content-free timing (see ``turn_timing``), or None.
         self.last_turn_timing = None
+        # The flight recorder (services/trace.py TraceService), set by the application root.
+        self.tracer = None
 
     def current_conversation(self, owner, project):
         """The conversation tray voice joins for ``project``: the one the workspace last
@@ -815,7 +830,7 @@ class ConversationService:
                     "budget": None,
                     "progress": progress_notifier(on_progress),
                 }
-                outcome, started, cancelled = "failed", None, False
+                outcome, started, cancelled, answer = "failed", None, False, None
                 turn_started = time.monotonic()
                 try:
                     provider = self.provider_factory()
@@ -835,6 +850,7 @@ class ConversationService:
                         self._text_turn
                     )
                     result, entries = await turn(provider, **context)
+                    answer = result.text
                     outcome = "budget" if context["budget"].expired else "ok"
                     history = trim_history([*history, *entries])
                     if self.store is not None:
@@ -883,6 +899,8 @@ class ConversationService:
                         "cancelled" if cancelled else (
                             outcome if outcome in ("ok", "budget") else "error"
                         ),
+                        request_text=request.text, answer_text=answer,
+                        owner=billing_owner or owner,
                     )
                     if started is not None:
                         from llm.base import log_provider_timing
@@ -924,8 +942,11 @@ class ConversationService:
             return None
         return self.effort or getattr(provider, "effort", None)
 
-    def _record_turn_timing(self, request_id, usage_feature, provider, budget, elapsed, outcome):
-        """Log the turn_timing line and keep it as ``last_turn_timing``. Never raises."""
+    def _record_turn_timing(self, request_id, usage_feature, provider, budget, elapsed, outcome,
+                            request_text=None, answer_text=None, owner=None):
+        """Log the turn_timing line, keep it as ``last_turn_timing`` and hand it to the
+        flight recorder (``tracer``, services/trace.py, which drops the text unless
+        ``diagnostics.include_text`` is on). Never raises."""
         try:
             timing = turn_timing(
                 request_id,
@@ -941,6 +962,15 @@ class ConversationService:
             log_turn_timing(timing, budget)
         except Exception:
             logger.warning("The turn timing could not be recorded", exc_info=True)
+            return
+        if self.tracer is not None:
+            try:
+                self.tracer.record_turn(
+                    timing, budget, usage_feature=usage_feature, owner=owner,
+                    request_text=request_text, answer_text=answer_text,
+                )
+            except Exception as exc:  # tracing never breaks a turn; no text in the log
+                logger.warning("The turn trace could not be recorded (%s)", type(exc).__name__)
 
     def _offer_world(self, owner, request, history):
         """Whether this turn declares the world tools (services/tool_groups.py)."""
@@ -1002,7 +1032,8 @@ class ConversationService:
         spec = self._tool_spec(call.name)
         long_running = getattr(spec, "long_running", False) is True
         started = budget.clock()
-        record = {"kind": "tool", "step": step, "tool": call.name, "long_running": long_running}
+        record = {"kind": "tool", "step": step, "tool": call.name, "long_running": long_running,
+                  "start_ms": int((started - budget.started) * 1000)}
         budget.steps.append(record)
         if not long_running and budget.left() <= budget.reserve:
             record.update(ms=0, outcome="not_run")
@@ -1010,15 +1041,26 @@ class ConversationService:
         holds = 0
         approve = context["request_approval"]
 
+        def mark(answer):
+            # For the flight recorder (services/trace.py): how the approval card was answered.
+            asked = record.get("approval")
+            if asked is not None and asked["answer"] is None:
+                asked.update(answer=answer,
+                             answered_ms=int((budget.clock() - budget.started) * 1000))
+
         async def approval(payload):
             nonlocal holds
             budget.hold()
             holds += 1
+            record["approval"] = {
+                "asked_ms": int((budget.clock() - budget.started) * 1000), "answer": None,
+            }
             return await approve(payload)
 
         def approved():
             # Called by the dispatcher just before the tool executes, after any approval.
             nonlocal holds
+            mark("approved")
             if holds:
                 holds -= 1
                 budget.release()
@@ -1048,8 +1090,11 @@ class ConversationService:
         record["ms"] = int((budget.clock() - started) * 1000)
         if not finished:
             record["outcome"] = "cut"
+            mark("timeout")
             return dict(TOOL_TIMED_OUT), True
         output, failed = task.result()
+        code = output.get("error") if failed and isinstance(output, dict) else None
+        mark("denied" if code == "permission_denied" else "timeout")
         record["outcome"] = "error" if failed else "ok"
         if not failed:
             budget.finished.append(call.name)
@@ -1126,7 +1171,8 @@ class ConversationService:
                 deadline = None if retried else self.first_token_timeout
                 started = budget.clock()
                 record = {"kind": "model", "step": step, "provider": getattr(target, "name", None),
-                          "model": getattr(target, "_model", None), "retry": retried}
+                          "model": getattr(target, "_model", None), "retry": retried,
+                          "start_ms": int((started - budget.started) * 1000)}
                 budget.steps.append(record)
                 task = asyncio.ensure_future(call(target, extra))
                 try:
@@ -1162,7 +1208,7 @@ class ConversationService:
                 response = task.result()
                 # A call that does not stream: its response is its first content.
                 budget.first_progress(step)
-                budget.add_tokens(response)
+                budget.add_tokens(response, getattr(target, "_model", None))
                 return response, target
         finally:
             if created:

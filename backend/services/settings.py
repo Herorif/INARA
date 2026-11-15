@@ -779,6 +779,40 @@ def mcp_server_configs(settings):
     return result
 
 
+class DiagnosticsSettings(EmptyRequest):
+    """``diagnostics.*`` (docs/DIAGNOSTICS.md). ``include_text``: the flight recorder
+    (services/trace.py) also keeps each turn's request and answer, cut to 500 characters.
+    Off by default: traces then hold timings, counts and tool names only."""
+
+    include_text: StrictBool | None = None
+
+    @field_validator("include_text", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a diagnostics setting to update.")
+        return self
+
+
+DIAGNOSTICS_DEFAULTS = {"include_text": False}
+
+
+def diagnostics_settings(settings):
+    """The saved ``diagnostics`` block over its defaults; a non-bool value reads as off."""
+    saved = (settings or {}).get("diagnostics")
+    saved = saved if isinstance(saved, dict) else {}
+    return {
+        key: saved[key] if isinstance(saved.get(key), bool) else default
+        for key, default in DIAGNOSTICS_DEFAULTS.items()
+    }
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
@@ -791,6 +825,7 @@ class SettingsPatch(EmptyRequest):
     home_assistant: HomeAssistantSettings | None = None
     world: WorldSettings | None = None
     mcp: McpSettings | None = None
+    diagnostics: DiagnosticsSettings | None = None
 
     @field_validator(
         "tool_permissions",
@@ -804,6 +839,7 @@ class SettingsPatch(EmptyRequest):
         "home_assistant",
         "world",
         "mcp",
+        "diagnostics",
         mode="before",
     )
     @classmethod
@@ -884,6 +920,7 @@ class SettingsService:
             ("briefing", BRIEFING_DEFAULTS),
             ("home_assistant", HOME_ASSISTANT_DEFAULTS),
             ("world", WORLD_DEFAULTS),
+            ("diagnostics", DIAGNOSTICS_DEFAULTS),
         ):
             if section in patch:
                 current = candidate.get(section)
@@ -903,7 +940,7 @@ class SettingsService:
                 raise ServiceError("invalid_arguments", BRIEFING_WINDOW_ORDER)
         sections = (
             "tool_permissions", "assistant", "voice", "calls", "calendar", "briefing",
-            "home_assistant", "world",
+            "home_assistant", "world", "diagnostics",
         )
         candidate.update({key: value for key, value in patch.items() if key not in sections})
         try:

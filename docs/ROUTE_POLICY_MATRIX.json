@@ -265,6 +265,28 @@
       "replacement": "BrainCheck (backend/services/brain_check.py) / SettingsTransport",
       "status": "implemented"
     },
+    "trace_recent": {
+      "schema": "TraceRecent {limit: 1-200, default 50; extra fields forbidden}",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The in-memory flight recorder (backend/services/trace.py): the last 200 turns since startup, the owner's own",
+      "effects": "Read only. Never changes settings or traces",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true, traces: [{id, origin, started_at, provider, model, effort, outcome, total_ms, first_token_ms, spans, tokens, cost_usd, approvals}]} newest first; request_text/answer_text (500 chars) only while diagnostics.include_text is on; invalid_arguments and trace_unavailable as plain messages. New traces arrive as trace_added {id, origin, outcome, total_ms} to the owner's renderers",
+      "lifetime": "Synchronous in-memory read",
+      "replacement": "TraceService (backend/services/trace.py) / TraceTransport (backend/transport/trace.py)",
+      "status": "implemented"
+    },
+    "trace_clear": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The in-memory flight recorder (backend/services/trace.py), the owner's traces",
+      "effects": "Forget the owner's traces in memory; nothing on disk",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true}; invalid_arguments and trace_unavailable as plain messages",
+      "lifetime": "Synchronous in-memory change",
+      "replacement": "TraceService (backend/services/trace.py) / TraceTransport (backend/transport/trace.py)",
+      "status": "implemented"
+    },
     "get_settings": {
       "schema": "EmptyRequest",
       "caller": "Authenticated owner renderer only",
