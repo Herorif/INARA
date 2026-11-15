@@ -6,6 +6,7 @@ export const features = [
   { id: 'connections', title: 'Connections', group: 'System', keywords: 'kasa printer dependencies device setup offline status connections readiness', flag: 'showConnectionReadiness' },
   { id: 'tasks', title: 'Tasks', group: 'Organize', keywords: 'task queue workflow plan approval steps receipts reviewed tasks', flag: 'showTaskQueue' },
   { id: 'usage', title: 'Usage', group: 'System', keywords: 'budget spending tokens costs limits evaluations quality usage & quality', flag: 'showUsageCenter' },
+  { id: 'knows', title: 'What JARVIS knows', group: 'Organize', keywords: 'memory long-term remember learned facts about me preferences people places routines moments forget pause learning export' },
   { id: 'memory', title: 'Project memory', group: 'Organize', keywords: 'remember preferences facts decisions search forget export', flag: 'showProjectMemory' },
   { id: 'quick', title: 'Quick assistant', group: 'Assist', keywords: 'voice push talk microphone hotkey compact chat assistant jarvis' },
   { id: 'capabilities', title: 'Capabilities', group: 'System', keywords: 'setup diagnostics hardware resources queue readiness capability center', flag: 'showCapabilities' },

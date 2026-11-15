@@ -52,7 +52,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S6.1** Memory store (tables, FTS5), `memory_search`, `memory_remember`, `memory_forget` · S6 · C — see the commit "Give JARVIS a long-term memory store" (fact text is DPAPI-encrypted and FTS5 indexes keyed word hashes, per docs/PERSISTENCE.md; pause also blocks memory_remember; the `memory_remembered` toast has no renderer yet — S6.4)
 - [ ] **S6.2** Extractor after idle (Haiku, structured output), rules, pause switch · S6 · C · needs S6.1
 - [ ] **S6.3** Read path: pinned profile and top facts placed after the cache breakpoint · S6 · C · needs S6.1
-- [ ] **S6.4** "What JARVIS knows" page and the Markdown mirror · S6 · M · needs S6.1
+- [x] **S6.4** "What JARVIS knows" page and the Markdown mirror · S6 · M · needs S6.1 — see the commit "Add the What JARVIS knows page" (captures `.runtime/ui-qa/memory/`; page id `knows`; mirror at `<data-v1>\memory\MEMORY.md`)
 - [ ] **S7.1** `Signal`, the bus contract, producers for calendar, weather, calls and jobs · S7 · C · needs S1.1
 - [ ] **S7.2** Proactive engine: scoring, chattiness, quiet hours, delivery by presence, mute rules, Activity list · S7 · C · needs S7.1
 - [ ] **S7.3** Heartbeat and `HEARTBEAT.md` · S7 · M · needs S7.2

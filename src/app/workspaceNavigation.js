@@ -19,6 +19,7 @@ export const workspaceTitles = {
   inbox: ['Inbox', 'Notifications you chose to share from your phone'],
   callsview: ['Calls', 'Calls JARVIS answered and made for you'],
   tasks: ['Tasks', 'Review and run multi-step desktop tasks'],
+  knows: ['What JARVIS knows', 'Things JARVIS has learned about you'],
   connections: ['Connections', 'Devices, phone and calls'],
   activity: ['Activity', 'Artifacts and revisions for this project'],
 };
