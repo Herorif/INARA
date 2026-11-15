@@ -48,7 +48,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 ## Wave 2 — trust, memory, initiative (S15, S6, S7, S5)
 
 - [x] **S15.1** Taint rule in `ToolDispatcher`, untrusted-content wrapping, approval card line · S15 · C — see the commit "Ask before any outward action after JARVIS reads untrusted content" (open: `reply(channel=...)` starts a turn tainted, but the phone call agent never goes through the dispatcher; S8 channels must pass their channel)
-- [ ] **S15.2** Sidecars start with a minimal environment and a job object · S15 · C
+- [x] **S15.2** Sidecars start with a minimal environment and a job object · S15 · C — see the commit "Start every sidecar with a minimal environment" (left alone: backend/calls/control.py, local_model.py, local_voice.py spawns; the owner's own app launches)
 - [x] **S6.1** Memory store (tables, FTS5), `memory_search`, `memory_remember`, `memory_forget` · S6 · C — see the commit "Give JARVIS a long-term memory store" (fact text is DPAPI-encrypted and FTS5 indexes keyed word hashes, per docs/PERSISTENCE.md; pause also blocks memory_remember; the `memory_remembered` toast has no renderer yet — S6.4)
 - [ ] **S6.2** Extractor after idle (Haiku, structured output), rules, pause switch · S6 · C · needs S6.1
 - [ ] **S6.3** Read path: pinned profile and top facts placed after the cache breakpoint · S6 · C · needs S6.1

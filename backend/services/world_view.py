@@ -37,6 +37,8 @@ from typing import Annotated
 import httpx
 from pydantic import Field, StrictBool, StrictStr, StringConstraints, ValidationError
 
+from services import job_object
+from services.child_env import minimal_env
 from services.log import get_logger, redact
 from services.settings import EmptyRequest, world_settings
 from services.tools import ServiceError
@@ -51,11 +53,6 @@ ALLOWED_HOSTS = "127.0.0.1,localhost"
 # GEV's own voice and chat agent stays unconfigured: these are set empty, so a .env in the
 # GEV folder can't fill them in either (its loader never overrides a variable that is set).
 AI_KEYS = ("OPENAI_API_KEY", "GEMINI_API_KEY")
-# The only parent variables Node gets (Windows needs SystemRoot; temp and profile folders).
-ENV_PASSTHROUGH = (
-    "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA",
-    "APPDATA", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
-)
 # GEV's feeds are HTTPS fetched by Node: trust the Windows certificate store, as Chromium and
 # the setup script's Git (schannel) do, so a PC whose antivirus inspects HTTPS still works.
 SYSTEM_CA = {"NODE_USE_SYSTEM_CA": "1"}
@@ -75,8 +72,6 @@ STDERR_SHOWN = 1500
 VIEW_BYTES = 16_384
 TITLE_CHARS = 80
 CAPTION_CHARS = 400
-CREATE_SUSPENDED = 0x00000004
-CREATE_NO_WINDOW = 0x08000000
 
 NOT_INSTALLED = {
     "node_missing": "Node 24 for World view isn't on this PC.",
@@ -123,86 +118,14 @@ def port_answers(port, timeout=0.3):
         return False
 
 
-class KillJob:
-    """A kill-on-close Windows Job Object holding Node and everything it starts.
-
-    The process starts suspended, joins the job, then runs (NtResumeProcess), so no child
-    can escape it. Closing the job's last handle (the core exiting) kills the whole tree.
-    Uses the core's Win32 boundary (resident.win32), as the workspace workers do.
-    """
-
-    def __init__(self, pid):
-        import ctypes as C
-        from ctypes import wintypes as W
-
-        from resident.win32 import ExtendedLimit, api, checked, close_handle, kernel
-
-        self._api, self._kernel, self._close, self._W = api, kernel, close_handle, W
-        self.job = checked(
-            api(kernel, "CreateJobObjectW", [W.LPVOID, W.LPCWSTR], W.HANDLE)(None, None)
-        )
-        try:
-            limits = ExtendedLimit()
-            limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-            checked(
-                api(kernel, "SetInformationJobObject", [W.HANDLE, C.c_int, W.LPVOID, W.DWORD],
-                    W.BOOL)(self.job, 9, C.byref(limits), C.sizeof(limits))
-            )
-            # PROCESS_TERMINATE | PROCESS_SET_QUOTA | PROCESS_SUSPEND_RESUME
-            process = checked(
-                api(kernel, "OpenProcess", [W.DWORD, W.BOOL, W.DWORD], W.HANDLE)(
-                    0x0001 | 0x0100 | 0x0800, False, pid
-                )
-            )
-            try:
-                checked(
-                    api(kernel, "AssignProcessToJobObject", [W.HANDLE, W.HANDLE], W.BOOL)(
-                        self.job, process
-                    )
-                )
-                resume = C.WinDLL("ntdll").NtResumeProcess
-                resume.argtypes, resume.restype = [W.HANDLE], C.c_long
-                if resume(process) != 0:
-                    raise OSError("The globe process could not be resumed")
-            finally:
-                close_handle(process)
-        except BaseException:
-            self.close()
-            raise
-
-    def terminate(self):
-        if self.job:
-            W = self._W
-            self._api(self._kernel, "TerminateJobObject", [W.HANDLE, W.UINT], W.BOOL)(self.job, 1)
-
-    def close(self):
-        if self.job:
-            self._close(self.job)
-            self.job = None
-
-
 async def spawn(argv, cwd, env):
-    """Start Node from an explicit argv (no shell): stdout discarded, stderr piped."""
-    options = dict(
-        cwd=cwd, env=env, stdin=asyncio.subprocess.DEVNULL,
-        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+    """Start Node from an explicit argv (no shell) in a kill-on-close job (services.job_object):
+    stdout discarded, stderr piped."""
+    return await job_object.spawn(
+        argv, cwd=cwd, env=env, label="The World view globe",
+        stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.PIPE,
     )
-    if os.name != "nt":
-        process = await asyncio.create_subprocess_exec(*argv, start_new_session=True, **options)
-        return process, None
-    process = await asyncio.create_subprocess_exec(
-        *argv, creationflags=CREATE_SUSPENDED | CREATE_NO_WINDOW, **options
-    )
-    try:
-        job = KillJob(process.pid)
-    except BaseException:
-        try:
-            process.kill()
-        except ProcessLookupError:
-            pass
-        await process.wait()
-        raise
-    return process, job
 
 
 def check_view(view):
@@ -280,17 +203,24 @@ class WorldView:
         ]
 
     @staticmethod
-    def environment(values):
-        source = {key.upper(): value for key, value in os.environ.items()}
-        env = {key: source[key] for key in ENV_PASSTHROUGH if source.get(key)}
-        system = Path(env.get("SYSTEMROOT", r"C:\Windows")) / "System32"
-        env["PATH"] = os.pathsep.join((str(Path(values["node"]).parent), str(system)))
-        env.update({key: "" for key in AI_KEYS})
-        env["GEV_ALLOWED_HOSTS"] = ALLOWED_HOSTS
-        env["GEV_EMBED_FRAME_ANCESTORS"] = " ".join(FRAME_ANCESTORS)
-        env["NO_COLOR"] = "1"
-        env.update(SYSTEM_CA)
-        return env
+    def environment(values, extra=None):
+        """The minimal child environment (services.child_env) and GEV's own variables.
+
+        PATH is only Node's folder and System32. ``extra`` is where a GEV provider key
+        from the encrypted store would go (none is configured today); a parent key never
+        reaches Node.
+        """
+        system = Path(os.environ.get("SYSTEMROOT") or r"C:\Windows") / "System32"
+        gev = {
+            "PATH": os.pathsep.join((str(Path(values["node"]).parent), str(system))),
+            **{key: "" for key in AI_KEYS},
+            "GEV_ALLOWED_HOSTS": ALLOWED_HOSTS,
+            "GEV_EMBED_FRAME_ANCESTORS": " ".join(FRAME_ANCESTORS),
+            "NO_COLOR": "1",
+            **SYSTEM_CA,
+            **(extra or {}),
+        }
+        return minimal_env(gev)
 
     # --- status -----------------------------------------------------------------------------
     def status(self):

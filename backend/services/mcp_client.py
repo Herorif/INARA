@@ -8,10 +8,12 @@ notifications/tools/list_changed and notifications/cancelled when a request time
 Process rules:
 - the server runs from an explicit argv list, never through a shell; batch files are
   refused because Windows runs them through cmd.exe;
-- the working directory and environment are explicit: a minimal safe base plus the
-  configured variables, with secrets resolved from the encrypted SecretStore by name;
-- on Windows the child starts suspended, joins a kill-on-close Job Object and only then
-  runs, so it and every process it starts die with the core or on ``close()``;
+- the working directory and environment are explicit: the minimal base of
+  ``services.child_env`` (no inherited keys or tokens) plus the configured variables,
+  with secrets resolved from the encrypted SecretStore by name;
+- on Windows the child starts suspended, joins a kill-on-close Job Object
+  (``services.job_object``) and only then runs, so it and every process it starts die
+  with the core or on ``close()``;
 - each message is at most 1 MB, each request has a deadline, and stderr is kept in a
   bounded ring buffer that is redacted and never logged.
 """
@@ -25,6 +27,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from services import job_object
+from services.child_env import minimal_env
 from services.log import get_logger
 from services.tools import ServiceError
 
@@ -45,17 +49,6 @@ TOOL_LIMIT = 1000
 REDACTED = "[redacted]"
 # Programs Windows runs through cmd.exe: their arguments would be shell-parsed.
 BATCH_SUFFIXES = (".bat", ".cmd")
-# The inherited environment is limited to what Windows programs need to start.
-SAFE_ENV = frozenset(
-    {
-        "systemroot", "systemdrive", "windir", "comspec", "pathext", "path", "temp", "tmp",
-        "programdata", "programfiles", "programfiles(x86)", "programw6432",
-        "commonprogramfiles", "commonprogramfiles(x86)", "commonprogramw6432", "public",
-        "allusersprofile", "appdata", "localappdata", "userprofile", "username",
-        "homedrive", "homepath", "os", "processor_architecture", "number_of_processors",
-    }
-)
-CREATE_SUSPENDED, CREATE_NO_WINDOW = 0x4, 0x08000000
 # JSON-RPC errors JARVIS sends for server-to-client requests it doesn't serve.
 METHOD_NOT_FOUND = -32601
 
@@ -97,8 +90,8 @@ class McpLaunch:
 
 
 def base_environment(environ=None):
-    environ = os.environ if environ is None else environ
-    return {key: value for key, value in environ.items() if key.lower() in SAFE_ENV}
+    """The minimal child environment (services.child_env): no inherited secrets."""
+    return minimal_env(environ=environ)
 
 
 def build_launch(config, secret_lookup, *, environ=None, default_cwd=None):
@@ -108,7 +101,7 @@ def build_launch(config, secret_lookup, *, environ=None, default_cwd=None):
     plain message when a secret is missing, the program can't be found, it is a batch
     file, the folder doesn't exist or a secret value appears in the command.
     """
-    env = base_environment(environ)
+    configured = {}
     secrets = []
     for key, value in config.env.items():
         if not isinstance(value, str):
@@ -123,9 +116,9 @@ def build_launch(config, secret_lookup, *, environ=None, default_cwd=None):
                 raise McpError("mcp_secret_invalid", f"The secret {name} can't be used here.")
             value = resolved
             secrets.append(resolved)
-        for existing in [item for item in env if item.casefold() == key.casefold()]:
-            del env[existing]
-        env[key] = value
+        configured[key] = value
+    # Only the configured variables reach the server, on top of the minimal base.
+    env = minimal_env(configured, environ=environ)
     argv = [str(item) for item in config.command]
     if any(secret in item for secret in secrets for item in argv):
         raise McpError(
@@ -161,90 +154,13 @@ def build_launch(config, secret_lookup, *, environ=None, default_cwd=None):
     return McpLaunch(argv, str(cwd), env, tuple(secrets), float(config.timeout_s))
 
 
-class _KillJob:
-    """A kill-on-close Windows Job Object holding the server and everything it starts.
-
-    Uses the core's own Win32 boundary (resident.win32): the structures and the
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE limit the workspace workers run under.
-    """
-
-    def __init__(self, pid):
-        import ctypes as C
-        from ctypes import wintypes as W
-
-        from resident.win32 import ExtendedLimit, api, checked, close_handle, kernel
-
-        self._api, self._kernel, self._close, self._W = api, kernel, close_handle, W
-        self.job = checked(
-            api(kernel, "CreateJobObjectW", [W.LPVOID, W.LPCWSTR], W.HANDLE)(None, None)
-        )
-        try:
-            limits = ExtendedLimit()
-            limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-            checked(
-                api(kernel, "SetInformationJobObject",
-                    [W.HANDLE, C.c_int, W.LPVOID, W.DWORD], W.BOOL)(
-                    self.job, 9, C.byref(limits), C.sizeof(limits)
-                )
-            )
-            # PROCESS_TERMINATE | PROCESS_SET_QUOTA | PROCESS_SUSPEND_RESUME
-            process = checked(
-                api(kernel, "OpenProcess", [W.DWORD, W.BOOL, W.DWORD], W.HANDLE)(
-                    0x0001 | 0x0100 | 0x0800, False, pid
-                )
-            )
-            try:
-                checked(
-                    api(kernel, "AssignProcessToJobObject", [W.HANDLE, W.HANDLE], W.BOOL)(
-                        self.job, process
-                    )
-                )
-                ntdll = C.WinDLL("ntdll")
-                resume = ntdll.NtResumeProcess
-                resume.argtypes, resume.restype = [W.HANDLE], C.c_long
-                if resume(process) != 0:
-                    raise OSError("The server process could not be resumed")
-            finally:
-                close_handle(process)
-        except BaseException:
-            self.close()
-            raise
-
-    def terminate(self):
-        if self.job:
-            W = self._W
-            self._api(self._kernel, "TerminateJobObject", [W.HANDLE, W.UINT], W.BOOL)(self.job, 1)
-
-    def close(self):
-        if self.job:
-            self._close(self.job)
-            self.job = None
-
-
-async def spawn(launch):
-    """Start the process suspended, put it in its job, then let it run (Windows)."""
-    if os.name != "nt":
-        process = await asyncio.create_subprocess_exec(
-            *launch.argv, cwd=launch.cwd, env=launch.env, stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-            start_new_session=True,
-        )
-        return process, None
-    process = await asyncio.create_subprocess_exec(
-        *launch.argv, cwd=launch.cwd, env=launch.env, stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        creationflags=CREATE_SUSPENDED | CREATE_NO_WINDOW,
+async def spawn(launch, label="An MCP server"):
+    """Start the process suspended, put it in its kill-on-close job, then let it run."""
+    return await job_object.spawn(
+        launch.argv, cwd=launch.cwd, env=launch.env, label=label,
+        stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
-    try:
-        job = _KillJob(process.pid)
-    except BaseException:
-        try:
-            process.kill()
-        except ProcessLookupError:
-            pass
-        await process.wait()
-        raise
-    return process, job
 
 
 def _key(value):

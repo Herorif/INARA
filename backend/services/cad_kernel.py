@@ -29,7 +29,8 @@ from pathlib import Path
 
 from services.cad_features import FeatureTreeError, canonical, describe, parse_tree, tree_hash
 from services.log import get_logger
-from services.mcp_client import McpLaunch, base_environment, spawn
+from services.child_env import minimal_env
+from services.mcp_client import McpLaunch, spawn
 from services.tools import ServiceError
 
 logger = get_logger(__name__)
@@ -212,7 +213,9 @@ class CadKernel:
         argv = [str(self.python), "-I", str(self.worker)]
         try:
             self.process, self.job = await spawn(
-                McpLaunch(argv, str(self.folder()), base_environment())
+                # No keys at all: the minimal base only (services.child_env).
+                McpLaunch(argv, str(self.folder()), minimal_env(python=True)),
+                label="The CAD kernel",
             )
         except (OSError, ValueError) as exc:
             self.mark_failed("spawn", type(exc).__name__)

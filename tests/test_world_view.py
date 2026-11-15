@@ -16,6 +16,7 @@ import psutil
 import pytest
 from pydantic import ValidationError
 
+from services.child_env import is_allowed
 import services.world_view as world_view
 from services.settings import SettingsPatch, WorldSettings, world_settings
 from services.tools import ServiceError
@@ -386,9 +387,10 @@ async def test_environment_has_no_ai_keys_and_the_gev_variables(world_app, monke
     for name in ("ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "JARVIS_SESSION_TOKEN", "NODE_OPTIONS"):
         assert name not in upper
     built = WorldView.environment(world_settings(world_app.settings))
-    allowed = set(world_view.ENV_PASSTHROUGH) | set(world_view.AI_KEYS) | {
+    # The minimal child environment (services.child_env) plus GEV's own variables.
+    gev = set(world_view.AI_KEYS) | {
         "PATH", "GEV_ALLOWED_HOSTS", "GEV_EMBED_FRAME_ANCESTORS", "NO_COLOR", "NODE_USE_SYSTEM_CA"}
-    assert set(built) <= allowed
+    assert all(is_allowed(name) or name.upper() in gev for name in built)
 
 
 def test_frame_ancestors_are_the_renderer_origins():

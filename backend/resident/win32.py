@@ -3,13 +3,14 @@
 import ctypes as C
 from ctypes import wintypes as W
 import json
-import os
 import queue
 import subprocess
 import time
 from pathlib import Path
 
 from resident.state import TRAY_ICONS
+from services.child_env import minimal_env
+from services.job_object import create_job
 from services.log import get_logger
 
 MF_CHECKED = 0x8
@@ -145,8 +146,9 @@ class WorkspaceProcess:
     """Atomically assign the child to a kill-on-close job, with pipe-only bootstrap.
 
     ``arguments`` replaces the default ``executable [-B] entrypoint`` command line
-    and ``environment`` adds variables to the filtered environment (for example
-    a credential that must not appear on the command line). ``bootstrap=None``
+    and ``environment`` adds variables to the minimal environment of
+    ``services.child_env`` (for example a credential that must not appear on the
+    command line). The job comes from ``services.job_object.create_job``. ``bootstrap=None``
     writes nothing to the child's stdin pipe.
     """
 
@@ -159,19 +161,8 @@ class WorkspaceProcess:
         information = ProcessInfo()
         security = Security(C.sizeof(Security), None, True)
         try:
-            self.job = checked(
-                api(kernel, "CreateJobObjectW", [W.LPVOID, W.LPCWSTR], W.HANDLE)(None, None)
-            )
-            limits = ExtendedLimit()
-            limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-            checked(
-                api(
-                    kernel,
-                    "SetInformationJobObject",
-                    [W.HANDLE, C.c_int, W.LPVOID, W.DWORD],
-                    W.BOOL,
-                )(self.job, 9, C.byref(limits), C.sizeof(limits))
-            )
+            # The shared kill-on-close job (services.job_object); the child is born in it.
+            self.job = create_job()
             checked(
                 api(
                     kernel,
@@ -230,40 +221,12 @@ class WorkspaceProcess:
             command = C.create_unicode_buffer(
                 subprocess.list2cmdline([str(item) for item in arguments])
             )
-            allowed = {
-                "systemroot",
-                "systemdrive",
-                "programdata",
-                "programfiles",
-                "programfiles(x86)",
-                "programw6432",
-                "commonprogramfiles",
-                "commonprogramfiles(x86)",
-                "commonprogramw6432",
-                "public",
-                "allusersprofile",
-                "windir",
-                "path",
-                "temp",
-                "tmp",
-                "appdata",
-                "localappdata",
-                "userprofile",
-                "username",
-                "os",
-                "homedrive",
-                "homepath",
-                "processor_architecture",
-                "number_of_processors",
-                "pythondontwritebytecode",
-                "comspec",
-                "pathext",
-            }
-            variables = {key: value for key, value in os.environ.items() if key.lower() in allowed}
-            for key, value in (environment or {}).items():
-                for existing in [name for name in variables if name.casefold() == key.casefold()]:
-                    del variables[existing]
-                variables[key] = value
+            # The minimal child environment (services.child_env): no inherited secrets;
+            # ``environment`` (for example cloudflared's TUNNEL_TOKEN) is added as given.
+            variables = minimal_env(
+                environment,
+                python=Path(executable).name.lower() in {"python.exe", "pythonw.exe"},
+            )
             environment = C.create_unicode_buffer(
                 "\0".join(
                     f"{key}={value}"
