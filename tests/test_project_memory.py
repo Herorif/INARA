@@ -354,5 +354,9 @@ def test_retrieval_never_executes_memory_and_has_small_context(memory_app):
     context = app.memory.context("owner", project(app), "enclosure clearance", "desktop")
     assert 0 < len(context["items"]) <= 4
     assert len(json.dumps(context["items"])) < 7000
-    assert not any(name.startswith("memory_") for name in app.dispatcher.tools)
+    # Project memory has no model tools: the only memory_* tools are long-term memory's
+    # (S6, services/memory_facts.py), which never touch project notes.
+    memory_tools = {name for name in app.dispatcher.tools if name.startswith("memory_")}
+    assert memory_tools == {"memory_search", "memory_remember", "memory_forget"}
+    assert all(app.dispatcher.tools[name].execute.__self__ is app.facts for name in memory_tools)
     assert not {"torch", "sentence_transformers", "faiss"} & set(__import__("sys").modules)

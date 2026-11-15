@@ -158,6 +158,14 @@ class Application:
 
         self.weather = WeatherService(self)
         self.weather_transport = WeatherTransport(self)
+        # S6.1 long-term memory (docs/MEMORY.md): encrypted facts with a keyed-hash FTS5
+        # index; memory_search / memory_remember (never ask), memory_forget (always asks)
+        # and the owner-only facts_* routes. Separate from project memory (self.memory).
+        from services.memory_facts import FactService
+        from transport.facts import FactsTransport
+
+        self.facts = FactService(self)
+        self.facts_transport = FactsTransport(self)
         # S13a.5 Systems rail (docs/SYSTEMS_RAIL.md): PC vitals while a rail watches, and the
         # owner-only vitals_watch, weather_now, agenda_next and home_summary routes.
         from services.vitals import VitalsService

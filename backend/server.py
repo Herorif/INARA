@@ -80,6 +80,11 @@ DEFAULT_SETTINGS = {
         "world_tour": False,
         # Weather (docs/WEATHER.md): a read-only Open-Meteo lookup never asks.
         "weather": False,
+        # Long-term memory (docs/MEMORY.md): searching and remembering never ask;
+        # memory_forget always asks (ToolSpec.always_ask), whatever this says.
+        "memory_search": False,
+        "memory_remember": False,
+        "memory_forget": True,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}

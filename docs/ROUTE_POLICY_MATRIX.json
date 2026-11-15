@@ -1068,6 +1068,61 @@
       "replacement": "WeatherService / WeatherTransport (backend/services/weather.py, backend/transport/weather.py)",
       "status": "implemented"
     },
+    "facts_list": {
+      "schema": "FactsListRequest (kind: profile|preference|person|place|routine|episode or null; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The core database's memory_facts table (subject and text DPAPI-encrypted) and its keyed-hash FTS5 index; the memory pause switch",
+      "effects": "Read only: decrypts the current (not superseded, not expired) facts, newest first",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; fact text never logged",
+      "response": "Origin ACK {ok: true, paused, facts: [{id, kind, subject, text, confidence, pinned, sensitivity, source_conversation_id, source_turn, created_at, updated_at, valid_from, valid_to, superseded_by}]}; invalid_arguments and memory_unavailable as plain messages",
+      "lifetime": "One synchronous read",
+      "replacement": "FactService / FactsTransport (backend/services/memory_facts.py, backend/transport/facts.py)",
+      "status": "implemented"
+    },
+    "facts_update": {
+      "schema": "FactsUpdateRequest (id: UUID; text 1-1000, subject 1-120, kind, pinned: bool, each optional, at least one; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The core database's memory_facts table (subject and text DPAPI-encrypted) and its keyed-hash FTS5 index; the memory pause switch",
+      "effects": "Edits one fact in place (same id, updated_at set) and rewrites its index entry in the same transaction. Owner edits are allowed while memory is paused; secret-like text is refused",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; fact text never logged",
+      "response": "Origin ACK {ok: true, fact}; memory_not_found, memory_secret, invalid_arguments and memory_unavailable as plain messages",
+      "lifetime": "One synchronous transaction",
+      "replacement": "FactService / FactsTransport (backend/services/memory_facts.py, backend/transport/facts.py)",
+      "status": "implemented"
+    },
+    "facts_delete": {
+      "schema": "FactsDeleteRequest (id: UUID; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The core database's memory_facts table (subject and text DPAPI-encrypted) and its keyed-hash FTS5 index; the memory pause switch",
+      "effects": "Hard delete of one fact and its index entry in one transaction (encrypted SQLite/WAL pages are not forensically erased)",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; fact text never logged",
+      "response": "Origin ACK {ok: true, deleted: id}; memory_not_found, invalid_arguments and memory_unavailable as plain messages",
+      "lifetime": "One synchronous transaction",
+      "replacement": "FactService / FactsTransport (backend/services/memory_facts.py, backend/transport/facts.py)",
+      "status": "implemented"
+    },
+    "facts_pause": {
+      "schema": "FactsPauseRequest (paused: bool; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The core database's memory_facts table (subject and text DPAPI-encrypted) and its keyed-hash FTS5 index; the memory pause switch",
+      "effects": "Saves the pause switch (DPAPI-protected document memory_facts_state). Paused: memory_remember and automatic extraction write nothing; owner edits and deletes still work",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; fact text never logged",
+      "response": "Origin ACK {ok: true, paused}; invalid_arguments and memory_unavailable as plain messages",
+      "lifetime": "One synchronous transaction",
+      "replacement": "FactService / FactsTransport (backend/services/memory_facts.py, backend/transport/facts.py)",
+      "status": "implemented"
+    },
+    "facts_export": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The core database's memory_facts table (subject and text DPAPI-encrypted) and its keyed-hash FTS5 index; the memory pause switch",
+      "effects": "Read only: every fact, current and superseded, decrypted into JSON text {format: jarvis-memory, version: 1, exported_at, paused, facts}. Nothing is written to disk by the core",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; fact text never logged",
+      "response": "Origin ACK {ok: true, count, json}; memory_unavailable as a plain message. The JSON is private plaintext for the owner",
+      "lifetime": "One synchronous read",
+      "replacement": "FactService / FactsTransport (backend/services/memory_facts.py, backend/transport/facts.py)",
+      "status": "implemented"
+    },
     "vitals_watch": {
       "schema": "VitalsWatch (on: bool, low_battery: bool = false; extra fields forbidden)",
       "caller": "Authenticated unlocked owner renderer",
@@ -2287,6 +2342,30 @@
       "context": "Any authenticated principal; the owner's assistant.home_place when no place is given (need_place when unset)",
       "lifetime": "Open-Meteo geocoding and forecast GETs (6 s each, 9 s overall, 10 minute in-memory cache per place and per coordinates); errors come back as {error: unavailable|not_found}, never raised; 10 s execution timeout",
       "replacement": "S1 weather (services/weather.py)",
+      "model_visible": true
+    },
+    "memory_search": {
+      "schema": "FactSearch",
+      "policy": "Own permissions[memory_search] (default False: never asks); deny rejects. Authenticated desktop owner only (authorize_owner); read only",
+      "context": "The owner's long-term facts (memory_facts); current facts only",
+      "lifetime": "BM25 over the keyed-hash FTS5 index re-ranked by recency; returns up to 8 {id, kind, subject, text, when}; 10 s execution timeout",
+      "replacement": "S6.1 long-term memory (services/memory_facts.py)",
+      "model_visible": true
+    },
+    "memory_remember": {
+      "schema": "FactRemember",
+      "policy": "Own permissions[memory_remember] (default False: never asks); deny rejects. Authenticated desktop owner only; refused while memory is paused (memory_paused) and for secret-like text (memory_secret: passwords, Luhn-valid card numbers, Malaysian IC numbers, sk-ant-/AIza/AQ. keys)",
+      "context": "The owner's long-term facts; the turn's conversation_id is stored as source_conversation_id",
+      "lifetime": "One synchronous insert (row and index entry in one transaction), then memory_remembered {text: at most 80 chars} to the owner's renderers; 10 s execution timeout",
+      "replacement": "S6.1 long-term memory (services/memory_facts.py)",
+      "model_visible": true
+    },
+    "memory_forget": {
+      "schema": "FactForget",
+      "policy": "always_ask: the owner approves every call; deny still disables it. Authenticated desktop owner only. review lists the facts that will be deleted (count, subjects and text up to 80 chars); no match is refused before any approval card",
+      "context": "The owner's long-term facts: one id, or the facts memory_search finds for the query (up to 8)",
+      "lifetime": "Approval (dispatcher timeout), then hard deletes of exactly the reviewed facts; 10 s execution timeout",
+      "replacement": "S6.1 long-term memory (services/memory_facts.py)",
       "model_visible": true
     }
   },

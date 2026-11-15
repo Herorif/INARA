@@ -42,13 +42,14 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S13a.3** Core glow sprite, breathing glow, dot grid with pointer parallax · S13a · C — 34efbdf (captures `.runtime/ui-qa/jarvis-language/glow/`)
 - [x] **S13a.4** Interface sounds (eight synthesized cues), setting and volume · S13a · M — see the commit "Give JARVIS interface sounds" (capture `.runtime/ui-qa/jarvis-language/sound/`; Windows mute is not detectable from the renderer; Live design panel approvals have no cue yet)
 - [x] **S13a.5** `services/vitals.py` and the Systems rail replacing the inspector content · S13a · C · needs S1.1 — 25b219c (captures `.runtime/ui-qa/jarvis-language/systems-rail/`; the old `.system-details` / `.today-*` CSS in workspace.css is now unused — remove in M5.5)
-- [ ] **W1** Wave check; captures in `.runtime/ui-qa/jarvis-language/`
+- [x] **W1** Wave check; captures in `.runtime/ui-qa/jarvis-language/` — at 06d399c: build passed, client 494 passed, pytest 3716 passed / 7 failed (all `test_live_design.py`, `resource_capacity`: the CAD job admission reads the host's real free RAM, ~1.4 GB here). Follow-up task T1 below makes those tests independent of host memory.
+- [ ] **T1** Live design tests fake the memory admission probe so they pass on a busy PC · M
 
 ## Wave 2 — trust, memory, initiative (S15, S6, S7, S5)
 
 - [x] **S15.1** Taint rule in `ToolDispatcher`, untrusted-content wrapping, approval card line · S15 · C — see the commit "Ask before any outward action after JARVIS reads untrusted content" (open: `reply(channel=...)` starts a turn tainted, but the phone call agent never goes through the dispatcher; S8 channels must pass their channel)
 - [ ] **S15.2** Sidecars start with a minimal environment and a job object · S15 · C
-- [ ] **S6.1** Memory store (tables, FTS5), `memory_search`, `memory_remember`, `memory_forget` · S6 · C
+- [x] **S6.1** Memory store (tables, FTS5), `memory_search`, `memory_remember`, `memory_forget` · S6 · C — see the commit "Give JARVIS a long-term memory store" (fact text is DPAPI-encrypted and FTS5 indexes keyed word hashes, per docs/PERSISTENCE.md; pause also blocks memory_remember; the `memory_remembered` toast has no renderer yet — S6.4)
 - [ ] **S6.2** Extractor after idle (Haiku, structured output), rules, pause switch · S6 · C · needs S6.1
 - [ ] **S6.3** Read path: pinned profile and top facts placed after the cache breakpoint · S6 · C · needs S6.1
 - [ ] **S6.4** "What JARVIS knows" page and the Markdown mirror · S6 · M · needs S6.1
