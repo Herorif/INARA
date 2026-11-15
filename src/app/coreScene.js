@@ -2,13 +2,14 @@
 // owns). Takes the parsed GLB scene of art/blender/jarvis-core.py, swaps its LINES for
 // 1 CSS px LineSegments2, sets the approved materials and lights, and applies coreModel poses.
 import {
-  AmbientLight, Color, DirectionalLight, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera,
-  Quaternion, Scene, Vector3,
+  AdditiveBlending, AmbientLight, CanvasTexture, Color, DirectionalLight, MeshBasicMaterial, MeshLambertMaterial,
+  PerspectiveCamera, Quaternion, Scene, Sprite, SpriteMaterial, Vector3,
 } from 'three';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
 import { CORE_SCALE_GAIN, EDGE_GLOW, SWEEP_VISIBLE, cameraFor } from './coreModel.js';
+import { GLOW_COLOR, GLOW_VISIBLE } from './glowModel.js';
 
 export const CORE_COLORS = Object.freeze({ accent: '#70E0ED', steel: '#5B6B73', face: '#0A1418', faceOffline: '#0C0F11' });
 export const CORE_NODES = Object.freeze(['ring_outer', 'ticks_minor', 'ticks_major', 'arc_band', 'ring_mid', 'beads',
@@ -17,6 +18,12 @@ export const PRIMARY_LINES = Object.freeze(['ring_outer', 'ticks_major', 'ring_m
 export const SECONDARY_LINES = Object.freeze(['ticks_minor', 'arc_band', 'ring_inner', 'reticle']);
 export const SMALL_LOD_NODES = Object.freeze(['ring_outer', 'ring_mid', 'beads', 'core_faces', 'core_edges']);
 const SECONDARY_OPACITY = 0.35, OFFLINE_OPACITY = 0.5;
+
+/** The glow sprite sits this far behind the origin (away from the camera), behind every core part. */
+export const GLOW_BACK = 1.0;
+/** The glow's gradient reaches zero at this fraction of the canvas half-width (no square edge). */
+export const GLOW_FILL = 0.96;
+const GLOW_TEXTURE_SIZE = 128;
 
 const Z_AXIS = new Vector3(0, 0, 1);
 const IDENTITY = new Quaternion();
@@ -45,10 +52,28 @@ function toWideLines(node, material) {
 }
 
 /**
- * createCore(gltfScene, { lod: 'small'|'full', cssSize }) → controller.
+ * The glow's radial gradient (white; the sprite material tints it cyan), drawn on a canvas once
+ * per core: no image file. Null without a DOM canvas (node tests): the core then has no glow.
+ */
+export function createGlowTexture(doc = typeof document === 'undefined' ? null : document) {
+  const canvas = doc?.createElement?.('canvas');
+  const context = canvas?.getContext?.('2d');
+  if (!context) return null;
+  canvas.width = canvas.height = GLOW_TEXTURE_SIZE;
+  const half = GLOW_TEXTURE_SIZE / 2;
+  const gradient = context.createRadialGradient(half, half, 0, half, half, half);
+  for (const [stop, alpha] of [[0, 1], [0.22, 0.7], [0.45, 0.32], [0.7, 0.1], [1, 0]]) gradient.addColorStop(stop, `rgba(255,255,255,${alpha})`);
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, GLOW_TEXTURE_SIZE, GLOW_TEXTURE_SIZE);
+  return new CanvasTexture(canvas);
+}
+
+/**
+ * createCore(gltfScene, { lod: 'small'|'full', cssSize, glowMap }) → controller.
+ * `glowMap` is the glow sprite's texture (default: createGlowTexture(); null for no glow).
  * The controller owns the scene graph it builds (`scene`, `camera`); the caller renders it.
  */
-export function createCore(gltfScene, { lod = 'full', cssSize = 64 } = {}) {
+export function createCore(gltfScene, { lod = 'full', cssSize = 64, glowMap } = {}) {
   const accent = new Color(CORE_COLORS.accent), steel = new Color(CORE_COLORS.steel);
   const face = new Color(CORE_COLORS.face), faceOffline = new Color(CORE_COLORS.faceOffline);
   const scene = new Scene();
@@ -82,6 +107,28 @@ export function createCore(gltfScene, { lod = 'full', cssSize = 64 } = {}) {
   });
   [beads.material].flat().forEach(item => item?.dispose());
   beads.material = new MeshBasicMaterial({ color: accent.clone() });
+
+  // Core glow: an additive, camera-facing sprite behind the core. Depth-tested (the dark faces and
+  // the primary lines cover it) but never written, drawn first among the see-through parts.
+  const map = glowMap === undefined ? createGlowTexture() : glowMap;
+  const glow = map ? new Sprite(new SpriteMaterial({
+    map, color: new Color(GLOW_COLOR), transparent: true, opacity: 0, blending: AdditiveBlending,
+    depthWrite: false, depthTest: true, fog: false, toneMapped: false,
+  })) : null;
+  if (glow) {
+    glow.name = 'core_glow';
+    glow.renderOrder = -1;
+    glow.visible = false;
+    scene.add(glow);
+  }
+  const placeGlow = view => {
+    if (!glow) return;
+    const back = new Vector3(...view.position).normalize().multiplyScalar(-GLOW_BACK);
+    glow.position.copy(back);
+    // Fill the frustum at the sprite's depth, so the gradient fades out inside the canvas.
+    const extent = 2 * GLOW_FILL * Math.tan(view.fov * Math.PI / 360) * (view.distance + GLOW_BACK);
+    glow.scale.set(extent, extent, 1);
+  };
 
   const rest = Object.fromEntries(['ring_mid', 'ring_inner', 'arc_band'].map(name => [name, found[name].quaternion.clone()]));
   const camera = new PerspectiveCamera(50, 1, 0.1, 100);
@@ -123,7 +170,7 @@ export function createCore(gltfScene, { lod = 'full', cssSize = 64 } = {}) {
   };
 
   const controller = {
-    scene, camera, nodes: found,
+    scene, camera, nodes: found, glow,
     get lod() { return currentLod; },
     setLod(value) {
       const next = value === 'small' ? 'small' : 'full';
@@ -136,6 +183,7 @@ export function createCore(gltfScene, { lod = 'full', cssSize = 64 } = {}) {
       camera.up.set(...view.up);
       camera.lookAt(...view.target);
       camera.updateProjectionMatrix();
+      placeGlow(view);
       paint(lastPose);
     },
     setCssSize(value) {
@@ -151,7 +199,20 @@ export function createCore(gltfScene, { lod = 'full', cssSize = 64 } = {}) {
       found.arc_band.quaternion.copy(rest.arc_band).multiply(spin.setFromAxisAngle(Z_AXIS, pose.arcAngle * DEG));
       paint(pose);
     },
+    /** Glow sprite opacity (0..1, from glowModel.glowOpacity); hidden below GLOW_VISIBLE. */
+    setGlow(opacity) {
+      if (!glow) return;
+      const value = Math.min(1, Math.max(0, Number.isFinite(opacity) ? opacity : 0));
+      glow.material.opacity = value;
+      glow.visible = value >= GLOW_VISIBLE;
+    },
     dispose() {
+      // The sprite's geometry is shared by every three.js Sprite: dispose only its own material and map.
+      if (glow) {
+        glow.removeFromParent();
+        glow.material.map?.dispose();
+        glow.material.dispose();
+      }
       scene.traverse(node => {
         node.geometry?.dispose();
         [node.material].flat().forEach(item => item?.dispose());

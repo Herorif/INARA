@@ -23,6 +23,9 @@ import { clearedFeatures, dialogFeatures, featureWorkspace, workspaceTitles } fr
 import useCallsStatus from '../features/calls/useCallsStatus';
 import { startPresencePing } from '../features/calls/presence';
 import { bannerVisible } from '../features/liveDesign/model.js';
+import { useMotionMode } from '../shared/motion/materialise.js';
+import { parallaxEnabled } from './glowModel.js';
+import useGridParallax from './useGridParallax.js';
 import './workspace.css';
 
 const CommandPalette = lazy(() => import('./CommandPalette'));
@@ -93,6 +96,11 @@ export default function CommandDeck() {
   // Tells the core the owner is at the PC, so urgent briefings are not phoned in meanwhile.
   useEffect(() => (connected && !locked ? startPresencePing({ socket }) : undefined), [connected, locked]);
   const activeFeature = camera ? 'camera' : activeFlag;
+  // The dot grid on the void sits behind the Assistant view only; its parallax needs full motion.
+  const voidGrid = page === 'assistant' && !activeFeature;
+  const motion = useMotionMode({ gaming });
+  const parallax = voidGrid && parallaxEnabled(motion);
+  useGridParallax(canvas, parallax);
   const section = page === 'activity' ? 'studio' : page;
   const closeCommands = useCallback(() => setCommands(false), []);
   const closeDialog = useCallback(() => useStore.setState(clearedFeatures('dialog')), []);
@@ -224,7 +232,7 @@ export default function CommandDeck() {
       </aside>
       <main id="main-workspace" className="workspace" tabIndex={-1} data-page={page}>
         {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{designBanner && <div role="status" className="system-banner system-banner--accent live-design-banner"><DraftingCompass size={16} aria-hidden="true"/><span>{`JARVIS is designing “${liveDesign.name}”.`}</span><button type="button" className="btn btn--secondary btn--sm system-banner__action" onClick={() => navigate('assistant')}>Open live design</button></div>}{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
-        <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''}`}>
+        <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''} ${voidGrid ? 'workspace-canvas--void' : ''}`} data-parallax={voidGrid ? (parallax ? 'on' : 'off') : undefined}>
           {!activeFeature && page !== 'callsview' && <div className="workspace-heading"><div className="workspace-heading__copy"><h1>{title}</h1>{description && <p>{description}</p>}</div>{page === 'assistant' && <HudLabel className="workspace-heading__meta">{`PROJECT · ${currentProject || 'temp'}`}</HudLabel>}</div>}
           {(page === 'studio' || page === 'activity') && <div className="studio-tabs hud-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['world','World'],['activity','Artifacts']].map(([key,label]) => { const selected = activeFeature === key || page === key; return <button type="button" key={key} className={`hud-tab ${selected ? 'is-active' : ''}`} aria-pressed={selected} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={14} aria-hidden="true"/>}{label}</button>; })}</div>}
           {activeFeature ? <FeatureWorkspace key={activeFeature} feature={activeFeature} onClose={closeFeature} onOpen={openFeature}/> : page === 'assistant' ? <AssistantView onOpen={openFeature} gaming={gaming}/> : page === 'inbox' ? <Suspense fallback={<PanelState kind="loading" title="Opening your inbox"/>}><InboxWorkspace embedded onOpen={openFeature}/></Suspense> : page === 'callsview' ? <Suspense fallback={<PanelState kind="loading" title="Opening calls"/>}><CallsWorkspace/></Suspense> : page === 'activity' ? <Suspense fallback={<PanelState kind="loading" title="Collecting your work"/>}><ActivityCenter gaming={gaming} onOpen={(feature, requestId) => openFeature(feature, undefined, requestId)}/></Suspense> : <WorkspaceOverview page={page} gaming={gaming} onOpen={openFeature}/>}

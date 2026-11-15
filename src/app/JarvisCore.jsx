@@ -3,6 +3,7 @@ import { WebGLRenderer } from 'three';
 import { loadCoreScene } from './coreAsset.js';
 import { createCore } from './coreScene.js';
 import { coreLod, coreTarget, frameInterval, initialPose, isSettled, levelEnvelope, stepPose } from './coreModel.js';
+import { glowOpacity, glowTarget, initialGlow, stepGlow } from './glowModel.js';
 
 const CONTEXT = { alpha: true, antialias: true, powerPreference: 'low-power', premultipliedAlpha: true, depth: true, stencil: false };
 const pixelRatio = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -17,17 +18,20 @@ const disposeTree = root => root.traverse(node => {
 /**
  * Live three.js core (loaded lazily by PresenceRing). Owns its <canvas>, the WebGLRenderer and
  * the rAF loop. Shows `fallback` until the first frame is drawn, then crossfades it out while
- * the canvas fades in, and calls onReady; calls onFail once on any failure.
+ * the canvas fades in, and calls onReady; calls onFail once on any failure. `glow` is the glow
+ * mode from glowModel.glowMode ('breathe' | 'static' | 'off'); the sprite is drawn in the same
+ * frame as the core, so it adds no loop and never changes the frame rate.
  */
-export default function JarvisCore({ size, state, level = 0, fallback = null, onReady, onFail }) {
+export default function JarvisCore({ size, state, level = 0, glow = 'breathe', fallback = null, onReady, onFail }) {
   const host = useRef(null);
   const [ready, setReady] = useState(false);
   const [fallbackGone, setFallbackGone] = useState(false);
-  const live = useRef({ size, state, level, levelAt: -Infinity, onReady, onFail });
+  const live = useRef({ size, state, level, glow, levelAt: -Infinity, onReady, onFail });
   const engine = useRef(null);
 
   useEffect(() => { live.current.onReady = onReady; live.current.onFail = onFail; }, [onReady, onFail]);
   useEffect(() => { live.current.state = state; engine.current?.wake(); }, [state]);
+  useEffect(() => { live.current.glow = glow; engine.current?.wake(); }, [glow]);
   useEffect(() => {
     if (Object.is(live.current.level, level)) return;
     live.current.level = level;
@@ -49,7 +53,7 @@ export default function JarvisCore({ size, state, level = 0, fallback = null, on
     host.current.append(canvas);
     let disposed = false, failed = false, drawn = false, raf = 0, last = null, onScreen = true, settling = true;
     let gl = null, renderer = null, core = null;
-    let pose = initialPose(live.current.state), envelope = 0, clock = 0;
+    let pose = initialPose(live.current.state), glowPose = initialGlow(live.current.state), envelope = 0, clock = 0;
 
     const stop = () => {
       if (raf) cancelAnimationFrame(raf);
@@ -69,7 +73,9 @@ export default function JarvisCore({ size, state, level = 0, fallback = null, on
       envelope = levelEnvelope(envelope, props.level, dt);
       const target = coreTarget(props.state, { envelope, levelAge: now - props.levelAt, time: clock });
       pose = stepPose(pose, target, dt);
+      glowPose = stepGlow(glowPose, glowTarget(props.state), dt);
       core.apply(pose);
+      core.setGlow(glowOpacity(glowPose, { voice: pose.voice, time: clock, offline: pose.offline, mode: props.glow }));
       renderer.render(core.scene, core.camera);
       settling = !isSettled(pose, target);
       if (!drawn) {

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { MIN_3D_SIZE, presenceMode, presenceState } from './coreModel.js';
+import { presenceMode, presenceState } from './coreModel.js';
+import { flatGlow, glowMode } from './glowModel.js';
 import './presence.css';
 
 // three.js stays out of the main chunk: the live core loads only when it is shown.
@@ -77,21 +78,25 @@ function FlatRing({ size }) {
 /**
  * Assistant presence. At 64 px or more it shows the live three.js core (src/app/JarvisCore.jsx)
  * unless motion is reduced, power is low or WebGL fails; otherwise the flat ring.
+ * `lowPower` is gaming mode at every call site. Glow (glowModel.glowMode): gaming none, reduced
+ * motion or low battery a still glow, otherwise breathing (the core's sprite or the ring's shadow).
  */
 export default function PresenceRing({ size = 36, state = 'idle', showLabel = false, className = '', level = 0, lowPower = false }) {
   const value = presenceState(state);
   const label = LABELS[value];
   const reducedMotion = useReducedMotion();
-  const lowBattery = useLowBattery(size >= MIN_3D_SIZE && !lowPower);
+  // Read at every size: below 64 px it only decides between a breathing and a still glow.
+  const lowBattery = useLowBattery(!lowPower);
   // Any WebGL, model or context failure falls back to flat for the life of this mount.
   const [webgl, setWebgl] = useState(true);
   const onFail = useCallback(() => setWebgl(false), []);
   const mode = presenceMode({ size, reducedMotion, lowPower: lowPower || lowBattery, webgl });
+  const glow = glowMode({ reducedMotion, gaming: lowPower, lowBattery });
   const flat = <FlatRing size={size} />;
-  return <span className={`presence ${className}`.trim()} data-presence={value} data-presence-mode={mode} role="status" aria-label={`Assistant ${label.toLowerCase()}`}>
+  return <span className={`presence ${className}`.trim()} data-presence={value} data-presence-mode={mode} data-presence-glow={flatGlow(value, glow)} role="status" aria-label={`Assistant ${label.toLowerCase()}`}>
     {mode === '3d'
       ? <span className="presence-stage" style={{ width: size, height: size }}>
-        <Suspense fallback={flat}><JarvisCore size={size} state={value} level={level} fallback={flat} onFail={onFail} /></Suspense>
+        <Suspense fallback={flat}><JarvisCore size={size} state={value} level={level} glow={glow} fallback={flat} onFail={onFail} /></Suspense>
       </span>
       : flat}
     {showLabel && <span className="presence-label hud-label">{label}</span>}

@@ -25,7 +25,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [ ] **S1.8** `tests/test_no_stall.py` (all seven cases), docs, full suite · S1 layer 7 · C · needs S1.1–S1.7
 - [x] **S2.1** Settings `assistant.claude_model`, `assistant.effort`, `assistant.gemini_model`; router; `brain_models` RPC · S2 · M — c258a80
 - [x] **S2.2** Preferences: Brain select and Effort control; captures · S2 · M · needs S2.1 — 0479190 (captures `.runtime/ui-qa/brain-picker/`)
-- [ ] **S4.1** Turn trace ring buffer (`services/trace.py`) fed by the conversation and voice paths · S4 · M · needs S1.7
+- [x] **S4.1** Turn trace ring buffer (`services/trace.py`) fed by the conversation and voice paths · S4 · M · needs S1.7 — ee793ea
 - [ ] **S4.2** "Export diagnostics" (tray and Preferences), redaction tests · S4 · M · needs S4.1
 - [ ] **S4.3** "Activity → What JARVIS did" list · S4 · M · needs S4.1
 - [ ] **W0** Wave check: full pytest, client tests, build

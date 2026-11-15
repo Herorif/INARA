@@ -11,12 +11,20 @@
 .presence-label { white-space: nowrap; }
 .presence[data-presence="listening"] .presence-label,
 .presence[data-presence="speaking"] .presence-label { color: var(--accent); }
+/* Glow (glowModel.flatGlow): a still --glow-accent with reduced motion or low battery; breathing
+   ±15% of its alpha over a 4 s ease-in-out cycle otherwise; none in gaming mode or offline. */
+.presence { --presence-glow-dim: 0 0 14px rgba(112,224,237,.30); --presence-glow-bright: 0 0 14px rgba(112,224,237,.40); }
+.presence:is([data-presence-glow="static"], [data-presence-glow="breathe"]) .presence-ring { border-radius: 50%; box-shadow: var(--glow-accent); }
+.presence[data-presence-glow="breathe"] .presence-ring { animation: presence-breathe 2s ease-in-out infinite alternate; }
+@keyframes presence-breathe { from { box-shadow: var(--presence-glow-dim); } to { box-shadow: var(--presence-glow-bright); } }
 @keyframes presence-rotate { to { transform: rotate(360deg); } }
 @keyframes presence-pulse { from { transform: scale(1); } to { transform: scale(1.4); } }
 @media (prefers-reduced-motion: reduce) {
+  .presence-ring,
   .presence-ring__arc,
   .presence-ring__dot { animation: none !important; }
 }
+.command-deck[data-ui-visible="false"] .presence-ring,
 .command-deck[data-ui-visible="false"] .presence-ring__arc,
 .command-deck[data-ui-visible="false"] .presence-ring__dot { animation-play-state: paused; }
 /* Live core (src/app/JarvisCore.jsx): a transparent canvas over the panel; the flat ring shows
