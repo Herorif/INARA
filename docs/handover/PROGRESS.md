@@ -39,7 +39,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [ ] **S3.5** `scripts/setup-cad-engine.ps1`, `requirements-cad-kernel.lock`, `docs/CAD_STUDIO.md` · S3 · L
 - [x] **S13a.1** New tokens, 12 px minimum label size, colour roles, alias cleanup · S13a · M — 844dae0 (captures `.runtime/ui-qa/jarvis-language/tokens/`)
 - [x] **S13a.2** `HudFrame` and the materialise motion helper · S13a · C · D (`motion`; fallback CSS) — 8cfb2a9 (captures `.runtime/ui-qa/jarvis-language/hud/`)
-- [ ] **S13a.3** Core glow sprite, breathing glow, dot grid with pointer parallax · S13a · C
+- [x] **S13a.3** Core glow sprite, breathing glow, dot grid with pointer parallax · S13a · C — 34efbdf (captures `.runtime/ui-qa/jarvis-language/glow/`)
 - [ ] **S13a.4** Interface sounds (eight synthesized cues), setting and volume · S13a · M
 - [ ] **S13a.5** `services/vitals.py` and the Systems rail replacing the inspector content · S13a · C · needs S1.1
 - [ ] **W1** Wave check; captures in `.runtime/ui-qa/jarvis-language/`

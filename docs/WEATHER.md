@@ -28,6 +28,21 @@ rain.") are public so the voice layer's quick answers can reuse them.
 
 Requests carry only the place name or coordinates. Logs carry codes only, never places.
 
+## Inside a brain turn
+
+- A weather question never brings in the globe: the world tools (`world_show`, `world_tour`,
+  `mcp__gev__*`) are not declared for it ([WORLD_VIEW.md](WORLD_VIEW.md#when-the-brain-is-offered-the-globe)).
+- The tool runs inside the turn's time budget: 60 s for a voice brain turn, 120 s for chat,
+  with a 20 s first-token deadline on each model step
+  ([AI_PROVIDERS.md](AI_PROVIDERS.md#time-budgets)). Its own 10 s timeout is shorter, so a
+  slow Open-Meteo answers `unavailable` well before the budget matters. It is not
+  long-running, so it never pauses the budget.
+- By voice a weather question is normally `quick_weather` (below). One that reaches the brain
+  through `ask_brain` gets the two-phase answer: still working at 4 s, Live says "Checking the
+  forecast, sir." (the `weather` progress phrase) and speaks the answer when it lands.
+- `tests/test_no_stall.py` covers both paths end to end
+  ([Why JARVIS never hangs](AI_PROVIDERS.md#why-jarvis-never-hangs)).
+
 ## Quick answers by voice
 
 The Gemini Live session answers plain weather questions itself, with no brain turn:

@@ -160,6 +160,33 @@ A check makes one cheap authenticated request with a 10 second timeout: Anthropi
 
 Provider requests verify HTTPS against the Windows certificate store (the `truststore` package), so antivirus HTTPS scanning and corporate proxies whose root is trusted by Windows work. This applies only to provider calls (`services.tls.provider_ssl_context()`); JARVIS's own pinned connections, such as the mobile companion, keep their own certificate checks.
 
+## Time budgets
+
+Every brain turn runs inside a budget of wall time (`TurnBudget`, `services/conversation.py`), so no turn can stall for minutes:
+
+- **The budget.** 60 s for a voice brain turn (`VOICE_TURN_BUDGET_S`, usage feature `voice_brain`, from `ask_brain`), 120 s for everything else: desktop chat, the Quick assistant and phone chat (`TURN_BUDGET_S`). `reply(turn_budget=...)` overrides it (tests use milliseconds).
+- **Model steps.** Each step is capped at the smaller of 45 s and the time left. First-token deadline: a step that shows no progress (no streamed content of any kind: text, thinking, tool input) within 20 s (`FIRST_TOKEN_S`) is cancelled and retried once, on the fast route (Claude Haiku 5.5) when the brain is Claude, else once on the same model (Gemini). The retry has only the cap.
+- **Tools.** An ordinary tool runs for at most the smaller of its own timeout and the time left, less a reserve kept for the answer (10 s, or a sixth of a shorter budget). A cut tool's result is `{"error": "action_timeout", ...}`, so the model can still answer; a tool with no time left is not run. While a **long-running** tool runs (`ToolSpec.long_running`: `generate_cad`, `build_live_design`, `generate_image`, `world_tour`, `place_task_call`) the budget clock is paused; its own timeout still bounds it. Time the owner spends on an approval card pauses it too.
+- **When it runs out.** The loop stops, any unanswered `tool_use` gets a timed-out result (the stored history stays valid for the next turn), and JARVIS answers truthfully with what finished, in the persona's form of address: "I couldn't finish that in time, sir. I got as far as checking the forecast." Logged as `outcome=budget` (below). Never silence.
+- **Tool groups.** The world group (`world_show`, `world_tour`, every `mcp__gev__*` tool) is declared only when the request mentions the globe, the World page is open, or the turn follows one that used it ([WORLD_VIEW.md](WORLD_VIEW.md#when-the-brain-is-offered-the-globe)); a weather question gets the `weather` tool ([WEATHER.md](WEATHER.md)). With no JARVIS window, `world_show` and `world_tour` fail at once (`world_no_window`) before the globe is started.
+
+## Voice: quick answers and two-phase `ask_brain`
+
+- **Quick answers.** The Live session answers `quick_weather`, `quick_agenda` and `quick_home` itself, read-only and within 5 s, with no brain turn ([WEATHER.md](WEATHER.md#quick-answers-by-voice), [VOICE_CONNECTION_POLICY.md](VOICE_CONNECTION_POLICY.md#quick-answers-s12)).
+- **Two-phase `ask_brain`.** A brain turn that finishes within 4 s answers the Live call directly. Later, the call is answered at 4 s with `{"status": "working", "say": "<phrase>, sir.", "then": "wait silently"}`, where the phrase comes from a tool that really started (`PROGRESS_PHRASES`, e.g. "Checking the forecast") or is "Working on it". Further real progress lines follow as Live text turns ("Say exactly: …", at most one per 12 s), and the answer comes as a final text turn ("Answer for the owner's request: …"). The voice model is told never to describe delays or status itself. If the session closes mid-task, the brain finishes, the answer is stored in the conversation and nothing is sent to the closed session. Details: [VOICE_CONNECTION_POLICY.md](VOICE_CONNECTION_POLICY.md#two-phase-answers-s15).
+
+## Why JARVIS never hangs
+
+A simple question used to hang for minutes. Five causes lined up (docs/handover/9NovWork-specs.md S1); each now has a fix:
+
+1. No weather tool: the brain has `weather` ([WEATHER.md](WEATHER.md)) and, with Claude, web search and fetch (above).
+2. Weather questions went to the globe: the world group is offered only for globe requests, and `world_show`'s description sends weather to the `weather` tool.
+3. No limit on a turn: the 60 s / 120 s budget, the 20 s first-token deadline and the truthful budget answer (Time budgets).
+4. Tools that wait minutes: every ordinary tool is cut at the budget, and the globe tools fail in under a second with no window instead of starting the globe first.
+5. Voice waiting in silence and inventing status: quick answers with no brain hop, and the two-phase `ask_brain` with real progress lines only.
+
+`tests/test_no_stall.py` proves this end to end with fake providers and millisecond budgets, one test per guard, each naming the cause it covers: a weather turn is never offered the world group; a silent model falls back at the first-token deadline and ends inside the budget; a hanging tool is cut and the turn still answers with a valid history; a long-running tool pauses the budget; `ask_brain` answers in two phases and a closed session still stores the answer; `quick_weather` answers without a brain turn; `world_show` with no window fails in under a second without starting the globe. Run it with `.venv\Scripts\python.exe -m pytest -q tests/test_no_stall.py`. To see it on a real setup, press **Run a check** (below) and read the `turn_timing` lines.
+
 ## Turn timing and the brain check
 
 Every brain turn (desktop chat, the Quick assistant, phone chat and reviewed voice) ends with one content-free INFO line from `services.conversation`, whatever its outcome:
