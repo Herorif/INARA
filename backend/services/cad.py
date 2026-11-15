@@ -1,7 +1,10 @@
 """Scoped durable CAD jobs. Geometry and exports live in an owned worker process."""
 
 import asyncio
+import hashlib
+import json
 import os
+import shutil
 from pathlib import Path
 from typing import Literal
 import uuid
@@ -23,6 +26,12 @@ from services.tools import ServiceError, ToolSpec
 from services.log import get_logger
 
 logger = get_logger(__name__)
+
+KERNEL_EXPORTS = ("glb", "stl", "step")
+EXPORT_LIMIT = 16_777_216  # ExportMetadata's bound
+# Worker start (up to 90 s on a cold disk) plus the kernel's 120 s final build, with slack.
+KERNEL_DEADLINE = 215
+TREE_CONTEXT = "cad_tree"  # the dispatch-context key LiveDesigns puts a feature tree under
 
 
 class SolidRecipe(BaseModel):
@@ -113,8 +122,30 @@ class BuildRequest(Recipe, RevisionParent):
     request_id: uuid.UUID = Field(default_factory=uuid.uuid4)
 
 
+class TreeBuildRequest(BuildRequest):
+    """A live design built on the CAD kernel: the parts recipe plus its feature tree.
+
+    The recipe stays the revision's recipe (studio history, fingerprints); the tree is what
+    the kernel builds, always exporting GLB, STL and STEP.
+    """
+
+    tree: dict
+
+    @field_validator("tree")
+    @classmethod
+    def valid_tree(cls, value):
+        from services.cad_features import FeatureTreeError, canonical
+
+        try:
+            data = json.loads(canonical(value))
+        except FeatureTreeError as exc:
+            raise ValueError(str(exc)) from None
+        data["export"] = list(KERNEL_EXPORTS)
+        return data
+
+
 class ArtifactRequest(JobRequest):
-    format: Literal["stl", "glb", "json", "blend", "png"] = "stl"
+    format: Literal["stl", "glb", "json", "blend", "png", "step"] = "stl"
 
 
 class PlanRequest(BaseModel):
@@ -152,6 +183,111 @@ class WorkerResult(BaseModel):
     artifacts: dict[str, ExportMetadata]
 
 
+class KernelStats(BaseModel):
+    """Facts of a CAD-kernel build (B-rep, so no vertex limit like the offline mesh)."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    engine: Literal["kernel"]
+    volume_mm3: float = Field(gt=0, le=1_000_000_000_000, strict=True)
+    bounds_mm: list[list[float]] = Field(min_length=2, max_length=2)
+    triangles: StrictInt | None = Field(default=None, ge=0)
+    faces: StrictInt = Field(ge=0)
+    edges: StrictInt = Field(ge=0)
+    solids: StrictInt = Field(ge=0)
+    valid: bool = Field(strict=True)
+
+
+class KernelResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    stats: KernelStats
+    artifacts: dict[str, ExportMetadata]
+
+
+def stl_triangles(raw):
+    """The triangle count of a binary STL, or None when it isn't one."""
+    if len(raw) >= 84:
+        count = int.from_bytes(raw[80:84], "little")
+        if len(raw) == 84 + 50 * count:
+            return count
+    return None
+
+
+class KernelProcess:
+    """A feature-tree job's "worker": the CAD kernel's final build, run in this process.
+
+    It has the ``alive``/``exit_code``/``close`` surface of ``WorkspaceProcess``, so the
+    creative job keeps its queue, deadline, gaming-mode cancel, staging and revision
+    rename. The kernel's files are copied into the staging folder as ``model.<ext>``, with
+    the canonical tree as ``model.json``. ``error`` holds the kernel's plain message.
+    """
+
+    def __init__(self, kernel, tree, staging):
+        self.error = None
+        self.ok = False
+        self.task = asyncio.get_running_loop().create_task(
+            self.run(kernel, tree, Path(staging)), name="cad-kernel-final"
+        )
+
+    async def run(self, kernel, tree, staging):
+        from services.cad_features import canonical
+
+        try:
+            result = await kernel.build(tree, export=list(KERNEL_EXPORTS), quality="final")
+            artifacts, payloads = {}, {}
+            for extension in KERNEL_EXPORTS:
+                path = Path(result["files"][extension])
+                if path.stat().st_size > EXPORT_LIMIT:
+                    raise ServiceError(
+                        "artifact_too_large",
+                        f"The {extension.upper()} file is larger than 16 MB. Simplify the design.",
+                    )
+                payloads[extension] = path.read_bytes()
+            payloads["json"] = canonical(tree).encode("utf-8")
+            for extension, raw in payloads.items():
+                (staging / f"model.{extension}").write_bytes(raw)
+                artifacts[extension] = {
+                    "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
+                }
+            facts = result.get("facts") or {}
+            low = [float(value) for value in facts.get("min") or (0, 0, 0)]
+            size = [float(value) for value in facts.get("bbox") or (0, 0, 0)]
+            stats = {
+                "engine": "kernel",
+                "volume_mm3": float(facts.get("volume") or 0),
+                "bounds_mm": [low, [a + b for a, b in zip(low, size, strict=True)]],
+                "triangles": stl_triangles(payloads["stl"]),
+                "faces": int(facts.get("faces") or 0),
+                "edges": int(facts.get("edges") or 0),
+                "solids": int(facts.get("solids") or 0),
+                "valid": bool(facts.get("valid")),
+            }
+            (staging / "result.json").write_text(
+                json.dumps({"stats": stats, "artifacts": artifacts}), encoding="utf-8"
+            )
+            folders = {Path(path).parent for path in result["files"].values()}
+            for folder in folders:  # final builds aren't cached: drop the kernel's copy
+                if folder.name.endswith("-final"):
+                    shutil.rmtree(folder, ignore_errors=True)
+            self.ok = True
+        except ServiceError as exc:  # CadKernelError included: a plain message
+            self.error = exc
+        except Exception:
+            logger.warning("CAD kernel final build could not be saved", exc_info=True)
+            self.error = ServiceError(
+                "worker_failed", "The CAD engine's build couldn't be saved. Try again."
+            )
+
+    def alive(self):
+        return not self.task.done()
+
+    def exit_code(self):
+        return 0 if self.task.done() and self.ok else 1
+
+    def close(self):
+        if not self.task.done():
+            self.task.cancel()  # the kernel kills its worker's tree on cancellation
+
+
 def blender_executable():
     """Discover an installed application without importing it or running a probe."""
     import shutil
@@ -173,6 +309,44 @@ class CadService(CreativeJobService):
     recipe_model = Recipe
     worker_script = "workers/cad_worker.py"
     phases = (*CreativeJobService.phases, "blender")
+    kernel = None  # the CAD kernel (services/cad_kernel.py), set by LiveDesigns
+
+    async def start(self, args, context):
+        # A live design built on the CAD kernel passes its feature tree in the context
+        # (server code only: LiveDesigns' nested generate_cad dispatch), never in arguments,
+        # so the studio's cad_submit contract is unchanged.
+        tree = context.get(TREE_CONTEXT)
+        if tree is None:
+            return await super().start(args, context)
+        if not (self.kernel is not None and self.kernel.available()):
+            from services.cad_kernel import SETUP_HINT
+
+            raise ServiceError("cad_kernel_unavailable", SETUP_HINT)
+        request = TreeBuildRequest.model_validate({**args.model_dump(), "tree": tree})
+        return await super().start(request, context)
+
+    def worker_factory(self, value):
+        if value.get("tree") is None:
+            return self.process_factory
+        kernel, tree = self.kernel, value["tree"]
+        if kernel is None:
+            raise ServiceError("cad_kernel_unavailable", "The CAD engine isn't available.")
+        return lambda executable, script, bootstrap, project: KernelProcess(
+            kernel, tree, bootstrap["staging"]
+        )
+
+    def job_deadline(self, value):
+        if value.get("tree") is not None:
+            return KERNEL_DEADLINE
+        return super().job_deadline(value)
+
+    def validate_job(self, raw, value):
+        if value.get("tree") is None:
+            return super().validate_job(raw, value)
+        result = KernelResult.model_validate_json(raw).model_dump()
+        if set(result["artifacts"]) != {*KERNEL_EXPORTS, "json"}:
+            raise ServiceError("worker_failed", "Artifact validation failed.")
+        return result
 
     def admit(self, recipe):
         executable = blender_executable() if recipe["engine"] == "blender" else None

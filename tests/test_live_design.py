@@ -609,3 +609,430 @@ def test_live_designs_wraps_the_existing_job_update(tmp_path):
     )
     asyncio.run(instance.on_update("owner", {"request_id": "x"}))
     assert seen == [{"request_id": "x"}] and designs.designs == {}
+
+
+# --- the CAD kernel (fake): feature steps, draft GLBs, final STEP ----------------------
+
+class FakeKernel:
+    """CadKernel's surface (available/running/build/stop/close) without a worker process.
+
+    ``fail(tree, quality)`` may return a CadKernelError to raise; ``gate`` (an Event) holds
+    a build until set; ``stop()`` ends a held build the way a killed worker does.
+    """
+
+    def __init__(self, root):
+        self.root, self.builds, self.reason = root, [], None
+        self.started = False
+        self.fail = None
+        self.gate = None
+        self.crash = asyncio.Event()
+
+    def available(self):
+        return self.reason is None
+
+    def running(self):
+        return self.started
+
+    async def build(self, tree, export=None, quality="draft"):
+        from services.cad_features import parse_tree, tree_hash
+        from services.cad_kernel import CadKernelError
+
+        parsed = parse_tree(tree)
+        self.builds.append((quality, [feature.op for feature in parsed.features]))
+        if self.gate is not None:
+            waiter = asyncio.ensure_future(self.gate.wait())
+            crash = asyncio.ensure_future(self.crash.wait())
+            await asyncio.wait({waiter, crash}, return_when=asyncio.FIRST_COMPLETED)
+            waiter.cancel()
+            crash.cancel()
+            if self.crash.is_set():
+                self.crash.clear()
+                raise CadKernelError("cad_kernel_crashed", "The CAD engine stopped unexpectedly.")
+        self.started = True
+        failure = self.fail(parsed, quality) if self.fail else None
+        if failure is not None:
+            raise failure
+        digest = tree_hash(parsed)
+        folder = self.root / f"{digest[:24]}-{quality}"
+        folder.mkdir(parents=True, exist_ok=True)
+        formats = ["glb"] if quality == "draft" else list(export)
+        files = {}
+        for name in formats:
+            path = folder / f"model.{name}"
+            if name == "stl":  # a binary STL with 12 triangles
+                path.write_bytes(b"\0" * 80 + (12).to_bytes(4, "little") + b"\0" * 600)
+            else:
+                path.write_bytes(f"{name}:{digest}".encode())
+            files[name] = path
+        facts = {"volume": 11000.5, "bbox": [60.0, 40.0, 5.0], "min": [0.0, 0.0, 0.0],
+                 "faces": 14, "edges": 36, "solids": 1, "valid": True}
+        warnings = [{"code": "no_effect", "index": 1, "feature": "h1"}] if any(
+            feature.op == "hole" and feature.diameter == 0.5 for feature in parsed.features
+        ) else []
+        return {"facts": facts, "files": files, "warnings": warnings, "hash": digest,
+                "quality": quality, "seconds": 0.01, "cached": False}
+
+    async def stop(self):
+        self.started = False
+        self.crash.set()
+
+    async def close(self):
+        await self.stop()
+
+
+def plate(**fields):
+    return {"name": "plate", "width": 60.0, "depth": 40.0, "height": 5.0, **fields}
+
+
+def hole(ident="h1", at=(10.0, 10.0), diameter=5.0, target="plate"):
+    return {"id": ident, "op": "hole", "target": target, "face": "top", "at": list(at),
+            "diameter": diameter, "depth": "through"}
+
+
+FOUR_HOLES = [hole(), {"op": "pattern", "of": "h1", "kind": "linear", "count": [2, 2],
+                       "spacing": [40.0, 20.0]}]
+ROUNDED = {"op": "fillet", "target": "plate", "edges": "vertical", "radius": 4.0}
+
+
+@pytest.fixture
+def kernel_app(app, tmp_path):
+    fake = FakeKernel(tmp_path / "kernel")
+    app.live_design.kernel = app.cad.kernel = app.cad_kernel = fake
+    app.live_design.debounce = 0.01
+    app.kernel = fake
+    return app
+
+
+async def change(app, request, **fields):
+    return await call(app, "change_live_design", {"request": request, **fields})
+
+
+async def drafts(app):
+    design = app.live_design.designs[app.owner]
+    for _ in range(200):
+        if design.task is None:
+            return
+        await asyncio.sleep(0.01)
+    raise AssertionError("the draft build never settled")
+
+
+@pytest.mark.asyncio
+async def test_kernel_draft_event_carries_the_glb_reference_and_facts(kernel_app):
+    app = kernel_app
+    app.sio.emit.reset_mock()
+    result = await start(app, [plate()], name="Bracket")
+    first = events(app)[0].args[1]["design"]["preview"]
+    assert first["state"] == "starting" and first["message"] == "Starting the CAD engine…"
+    assert first["glb"] is None and first["current"] is False
+    design = snap(app)
+    assert set(design) == SNAPSHOT_KEYS | {"preview"}
+    preview = design["preview"]
+    assert set(preview) == {"engine", "state", "message", "current", "glb", "facts",
+                            "warnings", "seconds", "cached"}
+    assert preview["engine"] == "kernel" and preview["state"] == "ready"
+    assert preview["current"] is True and preview["message"] is None
+    glb = preview["glb"]
+    uuid.UUID(glb["request_id"])
+    assert glb["format"] == "glb" and glb["bytes"] > 0 and len(glb["sha256"]) == 64
+    assert preview["facts"] == {"volume_mm3": 11000.5, "bbox_mm": [60.0, 40.0, 5.0],
+                                "min_mm": [0.0, 0.0, 0.0], "faces": 14, "edges": 36,
+                                "solids": 1, "valid": True}
+    assert result["preview"]["state"] == "ready" and result["features"] == []
+    # The renderer fetches the draft through the existing cad_artifact route.
+    import base64
+
+    reply = await app.sio.handlers["/"]["cad_artifact"](
+        "ui", {"request_id": glb["request_id"], "format": "glb"}
+    )
+    assert reply["ok"], reply
+    data = base64.b64decode(reply["artifact"]["data"])
+    assert len(data) == glb["bytes"] and data.startswith(b"glb:")
+    wrong = await app.sio.handlers["/"]["cad_artifact"](
+        "ui", {"request_id": glb["request_id"], "format": "stl"}
+    )
+    assert wrong["ok"] is False and wrong["code"] == "artifact_missing"
+    assert app.kernel.builds == [("draft", ["box"])]
+
+
+@pytest.mark.asyncio
+async def test_feature_steps_add_with_described_lines_and_undo(kernel_app):
+    app = kernel_app
+    await start(app, [plate()], name="Bracket")
+    result = await change(app, "four 5 mm holes", features=FOUR_HOLES)
+    step = snap(app)["steps"][-1]
+    assert (step["kind"], step["who"], step["undoable"]) == ("change", "owner", True)
+    assert step["title"] == "“four 5 mm holes”"
+    assert step["detail"] == (
+        "Through hole Ø5 mm on the top face at (10, 10) · "
+        "Repeat hole h1 in a 2 × 2 grid, 40 × 20 mm apart"
+    )
+    assert result["features"] == step["detail"].split(" · ")
+    assert result["steps"] == [step["detail"]] and "not_possible" not in result
+    await change(app, "round the corners", features=[ROUNDED])
+    assert snap(app)["steps"][-1]["detail"] == "Round the vertical edges, 4 mm radius"
+    assert app.kernel.builds[-1] == ("draft", ["box", "hole", "pattern", "fillet"])
+    glb = snap(app)["preview"]["glb"]["request_id"]
+    undone = await call(app, "undo_live_design")
+    assert undone["undone"] == "“round the corners”"
+    assert len(app.live_design.designs[app.owner].features) == 2
+    preview = snap(app)["preview"]
+    assert preview["state"] == "ready" and preview["current"]
+    assert preview["glb"]["request_id"] != glb
+    # Renaming the part keeps the features on it.
+    await change(app, "call it base", update=[{"object_index": 0, "fields": {"name": "base"}}])
+    assert [f.get("target") for f in app.live_design.designs[app.owner].features] == [
+        "base", None
+    ]
+    assert snap(app)["preview"]["state"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_validation_errors_come_back_as_a_not_possible_row(kernel_app):
+    app = kernel_app
+    await start(app, [plate()], name="Bracket")
+    before = snap(app)
+    builds = len(app.kernel.builds)
+    result = await change(app, "drill a hole in the lid", features=[hole(target="lid")])
+    step = snap(app)["steps"][-1]
+    assert (step["kind"], step["undoable"]) == ("unsupported", False)
+    assert step["detail"] == "not possible: Feature h1 targets 'lid', which doesn't exist."
+    assert result["not_possible"] == ["Feature h1 targets 'lid', which doesn't exist."]
+    assert snap(app)["recipe"] == before["recipe"]
+    assert app.live_design.designs[app.owner].features == []
+    assert len(app.kernel.builds) == builds  # nothing to build
+    # Removing a part a feature still needs is refused the same way, atomically.
+    await change(app, "add a foot and holes", add=[stand(name="foot")], features=[hole()])
+    refused = await change(app, "drop the plate", remove=[0])
+    assert refused["not_possible"] == ["Feature h1 targets 'plate', which doesn't exist."]
+    assert [p["name"] for p in snap(app)["recipe"]["objects"]] == ["plate", "foot"]
+
+
+@pytest.mark.asyncio
+async def test_kernel_failure_row_leaves_the_draft_intact(kernel_app):
+    from services.cad_kernel import CadKernelError
+
+    app = kernel_app
+    await start(app, [plate()], name="Bracket")
+    await change(app, "four holes", features=FOUR_HOLES)
+    good = snap(app)
+    message = "A 30 mm fillet doesn't fit the 5 mm edge on plate."
+
+    def fillet_fails(tree, quality):
+        if any(feature.op == "fillet" for feature in tree.features):
+            return CadKernelError("cad_kernel_failed", message)
+        return None
+
+    app.kernel.fail = fillet_fails
+    result = await change(app, "round it a lot", features=[{**ROUNDED, "radius": 30.0}])
+    assert result["not_possible"] == [message]
+    design = snap(app)
+    assert design["recipe"] == good["recipe"]
+    assert len(app.live_design.designs[app.owner].features) == 2
+    step = design["steps"][-1]
+    assert (step["kind"], step["title"]) == ("unsupported", "“round it a lot”")
+    assert step["detail"] == f"not possible: {message}"
+    assert result["steps"] == [step["detail"]]
+    preview = design["preview"]
+    assert preview["state"] == "ready" and preview["current"]
+    assert preview["glb"] == good["preview"]["glb"]  # the last good draft, rebuilt (cached)
+    # The holes step is still the one Undo takes back.
+    assert [s["undoable"] for s in design["steps"]] == [False, True, False]
+    await call(app, "undo_live_design")
+    assert app.live_design.designs[app.owner].features == []
+
+
+@pytest.mark.asyncio
+async def test_unavailable_kernel_refuses_features_and_keeps_the_box_path(kernel_app):
+    app = kernel_app
+    app.kernel.reason = "The CAD engine isn't installed (.venv-cad is missing)."
+    await start(app, [plate()], name="Bracket")
+    assert set(snap(app)) == SNAPSHOT_KEYS  # no preview: today's snapshot
+    result = await change(app, "taller with four holes",
+                          update=[{"object_index": 0, "fields": {"height": 8.0}}],
+                          features=FOUR_HOLES)
+    hint = "Holes, fillets and cut-outs need the CAD engine. Run scripts/setup-cad-engine.ps1."
+    assert result["not_possible"] == [hint]
+    steps = snap(app)["steps"]
+    assert [s["kind"] for s in steps[-2:]] == ["change", "unsupported"]
+    assert steps[-2]["detail"] == "plate 5 → 8 mm tall"  # the box change still applies
+    assert steps[-1]["detail"] == f"not possible yet: {hint}"
+    assert snap(app)["recipe"]["objects"][0]["height"] == 8
+    assert set(snap(app)) == SNAPSHOT_KEYS and app.kernel.builds == []
+    review = app.live_design.review_build(None, context(app))
+    assert review["exports"] == ["stl", "glb"]
+    assert review["summary"].endswith("STL and GLB on this PC")
+
+
+@pytest.mark.asyncio
+async def test_final_build_runs_on_the_kernel_and_adds_step(kernel_app):
+    import base64
+
+    app = kernel_app
+    await start(app, [plate()], name="Bracket")
+    await change(app, "four holes and round corners", features=[*FOUR_HOLES, ROUNDED])
+    review = app.live_design.review_build(None, context(app))
+    assert review["exports"] == ["stl", "glb", "step"]
+    assert review["summary"] == "Build “Bracket”? 1 part · STL, GLB and STEP on this PC"
+    response = await rpc(app, "build")("ui", {"design_id": snap(app)["id"]})
+    assert response["ok"], response
+    await finish(app)
+    done = snap(app)
+    assert done["status"] == "saved", done["job"]
+    job = app.cad.load(app.owner, context(app)["project_path"], done["job"]["request_id"])
+    assert set(job["artifacts"]) == {"glb", "stl", "step", "json"}
+    assert job["stats"]["engine"] == "kernel" and job["stats"]["triangles"] == 12
+    assert job["stats"]["bounds_mm"] == [[0, 0, 0], [60, 40, 5]]
+    assert [f["op"] for f in job["tree"]["features"]] == ["box", "hole", "pattern", "fillet"]
+    assert job["tree"]["export"] == ["glb", "stl", "step"]
+    assert app.kernel.builds[-1] == ("final", ["box", "hole", "pattern", "fillet"])
+    reply = await app.sio.handlers["/"]["cad_artifact"](
+        "ui", {"request_id": job["request_id"], "format": "step"}
+    )
+    assert reply["ok"], reply
+    assert base64.b64decode(reply["artifact"]["data"]).startswith(b"step:")
+    assert reply["artifact"]["filename"].endswith(".step")
+
+
+@pytest.mark.asyncio
+async def test_final_build_failure_keeps_the_kernel_message(kernel_app):
+    from services.cad_kernel import CadKernelError
+
+    app = kernel_app
+    await start(app, [plate()], name="Bracket")
+    app.kernel.fail = lambda tree, quality: (
+        CadKernelError("cad_kernel_timeout", "The design took longer than 120 s to build.")
+        if quality == "final" else None
+    )
+    await rpc(app, "build")("ui", {"design_id": snap(app)["id"]})
+    await finish(app)
+    failed = snap(app)
+    assert failed["status"] == "failed"
+    assert failed["job"]["error"] == "The design took longer than 120 s to build."
+
+
+@pytest.mark.asyncio
+async def test_rapid_changes_are_debounced_into_one_draft_build(kernel_app):
+    app = kernel_app
+    await start(app, [plate()], name="Bracket")
+    builds = len(app.kernel.builds)
+    app.live_design.debounce = 0.2
+    await asyncio.gather(
+        change(app, "one hole", features=[hole("h1")]),
+        change(app, "another", features=[hole("h2", at=(50.0, 10.0))]),
+        change(app, "a third", features=[hole("h3", at=(50.0, 30.0))]),
+    )
+    assert len(app.kernel.builds) == builds + 1
+    assert app.kernel.builds[-1] == ("draft", ["box", "hole", "hole", "hole"])
+    assert snap(app)["preview"]["current"] is True
+    # Panel undo clicks in a row build only the state they land on.
+    for _ in range(2):
+        await rpc(app, "undo")("ui", {"design_id": snap(app)["id"],
+                                       "step": snap(app)["steps"][-1]["n"]})
+    await drafts(app)
+    assert len(app.kernel.builds) == builds + 2
+    assert app.kernel.builds[-1] == ("draft", ["box", "hole"])
+
+
+@pytest.mark.asyncio
+async def test_gaming_mode_cancels_a_running_draft_cleanly(kernel_app):
+    app = kernel_app
+    await start(app, [plate()], name="Bracket")
+    app.kernel.gate = asyncio.Event()
+    app.live_design.wait = 0.05  # the brain doesn't wait out the held build
+    await change(app, "four holes", features=FOUR_HOLES)
+    assert snap(app)["preview"]["state"] == "building"
+    app.resources.select("gaming")
+    await app.restrict_resources()
+    await drafts(app)
+    design = snap(app)
+    assert design["preview"]["state"] == "paused" and design["preview"]["current"] is False
+    assert design["steps"][-1]["kind"] == "change"  # the step stays; nothing is refused
+    assert len(app.live_design.designs[app.owner].features) == 2
+    # Back from gaming mode, the panel's next look builds the draft.
+    app.kernel.gate = None
+    app.resources.select("chat")
+    await rpc(app, "get")("ui")
+    await drafts(app)
+    assert snap(app)["preview"]["state"] == "ready" and snap(app)["preview"]["current"]
+
+
+@pytest.mark.asyncio
+async def test_kernel_warnings_are_plain_and_trees_are_never_logged(kernel_app, caplog):
+    app = kernel_app
+    caplog.set_level(logging.DEBUG)
+    await start(app, [plate()], name="Bracket")
+    await change(app, "a tiny hole", features=[
+        hole(diameter=0.5), {"op": "text", "target": "plate", "face": "top",
+                             "text": "xyzzy", "size": 6.0, "depth": 0.5}])
+    warnings = snap(app)["preview"]["warnings"]
+    assert warnings == [{"code": "no_effect", "index": 1, "message": (
+        "Through hole Ø0.5 mm on the top face at (10, 10) doesn't change the part.")}]
+    assert "xyzzy" not in caplog.text
+
+
+# --- the real CAD kernel end to end (opt-in: needs .venv-cad with build123d) ---------------
+
+def real_kernel_installed():
+    from services.cad_kernel import VENV, venv_python
+
+    return venv_python(VENV).is_file()
+
+
+@pytest.mark.skipif(
+    not real_kernel_installed(),
+    reason=".venv-cad (build123d 0.13.0) isn't installed; real-kernel tests skipped",
+)
+@pytest.mark.asyncio
+async def test_real_kernel_bracket_with_four_holes_and_rounded_corners(app, tmp_path):
+    """"A 60 by 40 bracket with four 5 mm holes and rounded corners", step by step."""
+    import math
+    import time
+
+    from services.cad_kernel import CadKernel
+
+    kernel = CadKernel(root=tmp_path / "kernel")
+    app.live_design.kernel = app.cad.kernel = app.cad_kernel = kernel
+    app.live_design.wait = 120.0  # report the real times, whatever they are
+    timings = {}
+    try:
+        began = time.perf_counter()
+        await start(app, [plate(name="bracket")], name="Bracket")
+        timings["start (worker start + draft)"] = time.perf_counter() - began
+        assert snap(app)["preview"]["state"] == "ready", snap(app)["preview"]
+        holes = [hole(target="bracket"), FOUR_HOLES[1]]
+        began = time.perf_counter()
+        await change(app, "four 5 mm holes", features=holes)
+        timings["holes step"] = time.perf_counter() - began
+        began = time.perf_counter()
+        await change(app, "rounded corners", features=[{**ROUNDED, "target": "bracket"}])
+        timings["rounded corners step"] = time.perf_counter() - began
+        preview = snap(app)["preview"]
+        assert preview["state"] == "ready" and preview["current"], preview
+        corners = 4 * (4**2 - math.pi * 4**2 / 4) * 5
+        expected = 60 * 40 * 5 - 4 * math.pi * 2.5**2 * 5 - corners
+        assert preview["facts"]["volume_mm3"] == pytest.approx(expected, abs=0.05)
+        assert preview["facts"]["bbox_mm"] == [60, 40, 5] and preview["facts"]["valid"]
+        assert preview["warnings"] == []
+        reply = await app.sio.handlers["/"]["cad_artifact"](
+            "ui", {"request_id": preview["glb"]["request_id"], "format": "glb"}
+        )
+        assert reply["ok"], reply
+        timings["draft seconds (kernel)"] = preview["seconds"]
+        began = time.perf_counter()
+        response = await rpc(app, "build")("ui", {"design_id": snap(app)["id"]})
+        assert response["ok"], response
+        await finish(app)
+        timings["final build (GLB, STL, STEP)"] = time.perf_counter() - began
+        done = snap(app)
+        assert done["status"] == "saved", done["job"]
+        project = context(app)["project_path"]
+        job = app.cad.load(app.owner, project, done["job"]["request_id"])
+        assert set(job["artifacts"]) == {"glb", "stl", "step", "json"}
+        assert job["stats"]["volume_mm3"] == pytest.approx(expected, abs=0.05)
+        step = project / job["directory"] / "model.step"
+        assert step.read_bytes().startswith(b"ISO-10303-21")
+    finally:
+        await kernel.close()
+    print("\nreal live design: " + ", ".join(
+        f"{name} {seconds:.2f}s" for name, seconds in timings.items()
+    ))

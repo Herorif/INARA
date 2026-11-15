@@ -20,6 +20,7 @@ from services.capabilities import CapabilityCenter
 from services.cad import CadService, register_cad_tools
 from services.cad_transport import CadTransport
 from services.cad_design import LiveDesigns
+from services.cad_kernel import CadKernel
 from services.creative_handoffs import CreativeHandoffs
 from transport.creative_handoffs import HandoffTransport
 from services.mobile import MobileService
@@ -180,9 +181,10 @@ class Application:
         self.task_queue_transport = TaskQueueTransport(self)
         self.capabilities = CapabilityCenter(self)
         # The owner's live CAD design (docs/LIVE_DESIGN.md): the brain's only CAD path.
+        self.cad_kernel = CadKernel(self)
         self.live_design = LiveDesigns(
             sio, self.sessions, self.cad, self.dispatcher, self.studio_context,
-            authorize=self.authorize_owner,
+            authorize=self.authorize_owner, kernel=self.cad_kernel,
         )
         register_cad_tools(self.dispatcher, self.cad, self.live_design)
         register_image_tool(self.dispatcher, self.images)
@@ -392,6 +394,7 @@ class Application:
             self.speech_transport.stop_sid(),
             self.voice.restrict(),
             self.cad_transport.close(),
+            self.cad_kernel.stop(),
             self.image_transport.close(),
             self.local_transport.stop_sid(),
             self.compat_transport.stop_sid(),
@@ -532,6 +535,7 @@ class Application:
             await _isolated("audio_devices", self.audio_devices.close)
             await _isolated("world_tools", self.world_tools.close)
             await _isolated("world", self.world.close)
+            await _isolated("cad_kernel", self.cad_kernel.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:
                 await self.bus.drain()

@@ -132,6 +132,9 @@ def application_factory(tmp_path):
                       database=Database(root / "private"))
         values.update(overrides)
         runtime = create_application(**values)
+        # The real CAD engine (.venv-cad) never starts in tests: live designs use the box
+        # engine unless a test gives LiveDesigns a (fake) kernel of its own.
+        runtime.cad_kernel.python = root / "no-cad-engine" / "python.exe"
         runtime.sio.emit = AsyncMock()
         from types import SimpleNamespace
         runtime.connection.check_setup = lambda: None

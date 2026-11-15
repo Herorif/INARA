@@ -73,6 +73,18 @@ class CreativeJobService:
     def deadline_seconds(self, recipe):
         return self.timeout
 
+    # Per-job hooks (CadService runs feature-tree jobs on the CAD kernel instead of a
+    # worker script). The defaults are the recipe-only behaviour.
+    def worker_factory(self, value):
+        """The process factory for this job; None means the workspace worker process."""
+        return self.process_factory
+
+    def job_deadline(self, value):
+        return self.deadline_seconds(value["recipe"])
+
+    def validate_job(self, raw, value):
+        return self.validate_result(raw, value["recipe"])
+
     def __init__(self, database, governor, on_update=None, process_factory=None, timeout=None):
         self.database, self.governor = database, governor
         self.on_update, self.process_factory, self.timeout = (
@@ -130,6 +142,7 @@ class CreativeJobService:
                     "base_request_id",
                     "base_fingerprint",
                     "reference",
+                    "tree",
                 )
                 if key in value
             },
@@ -175,8 +188,11 @@ class CreativeJobService:
         owner, project = context["principal"], Path(context["project_path"]).resolve()
         key = str(args.request_id)
         recipe = self.recipe_model.model_validate(
-            args.model_dump(exclude={"request_id", "base_request_id", "base_fingerprint", "reference"})
+            args.model_dump(
+                exclude={"request_id", "base_request_id", "base_fingerprint", "reference", "tree"}
+            )
         ).model_dump()
+        tree = getattr(args, "tree", None)
         parent_id = getattr(args, "base_request_id", None)
         parent_hash = getattr(args, "base_fingerprint", None)
         parent_id = str(parent_id) if parent_id else None
@@ -197,6 +213,7 @@ class CreativeJobService:
                     or previous.get("base_request_id") != parent_id
                     or previous.get("base_fingerprint") != parent_hash
                     or previous.get("reference") != reference
+                    or previous.get("tree") != tree
                 ):
                     raise ServiceError(
                         "request_conflict", "This build ID was already used with other settings."
@@ -245,6 +262,8 @@ class CreativeJobService:
                     "base_fingerprint": parent_hash,
                     "reference": reference,
                 }
+                if tree is not None:
+                    value["tree"] = tree
                 self.database.put(db, kind, key, value)
             try:
                 reservation = self.governor.reserve((kind, key), profile)
@@ -287,12 +306,11 @@ class CreativeJobService:
             self.governor.require_heavy()
             if running["cancel"].is_set():
                 raise ServiceError("job_cancelled", "Build cancelled.")
-            if self.process_factory is None:
+            factory = self.worker_factory(value)
+            if factory is None:
                 from resident.win32 import WorkspaceProcess
 
                 factory = WorkspaceProcess
-            else:
-                factory = self.process_factory
             executable = Path(sys.executable)
             if executable.name.lower() == "pythonw.exe":
                 executable = executable.with_name("python.exe")
@@ -306,7 +324,7 @@ class CreativeJobService:
             self.save(owner, project, value)
             await self.publish(owner, value)
             previous = time.monotonic()
-            deadline = previous + self.deadline_seconds(value["recipe"])
+            deadline = previous + self.job_deadline(value)
             while running["process"].alive():
                 previous = self.governor.poll(previous)
                 if running["cancel"].is_set() or self.governor.state in ("gaming", "resident"):
@@ -334,6 +352,9 @@ class CreativeJobService:
             exit_code = running["process"].exit_code()
             running["process"].close()
             if exit_code != 0:
+                error = getattr(running["process"], "error", None)
+                if isinstance(error, ServiceError):
+                    raise error  # an in-process adapter's plain message (the CAD kernel)
                 raise ServiceError(
                     "worker_failed", "The creative worker stopped before completing validation."
                 )
@@ -348,7 +369,7 @@ class CreativeJobService:
                 result_bytes = stream.read(8001)
             if len(result_bytes) > 8000:
                 raise ServiceError("worker_failed", "Worker metadata exceeded its limit.")
-            result = self.validate_result(result_bytes, value["recipe"])
+            result = self.validate_job(result_bytes, value)
             artifacts = result["artifacts"]
             for extension, metadata in artifacts.items():
                 path = contained_path(
@@ -418,6 +439,7 @@ class CreativeJobService:
                     "result.json",
                     "model.stl",
                     "model.glb",
+                    "model.step",
                     "model.json",
                     "model.blend",
                     "model.png",

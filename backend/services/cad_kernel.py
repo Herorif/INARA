@@ -49,6 +49,10 @@ READ_LIMIT = 1024 * 1024
 QUALITIES = ("draft", "final")
 EXPORTS = ("glb", "stl", "step")
 EDGE_WORDS = {"all": "", "vertical": "vertical corner ", "top": "top ", "bottom": "bottom "}
+# What the owner hears when a feature needs the kernel and it isn't installed.
+SETUP_HINT = (
+    "Holes, fillets and cut-outs need the CAD engine. Run scripts/setup-cad-engine.ps1."
+)
 
 
 def venv_python(venv):
