@@ -22,7 +22,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S1.5** Two-phase `ask_brain` with progress phrases; `ASK_BRAIN` description rewrite · S1 layer 6 · C · needs S1.4 — 5759510
 - [x] **S1.6** Claude web search and fetch tools, `pause_turn`, pricing · S1 layer 3 · C · read the `claude-api` skill first — a109ea2
 - [x] **S1.7** `turn_timing` log line, `brain_check` RPC, "Run a check" button · S1 layer 7 · M — 8b7c6de (also fixes the owner's effort being overridden by a fixed "medium")
-- [ ] **S1.8** `tests/test_no_stall.py` (all seven cases), docs, full suite · S1 layer 7 · C · needs S1.1–S1.7
+- [x] **S1.8** `tests/test_no_stall.py` (all seven cases), docs, full suite · S1 layer 7 · C · needs S1.1–S1.7 — c717a5b (full suite 3634 passed; failures only Avast TLS and files mid-edit by other workers)
 - [x] **S2.1** Settings `assistant.claude_model`, `assistant.effort`, `assistant.gemini_model`; router; `brain_models` RPC · S2 · M — c258a80
 - [x] **S2.2** Preferences: Brain select and Effort control; captures · S2 · M · needs S2.1 — 0479190 (captures `.runtime/ui-qa/brain-picker/`)
 - [x] **S4.1** Turn trace ring buffer (`services/trace.py`) fed by the conversation and voice paths · S4 · M · needs S1.7 — ee793ea
