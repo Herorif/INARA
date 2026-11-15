@@ -430,6 +430,8 @@ class BuiltinServer:
 
     id = ""
     owner = ""
+    # The taint label its tools' results add to a brain turn (S15.1, services/tools.py).
+    untrusted_source = "a built-in data source"
 
     def config(self):
         """The live McpServerConfig, or None to hide the server."""
@@ -621,6 +623,15 @@ class McpRegistry:
                 execution_timeout=config.timeout_s * 2 + 15,
                 review=partial(self._review, config.id, tool["name"]),
                 ask_when=partial(self._ask_when, config.id, tool["name"]),
+                # Results are outside data (S15.1). A built-in server's tools read public
+                # data (God's Eye View); an owner-added server's tools may do anything, so
+                # after untrusted content in the turn they always ask.
+                untrusted_output=True,
+                untrusted_source=(
+                    builtin.untrusted_source if builtin is not None
+                    else f"an MCP server ({config.id})"
+                ),
+                outward=builtin is None,
             )
             spec.mcp_server = config.id
             spec.mcp_schema_simplified = simplified

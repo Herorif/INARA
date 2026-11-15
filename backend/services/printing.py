@@ -123,6 +123,7 @@ class PrintService:
                 "Print a project STL through separate slice, upload and start permissions. No retries.",
                 PrintRequest,
                 self.print,
+                outward=True,
             )
         )
         for name in ("slice_stl", "upload_gcode", "start_print"):
@@ -134,6 +135,7 @@ class PrintService:
                     self.stage(name),
                     execution_timeout=STAGE_TIMEOUTS[name],
                     model_visible=False,
+                    outward=True,
                 )
             )
 

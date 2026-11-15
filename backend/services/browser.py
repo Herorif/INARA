@@ -76,6 +76,8 @@ class BrowserService:
                 execution_timeout=30,
                 permission="run_web_agent",
                 model_visible=False,
+                untrusted_output=True,
+                untrusted_source="a web page",
             )
         )
 

@@ -196,6 +196,9 @@ class ShowJarvis:
                 self.look,
                 always_ask=True,
                 execution_timeout=CAPTURE_TIMEOUT + LOOK_TIMEOUT + 10,
+                # What the camera sees can carry text from anyone (a note, a screen).
+                untrusted_output=True,
+                untrusted_source="the camera",
             )
         )
 

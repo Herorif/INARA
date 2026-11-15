@@ -10,10 +10,13 @@ screen for "ask" devices and for the always-ask actions (unlock, open, arm_home,
 disarm), and refuses off limits devices before any card. "deny" still disables it.
 """
 
-from services.home_assistant import HomeControl, HomeDevicesQuery
+from services.home_assistant import HomeControl, HomeDevicesQuery, domain_of
 from services.tools import ToolSpec
 
 LIST, CONTROL = "home_devices", "home_control"
+# Devices whose control has a physical effect: after untrusted content in the turn, every
+# action on one asks the owner (the taint rule, services/tools.py).
+OUTWARD_DOMAINS = frozenset({"lock", "cover", "alarm_control_panel"})
 
 LIST_DESCRIPTION = (
     "List the owner's home devices from their Home Assistant: lights, switches, fans, "
@@ -44,6 +47,10 @@ def register_home_tools(dispatcher, home):
     def review(args, _context):
         return home.review(args)
 
+    def outward(args, _context):
+        # Locks, covers and alarms (the always-ask class) have a physical effect (S15.1).
+        return domain_of(args.entity_id) in OUTWARD_DOMAINS
+
     async def control(args, _context):
         device = await home.control(args.entity_id, args.action, args.value)
         return {
@@ -60,6 +67,6 @@ def register_home_tools(dispatcher, home):
     dispatcher.register(
         ToolSpec(
             CONTROL, CONTROL_DESCRIPTION, HomeControl, control,
-            execution_timeout=30, review=review, ask_when=ask_when,
+            execution_timeout=30, review=review, ask_when=ask_when, outward=outward,
         )
     )

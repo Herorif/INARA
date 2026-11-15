@@ -36,6 +36,7 @@ export default function ConfirmationPopup() {
         <div className="approval-top"><HudLabel className="approval-label">APPROVAL NEEDED</HudLabel>{pending > 1 && <HudLabel className="approval-count">{`1 of ${pending}`}</HudLabel>}</div>
         <h3 id="approval-title">{view.title}</h3>
         <p id="approval-summary">{view.summary}</p>
+        {typeof request.taint_line === 'string' && request.taint_line && <p className="approval-taint" role="note">{request.taint_line}</p>}
         {request.project && <p className="approval-project">Project · <strong>{request.project}</strong></p>}
         {view.details && <details open><summary>Details</summary><pre>{JSON.stringify(view.details, null, 2)}</pre></details>}
       </div><footer><button type="button" className="btn btn--secondary" data-dialog-autofocus onClick={decline}>{view.denyLabel}</button><button type="button" className="btn btn--primary" onClick={() => respond(true)}>{view.approveLabel}</button></footer>

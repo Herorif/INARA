@@ -78,6 +78,11 @@ class LocalActions:
                     execute,
                     execution_timeout=30,
                     review=self.review_launch if name == "launch_app" else None,
+                    # The clipboard usually holds text copied from somewhere else (S15.1).
+                    **(
+                        {"untrusted_output": True, "untrusted_source": "the clipboard"}
+                        if name == "read_clipboard" else {}
+                    ),
                 )
             )
 

@@ -28,7 +28,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S4.1** Turn trace ring buffer (`services/trace.py`) fed by the conversation and voice paths · S4 · M · needs S1.7 — ee793ea
 - [x] **S4.2** "Export diagnostics" (tray and Preferences), redaction tests · S4 · M · needs S4.1 — e791d24
 - [x] **S4.3** "Activity → What JARVIS did" list · S4 · M · needs S4.1 — e093859 (captures `.runtime/ui-qa/activity/`)
-- [ ] **W0** Wave check: full pytest, client tests, build — at e791d24 in a clean worktree: pytest 3672 passed, 44 skipped (Avast TLS test deselected); client 466 passed. Build pending: run it in the main tree when no worker is editing (the provenance plugin refuses a worktree whose node_modules is a junction).
+- [x] **W0** Wave check: full pytest, client tests, build — at e791d24 in a clean worktree: pytest 3672 passed, 44 skipped (Avast TLS test deselected); client 466 passed. Build passed in the main tree at 06d399c (the provenance plugin refuses a worktree whose node_modules is a junction, so builds run in the main tree).
 
 ## Wave 1 — real CAD and the JARVIS look (S3, S13a) — the two groups may run in parallel
 
@@ -46,7 +46,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 
 ## Wave 2 — trust, memory, initiative (S15, S6, S7, S5)
 
-- [ ] **S15.1** Taint rule in `ToolDispatcher`, untrusted-content wrapping, approval card line · S15 · C
+- [x] **S15.1** Taint rule in `ToolDispatcher`, untrusted-content wrapping, approval card line · S15 · C — see the commit "Ask before any outward action after JARVIS reads untrusted content" (open: `reply(channel=...)` starts a turn tainted, but the phone call agent never goes through the dispatcher; S8 channels must pass their channel)
 - [ ] **S15.2** Sidecars start with a minimal environment and a job object · S15 · C
 - [ ] **S6.1** Memory store (tables, FTS5), `memory_search`, `memory_remember`, `memory_forget` · S6 · C
 - [ ] **S6.2** Extractor after idle (Haiku, structured output), rules, pause switch · S6 · C · needs S6.1

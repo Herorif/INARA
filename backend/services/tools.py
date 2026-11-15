@@ -4,12 +4,69 @@ from contextlib import nullcontext
 import asyncio
 import base64
 import inspect
+import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
 from typing import Callable
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
+
+from services.log import get_logger
+
+logger = get_logger(__name__)
+
+# The taint rule (S15.1, docs/handover/9NovWork-specs.md S15). A brain turn's dispatch
+# context carries ``taint``: the plain source labels of the untrusted content the turn has
+# read (a web page, an email, a message from someone else, an MCP server's result). While
+# it is non-empty, every ``ToolSpec.outward`` tool asks the owner on screen whatever its
+# stored policy, and the approval card says where the untrusted content came from.
+UNTRUSTED_SOURCE_DEFAULT = "an outside source"
+TAINT_FACT = "caution"  # the review fact the approval card shows the taint line under
+_UNTRUSTED_TAG = re.compile(r"<(\s*/?\s*)(untrusted_content)", re.IGNORECASE)
+
+
+def untrusted_source(spec):
+    """The source label a ``ToolSpec.untrusted_output`` tool adds to the turn's taint, or
+    None for a tool whose output is JARVIS's own data."""
+    if spec is None or getattr(spec, "untrusted_output", False) is not True:
+        return None
+    label = getattr(spec, "untrusted_source", None)
+    return label if isinstance(label, str) and label.strip() else UNTRUSTED_SOURCE_DEFAULT
+
+
+def taint_sources(taint):
+    """The turn's taint labels, sorted so the card and the trace are deterministic."""
+    return sorted({item for item in taint or () if isinstance(item, str) and item})
+
+
+def taint_line(sources):
+    """'This came after reading untrusted content from an email and a web page.'"""
+    sources = list(sources)
+    if not sources:
+        return None
+    joined = sources[0] if len(sources) == 1 else ", ".join(sources[:-1]) + " and " + sources[-1]
+    return f"This came after reading untrusted content from {joined}."
+
+
+def wrap_untrusted(text, source):
+    """Untrusted tool output as labelled data for the model. Any tag inside that opens or
+    closes an untrusted_content block is neutralised, so the content can't end its own
+    wrapper or pose as another source."""
+    label = (source or UNTRUSTED_SOURCE_DEFAULT)
+    label = (
+        label.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+    )
+    body = _UNTRUSTED_TAG.sub(lambda match: "&lt;" + match.group(1) + match.group(2), text)
+    return f'<untrusted_content source="{label}">{body}</untrusted_content>'
+
+
+def is_outward(spec, validated, context):
+    """Whether this call has an outward or physical effect (``ToolSpec.outward``)."""
+    outward = getattr(spec, "outward", False)
+    if callable(outward):
+        return outward(validated, context) is True
+    return outward is True
 
 
 class ServiceError(Exception):
@@ -78,6 +135,17 @@ class ToolSpec:
     # while one runs, so only its own execution_timeout bounds it. Every other tool is
     # cut at the time left in the turn's budget (services/conversation.py).
     long_running: bool = False
+    # True for tools whose output carries text from outside JARVIS and the owner (a web
+    # page, an email, someone else's message, a non-built-in MCP server). Their results are
+    # wrapped as <untrusted_content source="..."> data for the model, and a call that ran
+    # adds ``untrusted_source`` (a short plain phrase, e.g. "a web page") to the turn's taint.
+    untrusted_output: bool = False
+    untrusted_source: str | None = None
+    # True (or a (validated, context) -> bool, per call) for tools with an outward or
+    # physical effect: send, call, purchase, unlock, disarm or open, delete files, computer
+    # use, web agent actions, calendar writes, printing. While the turn is tainted such a
+    # call always asks the owner, whatever the stored policy; "deny" still disables it.
+    outward: bool | Callable = False
 
 
 def inline_tool_schema(model):
@@ -169,7 +237,18 @@ class ToolDispatcher:
         asks = spec.ask_when is not None and (
             spec.ask_when(validated, {**context, "principal": principal}) is True
         )
-        if force_approval or spec.always_ask or asks or policy not in (False, "allow_within_scope"):
+        # The taint rule: after untrusted content in this turn, an outward call always asks.
+        sources = taint_sources(context.get("taint"))
+        tainted = bool(sources) and is_outward(
+            spec, validated, {**context, "principal": principal}
+        )
+        if tainted:
+            # Content-free: the tool's name and how many sources, never what they said.
+            logger.info("taint tool=%s sources=%d", name, len(sources))
+        if (
+            force_approval or spec.always_ask or asks or tainted
+            or policy not in (False, "allow_within_scope")
+        ):
             if request_approval is None:
                 raise ServiceError("approval_required", "This action requires owner approval.")
             review_args = approval_arguments(validated.model_dump())
@@ -180,17 +259,17 @@ class ToolDispatcher:
                         spec.review(validated, {**context, "principal": principal})
                     ),
                 }
-            request_id = str(uuid.uuid4())
+            payload = {"id": str(uuid.uuid4()), "tool": name, "args": review_args}
+            if tainted:
+                line = taint_line(sources)
+                # The generic card lists review facts; the line rides there and on its own.
+                payload["args"] = {**review_args, TAINT_FACT: line}
+                payload.update(taint=sources, taint_line=line)
+            request_id = payload["id"]
             future = asyncio.get_running_loop().create_future()
             self.pending[request_id] = (principal, future)
             try:
-                await request_approval(
-                    {
-                        "id": request_id,
-                        "tool": name,
-                        "args": review_args,
-                    }
-                )
+                await request_approval(payload)
                 approved = await asyncio.wait_for(future, self.timeout)
             except TimeoutError as exc:
                 raise ServiceError("approval_expired", "The approval request expired.") from exc

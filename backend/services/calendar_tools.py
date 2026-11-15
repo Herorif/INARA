@@ -179,11 +179,14 @@ def register_calendar_tools(dispatcher, calendar):
         ToolSpec(
             READ, READ_DESCRIPTION, CalendarRange, read,
             execution_timeout=30, permission="calendar_read",
+            # Titles and places can come from other people's invitations (S15.1).
+            untrusted_output=True, untrusted_source="a calendar invitation",
         )
     )
     dispatcher.register(
         ToolSpec(
             WRITE, WRITE_DESCRIPTION, CalendarEvent, write,
             execution_timeout=30, permission="calendar_write", review=review, always_ask=True,
+            outward=True,
         )
     )

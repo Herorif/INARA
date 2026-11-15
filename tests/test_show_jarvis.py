@@ -537,7 +537,12 @@ async def test_brain_tool_result_reaches_claude_as_text_only(show):
     (final,) = [data for _, data, _ in events(show, "transcription")]
     assert final["text"] == "It is a bracket, sir."
     result = client.requests[1]["messages"][-1]["content"][0]
-    assert result["type"] == "tool_result" and json.loads(result["content"]) == {"answer": ANSWER}
+    # What the camera saw is outside data (S15.1): wrapped, with the answer inside.
+    opening, closing = '<untrusted_content source="the camera">', "</untrusted_content>"
+    content = result["content"]
+    assert result["type"] == "tool_result"
+    assert content.startswith(opening) and content.endswith(closing)
+    assert json.loads(content[len(opening):-len(closing)]) == {"answer": ANSWER}
     assert "image" not in json.dumps(client.requests[1]["messages"])
     assert len(vision.calls) == 1
     assert_photo_nowhere(show)

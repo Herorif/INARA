@@ -139,6 +139,10 @@ class ExtendedActions:
                     long_running=spec.long_running,
                     model_visible=False,
                     alias_for=target,
+                    # An alias keeps its target's taint flags (S15.1).
+                    untrusted_output=spec.untrusted_output,
+                    untrusted_source=spec.untrusted_source,
+                    outward=spec.outward,
                 )
             )
 

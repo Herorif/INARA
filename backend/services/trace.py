@@ -12,10 +12,12 @@ Shape (``recent`` / ``get``)::
 
     {id, origin, started_at, provider, model, effort, outcome, total_ms, first_token_ms,
      spans: [{kind, name?, start_ms, ms, outcome}], tokens: {input, output},
-     cost_usd, approvals: [{tool, asked_ms, answer}], request_text?, answer_text?}
+     cost_usd, approvals: [{tool, asked_ms, answer, forced_by_taint?}], request_text?,
+     answer_text?}
 
-``kind`` is wake, speech_in, model, tool, approval or speech_out. ``start_ms`` is relative
-to the trace's start (the brain turn's start for a brain turn), so the voice spans before
+``kind`` is wake, speech_in, model, tool, approval or speech_out. An approval the taint
+rule forced (services/tools.py) carries ``forced_by_taint: true`` in both lists.
+``start_ms`` is relative to the trace's start (the brain turn's start for a brain turn), so the voice spans before
 a brain turn (wake, speech_in) are negative. Hooks here never raise into a turn.
 
 Every new or updated trace is announced to the owner's renderers as ``trace_added``
@@ -98,6 +100,10 @@ def brain_spans(budget):
                 if asked_ms is not None and answered_ms is not None else None,
                 "outcome": answer,
             })
+            if asked.get("forced_by_taint") is True:
+                # The taint rule (S15.1) made this call ask: it came after untrusted content.
+                approvals[-1]["forced_by_taint"] = True
+                spans[-1]["forced_by_taint"] = True
     spans.sort(key=span_order)
     return spans, approvals
 

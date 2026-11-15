@@ -313,6 +313,8 @@ def world_problem(values):
 # --- the built-in God's Eye View server -------------------------------------------------------
 class GevServer(BuiltinServer):
     id, owner = SERVER_ID, "world"
+    # Public feeds (news, flights, quakes) can carry anyone's text (S15.1 taint rule).
+    untrusted_source = "the World view data"
 
     def __init__(self, tools):
         self.tools = tools

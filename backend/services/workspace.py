@@ -70,6 +70,12 @@ class WorkspaceService:
                     model_visible=name == "save_memory",
                     # Generated CAD and web agent runs take minutes: they pause the turn budget.
                     long_running=name != "save_memory",
+                    # The web agent reads outside pages and can act on them (S15.1 taint rule).
+                    **(
+                        {"untrusted_output": True, "untrusted_source": "a web page",
+                         "outward": True}
+                        if name == "prompt_web_agent" else {}
+                    ),
                 )
             )
 
