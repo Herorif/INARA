@@ -3,6 +3,8 @@
 // label the panel shows. node:test checks each rule (tests/test_live_design_panel.mjs).
 // The core is the authority (backend/services/cad_design.py, docs/LIVE_DESIGN.md).
 
+import { sanitizePreview } from './liveDesignKernelModel.js';
+
 export const MAX_OBJECTS = 8;
 export const MAX_STEPS = 40;
 /** Canvas width (px) from which the conversation and the panel sit side by side. */
@@ -169,11 +171,14 @@ export function sanitizeDesignSnapshot(raw) {
   if (steps.some(step => !step)) return null;
   const job = sanitizeJob(design.job);
   if (job === undefined) return null;
+  // CAD engine only: the draft preview (liveDesignKernelModel.js); absent on the box engine path.
+  const preview = sanitizePreview(design.preview);
   return {
     design: {
       id, project, name, status: design.status,
       recipe: { name: text(recipe.name, LIMITS.name) || name, shape: 'scene', engine: 'offline', objects },
       steps, job, updated: finite(design.updated, 0, Number.MAX_SAFE_INTEGER) ? design.updated : 0,
+      ...(preview ? { preview } : {}),
     },
   };
 }
@@ -343,10 +348,11 @@ export function calloutView(design, { step: stepN = null } = {}) {
 }
 
 /** Bottom-left HUD line on the canvas. */
-export function hudLine(status) {
+export function hudLine(status, kernel = false) {
   if (status === 'building') return 'Building on this PC';
   if (status === 'saved') return 'Saved geometry · validated';
-  return 'Draft blockout · not built';
+  // The CAD engine's draft is real geometry, not a blockout.
+  return kernel ? 'Draft · not built' : 'Draft blockout · not built';
 }
 
 /** The build phase 1..3 from the job: queued or building, validating, saving or blender. */
@@ -372,7 +378,8 @@ export function summaryLine(design, kind = 'draft') {
 
 /** The approval card's two lines. */
 export function approvalLines(design) {
-  return { title: `Build “${design.name}”?`, detail: `${plural(design.recipe.objects.length, 'part')} · STL and GLB on this PC · about 10 s` };
+  const files = design.preview?.engine === 'kernel' ? 'STL, GLB and STEP on this PC · a few seconds' : 'STL and GLB on this PC · about 10 s';
+  return { title: `Build “${design.name}”?`, detail: `${plural(design.recipe.objects.length, 'part')} · ${files}` };
 }
 
 /** Header suffix when the design belongs to another project. */

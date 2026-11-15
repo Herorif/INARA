@@ -173,6 +173,9 @@ test('footer kind, lines and phases for every state', () => {
   assert.deepEqual(phaseRows({ phase: 'saving' }).map(row => row.label), ['Building geometry', 'Checking the solid', 'Saving exports']);
   assert.equal(hudLine('draft'), 'Draft blockout · not built');
   assert.equal(hudLine('failed'), 'Draft blockout · not built');
+  assert.equal(hudLine('draft', true), 'Draft · not built');
+  assert.equal(approvalLines({ ...design(), preview: { engine: 'kernel' } }).detail,
+    '5 parts · STL, GLB and STEP on this PC · a few seconds');
   assert.equal(hudLine('building'), 'Building on this PC');
   assert.equal(hudLine('saved'), 'Saved geometry · validated');
   assert.equal(projectNote(design(), 'temp'), '');

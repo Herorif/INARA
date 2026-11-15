@@ -114,3 +114,75 @@ Added 7 November 2026 (D1b). The renderer shows the design beside the conversati
 **Open in 3D studio.** A saved design of the current project opens the studio with its revision selected (`studioSelection`). Anything else is handed to the studio as its working draft (`cadDraftHandoff`, read once when the studio mounts), shown as "Draft blockout". The hand-off is one-way; the live design stays open.
 
 Tests: `tests/test_live_design.py` and `tests/test_live_design_panel.mjs`.
+
+## The CAD engine: feature steps and draft previews
+
+Added 15 November 2026 (S3, M7 K1). With the CAD engine installed, a live design is more than boxes: it is a **feature tree**, its parts followed by feature steps, built into real geometry by build123d. The brain never writes code; it sends validated steps, and an isolated worker builds them. Without the engine, everything above is unchanged.
+
+**The CAD engine.** build123d 0.13.0 in its own Python 3.13 environment, `.venv-cad` at the repo root, apart from the core's `.venv`.
+
+- `backend/services/cad_features.py` validates the tree: at most 40 features, parts included; sizes 0.1–2000 mm; text up to 40 characters. It gives each tree a stable hash.
+- `backend/workers/cad_kernel_worker.py` builds the tree. It runs as `.venv-cad\Scripts\python.exe -I`, speaks JSON lines over stdin and stdout, never uses the network, and works in a temp job folder.
+- `backend/services/cad_kernel.py` starts the worker on the first build and reuses it. The worker stops after 5 idle minutes. Builds time out (20 s for a draft, 120 s for a final build), and a timeout kills the process tree. Kernel errors become plain messages, for example "A 3 mm fillet does not fit a 4 mm edge".
+- **Setup.** The owner runs `scripts/setup-cad-engine.ps1` once: `powershell -ExecutionPolicy Bypass -File scripts\setup-cad-engine.ps1`. It creates `.venv-cad` from `requirements-cad-kernel.lock`, a hash-pinned lock, then runs a smoke check. It is safe to run again. JARVIS never runs it and never downloads anything for the engine.
+- **Without the engine**, feature steps are refused with "Holes, fillets and cut-outs need the CAD engine. Run scripts/setup-cad-engine.ps1." Box, bracket and enclosure parts still work as before.
+
+**Feature steps.** `change_live_design` takes `features`, steps added in order after the parts. Each step targets a part by name.
+
+| Op | Fields |
+| --- | --- |
+| `hole` | `target, face, at [u, v], diameter, depth` ("through" or mm); optional `cb_diameter`, `cb_depth` for a counterbore |
+| `slot` | `target, face, at, length, width, depth, angle` |
+| `fillet` / `chamfer` | `target, edges` (`all`, `vertical`, `top`, `bottom`), `radius` / `distance` |
+| `cut` | `target, tool` (an inline box, cylinder or sphere at its centre `at`) or `target, bodies` (part names) |
+| `shell` | `target, thickness, open` (the open face) |
+| `text` | `target, face, text, size, depth, mode` (`engrave` or `emboss`), optional `at` |
+| `pattern` | `of` (the id of an earlier hole, slot, text or cut), `linear` with `count [nx, ny]` and `spacing [dx, dy]`, or `polar` with `count`, `radius` and optional `angle` |
+| `mirror` | `target, plane` (`XY`, `YZ` or `XZ`) |
+
+- Faces: top +Z, bottom −Z, front −Y, back +Y, left −X, right +X. A face's `at [u, v]` is in mm from the face's corner with the smallest coordinates.
+- **Shells before fillets.** Put `shell` before `fillet` and `chamfer`. Shelling a body that is already rounded often fails, or leaves walls thinner than asked.
+- Each feature step is an ordinary step row with Undo. If the tree or the kernel refuses a step, it becomes a "not possible" row with a plain reason. The draft stays as it was, and the brain hears the reason in `not_possible`.
+- Threads and free-form curves can't be made. They go into `unsupported`, as before.
+
+**Draft previews.** Every change asks for a draft GLB build. Builds are debounced (150 ms), one at a time per design, low quality, and cached by tree hash. The `cad_design` snapshot then has `preview`. The field exists only on the kernel path, so the renderer keeps the box path whenever it is missing:
+
+```
+"preview": {"engine": "kernel",
+  "state": "starting" | "building" | "ready" | "failed" | "paused" | "unavailable",
+  "message": text | null, "current": bool,
+  "glb": null | {"request_id": uuid, "format": "glb", "bytes": n, "sha256": hex},
+  "facts": null | {"volume_mm3", "bbox_mm": [x, y, z], "min_mm": [x, y, z], "faces", "edges", "solids", "valid"},
+  "warnings": [{"code", "index", "message"}], "seconds", "cached"}
+```
+
+- `current` is true when the shown model matches the current draft. The last good `glb` and `facts` stay while the next draft builds or fails.
+- Gaming mode pauses draft builds (`paused`). They resume when the owner looks at the design again.
+
+**In the panel** (`LiveDesignCanvas.jsx`, with the rules in `liveDesignKernelModel.js`).
+
+- **Loading the GLB.** The canvas fetches the GLB with `cad_artifact {request_id, format: "glb"}` whenever the reference changes. GLBs travel over the socket, so the CSP needs no new `connect-src`.
+  - The reply's size and digest must match the snapshot. The decoded bytes' SHA-256 is checked with SubtleCrypto before parsing.
+  - The last four GLBs are kept in memory by SHA-256, so an undo shows at once.
+  - A reply is dropped when a newer GLB was asked for meanwhile. A GLB that fails to load leaves the last good model in place.
+- **Style.** The model is drawn as a blueprint: accent-tinted faces at about 12 % opacity, and bright accent edges where faces meet at 20° or more, so holes, fillets and text read clearly.
+- **Change highlight.** When a new GLB replaces the shown one after a step, its edges flash in `--accent-hot` for 1.2 s. There is no flash under reduced motion.
+- **Camera.** The camera frames the model once. It refits only when a side changes by more than 20 % of the largest side, or the centre moves by more than 20 % of the radius, so adding a hole or a fillet keeps the view still.
+- **Before the first GLB** arrives, the parts' blockout boxes stand in.
+- **Status chip.** A chip in the canvas's top-right corner shows the preview state while the shown model isn't current:
+
+  | State | Chip |
+  | --- | --- |
+  | `starting` | "Starting the CAD engine…" |
+  | `building` | "Updating…" |
+  | `failed` | The message, in warn |
+  | `paused` | "Paused in gaming mode" |
+  | `unavailable` | The message |
+
+  The last good model stays on screen in every state.
+- **Facts and warnings.** The draft footer shows the kernel's facts in place of the part count, for example "Volume 11.6 cm³ · 60 × 40 × 5 mm" (mm³ shown as cm³ with one decimal). The kernel's warnings show as small warn rows above the footer.
+- **A saved design** still shows the built revision through `ModelPreview`, the solid style.
+
+**STEP export.** With the engine installed, "Build it" saves GLB, STL and STEP through the normal `generate_cad` job, and the approval card says "STL, GLB and STEP on this PC". The STEP file lands in the project's revision with the others. Without the engine, a build saves STL and GLB as before.
+
+Tests: `tests/test_live_design.py` (core), `tests/test_live_design_kernel.mjs` (the preview rules).

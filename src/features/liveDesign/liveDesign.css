@@ -148,3 +148,31 @@
 .live-design__spin { animation: live-design-spin 1s linear infinite; }
 @keyframes live-design-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .live-design__spin { animation: none; } }
+
+/* CAD engine draft preview (liveDesignKernelModel.js): the canvas status chip and warn rows. */
+.live-design__engine {
+  --tone: var(--text-2);
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  max-width: calc(50% - 1rem);
+  padding: .3125rem .5625rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-panel) 88%, transparent);
+  color: var(--tone);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.live-design__engine[data-tone="accent"] { --tone: var(--accent); }
+.live-design__engine[data-tone="warn"] { --tone: var(--warn); }
+.live-design__engine[data-tone="muted"] { --tone: var(--text-2); border-color: var(--line-strong); }
+.live-design__warnings { flex-shrink: 0; margin: 0; padding: .25rem 0; border-top: 1px solid var(--line); list-style: none; }
+.live-design__warning { padding: .125rem 1rem; overflow: hidden; color: var(--warn); font-size: var(--text-xs); line-height: var(--leading-normal); text-overflow: ellipsis; white-space: nowrap; }
+/* With the engine chip on the right, the step callout keeps to the left half. */
+.live-design__stage:has(.live-design__engine) .live-design__callout { max-width: calc(50% - 1rem); }

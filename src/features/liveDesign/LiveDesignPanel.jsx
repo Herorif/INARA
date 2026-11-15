@@ -13,6 +13,7 @@ import {
   hudLine, latestStep, matchingApproval, nextTimeline, pendingSteps, phaseRows, projectNote, revealProgress,
   snapshotPatch, studioDraft, summaryLine, unseenSteps, whoLabel,
 } from './model.js';
+import { factsLine, kernelPreview, previewChip, warningRows } from './liveDesignKernelModel.js';
 import './liveDesign.css';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
@@ -103,6 +104,11 @@ export default function LiveDesignPanel({ design, visible, gaming = false, onOpe
   const callout = calloutView(design, { step: reveal.active ? reveal.step : null });
   const note = projectNote(design, currentProject);
   const offline = !connected;
+  // CAD engine only (absent on the box engine path): the draft preview's chip, facts and warnings.
+  const preview = kernelPreview(design);
+  const engineChip = design.status === 'saved' ? null : previewChip(preview);
+  const facts = factsLine(preview?.facts);
+  const warnings = design.status === 'saved' ? [] : warningRows(preview);
 
   useLayoutEffect(() => {
     const element = list.current;
@@ -182,9 +188,10 @@ export default function LiveDesignPanel({ design, visible, gaming = false, onOpe
     <div className="live-design__stage">
       {savedJob
         ? <ModelPreview key={savedJob.request_id} job={savedJob} bare fallback={solid} />
-        : <LiveDesignCanvas key={design.id} objects={design.recipe.objects} timeline={live} ghost={ghost} hold={reveal.active} reducedMotion={reducedMotion} />}
+        : <LiveDesignCanvas key={design.id} objects={design.recipe.objects} timeline={live} ghost={ghost} hold={reveal.active} reducedMotion={reducedMotion} preview={preview} />}
+      {engineChip && <span className="live-design__engine" data-tone={engineChip.tone} role="status" title={engineChip.text}>{engineChip.text}</span>}
       {callout && <div className="live-design__callout" data-tone={callout.tone} title={callout.text}>{callout.text}</div>}
-      <HudLabel className="live-design__hud live-design__hud--left">{hudLine(design.status)}</HudLabel>
+      <HudLabel className="live-design__hud live-design__hud--left">{hudLine(design.status, design.preview?.engine === 'kernel')}</HudLabel>
       <HudLabel className="live-design__hud live-design__hud--right">Drag to orbit</HudLabel>
     </div>
 
@@ -197,6 +204,9 @@ export default function LiveDesignPanel({ design, visible, gaming = false, onOpe
       </li>)}
     </ol>
     {error && <p className="live-design__error" role="alert">{error}</p>}
+    {warnings.length > 0 && <ul className="live-design__warnings" aria-label="CAD engine warnings">
+      {warnings.map(row => <li key={row.key} className="live-design__warning" title={row.text}>{row.text}</li>)}
+    </ul>}
 
     <footer className="live-design__footer" data-kind={kind}>
       {kind === 'offline' && <>
@@ -211,7 +221,7 @@ export default function LiveDesignPanel({ design, visible, gaming = false, onOpe
         </div>
       </>}
       {kind === 'draft' && <>
-        <div className="live-design__summary">{summaryLine(design)}</div>
+        <div className="live-design__summary">{facts || summaryLine(design)}</div>
         <div className="live-design__buttons"><button type="button" className="btn btn--primary btn--sm" disabled={!!busy} onClick={() => setConfirming(true)}>Build it</button></div>
       </>}
       {kind === 'building' && <>
