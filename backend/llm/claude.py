@@ -7,7 +7,10 @@ Request rules for Claude Sonnet 5.5 / Haiku 5.5 (see docs/AI_PROVIDERS.md):
   and replayed unchanged. ``block_binding.prefix_mismatch_behavior: drop_block``
   is the safety net for the rare unavoidable edit (trimmed history, a changed
   tool list), so such a request loses old reasoning instead of failing;
-- top-level automatic prompt caching; server-side refusal fallback on Sonnet;
+- prompt caching: an explicit breakpoint on the static system prompt (tools + system, one
+  stable read point) plus top-level automatic caching for the growing turn; per-turn
+  content (the owner's memory block) goes after the system breakpoint, in the user turn;
+- server-side refusal fallback on Sonnet;
 - web search and web fetch (server tools, ``assistant.web_search``): their blocks
   (``server_tool_use``, ``web_search_tool_result``, ``web_fetch_tool_result``, cited text)
   stay in the turn verbatim; only ``tool_use`` blocks are client calls. A turn that stops
@@ -119,6 +122,28 @@ class ResumedTurn:
         self.usage = getattr(final, "usage", None)
         self.model = getattr(final, "model", None)
         self.id = getattr(final, "id", None)
+
+
+CACHE_BREAKPOINT = {"type": "ephemeral"}
+
+
+def system_blocks(system):
+    """A system prompt string -> one text block with an explicit cache breakpoint.
+
+    The breakpoint caches tools + system as one stable read point (tools render first), so
+    content that changes every turn after it (the owner's ``<memory>`` block at the start of
+    the user turn) never moves the cached prefix; the top-level automatic breakpoint still
+    caches the growing turn. A list of blocks (a caller's own placement) passes unchanged."""
+    if isinstance(system, str):
+        return [{"type": "text", "text": system, "cache_control": dict(CACHE_BREAKPOINT)}]
+    return system
+
+
+def system_text(system):
+    """The text of a request's ``system`` (a string or text blocks), for checks and tests."""
+    if isinstance(system, str):
+        return system
+    return "".join(block.get("text", "") for block in system or [] if isinstance(block, dict))
 
 
 def supports_fallback(model):
@@ -432,7 +457,7 @@ class ClaudeProvider(BaseLLMProvider):
                 "format": {"type": "json_schema", "schema": output_schema},
             }
         if system_instruction:
-            params["system"] = system_instruction
+            params["system"] = system_blocks(system_instruction)
         if tools:
             params["tools"] = tools
         if supports_fallback(self._model):

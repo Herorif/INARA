@@ -163,6 +163,52 @@ says why (`memory_extract skipped reason=no_structured_output`). Waiting turns l
 process only, so a restart drops what was not yet extracted. Logs carry codes and counts,
 never text.
 
+## Read path (S6.3)
+
+Before each brain turn of the **desktop owner** (typed chat, voice brain, Show JARVIS),
+`ConversationService.owner_memory` builds one block with `owner_memory_block` in
+`backend/services/memory_facts.py`:
+
+```
+<memory>
+What you know about the owner (from memory; may be out of date):
+- [profile] Name: The owner is called Aiman.
+- [preference] Tea: The owner likes teh tarik less sweet.
+</memory>
+```
+
+- Pinned facts first (`pinned()`, profile first) until the next line would pass ~600
+  tokens (estimated at 4 characters a token), then up to 8 facts from `search(owner text)`
+  that are not already shown. One line per fact, whitespace collapsed, `<` and `>` escaped
+  so a fact cannot close the block.
+- No block when the store is empty, has nothing for the owner, could not open or is not
+  wired (`ConversationService.facts`, a callable returning the `FactStore`; the application
+  root sets `lambda: app.facts.store`). Turns from another channel (a phone caller,
+  Telegram, WhatsApp) and phone chat never get it. A failure skips the block; the log says
+  `Owner memory skipped (<error type>)` and nothing else. A build is two SQLite reads (about
+  30 ms with 200 matching facts); one slower than 50 ms is logged as its duration.
+- **Only when it changed.** The block is sent only when its SHA-256 differs from the newest
+  block already stored in this conversation: the first turn gets one if any fact applies,
+  an unchanged block is skipped that turn, a changed one (new or edited facts, other search
+  hits) is sent again. The hash is kept per conversation in memory and recovered after a
+  restart or an eviction by scanning the stored history (`last_memory_block`); a trim that
+  drops the stored block lets the next turn send one again.
+- **Placement.** Claude: a separate text block at the start of the user turn (before a
+  photo and the owner's text). The system prompt is sent as one text block with an explicit
+  cache breakpoint (`llm/claude.py` `system_blocks`), so tools + system are one stable
+  cached prefix; top-level automatic caching covers the growing conversation. The static
+  persona is byte-identical across turns and says: "A memory block may come with a
+  request: use it naturally, don't recite it, and say so if a remembered fact seems wrong."
+  Gemini: the same block opens the user text, on every step of the turn.
+- **Stored with the turn, never logged.** The block is part of the stored user turn: Claude
+  entries keep it as the first text block of the turn's stored user message (the photo is
+  still left out), text-loop entries under `owner_memory`. Later requests replay it
+  unchanged, so history stays append-only: the messages cache keeps growing and preserved
+  thinking stays valid. History lives in the encrypted session store; `public_history`,
+  restored history and the memory extractor see the owner's text alone. The `turn_timing`
+  line and the flight recorder carry only the count of facts sent that turn
+  (`memory_facts=<n>`, 0 when the block was unchanged).
+
 ## Owner routes (for the Preferences page)
 
 `backend/transport/facts.py`. Each needs the authenticated, unlocked desktop owner renderer
@@ -191,3 +237,11 @@ without structured output; untrusted content and tool results never in the reque
 update, supersede and none applied; invalid operations and secret-like text refused; one
 extraction in flight; one retry after a failure; the exact request shape
 (`output_config.format`); the `memory_extract` usage receipt.
+
+`tests/test_memory_read_path.py`: the block for owner chat, voice brain and Show JARVIS
+turns, none for other channels, phone chat, an empty or unwired store; pinned first, the
+token cap and no duplicates from search; a fact cannot close the block; the block stored
+with its turn and replayed unchanged; an unchanged block not sent again, a changed one
+sent; the last block recovered from the session store after a restart; history replay and
+the cached system prompt byte-identical across turns; the Gemini path under the same rule;
+a failing store skipped with the error type only; the `memory_facts` count in `turn_timing`.

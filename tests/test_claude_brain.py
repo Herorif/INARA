@@ -17,6 +17,7 @@ from llm.claude import (
     ClaudeProvider,
     anthropic_tools,
     map_error,
+    system_text,
     usage_counts,
 )
 from llm.pricing import estimate_microusd
@@ -215,7 +216,8 @@ def test_request_shape_follows_current_claude_rules():
         "cache_control": {"type": "ephemeral"},
         "betas": [THINKING_BINDING_BETA, SERVER_FALLBACK_BETA],
         "fallbacks": "default",
-        "system": "SYSTEM",
+        # An explicit breakpoint on the static system prompt (S6.3 read path).
+        "system": [{"type": "text", "text": "SYSTEM", "cache_control": {"type": "ephemeral"}}],
         # assistant.web_search is on by default (tests/test_claude_web_search.py).
         "tools": [*tools, WEB_SEARCH_TOOL, WEB_FETCH_TOOL],
     }
@@ -285,8 +287,8 @@ async def test_tool_loop_results_in_one_message_and_history_is_verbatim(tmp_path
     assert opening[-1]["role"] == "system"  # per-turn context trails the user message
     assert "Monday 26 October 2026, 14:05 (UTC+08:00)" in opening[-1]["content"]
     assert tmp_path.name in opening[-1]["content"]
-    assert "Turn context" not in client.requests[0]["system"]
-    assert client.requests[0]["system"] == PERSONA + ADDRESS_LINES["sir"]
+    assert "Turn context" not in system_text(client.requests[0]["system"])
+    assert system_text(client.requests[0]["system"]) == PERSONA + ADDRESS_LINES["sir"]
 
     follow = client.requests[1]["messages"]
     assert follow[:2] == opening
@@ -528,7 +530,7 @@ async def test_phone_chat_uses_the_router_at_low_effort_without_tools(applicatio
     assert sent["model"] == "claude-sonnet-5-5"
     assert sent["output_config"] == {"effort": "low"}
     assert "tools" not in sent
-    assert sent["system"] == PERSONA + ADDRESS_LINES["sir"] + " " + PHONE_LIMITS
+    assert system_text(sent["system"]) == PERSONA + ADDRESS_LINES["sir"] + " " + PHONE_LIMITS
     history = (await post(app, phone, "history", {"conversation_id": args["conversation_id"]}))
     assert "claude" not in str(history.json()) and "p1" not in history.text
 

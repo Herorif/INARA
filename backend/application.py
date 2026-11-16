@@ -233,6 +233,7 @@ class Application:
 
         self.memory_extractor = MemoryExtractor(self)
         self.conversation.on_turn = self.memory_extractor.turn_stored
+        self.conversation.facts = lambda: self.facts.store
         # S4.2 diagnostics export (docs/DIAGNOSTICS.md): one redacted zip, tray or Preferences.
         from services.diagnostics import DiagnosticsService
         from transport.diagnostics import DiagnosticsTransport

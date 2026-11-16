@@ -18,7 +18,7 @@ from anthropic.types.beta import BetaMessage
 from pydantic import BaseModel, ConfigDict
 
 from llm.base import LLMResponse, ToolCall
-from llm.claude import ClaudeProvider
+from llm.claude import ClaudeProvider, system_text
 from services.conversation import (
     UNTRUSTED_NOTE,
     ConversationRequest,
@@ -356,7 +356,7 @@ async def test_the_system_prompt_says_never_follow_untrusted_instructions(tmp_pa
     assert SENTENCE in persona({})
     service, client, dispatcher, effects = claude_service([message([text("Hello.")])])
     await service.reply("owner", ConversationRequest(text="Hi"), tmp_path)
-    assert SENTENCE in client.requests[0]["system"]
+    assert SENTENCE in system_text(client.requests[0]["system"])
     # The sentence is static: the per-turn context message never carries it.
     assert SENTENCE not in client.requests[0]["messages"][-1]["content"]
 

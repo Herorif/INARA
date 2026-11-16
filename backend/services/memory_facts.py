@@ -708,6 +708,51 @@ def score(relevance, age_days):
     return relevance * (1.0 + RECENCY_BOOST * 0.5 ** (age_days / RECENCY_HALF_LIFE_DAYS))
 
 
+# --- the read path (S6.3): what the brain is told before an owner turn ----------------------
+BLOCK_HEADER = "What you know about the owner (from memory; may be out of date):"
+BLOCK_PINNED_TOKENS = 600  # cap on the pinned lines, estimated at CHARS_PER_TOKEN
+CHARS_PER_TOKEN = 4
+BLOCK_SEARCH = 8  # search hits added after the pinned lines
+
+
+def block_line(fact):
+    """``- [preference] Tea: The owner likes teh tarik less sweet.``: one line per fact,
+    whitespace collapsed and angle brackets escaped so a fact cannot close the block."""
+
+    def clean(value):
+        return " ".join(str(value or "").split()).replace("<", "&lt;").replace(">", "&gt;")
+
+    subject, text = clean(fact.get("subject")), clean(fact.get("text"))
+    return f"- [{fact.get('kind')}] {subject}: {text}" if subject else f"- [{fact.get('kind')}] {text}"
+
+
+def owner_memory_block(store, owner_text, pinned_tokens=BLOCK_PINNED_TOKENS,
+                       search_limit=BLOCK_SEARCH):
+    """(block text, fact count) for one owner turn, or (None, 0) when nothing is known.
+
+    Pinned facts come first, profile facts first (``FactStore.pinned``), until the next line
+    would pass ``pinned_tokens`` (4 characters a token). Then up to ``search_limit`` facts
+    from ``search(owner_text)`` that are not already shown. Reads only; the text is for the
+    model and must never be logged."""
+    budget = pinned_tokens * CHARS_PER_TOKEN
+    lines, shown, used = [], set(), 0
+    for fact in store.pinned():
+        line = block_line(fact)
+        if used + len(line) > budget:
+            break
+        lines.append(line)
+        shown.add(fact["id"])
+        used += len(line) + 1
+    if isinstance(owner_text, str) and owner_text.strip() and search_limit > 0:
+        found = store.search(owner_text, limit=min(50, search_limit + len(shown)))
+        lines.extend(
+            block_line(fact) for fact in [f for f in found if f["id"] not in shown][:search_limit]
+        )
+    if not lines:
+        return None, 0
+    return "\n".join([BLOCK_HEADER, *lines]), len(lines)
+
+
 # --- the brain's tools ----------------------------------------------------------------------
 class FactSearch(BaseModel):
     model_config = ConfigDict(extra="forbid")
