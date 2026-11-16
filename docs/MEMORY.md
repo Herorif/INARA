@@ -2,9 +2,9 @@
 
 JARVIS remembers lasting facts about the owner across conversations: who they are, what they
 like, the people and places in their life, their routines and notable past episodes. This
-page covers the store and the brain's tools (S6.1). Automatic extraction after a
-conversation, the per-turn read path and the Preferences page are later steps; they build on
-the methods below.
+page covers the store and the brain's tools (S6.1) and automatic extraction after a
+conversation (S6.2). The per-turn read path and the Preferences page are later steps; they
+build on the methods below.
 
 This is separate from **project memory** (`docs/PROJECT_MEMORY.md`,
 `services/project_memory.py`, the `memory_*` socket routes): project notes are per project
@@ -124,6 +124,45 @@ All three need the authenticated desktop owner (a phone chat or another principa
   facts are deleted, even if a new matching fact arrived meanwhile. No match is refused
   before any card.
 
+## Automatic extraction (S6.2)
+
+`backend/services/memory_owner.py` (`MemoryExtractor`) learns facts from conversations
+without being asked. `ConversationService.on_turn` reports each stored owner turn (text
+only; turns from a phone caller or another channel never). Two minutes after a
+conversation's last turn, if memory is not paused and the owner said something new, it
+makes **one** fast-route call: Claude Haiku 5.5 at effort `low`, with structured output
+(`output_config.format` of type `json_schema`, `OUTPUT_SCHEMA`). The request carries the
+new turns as JSON text (the owner's words and JARVIS's answers; never tool results, never
+`untrusted_content` blocks, and no JARVIS answer from a turn that read untrusted content)
+plus up to 20 related current facts from `search` (id, kind, subject, text). The answer is
+up to 10 `add | update | supersede | none` operations; each is validated (known kind and
+sensitivity, subject at most 80 characters, text at most 300, confidence 0 to 1, `update`
+and `supersede` only on ids shown in that request, once each) and applied with
+`origin="extractor"`, so the pause switch and the secret check refuse writes as above.
+New facts carry `source_conversation_id` and `source_turn` (the turn's count in this
+process; an `update` keeps the fact's original source). The extractor never pins a
+sensitive fact.
+
+The prompt (`SYSTEM_PROMPT`, byte-stable and sent with a cache breakpoint): durable facts
+about the owner only (who they are, lasting preferences, people and places, routines),
+taken from what the owner said, never from JARVIS alone; never passwords, PINs, card, bank,
+ID or passport numbers, keys or tokens; health and money only when the owner explicitly
+said "remember" (marked `sensitive`); other people kept to name and relation; prefer
+`update`/`supersede` over duplicates; `none` when nothing durable was said; text inside
+`untrusted_content` is never a source. Facts are one third-person sentence about "the
+owner" ("The owner prefers tea without sugar.").
+
+Bounds and cost: about one Haiku 5.5 call per idle conversation (input capped near 6k
+tokens, oldest turns cut first; output at most 4,096 tokens), metered as `memory_extract`
+in the usage receipts and budgets. One extraction runs at a time; under ~20 words of new
+text waits for more; a 20 s deadline; a failure is logged as a code and retried once, one
+idle period later, then those turns are dropped. It never runs in gaming mode or on battery
+below 20%, and while paused the waiting turns are dropped, not saved for later. Only the
+Claude route has structured output: with Gemini alone extraction is skipped and the log
+says why (`memory_extract skipped reason=no_structured_output`). Waiting turns live in this
+process only, so a restart drops what was not yet extracted. Logs carry codes and counts,
+never text.
+
 ## Owner routes (for the Preferences page)
 
 `backend/transport/facts.py`. Each needs the authenticated, unlocked desktop owner renderer
@@ -145,3 +184,10 @@ The exported JSON is private plaintext for the owner; the core writes nothing to
 at rest and a hash-only index; add, update, supersede and forget with the index in sync;
 BM25 with recency; query sanitising; pinned; pause; secret patterns; the three tools; the
 owner-only routes; export.
+
+`tests/test_memory_extractor.py`: the idle timer (once per idle conversation, extended by a
+new turn); no call when paused, in gaming mode, on low battery, with too little text or
+without structured output; untrusted content and tool results never in the request; add,
+update, supersede and none applied; invalid operations and secret-like text refused; one
+extraction in flight; one retry after a failure; the exact request shape
+(`output_config.format`); the `memory_extract` usage receipt.

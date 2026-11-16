@@ -228,6 +228,11 @@ class Application:
         self.trace = TraceService(self)
         self.conversation.tracer = self.trace
         self.trace_transport = TraceTransport(self)
+        # S6.2 memory extraction (docs/MEMORY.md): one fast-route call per idle conversation.
+        from services.memory_owner import MemoryExtractor
+
+        self.memory_extractor = MemoryExtractor(self)
+        self.conversation.on_turn = self.memory_extractor.turn_stored
         # S4.2 diagnostics export (docs/DIAGNOSTICS.md): one redacted zip, tray or Preferences.
         from services.diagnostics import DiagnosticsService
         from transport.diagnostics import DiagnosticsTransport
@@ -567,6 +572,7 @@ class Application:
             await _isolated("vitals", self.vitals.close)
             await _isolated("world_tools", self.world_tools.close)
             await _isolated("world", self.world.close)
+            await _isolated("memory_extractor", self.memory_extractor.close)
             await _isolated("cad_kernel", self.cad_kernel.close)
             self.bus.off_all(self.delivery.bridge_legacy)
             try:

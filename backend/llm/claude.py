@@ -401,8 +401,11 @@ class ClaudeProvider(BaseLLMProvider):
         return self._client
 
     def request(self, messages, tools=None, system_instruction=None, effort=None,
-                max_output_tokens=None):
-        """The exact keyword arguments sent to ``client.beta.messages.stream``."""
+                max_output_tokens=None, output_schema=None):
+        """The exact keyword arguments sent to ``client.beta.messages.stream``.
+
+        ``output_schema`` (a JSON Schema dict) asks for structured output: the answer's text
+        is JSON matching it (``output_config.format`` of type ``json_schema``)."""
         effort = effort or self.effort
         if effort not in EFFORTS:
             raise ValueError(f"Unknown effort: {effort}")
@@ -423,6 +426,11 @@ class ClaudeProvider(BaseLLMProvider):
             "cache_control": {"type": "ephemeral"},
             "betas": [THINKING_BINDING_BETA],
         }
+        if output_schema is not None:
+            params["output_config"] = {
+                "effort": effort,
+                "format": {"type": "json_schema", "schema": output_schema},
+            }
         if system_instruction:
             params["system"] = system_instruction
         if tools:
@@ -459,7 +467,7 @@ class ClaudeProvider(BaseLLMProvider):
         """
         params = self.request(
             messages, tools, system_instruction, kwargs.get("effort"),
-            kwargs.get("max_output_tokens"),
+            kwargs.get("max_output_tokens"), kwargs.get("output_schema"),
         )
         on_text = kwargs.get("on_text")
         on_progress = kwargs.get("on_progress")

@@ -630,6 +630,11 @@ class ConversationService:
         self.dispatcher = dispatcher
         # Optional callable(owner) at the start of each turn (World view ends a tour).
         self.on_request = None
+        # Optional callable(owner, conversation_id, project, entries, tainted) after the
+        # owner's text turns are stored (services/memory_owner.py starts its idle timer).
+        # ``entries`` are {role, content} text only; ``tainted``: the assistant text drew on
+        # untrusted content. Turns from someone other than the owner are never passed.
+        self.on_turn = None
         # Optional callable(owner) -> bool: the owner's World page is open, so the turn
         # declares the world tools (services/tool_groups.py).
         self.world_page_open = None
@@ -767,6 +772,30 @@ class ConversationService:
                     conversation.history = change(conversation.history)
         finally:
             conversation.active -= 1
+        # An assistant-only append reports something from outside the conversation (a task
+        # call's outcome), so its text is never a memory source.
+        self._turn_stored(
+            owner, key, project, entries,
+            tainted=not any(item["role"] == "user" for item in entries),
+        )
+
+    def _turn_stored(self, owner, conversation_id, project, entries, tainted):
+        """Tell ``on_turn`` about stored text turns. Never raises; logs carry no text."""
+        if self.on_turn is None:
+            return
+        try:
+            self.on_turn(
+                owner, conversation_id, project,
+                [
+                    {"role": item["role"], "content": item["content"]}
+                    for item in entries
+                    if item.get("role") in ("user", "assistant")
+                    and isinstance(item.get("content"), str)
+                ],
+                bool(tainted),
+            )
+        except Exception as exc:
+            logger.warning("A stored-turn observer failed (%s)", type(exc).__name__)
 
     def release_owner(self, owner):
         # Preserve history on socket reconnect; ownership is the stable desktop client ID.
@@ -911,6 +940,8 @@ class ConversationService:
                     conversation.results[request_id] = (request.text, result)
                     if len(conversation.results) > 64:
                         conversation.results.pop(next(iter(conversation.results)))
+                    if not channel_taint(channel):
+                        self._turn_stored(owner, key, project, entries, context["taint"])
                     return result
                 except ServiceError as exc:
                     outcome = exc.code
