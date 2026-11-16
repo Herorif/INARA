@@ -46,6 +46,11 @@ export function approvalView(request) {
     // Show JARVIS by voice (docs/VISION_STUDIO.md#show-jarvis): one still photo per approval.
     return { kind: 'camera_look', title: 'Look through your camera?', summary: 'JARVIS wants to look through your camera. It takes one still photo to answer you, then the camera turns off again.', approveLabel: 'Allow once', denyLabel: 'Not now', details: null };
   }
+  if (request?.tool === 'look_at_screen') {
+    // Screen help (docs/SCREEN_HELP.md): one screenshot per approval, never saved.
+    const target = args.region === 'window' ? 'active window' : 'whole screen';
+    return { kind: 'screen_look', title: 'Look at your screen?', summary: `JARVIS takes one screenshot of the ${target} to answer you. It goes only to your AI provider and isn't saved.`, approveLabel: 'Allow once', denyLabel: 'Not now', details: null };
+  }
   const title = typeof request?.tool === 'string' && request.tool ? request.tool.replaceAll('_', ' ') : 'Assistant action';
   return { kind: 'generic', title, summary: GENERIC_SUMMARY, approveLabel: 'Approve', denyLabel: 'Deny', details: args };
 }

@@ -2072,6 +2072,14 @@
       "replacement": "V2 Show JARVIS (services/vision_ask.py)",
       "model_visible": true
     },
+    "look_at_screen": {
+      "schema": "ScreenArguments",
+      "policy": "Own permissions[look_at_screen] (default True); always asks the owner on screen (ToolSpec.always_ask); deny rejects. Refused before the card in gaming mode, while JARVIS or the Windows lock screen is locked; refused without an owner workspace or when the provider cannot take images. Untrusted output (\"your screen\"): later outward calls in the turn ask",
+      "context": "Authenticated desktop owner; one screen_capture call to the owner's workspace main process (desktopCapturer)",
+      "lifetime": "One screenshot per approval within 10 s (at most 1600 px wide, JPEG quality 80), then one vision request with the current brain provider within 15 s; 30 s execution timeout; the screenshot is never stored or logged",
+      "replacement": "S7.5 Screen help (services/screen_help.py)",
+      "model_visible": true
+    },
     "calendar_add_event": {
       "schema": "CalendarEvent",
       "policy": "Own permissions[calendar_write] (default True); always asks the owner on screen (ToolSpec.always_ask); deny rejects. Review facts carry the approval sentence; refused before the card when not connected or calendar.add_events is off",

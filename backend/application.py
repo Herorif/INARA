@@ -239,6 +239,11 @@ class Application:
         from services.vision_ask import ShowJarvis
 
         self.show_jarvis = ShowJarvis(self)
+        # S7.5 screen help (docs/SCREEN_HELP.md): the brain's look_at_screen (always asks),
+        # one screenshot per approval from the workspace main process. Never stored.
+        from services.screen_help import ScreenHelp
+
+        self.screen_help = ScreenHelp(self)
         self.mobile = MobileService(self)
         self.mobile_transport = MobileTransport(self)
         self.mobile.chat.tracer = self.trace  # phone chat turns are traced too

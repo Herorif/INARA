@@ -10,7 +10,9 @@ import WorkspaceInspector from './WorkspaceInspector';
 import WorkspaceTray from './WorkspaceTray';
 import ReminderAlert from '../components/ReminderAlert';
 import VipCallAlert from '../features/calls/VipCallAlert';
+import ProactiveCards from '../features/proactive/ProactiveCards';
 import RememberedNotice from '../features/memory/RememberedNotice';
+import ScreenLookNotice from '../features/screen/ScreenLookNotice';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import PanelState from './PanelState';
 import StatusChip from '../shared/ui/StatusChip';
@@ -237,7 +239,7 @@ export default function CommandDeck() {
         <div className="nav-bottom"><button type="button" className="nav-quick" aria-label="Quick assistant" aria-keyshortcuts="Control+Shift+Space" title="Quick assistant (Ctrl+Shift+Space)" onClick={() => setQuick(true)}><PictureInPicture2 size={16} aria-hidden="true"/><span>Quick assistant</span></button><button type="button" aria-label="Gaming mode" title="Gaming mode" onClick={toggleGaming} className={gaming ? 'gaming-selected' : ''} aria-pressed={gaming}><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode</span><span className="toggle-switch" aria-hidden="true"/></button><button type="button" aria-label="Preferences" title="Preferences" onClick={() => openFeature('settings')}><Settings2 size={16} aria-hidden="true"/><span>Preferences</span></button>{window.electronAPI && <button type="button" className="quit-button" aria-label="Quit JARVIS" onClick={() => window.electronAPI.quit()}><Power size={16} aria-hidden="true"/><span>Quit JARVIS</span></button>}</div>
       </aside>
       <main id="main-workspace" className="workspace" tabIndex={-1} data-page={page}>
-        {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{designBanner && <div role="status" className="system-banner system-banner--accent live-design-banner"><DraftingCompass size={16} aria-hidden="true"/><span>{`JARVIS is designing “${liveDesign.name}”.`}</span><button type="button" className="btn btn--secondary btn--sm system-banner__action" onClick={() => navigate('assistant')}>Open live design</button></div>}<RememberedNotice/>{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
+        {resident.error && <div role="alert" className="system-banner">{resident.error}</div>}{designBanner && <div role="status" className="system-banner system-banner--accent live-design-banner"><DraftingCompass size={16} aria-hidden="true"/><span>{`JARVIS is designing “${liveDesign.name}”.`}</span><button type="button" className="btn btn--secondary btn--sm system-banner__action" onClick={() => navigate('assistant')}>Open live design</button></div>}<RememberedNotice/><ScreenLookNotice/>{gaming && <div className="system-banner gaming-banner"><Gamepad2 size={16} aria-hidden="true"/><span>Gaming mode is on. Creative tools and camera are paused; text and reminders are available.</span></div>}
         <div className={`workspace-body ${inspector ? 'with-inspector' : ''}`}><div ref={canvas} className={`workspace-canvas ${activeFeature ? 'has-feature' : ''} ${voidGrid ? 'workspace-canvas--void' : ''}`} data-parallax={voidGrid ? (parallax ? 'on' : 'off') : undefined}>
           {!activeFeature && page !== 'callsview' && page !== 'knows' && <div className="workspace-heading"><div className="workspace-heading__copy"><h1>{title}</h1>{description && <p>{description}</p>}</div>{page === 'assistant' && <HudLabel className="workspace-heading__meta">{`PROJECT · ${currentProject || 'temp'}`}</HudLabel>}</div>}
           {(page === 'studio' || page === 'activity') && <div className="studio-tabs hud-tabs" role="group" aria-label="Studio workspaces">{[['cad','3D studio'],['image','Images'],['camera','Vision'],['browser','Web'],['world','World'],['activity','Artifacts']].map(([key,label]) => { const selected = activeFeature === key || page === key; return <button type="button" key={key} className={`hud-tab ${selected ? 'is-active' : ''}`} aria-pressed={selected} disabled={gaming && heavyFeatures.has(key)} onClick={() => openFeature(key)}>{key === 'activity' && <History size={14} aria-hidden="true"/>}{label}</button>; })}</div>}
@@ -246,6 +248,6 @@ export default function CommandDeck() {
         <WorkspaceTray expanded={tray} onToggle={() => setTray(value => !value)} onOpen={openFeature} gaming={gaming}/>
       </main></div>{activeDialog && <FeatureDialog key={activeDialog} feature={activeDialog} onClose={closeDialog}/>}</>}
     {commands && !quick && !locked && <Suspense fallback={null}><CommandPalette onClose={closeCommands} onSelect={openFeature} gaming={gaming}/></Suspense>}
-    <ReminderAlert/><VipCallAlert stacked={reminderShown}/><ConfirmationPopup/>{locked && <Suspense fallback={null}><AuthLock/></Suspense>}
+    <ReminderAlert/><VipCallAlert stacked={reminderShown}/><ProactiveCards gaming={gaming} hidden={quick}/><ConfirmationPopup/>{locked && <Suspense fallback={null}><AuthLock/></Suspense>}
   </div>;
 }

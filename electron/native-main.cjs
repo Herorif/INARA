@@ -1,17 +1,19 @@
 // On-demand workspace. The native Python host owns the core, tray and lifetime.
-const { app, BrowserWindow, ipcMain, shell, powerMonitor } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, powerMonitor, desktopCapturer, screen } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { io } = require('socket.io-client');
 const { bindCaptureLifecycle } = require('./capture-lifecycle.cjs');
 const { createQuickMode } = require('./quick-mode.cjs');
+const { createScreenCapture } = require('./screen-capture.cjs');
 const security = require('./security.cjs');
 const root = path.resolve(__dirname, '..');
 const bootstrap = JSON.parse(fs.readFileSync(0, 'utf8'));
 if (!/^[a-f0-9]{64}$/.test(bootstrap.token) || !path.isAbsolute(bootstrap.profile)) throw Error('Invalid native bootstrap');
 app.setPath('userData', bootstrap.profile);
 let window, control, state = bootstrap.state, closing = false;
+let screenCapture = null;
 const appPage = { dev: !!bootstrap.dev, indexUrl: pathToFileURL(path.join(root, 'dist/index.html')).href };
 const trusted = event => security.trustedSender(event, window, appPage);
 // Applied only on a real change: the page reports switches too, and an echo must not loop.
@@ -38,6 +40,13 @@ async function register(id) {
     control.on('workspace_focus', value => { quickMode(value?.quick);  if (window?.isMinimized()) window.restore(); window?.show(); window?.focus(); });
     // Used by the isolated lifecycle verification; same behavior as the titlebar.
     control.on('workspace_close', () => window?.close());
+    // Screen help (docs/SCREEN_HELP.md): one screenshot per approved look_at_screen, answered
+    // once through the acknowledgement. Nothing is written, logged or sent to the page.
+    control.on('screen_capture', (data, ack) => {
+      if (typeof ack !== 'function') return;
+      if (!screenCapture) return ack({ error: 'failed' });
+      screenCapture.capture(data).then(ack, () => ack({ error: 'failed' }));
+    });
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(Error('Native core connection timed out')), 6000);
       control.once('connect', () => { clearTimeout(timeout); resolve(); });
@@ -59,6 +68,7 @@ app.whenReady().then(async () => {
   const showOnce = () => { if (shown || bootstrap.hide || window.isDestroyed()) return; shown = true; window.show(); };
   window.once('ready-to-show', showOnce);
   bindCaptureLifecycle(window, powerMonitor);
+  screenCapture = createScreenCapture({ desktopCapturer, screen, powerMonitor, windows: () => BrowserWindow.getAllWindows() });
   security.installPermissionHandlers(window.webContents.session, () => window, appPage);
   ipcMain.on('desktop-bootstrap', event => { event.returnValue = trusted(event) ? { token: bootstrap.token, clientId: bootstrap.clientId, quick: bootstrap.quick } : {}; });
   ipcMain.on('quick-mode', (event, value) => { if (trusted(event) && typeof value === 'boolean') quickMode(value); });
