@@ -1244,6 +1244,72 @@
       "replacement": "HomeAssistantService / HomeAssistantTransport (backend/services/home_assistant*.py)",
       "status": "implemented"
     },
+    "proactive_recent": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The engine's in-memory list of the last 100 deliveries",
+      "effects": "Read only: no delivery, no network, no files",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; titles and bodies never logged",
+      "response": "Origin ACK {ok: true, deliveries: [{id, at, channel, kind, source, person_id, title, body, urgency, score}]} newest first; invalid_arguments as a plain message",
+      "lifetime": "Request-only snapshot",
+      "replacement": "ProactiveEngine / ProactiveTransport (backend/services/proactive.py, backend/transport/proactive.py)",
+      "status": "implemented"
+    },
+    "proactive_mute": {
+      "schema": "MuteRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "A signal kind (signals.KINDS), its source and an optional person id",
+      "effects": "Writes one mute rule (kind + source + person, at most 200) to the protected profile database (kind proactive); held digest items it covers are dropped",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; titles and bodies never logged",
+      "response": "Origin ACK {ok: true, mute: {id, kind, source, person_id, created_at}}; an existing identical rule is returned as is; invalid_arguments as a plain message",
+      "lifetime": "Durable until removed with proactive_unmute",
+      "replacement": "ProactiveEngine / ProactiveTransport (backend/services/proactive.py, backend/transport/proactive.py)",
+      "status": "implemented"
+    },
+    "proactive_unmute": {
+      "schema": "UnmuteRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "A mute rule id (32 hex)",
+      "effects": "Removes that rule from the protected profile database",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; titles and bodies never logged",
+      "response": "Origin ACK {ok: true}; not_found when the rule is gone; invalid_arguments as a plain message",
+      "lifetime": "Request-only",
+      "replacement": "ProactiveEngine / ProactiveTransport (backend/services/proactive.py, backend/transport/proactive.py)",
+      "status": "implemented"
+    },
+    "proactive_mutes": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The saved mute rules",
+      "effects": "Read only",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; titles and bodies never logged",
+      "response": "Origin ACK {ok: true, mutes: [{id, kind, source, person_id, created_at}]} oldest first",
+      "lifetime": "Request-only snapshot",
+      "replacement": "ProactiveEngine / ProactiveTransport (backend/services/proactive.py, backend/transport/proactive.py)",
+      "status": "implemented"
+    },
+    "proactive_focus": {
+      "schema": "FocusRequest",
+      "caller": "Owner renderer (allowed while locked, like voice_stage)",
+      "context": "Whether this renderer shows the workspace focused and visible (forgotten on disconnect)",
+      "effects": "In memory only: decides in-app card versus overlay or balloon delivery; a newly focused workspace may release the digest",
+      "policy": "Independent owner/role gate; strict {focused: bool} only; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true}; invalid_arguments as a plain message",
+      "lifetime": "Per socket, until the next report or disconnect",
+      "replacement": "ProactiveEngine / ProactiveTransport (backend/services/proactive.py, backend/transport/proactive.py)",
+      "status": "implemented"
+    },
+    "proactive_digest_dismiss": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The \"While you were away\" digest",
+      "effects": "Clears the held digest items and sends proactive_digest {digest: null} to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; titles and bodies never logged",
+      "response": "Origin ACK {ok: true}",
+      "lifetime": "Request-only",
+      "replacement": "ProactiveEngine / ProactiveTransport (backend/services/proactive.py, backend/transport/proactive.py)",
+      "status": "implemented"
+    },
     "mcp_servers_list": {
       "schema": "EmptyRequest",
       "caller": "Authenticated unlocked owner renderer",
@@ -2532,8 +2598,8 @@
       "status": "c2"
     },
     "verify_pin": {
-      "mode": "owner_briefing and morning_briefing (P2), only when the briefing PIN (call_briefing_pin) is set",
-      "target": "CallAgent: constant-time compare with the briefing PIN; on success returns the call details (owner_briefing) or the morning briefing (morning_briefing)",
+      "mode": "owner_briefing, morning_briefing (P2) and owner_alert (S7.2), only when the briefing PIN (call_briefing_pin) is set",
+      "target": "CallAgent: constant-time compare with the briefing PIN; on success returns the call details (owner_briefing), the morning briefing (morning_briefing) or the urgent notice (owner_alert)",
       "schema": "pin: string (digits; separators ignored)",
       "policy": "The PIN is never in the instruction, logs or record (spoken digits are redacted from captions); the call details reach the model only after a match; three failures end the call",
       "status": "c2"

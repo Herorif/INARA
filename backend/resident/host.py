@@ -371,6 +371,43 @@ class NativeHost:
         self.tray.post(enqueue)
         return await asyncio.wait_for(asyncio.wrap_future(result), 5)
 
+    async def proactive_notice(self, notice):
+        """S7.2 (services/proactive.py): a proactive card outside the workspace. ``notice`` is
+        ``{id, overlay, title, text}``: the talking overlay runs for the card when
+        ``overlay`` is set and it can start, else a balloon with ``title`` and ``text``.
+        Returns ``"overlay"``, ``"balloon"`` or None (gaming, quitting or nothing shown).
+        Never logged."""
+        result = concurrent.futures.Future()
+
+        def enqueue():
+            if result.cancelled():
+                return
+            try:
+                if self.state.identity.gaming or self.state.quitting:
+                    result.set_result(None)
+                    return
+                if notice.get("overlay"):
+                    voice = bool(self.state.voice and self.state.voice.get("active"))
+                    self.open_overlay()
+                    if self.overlay is not None:
+                        if not voice:
+                            # The card's overlay quits after its fade; this is the backstop.
+                            self.overlay_ended = time.monotonic()
+                        result.set_result("overlay")
+                        return
+                title, text = notice.get("title"), notice.get("text")
+                title = _balloon_line(title, 63) if isinstance(title, str) else ""
+                text = _balloon_line(text, 255) if isinstance(text, str) else ""
+                shown = bool(title and text and self.tray.notify(title, text))
+                if shown:
+                    self.balloon_record = None  # a click opens the workspace
+                result.set_result("balloon" if shown else None)
+            except Exception:
+                result.set_result(None)
+
+        self.tray.post(enqueue)
+        return await asyncio.wait_for(asyncio.wrap_future(result), 5)
+
     def tick(self):
         if self.state.quitting:
             return

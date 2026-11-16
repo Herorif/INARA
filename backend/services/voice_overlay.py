@@ -23,6 +23,12 @@ disconnect). A tray session that starts while a stage is shown opens no overlay:
 overlay is owed instead, and opens as soon as no stage is shown any more. At most one
 overlay opens per session, and an open one is never closed because the stage came back.
 
+Between sessions the overlay can also show one proactive card (S7.2, services/proactive.py):
+``show_card(card)`` publishes a ``voice_overlay`` snapshot of an ended pseudo-session
+(``session: "card:<id>"``) with a ``card`` field ``{id, kind, title, body, count, sound}``;
+an overlay that connects while the card is live gets it instead of the last session's end.
+A running session always wins: no card is shown over it.
+
 The voice service feeds it through small hooks (``VoiceService.overlay_event``) and the
 text the core already accumulates; it never changes what the conversation records.
 Caption text is never logged.
@@ -82,6 +88,8 @@ class VoiceOverlay:
         # whether this session's overlay waits for the stage to go (opened at most once).
         self.stages = {}
         self.overlay_owed = False
+        # S7.2: the proactive card the overlay shows between sessions, or None.
+        self.card = None
         # Publishing.
         self.dirty = self.urgent = False
         self.last_sent = float("-inf")
@@ -103,6 +111,43 @@ class VoiceOverlay:
             "design": self.designing(),
             "end": dict(self.end) if self.end is not None else None,
         }
+
+    def card_snapshot(self):
+        """The proactive card as an ended snapshot (the overlay holds it, then fades)."""
+        card = self.card
+        return {
+            "session": f"card:{card['id']}",
+            "state": "ended",
+            "user": "",
+            "user_final": True,
+            "jarvis": "",
+            "jarvis_final": True,
+            "approval": False,
+            "design": False,
+            "end": {"kind": "quiet", "message": None},
+            "card": {key: card.get(key) for key in ("id", "kind", "title", "body", "count", "sound")},
+        }
+
+    def show_card(self, card):
+        """S7.2: show one proactive card in the overlay (never over a running session)."""
+        if self.running() or not isinstance(card, dict) or not isinstance(card.get("id"), str):
+            return False
+        self.card = dict(card)
+        rooms = self.rooms()
+        if rooms:
+            self._spawn_send(self.card_snapshot(), rooms)
+        return True
+
+    def clear_card(self, card_id=None):
+        if self.card is not None and (card_id is None or self.card.get("id") == card_id):
+            self.card = None
+
+    def _spawn_send(self, snapshot, rooms):
+        try:
+            asyncio.get_running_loop().create_task(
+                self.send("voice_overlay", snapshot, rooms), name="voice-overlay-card")
+        except RuntimeError:
+            pass
 
     def local_snapshot(self):
         """``local_voice`` for the owner's renderers: the snapshot and how it started."""
@@ -146,6 +191,7 @@ class VoiceOverlay:
         self.session = session
         self.source = source if source in SOURCES else "tray"
         self.overlay_owed = False
+        self.card = None  # a running session replaces any proactive card
         self.state = "connecting"
         self.user = self.jarvis = ""
         self.user_final = self.jarvis_final = self.approval = False
@@ -320,7 +366,8 @@ class VoiceOverlay:
         """An overlay socket connected: the current snapshot, to that socket only (none
         while this session's overlay is owed)."""
         if not self.overlay_owed:
-            await self.send("voice_overlay", self.snapshot(), (sid,))
+            card = self.card is not None and not self.running()
+            await self.send("voice_overlay", self.card_snapshot() if card else self.snapshot(), (sid,))
         self.sync_level()
 
     async def renderer_attached(self, sid):

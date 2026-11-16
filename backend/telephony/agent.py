@@ -80,6 +80,7 @@ MODE_TOOLS = {
     "screening": {"record_message", "end_call"},
     "owner_briefing": {"verify_pin", "record_owner_decision", "end_call"},
     "morning_briefing": {"verify_pin", "end_call"},  # P2: read the morning briefing only
+    "owner_alert": {"verify_pin", "end_call"},  # S7.2: read one urgent notice only
     "approved_callback": {"record_outcome", "end_call"},
     "task": {"record_outcome", "end_call"},
 }
@@ -851,6 +852,9 @@ class CallAgent:
             if run.brief.mode == "morning_briefing":
                 return {"result": "PIN verified. Read the morning briefing now.",
                         "briefing": briefs.morning_details(run.brief)}
+            if run.brief.mode == "owner_alert":
+                return {"result": "PIN verified. Tell the owner the notice now.",
+                        "notice": briefs.alert_details(run.brief)}
             return {"result": "PIN verified. Brief the owner now.",
                     "call_details": briefs.briefing_details(run.brief)}
         run.pin_attempts += 1
@@ -954,8 +958,8 @@ class CallAgent:
         elif mode == "owner_briefing":
             decision = fields.get("decision")
             status = decision["action"] if decision else "no_decision"
-        elif mode == "morning_briefing":
-            # P2: the owner heard it (with a PIN set, only once they verified it).
+        elif mode in ("morning_briefing", "owner_alert"):
+            # P2 / S7.2: the owner heard it (with a PIN set, only once they verified it).
             status = "delivered" if not run.pin or run.pin_verified else "not_verified"
         else:
             status = fields["outcome"]["status"] if fields.get("outcome") else "no_outcome"
@@ -1007,7 +1011,10 @@ class CallAgent:
             "message_confirmed": bool(run.fields.get("message")) and not blocked,
             "triage": None,
             # P2: a morning briefing call has nothing to triage or announce.
-            "triage_state": "skipped" if blocked or brief.mode == "morning_briefing" else "pending",
+            "triage_state": (
+                "skipped" if blocked or brief.mode in ("morning_briefing", "owner_alert")
+                else "pending"
+            ),
         }
         if brief.direction == "inbound":
             # P1: the caller's group at call time, the matched person and the caller ID
@@ -1027,7 +1034,7 @@ class CallAgent:
             mask_sid(session.call_sid), brief.mode, state, outcome["status"], duration,
         )
         # P1: no triage and no notice for a blocked caller; P2: none for a morning briefing.
-        if saved and not blocked and brief.mode != "morning_briefing":
+        if saved and not blocked and brief.mode not in ("morning_briefing", "owner_alert"):
             self._spawn(self._triage_and_announce(run.record_id, group, brief.contact_name))
         return CallResult(
             record_id=run.record_id,

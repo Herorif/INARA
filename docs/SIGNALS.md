@@ -3,7 +3,7 @@
 Every source of events that might be worth telling the owner publishes one normalised
 **Signal**. Nothing on this page speaks to the owner: delivery (scoring, presence, quiet
 hours, gaming mode, the "Don't tell me about this again" mute) is the proactive engine
-(S7.2, not built yet). Code: `backend/services/signals.py`, route:
+(S7.2, `docs/PROACTIVE.md`). Code: `backend/services/signals.py`, route:
 `backend/transport/signals.py`, tests: `tests/test_signals.py`.
 
 ## The Signal
@@ -69,7 +69,7 @@ Each is a small class with `start()` / `stop()`; `SignalProducers` starts them a
 
 ## Not built yet
 
-- The proactive engine, heartbeat and routines (S7.2+): nothing is delivered to the owner.
+- The heartbeat and routines (S7.3+). Delivery is the proactive engine (`docs/PROACTIVE.md`).
 - Calendar travel time to the event's place.
 - Producers for `home.state` / `home.alert` (S12 WebSocket), `homelab.alert` (S12),
   `message.received` (channels, S8) and `routine.due` (routines).

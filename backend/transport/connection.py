@@ -66,6 +66,10 @@ class ConnectionTransport:
         briefing = getattr(self.app, "briefing", None)
         if briefing is not None:
             await briefing.hydrate(sid)
+        # S7.2: the "While you were away" digest, once the owner is back.
+        proactive = getattr(self.app, "proactive", None)
+        if proactive is not None:
+            await proactive.hydrate(sid)
 
     async def connect(self, sid, environ, auth=None):
         if not self.sessions.accept(sid, auth, current_token()):

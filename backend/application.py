@@ -372,6 +372,13 @@ class Application:
         self.signals = SignalHub(self)
         self.signal_producers = SignalProducers(self, self.signals)
         self.signals_transport = SignalsTransport(self)
+        # S7.2 proactive engine (docs/PROACTIVE.md): scores each signal and tells the owner by
+        # presence (voice, cards, the overlay, a balloon, the digest, an urgent owner call).
+        from services.proactive import ProactiveEngine
+        from transport.proactive import ProactiveTransport
+
+        self.proactive = ProactiveEngine(self)
+        self.proactive_transport = ProactiveTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -462,6 +469,7 @@ class Application:
                 ("speech", self.speech_transport.stop_sid),
                 ("voice", self.voice_transport.stop_sid),
                 ("voice_overlay", self.voice_overlay.detached),
+                ("proactive", self.proactive.detached),
                 ("conversation", self.conversation_transport.stop_sid),
                 ("local_actions", self.local_transport.stop_sid),
                 ("compatibility", self.compat_transport.stop_sid),
@@ -518,6 +526,7 @@ class Application:
         self.tasks.append(self.briefing.start())
         self.mcp.start()  # autostart servers in the background; mcp.close() owns the task
         self.signal_producers.start()  # signal_producers.stop() in close() owns the tasks
+        self.proactive.start()  # proactive.close() owns its tick task
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
         await self.wake.begin()  # no-op outside the native resident
@@ -563,6 +572,7 @@ class Application:
                     raise result
         finally:
             await _isolated("signal_producers", self.signal_producers.stop)
+            await _isolated("proactive", self.proactive.close)
             await _isolated("briefing", self.briefing.close)
             await _isolated("mcp", self.mcp.close)
             await _isolated("call_orchestrator", self.call_orchestrator.close)

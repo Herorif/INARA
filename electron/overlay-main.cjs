@@ -4,6 +4,10 @@ const fs = require('node:fs');
 const { app } = require('electron');
 const { parseBootstrap } = require('./overlay-policy.cjs');
 
+// The overlay is never focused, so it never sees a gesture: its one interface cue (a proactive
+// card's notify, docs/PROACTIVE.md) may play without one. It has no microphone or camera.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 let bootstrap;
 try {
   bootstrap = parseBootstrap(fs.readFileSync(0, 'utf8'));

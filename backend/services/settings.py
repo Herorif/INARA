@@ -167,6 +167,43 @@ def home_place(settings):
         return None
 
 
+# S7.2 proactive engine (docs/PROACTIVE.md): how readily JARVIS speaks up, and its quiet hours.
+CHATTINESS = ("quiet", "balanced", "chatty")
+QUIET_HOURS_DEFAULT = {"start": "22:30", "end": "07:00"}
+CLOCK = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
+
+
+class QuietHours(EmptyRequest):
+    """``assistant.quiet_hours``: local Malaysian HH:MM; the span may cross midnight."""
+
+    start: StrictStr = Field(pattern=CLOCK)
+    end: StrictStr = Field(pattern=CLOCK)
+
+    @model_validator(mode="after")
+    def distinct(self):
+        if self.start == self.end:
+            raise ValueError("Quiet hours must start and end at different times.")
+        return self
+
+
+def proactive_settings(settings):
+    """Validated ``assistant.chattiness`` and ``assistant.quiet_hours`` with defaults: a stale
+    or malformed value falls back to its default; ``quiet_hours`` None means off."""
+    assistant = settings.get("assistant") if isinstance(settings, dict) else None
+    assistant = assistant if isinstance(assistant, dict) else {}
+    chattiness = assistant.get("chattiness")
+    if chattiness not in CHATTINESS:
+        chattiness = "balanced"
+    if "quiet_hours" in assistant and assistant["quiet_hours"] is None:
+        quiet = None
+    else:
+        try:
+            quiet = QuietHours.model_validate(assistant.get("quiet_hours")).model_dump()
+        except ValueError:
+            quiet = dict(QUIET_HOURS_DEFAULT)
+    return {"chattiness": chattiness, "quiet_hours": quiet}
+
+
 # The Claude brain models and efforts the owner can choose (llm/router.py, S2).
 CLAUDE_MODELS = ("claude-sonnet-5-5", "claude-haiku-5-5")
 EFFORTS = ("low", "medium", "high")
@@ -199,10 +236,14 @@ class AssistantSettings(EmptyRequest):
     gemini_model: StrictStr | None = Field(
         default=None, min_length=1, max_length=80, pattern=r"^gemini-[A-Za-z0-9._-]+$"
     )
+    # S7.2 (docs/PROACTIVE.md): how chatty the proactive engine is, and its quiet hours
+    # ({start, end} local HH:MM; null turns quiet hours off).
+    chattiness: Literal[CHATTINESS] | None = None
+    quiet_hours: QuietHours | None = None
 
     @field_validator(
         "brain", "owner_name", "address", "web_search", "claude_model", "effort",
-        "gemini_model", mode="before",
+        "gemini_model", "chattiness", mode="before",
     )
     @classmethod
     def reject_null(cls, value):
@@ -227,6 +268,8 @@ ASSISTANT_DEFAULTS = {
     "web_search": True, "claude_model": CLAUDE_MODELS[0], "effort": "medium",
     "gemini_model": GEMINI_TEXT_DEFAULT,
 }
+# assistant.chattiness ("balanced") and assistant.quiet_hours (QUIET_HOURS_DEFAULT) are not
+# merged in on save: proactive_settings() reads them with their defaults when unset.
 
 
 class VoiceSettings(EmptyRequest):

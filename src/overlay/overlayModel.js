@@ -2,8 +2,8 @@
 // countdown as a reducer over an injected clock, so node:test can check every rule.
 // The main process (electron/overlay-app.cjs) has already validated each snapshot.
 
-/** Hold before fading out, per end kind (ms). "now" fades at once. */
-export const HOLD_MS = Object.freeze({ quiet: 4000, error: 8000, now: 0 });
+/** Hold before fading out, per end kind (ms). "now" fades at once; a proactive card holds 8 s. */
+export const HOLD_MS = Object.freeze({ quiet: 4000, error: 8000, now: 0, card: 8000 });
 /** Leaving the panel resumes the countdown with at least this long left. */
 export const RESUME_MIN_MS = 2000;
 /** Exit fade (matches the CSS 180 ms exit). */
@@ -42,6 +42,7 @@ export const endOf = snapshot => (snapshot && snapshot.state === 'ended' ? snaps
  */
 export function snapshotView(snapshot) {
   if (!snapshot) return { ring: 'working', top: null, main: null, showStop: false, showOpen: false, endKind: null };
+  if (snapshot.card) return cardView(snapshot.card);
   const end = endOf(snapshot);
   const jarvis = (snapshot.jarvis || '').trim();
   const ring = ringState(snapshot.state);
@@ -73,6 +74,26 @@ export function snapshotView(snapshot) {
   return { ring, top, main, showStop: true, showOpen: snapshot.approval === true || snapshot.design === true, endKind: null };
 }
 
+/** The top line of a proactive card: one card, or how many arrived together. */
+export const cardLabel = count => (count > 1 ? `${count} new from JARVIS` : 'New from JARVIS');
+
+/** S7.2: a proactive card between sessions (docs/PROACTIVE.md): label, title and body, Open JARVIS. */
+export function cardView(card) {
+  const title = (card.title || '').trim();
+  const body = (card.body || '').trim();
+  return {
+    ring: 'idle',
+    top: { text: cardLabel(card.count || 1), tone: 'tertiary' },
+    main: { text: body ? `${title} — ${body}` : title, tone: 'primary' },
+    showStop: false,
+    showOpen: true,
+    endKind: 'card',
+  };
+}
+
+/** The card id of a snapshot, or null. */
+export const cardOf = snapshot => (snapshot && snapshot.card ? snapshot.card : null);
+
 /*
  * Close countdown. Phases: waiting (no snapshot yet) → open → hold (ended, counting down)
  * → fading (exit motion) → closed (the renderer calls done()). Times are ms on one clock.
@@ -84,7 +105,7 @@ export const initialOverlay = Object.freeze({
 const fadeAt = (state, now) => ({ ...state, phase: 'fading', deadline: null, remaining: null, fadeUntil: now + FADE_MS });
 
 function beginEnd(state, end, now) {
-  const hold = HOLD_MS[end.kind] ?? HOLD_MS.quiet;
+  const hold = state.snapshot?.card ? HOLD_MS.card : (HOLD_MS[end.kind] ?? HOLD_MS.quiet);
   if (hold <= 0) return fadeAt(state, now);
   return state.pointer
     ? { ...state, phase: 'hold', deadline: null, remaining: hold }
@@ -98,6 +119,10 @@ function onSnapshot(state, snapshot, now) {
     // A different session that is still running cancels the close and shows it.
     if (!end && snapshot.session !== state.session) {
       return { ...state, snapshot, session: snapshot.session, phase: 'open', deadline: null, remaining: null, fadeUntil: null };
+    }
+    // A new proactive card replaces whatever is holding or fading and holds afresh.
+    if (snapshot.card && snapshot.session !== state.session) {
+      return beginEnd({ ...state, snapshot, session: snapshot.session, phase: 'open', deadline: null, remaining: null, fadeUntil: null }, end, now);
     }
     // The same ended session may refresh its text while holding; nothing changes while fading.
     if (state.phase === 'hold' && end && snapshot.session === state.session) {

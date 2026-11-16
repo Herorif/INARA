@@ -3,6 +3,7 @@ import socket from '../../services/socket';
 import { createSecretsClient } from '../../transport/secretsClient.ts';
 import VoiceSettings from './VoiceSettings';
 import BriefingSettings from './BriefingSettings';
+import ProactiveSettings from './ProactiveSettings';
 import SecretKeyRow, { ResultMessage } from './SecretKeyRow';
 import SegmentedControl from './SegmentedControl';
 import {
@@ -237,6 +238,7 @@ export default function AiSettings({ assistant, voice, briefing }) {
         <p id="assistant-home-place-status" className="text-[0.75rem] leading-snug text-ink-1" data-home-place-status>{homePlaceStatus(assistant)}</p>
         <ResultMessage id="assistant-home-place-result" result={homeResult} />
       </form>
+      <ProactiveSettings assistant={assistant} patch={patchSettings} />
       <BriefingSettings briefing={briefing} patch={patchSettings} />
     </div>
 

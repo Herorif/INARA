@@ -31,13 +31,15 @@ export function createUiSoundEngine({
   doc = globalThis.document,
   now = () => Date.now(),
   idleCloseMs = IDLE_CLOSE_MS,
+  // The talking overlay (never focused, so never a gesture) runs with autoplay allowed.
+  unlocked: startUnlocked = false,
 } = {}) {
   const scheduler = createCueScheduler({ now });
   let settings = { ...SOUND_DEFAULTS };
   let context = { gaming: false, onCall: false, systemMuted: null };
   let audio = null; // { ctx, master, reverb }
   let current = null; // the sounding cue's bus
-  let unlocked = false;
+  let unlocked = startUnlocked === true;
   let lastPlay = 0;
   let idleTimer = 0;
   let listening = false;

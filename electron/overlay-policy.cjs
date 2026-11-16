@@ -12,7 +12,8 @@ const NARROW_INSET = 32;
 
 const STATES = Object.freeze(['connecting', 'listening', 'thinking', 'working', 'speaking', 'ended']);
 const END_KINDS = Object.freeze(['quiet', 'error', 'now']);
-const LIMITS = Object.freeze({ session: 128, user: 300, jarvis: 600, message: 300 });
+const LIMITS = Object.freeze({ session: 128, user: 300, jarvis: 600, message: 300, cardId: 64, cardKind: 40, cardTitle: 160, cardBody: 500 });
+const CARD_ID = /^[0-9a-f]{32}$/;
 
 const TOKEN = /^[0-9a-f]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -107,7 +108,7 @@ function clip(value, limit, keep = 'start') {
  */
 function sanitizeSnapshot(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const { session, state, user, user_final: userFinal, jarvis, jarvis_final: jarvisFinal, approval, design, end } = raw;
+  const { session, state, user, user_final: userFinal, jarvis, jarvis_final: jarvisFinal, approval, design, end, card } = raw;
   if (session !== null && (typeof session !== 'string' || session.length > LIMITS.session)) return null;
   if (typeof state !== 'string' || !STATES.includes(state)) return null;
   if (typeof user !== 'string' || typeof jarvis !== 'string') return null;
@@ -119,6 +120,12 @@ function sanitizeSnapshot(raw) {
     cleanEnd = { kind: end.kind, message: typeof end.message === 'string' ? clip(end.message, LIMITS.message) : null };
   }
   if (state === 'ended' && !cleanEnd) cleanEnd = { kind: 'quiet', message: null };
+  // A proactive card rides only on an ended snapshot; an invalid one drops the snapshot.
+  let cleanCard = null;
+  if (card !== null && card !== undefined) {
+    cleanCard = cleanEnd ? sanitizeCard(card) : null;
+    if (!cleanCard) return null;
+  }
   return {
     session,
     state: cleanEnd ? 'ended' : state,
@@ -129,7 +136,26 @@ function sanitizeSnapshot(raw) {
     approval,
     design: design === true,
     end: cleanEnd,
+    ...(cleanCard ? { card: cleanCard } : {}),
   };
+}
+
+/**
+ * Validates a proactive card (S7.2, docs/PROACTIVE.md) carried by an ended snapshot:
+ * { id, kind, title, body, count, sound: { enabled, volume } }. Returns a fresh object or null.
+ */
+function sanitizeCard(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const { id, kind, title, body, count, sound } = raw;
+  if (typeof id !== 'string' || !CARD_ID.test(id)) return null;
+  if (typeof kind !== 'string' || !kind || kind.length > LIMITS.cardKind) return null;
+  if (typeof title !== 'string' || typeof body !== 'string') return null;
+  if (typeof count !== 'number' || !Number.isInteger(count) || count < 1) return null;
+  const cleanTitle = clip(title, LIMITS.cardTitle).trim();
+  if (!cleanTitle) return null;
+  const enabled = sound && typeof sound === 'object' && sound.enabled === true;
+  const volume = sound && typeof sound.volume === 'number' && Number.isFinite(sound.volume) ? Math.min(1, Math.max(0, sound.volume)) : 0;
+  return { id, kind, title: cleanTitle, body: clip(body, LIMITS.cardBody).trim(), count: Math.min(count, 99), sound: { enabled, volume } };
 }
 
 /** Validates one `voice_level` payload: a finite number clamped to 0..1, or null to drop it. */
@@ -154,5 +180,6 @@ module.exports = {
   validateBootstrap,
   parseBootstrap,
   sanitizeSnapshot,
+  sanitizeCard,
   sanitizeLevel,
 };

@@ -1,0 +1,46 @@
+/* S7.2 proactive card group, "While you were away" digest (ProactiveCards.jsx) and the Activity
+   "Told you" tab (ToldYou.jsx). Token-based; text never below 12px (--text-xs). */
+.proactive-stack { position:fixed; top:4rem; right:1rem; z-index:190; display:flex; flex-direction:column; gap:.75rem; width:min(22.5rem,calc(100vw - 2rem)); pointer-events:none; }
+.proactive-stack > * { pointer-events:auto; }
+.proactive-card { background:var(--bg-overlay); box-shadow:var(--shadow-overlay); }
+.proactive-card .hudframe__body { padding:1rem; gap:.5rem; }
+.proactive-card__head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.proactive-card .proactive-card__label { color:var(--accent); font-size:var(--text-xs); }
+.proactive-card__list, .proactive-digest__list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.75rem; }
+.proactive-card__entry { position:relative; display:flex; flex-direction:column; gap:.25rem; }
+.proactive-card__entry + .proactive-card__entry { padding-top:.75rem; border-top:1px solid var(--line); }
+.proactive-card__kind { color:var(--text-3); font-size:var(--text-xs); }
+.proactive-card__title { margin:0; color:var(--text-1); font-size:var(--text-md); font-weight:500; line-height:var(--leading-normal); overflow-wrap:anywhere; }
+.proactive-card__body { margin:0; color:var(--text-2); font-size:var(--text-sm); line-height:var(--leading-normal); overflow-wrap:anywhere; }
+.proactive-card__entry[data-urgency="3"] .proactive-card__title { color:var(--warn); }
+.proactive-card__actions { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-top:.25rem; }
+.proactive-card__close { margin-left:auto; }
+.proactive-card__more { margin:0; color:var(--text-3); font-size:var(--text-xs); }
+.proactive-card__error { margin:0; color:var(--danger); font-size:var(--text-sm); }
+.proactive-card__footer { display:flex; justify-content:flex-end; gap:.5rem; margin-top:.25rem; }
+
+.proactive-digest__title { margin:0; color:var(--text-1); font-size:var(--text-md); font-weight:500; }
+.proactive-digest__groups { display:flex; flex-direction:column; gap:.75rem; max-height:min(22rem,50vh); overflow:auto; }
+.proactive-digest__group { display:flex; flex-direction:column; gap:.375rem; }
+.proactive-digest__list { gap:.5rem; }
+.proactive-digest__item { display:flex; gap:.75rem; align-items:baseline; }
+.proactive-digest__time { flex-shrink:0; width:2.75rem; color:var(--text-3); font-family:var(--font-mono); font-size:var(--text-xs); font-variant-numeric:tabular-nums; }
+.proactive-digest__text { display:flex; flex-direction:column; gap:.125rem; min-width:0; }
+.proactive-digest .proactive-card__title { font-size:var(--text-sm); }
+.proactive-digest .proactive-card__body { font-size:var(--text-xs); }
+
+/* Activity > Told you */
+.told-you { display:flex; flex-direction:column; gap:.5rem; }
+.told-row { display:flex; align-items:center; gap:.75rem; min-height:32px; padding:.25rem .5rem; border-bottom:1px solid var(--line); }
+.told-row__text { display:flex; flex-direction:column; gap:.125rem; flex:1; min-width:0; }
+.told-row__title { overflow:hidden; color:var(--text-1); font-size:var(--text-sm); text-overflow:ellipsis; white-space:nowrap; }
+.told-row__meta { color:var(--text-3); font-size:var(--text-xs); }
+.told-row__action { flex-shrink:0; }
+.told-muted { color:var(--text-3); font-size:var(--text-xs); }
+.told-mutes { display:flex; flex-direction:column; gap:.25rem; margin-top:.5rem; }
+.told-mutes__heading { margin:0; }
+
+@media (max-width: 620px) {
+  .proactive-stack { right:50%; transform:translateX(50%); }
+  .told-row { flex-wrap:wrap; }
+}

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { Square } from 'lucide-react';
 import PresenceRing from '../app/PresenceRing.jsx';
-import { initialOverlay, nextDeadline, overlayReducer, overlayView } from './overlayModel.js';
+import { cardOf, initialOverlay, nextDeadline, overlayReducer, overlayView } from './overlayModel.js';
+import { createUiSoundEngine } from '../services/sound/uiSounds.js';
 
 const now = () => performance.now();
 
@@ -37,6 +38,8 @@ export default function OverlayApp({ bridge }) {
   const [entered, setEntered] = useState(false);
   const readySent = useRef(false);
   const doneSent = useRef(false);
+  const sounds = useRef(null);
+  const cardSounded = useRef(null);
 
   useEffect(() => {
     const offSnapshot = bridge.onSnapshot(snapshot => dispatch({ type: 'snapshot', snapshot, now: now() }));
@@ -74,6 +77,17 @@ export default function OverlayApp({ bridge }) {
     doneSent.current = true;
     bridge.done();
   }, [state.phase, bridge]);
+
+  // S7.2: a new proactive card sounds the notify cue once (the owner's sound settings ride on it).
+  const card = cardOf(state.snapshot);
+  useEffect(() => {
+    if (!card || cardSounded.current === card.id || !card.sound?.enabled) return;
+    cardSounded.current = card.id;
+    if (!sounds.current) sounds.current = createUiSoundEngine({ unlocked: true });
+    sounds.current.setSettings({ enabled: true, volume: card.sound.volume });
+    sounds.current.play('notify', { sample: true });
+  }, [card]);
+  useEffect(() => () => sounds.current?.dispose(), []);
 
   const pointer = useCallback(inside => {
     bridge.pointer(inside);
