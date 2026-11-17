@@ -51,6 +51,11 @@ export function approvalView(request) {
     const target = args.region === 'window' ? 'active window' : 'whole screen';
     return { kind: 'screen_look', title: 'Look at your screen?', summary: `JARVIS takes one screenshot of the ${target} to answer you. It goes only to your AI provider and isn't saved.`, approveLabel: 'Allow once', denyLabel: 'Not now', details: null };
   }
+  if (request?.tool === 'teach_skill' && typeof args.skill_md === 'string' && args.skill_md.trim()) {
+    // Teach JARVIS (docs/SKILLS.md): the exact SKILL.md the core will save, shown as text.
+    const replaces = typeof args.replaces === 'string' && args.replaces.trim() ? ` ${args.replaces.trim()}` : '';
+    return { kind: 'teach_skill', title: 'Teach JARVIS a skill?', summary: `JARVIS will save this as a skill it can follow later.${replaces}`, approveLabel: 'Save skill', denyLabel: 'Not now', details: args.skill_md };
+  }
   const title = typeof request?.tool === 'string' && request.tool ? request.tool.replaceAll('_', ' ') : 'Assistant action';
   return { kind: 'generic', title, summary: GENERIC_SUMMARY, approveLabel: 'Approve', denyLabel: 'Deny', details: args };
 }

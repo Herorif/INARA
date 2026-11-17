@@ -250,6 +250,15 @@ class Application:
         from services.screen_help import ScreenHelp
 
         self.screen_help = ScreenHelp(self)
+        # S5.2 skills (docs/SKILLS.md): <user data>\skills and <repo>\skills, the stable index
+        # after the persona, load_skill (never asks), teach_skill (always asks) and the
+        # owner-only skills_list / skills_delete. Nothing in a skill folder is ever run.
+        from services.skills import SkillLibrary
+        from transport.skills import SkillsTransport
+
+        self.skills = SkillLibrary(self)
+        self.skills_transport = SkillsTransport(self)
+        self.conversation.skill_index = self.skills.index_text
         self.mobile = MobileService(self)
         self.mobile_transport = MobileTransport(self)
         self.mobile.chat.tracer = self.trace  # phone chat turns are traced too

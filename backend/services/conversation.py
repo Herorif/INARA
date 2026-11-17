@@ -745,6 +745,10 @@ class ConversationService:
         # The read path (S6.3, docs/MEMORY.md): a callable() -> FactStore or None, set by the
         # application root (``lambda: app.facts.store``). None: no remembered facts are sent.
         self.facts = None
+        # Skills (S5.2, docs/SKILLS.md): a callable() -> str, the skill index appended to the
+        # persona (``SkillLibrary.index_text``), set by the application root. It changes only
+        # when the skills change, so the cached system prompt stays byte-stable across turns.
+        self.skill_index = None
 
     def current_conversation(self, owner, project):
         """The conversation tray voice joins for ``project``: the one the workspace last
@@ -791,7 +795,14 @@ class ConversationService:
     def system_prompt(self):
         if self.instructions:
             return self.instructions
-        return persona(self.settings(), self.instructions_suffix)
+        text = persona(self.settings(), self.instructions_suffix)
+        index = ""
+        if self.skill_index is not None:
+            try:
+                index = self.skill_index()
+            except Exception as exc:
+                logger.warning("The skill index could not be read (%s)", type(exc).__name__)
+        return text + "\n\n" + index if isinstance(index, str) and index else text
 
     def restore(self, owner, conversation_id, project):
         key, path = str(conversation_id), str(project.resolve())

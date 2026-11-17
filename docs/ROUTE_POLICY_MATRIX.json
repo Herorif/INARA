@@ -2024,6 +2024,28 @@
       "lifetime": "One synchronous read",
       "replacement": "ChannelMessages / ChannelsTransport (backend/services/channels/store.py, backend/transport/channels.py)",
       "status": "implemented"
+    },
+    "skills_list": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's skills (<user data>\\skills\\<slug>\\SKILL.md) over the shipped ones (<repo>\\skills)",
+      "effects": "Read only: front matter and folder listing; nothing in a skill folder is executed",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; names, descriptions and instructions never logged",
+      "response": "Origin ACK {ok: true, skills: [{slug, name, description, source: yours|built-in, path, scripts}]} sorted by slug; skills_unavailable as a plain message",
+      "lifetime": "One synchronous read (re-read only when a SKILL.md or scripts folder changed)",
+      "replacement": "SkillLibrary / SkillsTransport (backend/services/skills.py, backend/transport/skills.py)",
+      "status": "implemented"
+    },
+    "skills_delete": {
+      "schema": "SkillSlugRequest (slug ^[a-z0-9-]{1,48}$; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "One of the owner's skills by slug",
+      "effects": "Deletes that skill's folder under <user data>\\skills (never a built-in skill, never through a link or junction); the index changes on the next turn",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; skill_built_in and skill_not_found as plain messages",
+      "response": "Origin ACK {ok: true, deleted: slug}",
+      "lifetime": "One synchronous delete",
+      "replacement": "SkillLibrary / SkillsTransport (backend/services/skills.py, backend/transport/skills.py)",
+      "status": "implemented"
     }
   },
   "http_routes": {
@@ -2585,6 +2607,22 @@
       "context": "The owner's routines",
       "lifetime": "One synchronous read: [{name, trigger (plain words), enabled, steps (count), last_run_at, last_outcome (plain words)}]; 10 s execution timeout",
       "replacement": "S7.4 routines (services/routines.py)",
+      "model_visible": true
+    },
+    "load_skill": {
+      "schema": "SkillLoad",
+      "policy": "Own permissions[load_skill] (default False: never asks); deny rejects. Authenticated desktop owner only (authorize_owner); read only. Not untrusted output: an owner skill is the owner's own text, a shipped one JARVIS's",
+      "context": "The loaded skills by slug, by the slug of a name, or by name (case ignored); owner skills override shipped ones with the same slug",
+      "lifetime": "One synchronous read: {skill, name, instructions (the SKILL.md body without front matter)} plus scripts and a note when the skill has a scripts folder (listed, never run); 10 s execution timeout",
+      "replacement": "S5.2 skills (services/skills.py)",
+      "model_visible": true
+    },
+    "teach_skill": {
+      "schema": "SkillTeach",
+      "policy": "always_ask: the owner approves every save; deny still disables it; outward, so a tainted turn's card carries the taint line. Authenticated desktop owner only. review shows the slug, the exact SKILL.md that will be written and 'Replaces your existing skill <slug>.' for an owner skill; a built-in slug (skill_built_in) or an invalid skill is refused before any card",
+      "context": "Name (its slug names the folder), one-line description and Markdown instructions; written to <user data>\\skills\\<slug>\\SKILL.md",
+      "lifetime": "Approval (dispatcher timeout), then one atomic write (SKILL.md.partial then replace); the index changes on the next turn; 10 s execution timeout",
+      "replacement": "S5.2 skills (services/skills.py)",
       "model_visible": true
     }
   },

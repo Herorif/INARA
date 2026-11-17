@@ -38,7 +38,7 @@ export default function ConfirmationPopup() {
         <p id="approval-summary">{view.summary}</p>
         {typeof request.taint_line === 'string' && request.taint_line && <p className="approval-taint" role="note">{request.taint_line}</p>}
         {request.project && <p className="approval-project">Project · <strong>{request.project}</strong></p>}
-        {view.details && <details open><summary>Details</summary><pre>{JSON.stringify(view.details, null, 2)}</pre></details>}
+        {view.details && <details open><summary>Details</summary><pre>{typeof view.details === 'string' ? view.details : JSON.stringify(view.details, null, 2)}</pre></details>}
       </div><footer><button type="button" className="btn btn--secondary" data-dialog-autofocus onClick={decline}>{view.denyLabel}</button><button type="button" className="btn btn--primary" onClick={() => respond(true)}>{view.approveLabel}</button></footer>
     </section></div>;
 }

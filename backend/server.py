@@ -90,6 +90,10 @@ DEFAULT_SETTINGS = {
         "routine_run": False,
         "routine_list": False,
         "routine_save": True,
+        # Skills (docs/SKILLS.md): loading a skill never asks; teach_skill always asks
+        # (ToolSpec.always_ask), whatever this says.
+        "load_skill": False,
+        "teach_skill": True,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}
