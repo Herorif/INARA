@@ -298,7 +298,8 @@ class CalendarProducer(PollingProducer):
                 continue
             minutes, urgency = offset
             event_id = _event_id(event)
-            data = {"event_id": event_id, "start": begin.isoformat()}
+            # ``minutes`` (30 or 10) is the offset: a routine can wait for "starts in 10 minutes".
+            data = {"event_id": event_id, "start": begin.isoformat(), "minutes": minutes}
             if event.get("location"):
                 data["location"] = event["location"]
             title = event.get("title") or "(No title)"

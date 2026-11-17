@@ -1,0 +1,59 @@
+/* Routines (S7.4), copied from the "What JARVIS knows" list and editor. Token-based only;
+   12 px floor (--text-xs). Motion is limited to colour and opacity fades, which the
+   workspace's reduced-motion rule turns off. */
+.routines-page { display:flex; flex-direction:column; gap:1rem; min-width:0; max-width:56rem; padding:1rem 1.25rem 1.5rem; color:var(--text-1); }
+.routines-heading { flex-wrap:wrap; align-items:flex-end; }
+
+.routines-list { list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--bg-panel); }
+.routines-empty { padding:2.5rem 1.25rem; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--bg-panel); }
+
+.routine-row { position:relative; display:flex; flex-wrap:wrap; align-items:flex-start; gap:.5rem 1rem; padding:.75rem 1rem; border-bottom:1px solid var(--line); transition:background-color var(--dur-fast) var(--ease-out); }
+.routine-row:last-child { border-bottom:0; }
+.routine-row:hover,.routine-row:focus-within,.routine-row.is-open { background:var(--bg-hover); }
+.routine-row__copy { display:flex; flex-direction:column; gap:.25rem; flex:1 1 18rem; min-width:0; }
+.routine-row__head { display:flex; align-items:center; gap:.5rem; min-width:0; }
+.routine-row__name { min-width:0; overflow-wrap:anywhere; font-size:var(--text-sm); font-weight:500; color:var(--text-1); }
+.routine-row__chip { flex-shrink:0; }
+.routine-row__trigger { margin:0; overflow-wrap:anywhere; font-size:var(--text-sm); line-height:var(--leading-normal); color:var(--text-2); }
+.routine-row__outcome { margin:0; font-size:var(--text-xs); line-height:var(--leading-normal); color:var(--text-3); }
+/* A long failure wraps as a block with room between its lines instead of overlapping. */
+.routine-row__outcome .status-chip { display:inline-flex; align-items:baseline; max-width:100%; height:auto; padding-block:.1875rem; white-space:normal; overflow-wrap:anywhere; line-height:1.45; }
+.routine-row__controls { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .75rem; margin-left:auto; }
+.routine-row__switch { display:inline-flex; align-items:center; gap:.5rem; font-size:var(--text-xs); color:var(--text-2); }
+.routine-row__actions { display:flex; flex-wrap:wrap; gap:.25rem; }
+.routine-row__delete:hover { color:var(--danger); }
+.routine-row__error { flex-basis:100%; }
+
+.routine-confirm { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; flex-basis:100%; }
+.routine-confirm__prompt { font-size:var(--text-sm); color:var(--text-1); }
+.routine-confirm__dot { color:var(--text-3); font-size:var(--text-sm); }
+
+.routine-editor { display:flex; flex-direction:column; gap:.75rem; flex-basis:100%; min-width:0; padding:1rem; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--bg-panel); }
+.routine-row .routine-editor { padding:0; border:0; background:none; }
+.routines-page .routine-editor__title { margin:0; font-size:var(--text-sm); font-weight:500; color:var(--text-1); }
+.routine-editor__row { display:flex; flex-wrap:wrap; gap:.625rem; }
+.routine-editor__actions { display:flex; gap:.5rem; }
+.routine-field { display:flex; flex-direction:column; gap:.25rem; min-width:0; }
+.routine-field--name { flex:1 1 16rem; }
+.routine-field--type,.routine-field--repeat,.routine-field--day,.routine-field--minutes { flex:0 0 11rem; }
+.routine-field--time { flex:0 0 8rem; }
+.routine-field--kind { flex:1 1 14rem; }
+.routine-field--filter { flex:1 1 14rem; }
+.routine-label { font-size:var(--text-xs); color:var(--text-2); }
+.routine-hint { margin:0; font-size:var(--text-xs); line-height:var(--leading-normal); color:var(--text-3); overflow-wrap:anywhere; }
+.routine-error { margin:0; font-size:var(--text-xs); line-height:var(--leading-normal); color:var(--danger); }
+.routine-field input,.routine-field textarea,.routine-field select { width:100%; padding:.4375rem .625rem; font-size:var(--text-sm); line-height:var(--leading-normal); }
+.routine-field textarea { resize:vertical; min-height:3.25rem; font-family:var(--font-mono, ui-monospace, monospace); }
+
+.routine-steps { display:flex; flex-direction:column; gap:.5rem; }
+.routine-steps__title { margin:0; font-size:var(--text-xs); font-weight:500; color:var(--text-2); }
+.routine-steps__list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.5rem; }
+.routine-steps__add { align-self:flex-start; }
+.routine-step { display:flex; flex-direction:column; gap:.5rem; padding:.625rem .75rem; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--bg-panel); }
+.routine-step__head { display:flex; align-items:flex-start; gap:.625rem; }
+.routine-step__number { flex-shrink:0; min-width:1.5rem; padding-top:1.375rem; font-size:var(--text-sm); font-variant-numeric:tabular-nums; color:var(--text-3); text-align:right; }
+.routine-field--tool { flex:1 1 auto; }
+.routine-step__actions { display:flex; gap:.25rem; padding-top:1.125rem; }
+.routine-step__body { display:flex; flex-wrap:wrap; gap:.625rem; padding-left:2.125rem; }
+.routine-field--args { flex:1 1 18rem; }
+.routine-field--say { flex:1 1 14rem; }

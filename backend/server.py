@@ -85,6 +85,11 @@ DEFAULT_SETTINGS = {
         "memory_search": False,
         "memory_remember": False,
         "memory_forget": True,
+        # Routines (docs/ROUTINES.md): running and listing never ask (each step asks as it
+        # needs); routine_save always asks (ToolSpec.always_ask), whatever this says.
+        "routine_run": False,
+        "routine_list": False,
+        "routine_save": True,
     },
     "printers": [], # List of {host, port, name, type}
     "kasa_devices": [], # List of {ip, alias, model}

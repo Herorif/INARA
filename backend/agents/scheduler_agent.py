@@ -13,7 +13,10 @@ Time parsing:
   to the optional 'dateparser' library for natural-language strings.
 """
 
+import asyncio
 import datetime
+import inspect
+import logging
 import time
 from typing import Any, Optional
 
@@ -23,6 +26,16 @@ from core.reminder_store import Reminder, ReminderStore, Routine
 from core.durable_reminders import local_instant
 from zoneinfo import ZoneInfo
 from llm.tools import Tool, ToolParameter, ToolParameterType
+
+logger = logging.getLogger(__name__)
+
+# Routine timers (S7.4, docs/ROUTINES.md): the owner's scheduled routines repeat on the same
+# calendar as recurring reminders (daily, weekdays, weekly) at a wall time in the owner's
+# timezone. They are not reminders: nothing is stored here and nothing is shown.
+ROUTINE_REPEATS = ("daily", "weekdays", "weekly")
+ROUTINE_DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+ROUTINE_GRACE_S = 600.0  # a run more than 10 minutes late (PC asleep) waits for the next one
+ROUTINE_TICK_S = 30.0  # timers wake at most this long apart, so clock jumps are noticed
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +96,35 @@ def _parse_relative(s: str) -> Optional[float]:
     return None
 
 
+def next_routine_run(
+    at: str,
+    repeat: str,
+    now: float,
+    *,
+    day: Optional[str] = None,
+    timezone: str = "Asia/Kuala_Lumpur",
+) -> float:
+    """The first instant after ``now`` at wall time ``at`` ("07:30") on a day ``repeat``
+    allows: every day, Monday to Friday, or one weekday (``day``, "mon".."sun")."""
+    if repeat not in ROUTINE_REPEATS:
+        raise ValueError("Unknown routine repeat")
+    if repeat == "weekly" and day not in ROUTINE_DAYS:
+        raise ValueError("A weekly routine needs a day")
+    zone = ZoneInfo(timezone)
+    clock = datetime.time.fromisoformat(at)
+    today = datetime.datetime.fromtimestamp(now, zone).date()
+    for offset in range(0, 15):
+        date = today + datetime.timedelta(days=offset)
+        if repeat == "weekdays" and date.weekday() >= 5:
+            continue
+        if repeat == "weekly" and date.weekday() != ROUTINE_DAYS.index(day):
+            continue
+        candidate = local_instant(datetime.datetime.combine(date, clock), timezone)
+        if candidate > now:
+            return candidate
+    raise ValueError("No routine time found")
+
+
 def _format_reminder(r: Reminder) -> str:
     dt = datetime.datetime.fromtimestamp(r.trigger_at, ZoneInfo(r.timezone))
     dt_str = dt.strftime("%a %b %d at %I:%M %p")
@@ -112,6 +154,9 @@ class SchedulerAgent(BaseAgent):
     def __init__(self, event_bus: EventBus, reminder_store: ReminderStore):
         self._bus = event_bus
         self._store = reminder_store
+        self._routine_timers: dict[str, asyncio.Task] = {}
+        self.now = time.time
+        self.sleep = asyncio.sleep
 
     @property
     def name(self) -> str:
@@ -328,6 +373,58 @@ class SchedulerAgent(BaseAgent):
         lines = [_format_routine(rt) for rt in routines]
         msg = f"{len(routines)} routine(s):\n" + "\n".join(lines)
         return AgentResult(success=True, data={"routines": [rt.to_dict() for rt in routines]}, message=msg)
+
+    # -----------------------------------------------------------------------
+    # Routine timers (S7.4, docs/ROUTINES.md)
+    # -----------------------------------------------------------------------
+
+    def schedule_routine(self, key, *, at, repeat, callback, day=None,
+                         timezone="Asia/Kuala_Lumpur"):
+        """Call ``callback()`` (sync or async) at every occurrence until cancelled. One timer
+        per ``key``: scheduling a key again replaces its timer. Needs a running loop."""
+        next_routine_run(at, repeat, self.now(), day=day, timezone=timezone)  # validates
+        self.cancel_routine(key)
+        self._routine_timers[key] = asyncio.get_running_loop().create_task(
+            self._routine_timer(key, at, repeat, day, timezone, callback),
+            name=f"routine-timer-{key}",
+        )
+
+    def cancel_routine(self, key):
+        task = self._routine_timers.pop(key, None)
+        if task is not None and not task.done():
+            task.cancel()
+
+    def routine_keys(self):
+        return frozenset(self._routine_timers)
+
+    async def close_routines(self):
+        tasks = list(self._routine_timers.values())
+        self._routine_timers.clear()
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _routine_timer(self, key, at, repeat, day, timezone, callback):
+        due = next_routine_run(at, repeat, self.now(), day=day, timezone=timezone)
+        while True:
+            left = due - self.now()
+            if left > 0:
+                await self.sleep(min(left, ROUTINE_TICK_S))
+                continue
+            if -left <= ROUTINE_GRACE_S:
+                try:
+                    result = callback()
+                    if inspect.isawaitable(result):
+                        await result
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    logger.warning("Routine timer %s failed (%s)", key, type(exc).__name__)
+            else:
+                logger.info("Routine timer %s missed its time; waiting for the next one", key)
+            due = next_routine_run(
+                at, repeat, max(self.now(), due), day=day, timezone=timezone
+            )
 
     # -----------------------------------------------------------------------
     # Helpers

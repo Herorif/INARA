@@ -379,6 +379,16 @@ class Application:
 
         self.proactive = ProactiveEngine(self)
         self.proactive_transport = ProactiveTransport(self)
+        # S7.4 routines (docs/ROUTINES.md): named tool steps started by a phrase (in front of
+        # every conversation reply), a SchedulerAgent timer or a signal; routine_run,
+        # routine_save (always asks), routine_list and the owner-only routines_* routes.
+        from services.routines import RoutineService
+        from transport.routines import RoutinesTransport
+
+        self.routines = RoutineService(self)
+        self.routines_transport = RoutinesTransport(self)
+        self.conversation.reply = self.routines.wrap_reply(self.conversation.reply)
+        self.settings_service.permission_names |= {"routine_run", "routine_save", "routine_list"}
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -527,6 +537,7 @@ class Application:
         self.mcp.start()  # autostart servers in the background; mcp.close() owns the task
         self.signal_producers.start()  # signal_producers.stop() in close() owns the tasks
         self.proactive.start()  # proactive.close() owns its tick task
+        self.routines.start_triggers()  # routines.close() cancels its timers and runs
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
         await self.wake.begin()  # no-op outside the native resident
@@ -573,6 +584,7 @@ class Application:
         finally:
             await _isolated("signal_producers", self.signal_producers.stop)
             await _isolated("proactive", self.proactive.close)
+            await _isolated("routines", self.routines.close)
             await _isolated("briefing", self.briefing.close)
             await _isolated("mcp", self.mcp.close)
             await _isolated("call_orchestrator", self.call_orchestrator.close)

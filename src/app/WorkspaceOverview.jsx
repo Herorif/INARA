@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { ArrowUpRight, Bell, Box, Camera, Cpu, Globe2, History, Image, ListChecks, Printer, ShieldCheck, Smartphone, Zap } from 'lucide-react';
+import { ArrowUpRight, Bell, Box, Camera, Cpu, Globe2, History, Image, ListChecks, Printer, Repeat, ShieldCheck, Smartphone, Zap } from 'lucide-react';
 import PanelState from './PanelState';
 import StatusChip from '../shared/ui/StatusChip';
 import HudLabel from '../shared/ui/HudLabel';
@@ -30,6 +30,7 @@ export default function WorkspaceOverview({ page, gaming, onOpen }) {
   if (page === 'tasks') return <div className="tool-grid">
     <FeatureCard icon={ListChecks} title="Tasks" description="Turn file and app actions into a plan you review step by step." onClick={() => onOpen('tasks')}/>
     <FeatureCard icon={Bell} title="Reminders" description="Schedule local reminders." onClick={() => onOpen('reminder')}/>
+    <FeatureCard icon={Repeat} title="Routines" description="Run a set of steps from a phrase, a time of day or something that happens." onClick={() => onOpen('routines')}/>
   </div>;
   return <div className="connections-overview"><Suspense fallback={<PanelState compact kind="loading" title="Checking local readiness"/>}><ConnectionReadiness compact onOpen={onOpen}/></Suspense>
     <button type="button" className="call-lab-launch hud-panel" onClick={() => onOpen('calls')}><Smartphone size={20} aria-hidden="true" className="tool-tile__icon"/><span><HudLabel>EXPERIMENTAL</HudLabel><strong>Call lab</strong><small>Inspect readiness and rehearse the call bridge locally.</small></span><ArrowUpRight size={16} aria-hidden="true"/></button>

@@ -1914,6 +1914,72 @@
       "lifetime": "Synchronous",
       "replacement": "WorldView / WorldTransport (backend/services/world_view.py)",
       "status": "implemented"
+    },
+    "routines_list": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The core database's routines table (name, trigger, steps and last outcome DPAPI-encrypted)",
+      "effects": "Read only",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; names, phrases, step arguments and say lines never logged",
+      "response": "Origin ACK {ok: true, routines: [{id, name, trigger, steps, enabled, created_at, updated_at, last_run_at, last_outcome}]} sorted by name; routines_unavailable as a plain message",
+      "lifetime": "One synchronous read",
+      "replacement": "RoutineService / RoutinesTransport (backend/services/routines.py, backend/transport/routines.py)",
+      "status": "implemented"
+    },
+    "routines_tools": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The dispatcher's model-visible tools except routine_run and routine_save",
+      "effects": "Read only: tool names, descriptions and inlined argument schemas for the step picker",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; names, phrases, step arguments and say lines never logged",
+      "response": "Origin ACK {ok: true, tools: [{name, description, parameters}]} sorted by name",
+      "lifetime": "Request-only snapshot (MCP tools come and go with their servers)",
+      "replacement": "RoutineService / RoutinesTransport (backend/services/routines.py, backend/transport/routines.py)",
+      "status": "implemented"
+    },
+    "routines_save": {
+      "schema": "RoutineSaveRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "One routine: id? (update), name, trigger (phrase | schedule | signal), 1-12 steps {tool, args, say?}, enabled?",
+      "effects": "Validates the trigger and every step (tool exists and is model-visible, args fit its schema, no routine_run/routine_save steps, unique name, an enabled routine's phrases are its own), then inserts or updates one row; the SchedulerAgent timer follows; routines_changed {id} to the owner's renderers",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; names, phrases, step arguments and say lines never logged",
+      "response": "Origin ACK {ok: true, routine}; invalid_arguments, routine_conflict, routine_not_found or routines_full as a plain message",
+      "lifetime": "Durable until edited or deleted",
+      "replacement": "RoutineService / RoutinesTransport (backend/services/routines.py, backend/transport/routines.py)",
+      "status": "implemented"
+    },
+    "routines_delete": {
+      "schema": "RoutineIdRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "A routine id (UUID)",
+      "effects": "Deletes the row and cancels its timer; refused while that routine runs; routines_changed {id}",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; names, phrases, step arguments and say lines never logged",
+      "response": "Origin ACK {ok: true, deleted: id}; routine_not_found or routine_running as a plain message",
+      "lifetime": "Request-only",
+      "replacement": "RoutineService / RoutinesTransport (backend/services/routines.py, backend/transport/routines.py)",
+      "status": "implemented"
+    },
+    "routines_toggle": {
+      "schema": "RoutineToggleRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "A routine id and enabled: bool",
+      "effects": "Turns the routine's trigger on or off (phrase clash checked when turning on); the timer follows; routines_changed {id}",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; names, phrases, step arguments and say lines never logged",
+      "response": "Origin ACK {ok: true, routine}; routine_conflict or routine_not_found as a plain message",
+      "lifetime": "Durable until toggled again",
+      "replacement": "RoutineService / RoutinesTransport (backend/services/routines.py, backend/transport/routines.py)",
+      "status": "implemented"
+    },
+    "routines_run": {
+      "schema": "RoutineIdRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "A routine id; the owner's current project",
+      "effects": "Starts the routine now in the background (one run per routine): each step through ToolDispatcher.dispatch with the owner's context, so approvals (tool_confirmation_request to this socket), deny and taint apply; stops at the first failure or declined approval; the outcome is stored and routines_changed {id} sent",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; names, phrases, step arguments and say lines never logged",
+      "response": "Origin ACK {ok: true, started: id}; routine_running or routine_not_found as a plain message",
+      "lifetime": "The run outlives the request; cancelled at core shutdown (recorded as interrupted)",
+      "replacement": "RoutineService / RoutinesTransport (backend/services/routines.py, backend/transport/routines.py)",
+      "status": "implemented"
     }
   },
   "http_routes": {
@@ -2451,6 +2517,30 @@
       "context": "The owner's long-term facts: one id, or the facts memory_search finds for the query (up to 8)",
       "lifetime": "Approval (dispatcher timeout), then hard deletes of exactly the reviewed facts; 10 s execution timeout",
       "replacement": "S6.1 long-term memory (services/memory_facts.py)",
+      "model_visible": true
+    },
+    "routine_run": {
+      "schema": "RoutineRun",
+      "policy": "Own permissions[routine_run] (default False: never asks itself); deny rejects. Authenticated desktop owner only (authorize_owner). Each step is a full dispatch with its own policy, always_ask, ask_when, deny and the turn's taint (outward steps ask after untrusted content)",
+      "context": "The owner's routines (by name, case ignored); the turn's project, origin socket, conversation and taint",
+      "lifetime": "Runs the steps in order and waits for the outcome; stops at the first failure or declined approval; one run per routine (routine_running); long_running, 900 s execution timeout",
+      "replacement": "S7.4 routines (services/routines.py)",
+      "model_visible": true
+    },
+    "routine_save": {
+      "schema": "RoutineSave",
+      "policy": "always_ask: the owner approves every save; deny still disables it. Authenticated desktop owner only. review lists the name, the routine it replaces, the trigger and each step in plain words; an invalid routine is refused before any card",
+      "context": "Name, trigger (phrase, schedule or signal) and 1-12 steps; saving an existing name replaces that routine",
+      "lifetime": "Approval (dispatcher timeout), then one synchronous write; the timer follows; 10 s execution timeout",
+      "replacement": "S7.4 routines (services/routines.py)",
+      "model_visible": true
+    },
+    "routine_list": {
+      "schema": "RoutineList",
+      "policy": "Own permissions[routine_list] (default False: never asks); deny rejects. Authenticated desktop owner only; read only",
+      "context": "The owner's routines",
+      "lifetime": "One synchronous read: [{name, trigger (plain words), enabled, steps (count), last_run_at, last_outcome (plain words)}]; 10 s execution timeout",
+      "replacement": "S7.4 routines (services/routines.py)",
       "model_visible": true
     }
   },
