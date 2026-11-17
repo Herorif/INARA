@@ -381,6 +381,18 @@ class Application:
         self.signals = SignalHub(self)
         self.signal_producers = SignalProducers(self, self.signals)
         self.signals_transport = SignalsTransport(self)
+        # S12.3 homelab (docs/HOMELAB.md): polls homelab.hosts (paused in gaming mode), keeps
+        # the latest entities, publishes homelab.alert; homelab_status (never asks),
+        # homelab_action / homelab_wake / homelab_trust_host (always ask) and owner-only routes.
+        from services.homelab.registry import HomelabRegistry
+        from services.homelab.tools import PERMISSIONS as HOMELAB_PERMISSIONS
+        from services.homelab.tools import register_homelab_tools
+        from transport.homelab import HomelabTransport
+
+        self.homelab = HomelabRegistry(self)
+        self.homelab_transport = HomelabTransport(self)
+        register_homelab_tools(self.dispatcher, self.homelab)
+        self.settings_service.permission_names |= set(HOMELAB_PERMISSIONS)
         # S7.2 proactive engine (docs/PROACTIVE.md): scores each signal and tells the owner by
         # presence (voice, cards, the overlay, a balloon, the digest, an urgent owner call).
         from services.proactive import ProactiveEngine
@@ -564,6 +576,7 @@ class Application:
         self.proactive.start()  # proactive.close() owns its tick task
         self.routines.start_triggers()  # routines.close() cancels its timers and runs
         self.heartbeat.start()  # heartbeat.close() owns its task
+        self.homelab.start()  # homelab.close() owns its polling task and probes
         await self.channels.start()  # channels.close() stops them; never raises
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
@@ -613,6 +626,7 @@ class Application:
             await _isolated("proactive", self.proactive.close)
             await _isolated("routines", self.routines.close)
             await _isolated("heartbeat", self.heartbeat.close)
+            await _isolated("homelab", self.homelab.close)
             await _isolated("channels", self.channels.close)
             await _isolated("briefing", self.briefing.close)
             await _isolated("mcp", self.mcp.close)

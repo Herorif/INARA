@@ -71,7 +71,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [ ] **S8.5** WhatsApp calls: incoming card, busy mode, disclosed message-taking chat · S8c · C · needs S8.4
 - [ ] **S12.1** Home Assistant WebSocket events, live tiles, home Signals · S12 · C · needs S7.1
 - [ ] **S12.2** Home as its own destination; sensors, scenes, camera tiles · S12 · M
-- [ ] **S12.3** Homelab framework and the generic adapters (ping, tcp, http_json, prometheus, ssh, wol) · S12 · C
+- [x] **S12.3** Homelab framework and the generic adapters (ping, tcp, http_json, prometheus, ssh, wol) · S12 · C — see the commit "Watch any homelab system with six generic adapters" (not tried on a real host; per-host secret saving comes with S12.4)
 - [ ] **S12.4** Presets, the "Add a system" flow, the Systems page, named actions with approval · S12 · C · needs S12.3 · O (addresses, keys)
 - [ ] **S12.5** Frigate events to an overlay card (built with fakes; off until configured) · S12 · M · needs S7.2
 - [ ] **W3** Wave check

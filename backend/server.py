@@ -90,6 +90,12 @@ DEFAULT_SETTINGS = {
         "routine_run": False,
         "routine_list": False,
         "routine_save": True,
+        # Homelab (docs/HOMELAB.md): status and the host-key scan never ask; homelab_action,
+        # homelab_wake and the trust card always ask (ToolSpec.always_ask), whatever this says.
+        "homelab_status": False,
+        "homelab_action": True,
+        "homelab_wake": True,
+        "homelab_trust_host": False,
         # Skills (docs/SKILLS.md): loading a skill never asks; teach_skill always asks
         # (ToolSpec.always_ask), whatever this says.
         "load_skill": False,

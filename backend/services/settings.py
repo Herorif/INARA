@@ -27,6 +27,7 @@ from pydantic import (
 )
 from services.audio_contracts import DeviceSelection
 from services.capability_profiles import MODEL_DEFAULTS
+from services.homelab.base import HomelabHosts
 from services.live_config import PREBUILT_VOICES, VOICE_DEFAULTS, VOICE_MODES, WAKE_SENSITIVITIES
 from services.tools import DEFAULT_DENY_PERMISSIONS, ServiceError
 
@@ -976,6 +977,8 @@ class SettingsPatch(EmptyRequest):
     home_assistant: HomeAssistantSettings | None = None
     world: WorldSettings | None = None
     mcp: McpSettings | None = None
+    # homelab.hosts (docs/HOMELAB.md): replaced whole on each save, like mcp.
+    homelab: HomelabHosts | None = None
     diagnostics: DiagnosticsSettings | None = None
     sound: SoundSettings | None = None
     channels: ChannelsSettings | None = None
@@ -992,6 +995,7 @@ class SettingsPatch(EmptyRequest):
         "home_assistant",
         "world",
         "mcp",
+        "homelab",
         "diagnostics",
         "sound",
         "channels",

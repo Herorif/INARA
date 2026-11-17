@@ -2046,6 +2046,50 @@
       "lifetime": "One synchronous delete",
       "replacement": "SkillLibrary / SkillsTransport (backend/services/skills.py, backend/transport/skills.py)",
       "status": "implemented"
+    },
+    "homelab_status": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The validated homelab.hosts and the registry's in-memory entities, check times, alert state and JARVIS's known_hosts file",
+      "effects": "Read status: {hosts, paused}; each host {id, name, adapter, state, checked_at, address, interval_s, actions, can_wake, entities, trusted (ssh only)}. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true, hosts, paused}; never a secret value (hosts name their secret only)",
+      "lifetime": "Request-only snapshot",
+      "replacement": "HomelabRegistry / HomelabTransport (backend/services/homelab/registry.py, backend/transport/homelab.py)",
+      "status": "implemented"
+    },
+    "homelab_hosts_get": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "settings homelab.hosts (malformed entries are skipped)",
+      "effects": "Read the validated host list. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true, hosts: [HostConfig]}; secrets appear by name only",
+      "lifetime": "Request-only snapshot",
+      "replacement": "HomelabTransport (backend/transport/homelab.py)",
+      "status": "implemented"
+    },
+    "homelab_hosts_save": {
+      "schema": "HomelabHosts ({hosts: [HostConfig]}, at most 64, unique ids; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "Each HostConfig {id, name, adapter ping|tcp|http_json|prometheus|ssh|wol, address, options (the adapter's own strict model), secret (a name, never a value), named_actions [{name, command|request}], interval_s 15-3600}",
+      "effects": "Persist homelab.hosts whole through SettingsService (like mcp); the registry drops removed or changed systems' state and alerts and polls the new list. No network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; the only way a named action (the fixed command or request homelab_action may run) is defined",
+      "response": "Origin ACK {ok: true, hosts}; invalid_arguments as 'field: plain message' without the submitted value",
+      "lifetime": "Durable until saved again",
+      "replacement": "HomelabTransport (backend/transport/homelab.py)",
+      "status": "implemented"
+    },
+    "homelab_probe_now": {
+      "schema": "ProbeRequest (host: system id; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "One configured system; runs even in gaming mode because the owner asked",
+      "effects": "One probe through the system's adapter (ping.exe or ssh.exe with the minimal environment in a kill-on-close job, TCP connects, or one bounded HTTP GET); updates its entities and publishes homelab.alert signals that start",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible",
+      "response": "Origin ACK {ok: true, host, entities}; homelab_unknown_host for an unknown id",
+      "lifetime": "One probe, at most 75 s",
+      "replacement": "HomelabRegistry / HomelabTransport (backend/services/homelab/registry.py, backend/transport/homelab.py)",
+      "status": "implemented"
     }
   },
   "http_routes": {
@@ -2624,6 +2668,46 @@
       "lifetime": "Approval (dispatcher timeout), then one atomic write (SKILL.md.partial then replace); the index changes on the next turn; 10 s execution timeout",
       "replacement": "S5.2 skills (services/skills.py)",
       "model_visible": true
+    },
+    "homelab_status": {
+      "schema": "HomelabStatusQuery",
+      "policy": "Own permissions[homelab_status] (default False: never asks); deny rejects. Untrusted output (names and details come from the systems): wrapped as untrusted_content and adds 'your homelab systems' to the turn's taint",
+      "context": "Authenticated desktop owner; the registry's in-memory entities (no probe runs)",
+      "lifetime": "In-memory read; 10 s execution timeout",
+      "replacement": "S12.3 homelab (services/homelab/tools.py)",
+      "model_visible": true
+    },
+    "homelab_action": {
+      "schema": "HomelabActionRequest",
+      "policy": "Own permissions[homelab_action]; always asks the owner on screen (ToolSpec.always_ask); outward; deny rejects. Only an owner-defined named action runs (an unknown host or action is refused before the card); review facts carry the exact command (ssh, with user@host) or request (method, URL, body). Physical-security class (services.homelab.PHYSICAL_SECURITY_TOOLS)",
+      "context": "Authenticated desktop owner; the system's saved config",
+      "lifetime": "One ssh.exe run (minimal environment, kill-on-close job, its timeout) or one bounded HTTP request after approval; 90 s execution timeout",
+      "replacement": "S12.3 homelab (services/homelab/tools.py)",
+      "model_visible": true
+    },
+    "homelab_wake": {
+      "schema": "HomelabWakeRequest",
+      "policy": "Own permissions[homelab_wake]; always asks the owner on screen (ToolSpec.always_ask); outward; deny rejects. Refused before the card for a system without a Wake-on-LAN MAC; review facts carry the MAC, broadcast address and port. Physical-security class",
+      "context": "Authenticated desktop owner; a wol system or one with options.wake_mac",
+      "lifetime": "One UDP broadcast datagram; 15 s execution timeout",
+      "replacement": "S12.3 homelab (services/homelab/tools.py)",
+      "model_visible": true
+    },
+    "homelab_trust_host": {
+      "schema": "HomelabTrustRequest",
+      "policy": "Own permissions[homelab_trust_host] (default False); ssh systems only. Runs ssh-keyscan (minimal environment, kill-on-close job), then dispatches homelab_trust_host_confirm, whose always-ask card shows the fingerprints; nothing is trusted without that approval. Physical-security class",
+      "context": "Authenticated desktop owner; the system's address and port",
+      "lifetime": "One ssh-keyscan (15 s) then the approval card",
+      "replacement": "S12.3 homelab (services/homelab/tools.py)",
+      "model_visible": true
+    },
+    "homelab_trust_host_confirm": {
+      "schema": "HomelabTrustConfirm",
+      "policy": "Internal step of homelab_trust_host (model_visible False; permission homelab_trust_host); ask_when refuses any call without the scan homelab_trust_host just made, before any card; always asks; outward. Review facts carry the key types and SHA256 fingerprints. On approval the scanned lines are appended to JARVIS's own known_hosts. Physical-security class",
+      "context": "Authenticated desktop owner; the in-memory scan",
+      "lifetime": "One atomic file write after approval; 15 s execution timeout",
+      "replacement": "S12.3 homelab (services/homelab/tools.py)",
+      "model_visible": false
     }
   },
   "voice_declarations": {
