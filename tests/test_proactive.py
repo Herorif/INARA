@@ -603,6 +603,8 @@ async def test_the_engine_follows_the_signal_bus(application_factory):
     app.sessions.local_owner = "owner"
     app.sessions.principals.update({"client": "owner"})
     app.sessions.roles.update({"client": "renderer"})
+    # This test uses the real clock: quiet hours off, so it passes at any time of day.
+    app.settings.setdefault("assistant", {})["quiet_hours"] = None
     engine = app.proactive
     engine.idle, engine.locked = (lambda: 0.0), (lambda: False)
     engine.start()

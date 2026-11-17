@@ -29,7 +29,9 @@ against the owner's chattiness, quiet hours and gaming mode, and delivered by pr
 - **Mutes** (kind + source + person, the protected profile database): muted signals are
   dropped silently.
 - **Recorded**: the last ``RECENT_LIMIT`` deliveries in memory (``recent()``), announced to
-  the owner's renderers as ``proactive_delivered {id, channel}``.
+  the owner's renderers as ``proactive_delivered {id, channel}``. Every signal delivered or
+  held for the digest is marked (``delivered(dedupe_key)``): the heartbeat (S7.3) judges only
+  the rest, and its own choices come back through ``consider(item, judged=True)``.
 
 Never logged: titles, bodies, names or ``data`` values; logs carry the kind, the urgency and
 the channel only.
@@ -63,6 +65,7 @@ GROUP_SECONDS = 120.0  # a card or balloon within this of the last one joins its
 OVERLAY_CARD_SECONDS = 30.0  # how long the overlay may still be sent the last card
 PHONE_GAP_SECONDS = 600.0  # at most one urgent owner call per 10 minutes
 RECENT_LIMIT = 100
+DELIVERED_LIMIT = 2048  # dedupe keys remembered as delivered or held (for the heartbeat)
 DIGEST_LIMIT = 50
 DIGEST_KEEP = dt.timedelta(hours=24)
 MUTE_LIMIT = 200
@@ -192,6 +195,7 @@ class ProactiveEngine:
         self.lock = asyncio.Lock()
         self.focus = {}  # renderer sid -> the workspace is focused and visible
         self.recent_deliveries = collections.deque(maxlen=RECENT_LIMIT)
+        self.delivered_keys = collections.OrderedDict()  # dedupe_key -> True, oldest first
         self.held = []  # [{id, signal, score, reason, held_at}], oldest first
         self.released = False  # the digest is on the owner's screen
         self.last_spoken = None
@@ -403,8 +407,12 @@ class ProactiveEngine:
 
     # --- deciding -----------------------------------------------------------------------------
 
-    async def consider(self, item):
-        """Deliver, hold or drop one signal; returns the channel, ``"held"`` or None."""
+    async def consider(self, item, *, judged=False, speak=True):
+        """Deliver, hold or drop one signal; returns the channel, ``"held"`` or None.
+
+        ``judged``: the heartbeat (S7.3) chose to tell this one, so the score threshold is
+        skipped; mutes, gaming mode, quiet hours, presence and the spoken rate limit still
+        apply. ``speak=False`` never uses a spoken line (a card, overlay or balloon)."""
         async with self.lock:
             now = self.now()
             if item.expired(now) or self.muted(item):
@@ -412,7 +420,7 @@ class ProactiveEngine:
             settings = self.settings()
             group = self.person_group(item)
             value = score(item, now, group)
-            if not passes(item, value, settings["chattiness"], group):
+            if not judged and not passes(item, value, settings["chattiness"], group):
                 return None
             gaming = self.gaming()
             where = self.presence()
@@ -423,7 +431,8 @@ class ProactiveEngine:
                     if not gaming and await self.remote(item):
                         return self.record(item, value, "remote", now)
                     return self.hold(item, value, "gaming" if gaming else "away", now)
-                return await self.at_pc(item, value, where, now, settings, urgent=True)
+                return await self.at_pc(item, value, where, now, settings, urgent=True,
+                                        speak=speak)
             if gaming:
                 return self.hold(item, value, "gaming", now)
             if self.quiet_now(now, settings):
@@ -432,14 +441,14 @@ class ProactiveEngine:
                 if await self.remote(item):
                     return self.record(item, value, "remote", now)
                 return self.hold(item, value, "away", now)
-            return await self.at_pc(item, value, where, now, settings, urgent=False)
+            return await self.at_pc(item, value, where, now, settings, urgent=False, speak=speak)
 
     def spoken_allowed(self, now, settings):
         gap = LEVELS.get(settings["chattiness"], LEVELS["balanced"])["spoken_gap"]
         return self.last_spoken is None or (now - self.last_spoken).total_seconds() >= gap
 
-    async def at_pc(self, item, value, where, now, settings, *, urgent):
-        session = self.voice_session()
+    async def at_pc(self, item, value, where, now, settings, *, urgent, speak=True):
+        session = self.voice_session() if speak else None
         if session is not None and (urgent or self.spoken_allowed(now, settings)):
             try:
                 self.app.voice.inject(session, notice_turn(item))
@@ -576,7 +585,18 @@ class ProactiveEngine:
 
     # --- the record and the digest --------------------------------------------------------------
 
+    def mark(self, item):
+        self.delivered_keys[item.dedupe_key] = True
+        self.delivered_keys.move_to_end(item.dedupe_key)
+        while len(self.delivered_keys) > DELIVERED_LIMIT:
+            self.delivered_keys.popitem(last=False)
+
+    def delivered(self, dedupe_key):
+        """True once a signal with this key was delivered or held for the digest."""
+        return dedupe_key in self.delivered_keys
+
     def record(self, item, value, channel, now, delivery_id=None):
+        self.mark(item)
         entry = {
             "id": delivery_id or uuid.uuid4().hex,
             "at": now.isoformat(),
@@ -599,6 +619,7 @@ class ProactiveEngine:
         return [dict(entry) for entry in reversed(self.recent_deliveries)]
 
     def hold(self, item, value, reason, now):
+        self.mark(item)
         self.held.append({"id": uuid.uuid4().hex, "signal": item, "score": value,
                           "reason": reason, "held_at": now})
         del self.held[:-DIGEST_LIMIT]

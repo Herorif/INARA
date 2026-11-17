@@ -1980,6 +1980,28 @@
       "lifetime": "The run outlives the request; cancelled at core shutdown (recorded as interrupted)",
       "replacement": "RoutineService / RoutinesTransport (backend/services/routines.py, backend/transport/routines.py)",
       "status": "implemented"
+    },
+    "heartbeat_get": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "HEARTBEAT.md in the data folder (the owner's standing instructions) and the heartbeat's last check in memory",
+      "effects": "Reads HEARTBEAT.md, creating it with the default text when missing; no delivery, no network",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; the instructions are never logged",
+      "response": "Origin ACK {ok: true, text, last_run (ISO 8601 or null), last_actions: [{action, signal, kind, outcome, note?}]}; invalid_arguments as a plain message",
+      "lifetime": "Request-only snapshot",
+      "replacement": "Heartbeat / HeartbeatTransport (backend/services/heartbeat.py, backend/transport/heartbeat.py)",
+      "status": "implemented"
+    },
+    "heartbeat_save": {
+      "schema": "SaveRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The owner's standing instructions as plain text (at most 4,000 characters; empty means the defaults)",
+      "effects": "Rewrites HEARTBEAT.md in the data folder (atomic replace); read by the next heartbeat check",
+      "policy": "Independent owner/role/unlock gate; strict {text: str}; control characters rejected; not a dispatcher tool and not model-visible; the text is never logged",
+      "response": "Origin ACK {ok: true, text}; invalid_arguments as a plain message (too long, not plain text)",
+      "lifetime": "Durable until saved again",
+      "replacement": "Heartbeat / HeartbeatTransport (backend/services/heartbeat.py, backend/transport/heartbeat.py)",
+      "status": "implemented"
     }
   },
   "http_routes": {

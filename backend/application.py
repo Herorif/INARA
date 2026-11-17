@@ -389,6 +389,13 @@ class Application:
         self.routines_transport = RoutinesTransport(self)
         self.conversation.reply = self.routines.wrap_reply(self.conversation.reply)
         self.settings_service.permission_names |= {"routine_run", "routine_save", "routine_list"}
+        # S7.3 heartbeat (docs/PROACTIVE.md): every 30 min, one fast-route call about pending
+        # signals the engine did not tell, read against HEARTBEAT.md; heartbeat_get / _save.
+        from services.heartbeat import Heartbeat
+        from transport.heartbeat import HeartbeatTransport
+
+        self.heartbeat = Heartbeat(self)
+        self.heartbeat_transport = HeartbeatTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -538,6 +545,7 @@ class Application:
         self.signal_producers.start()  # signal_producers.stop() in close() owns the tasks
         self.proactive.start()  # proactive.close() owns its tick task
         self.routines.start_triggers()  # routines.close() cancels its timers and runs
+        self.heartbeat.start()  # heartbeat.close() owns its task
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
         await self.wake.begin()  # no-op outside the native resident
@@ -585,6 +593,7 @@ class Application:
             await _isolated("signal_producers", self.signal_producers.stop)
             await _isolated("proactive", self.proactive.close)
             await _isolated("routines", self.routines.close)
+            await _isolated("heartbeat", self.heartbeat.close)
             await _isolated("briefing", self.briefing.close)
             await _isolated("mcp", self.mcp.close)
             await _isolated("call_orchestrator", self.call_orchestrator.close)

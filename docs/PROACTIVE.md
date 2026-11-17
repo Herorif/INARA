@@ -19,7 +19,8 @@ Code: `backend/services/proactive.py` (`ProactiveEngine`, `app.proactive`),
 | Person weight | VIP 2.0 (a `call.vip` signal, or the person's group in the people list), known 1.2, anyone else 1.0 |
 | Time relevance | 1.0 for the first 5 minutes (`FRESH_SECONDS`), then falling linearly to 0 at `expires_at` |
 
-Urgency 0 is never pushed (it stays in the hub's pending list for the heartbeat, S7.3).
+Urgency 0 is never pushed by the engine alone (it stays in the hub's pending list for the
+heartbeat, below).
 
 ## Thresholds (`assistant.chattiness`)
 
@@ -117,7 +118,73 @@ Preferences > Assistant: "How chatty" (Quiet / Balanced / Chatty) and "Quiet hou
 switch and two times). `assistant.chattiness` rejects null; `assistant.quiet_hours` takes
 `{start, end}` with different times, or null for off.
 
+## Heartbeat (S7.3)
+
+A second look, every 30 minutes while the core runs, at what came in but was not told.
+Code: `backend/services/heartbeat.py` (`Heartbeat`, `app.heartbeat`),
+`backend/transport/heartbeat.py`, `src/features/settings/HeartbeatSettings.jsx`,
+`src/features/proactive/heartbeatModel.js`. Tests: `tests/test_heartbeat.py`,
+`tests/test_heartbeat_model.mjs`.
+
+**What needs judgment.** A signal still pending in the hub (live, not acknowledged) that the
+engine neither delivered nor held for the digest (the engine marks every signal it records or
+holds: `engine.delivered(dedupe_key)`), that no mute covers, and that the heartbeat has not put
+to its model before (each signal is judged once). Nothing needs judgment: no model call.
+
+**When.** Skipped in gaming mode, and in quiet hours unless a waiting signal is urgency 3.
+Needs an owner. One check at a time.
+
+**The call.** One fast-route call (Claude Haiku 5.5, effort low, at most 1,024 output tokens,
+20 s deadline), metered as `heartbeat`, with structured output (`output_config.format`, a JSON
+schema). The system prompt is byte-stable and cached. The user message is JSON:
+
+```json
+{"now": "Sunday 2026-11-15 14:08",
+ "standing_instructions": "<HEARTBEAT.md, or the default when empty>",
+ "routines": ["<enabled routine names, at most 30>"],
+ "signals": [{"signal": "<dedupe_key>", "kind": "calendar.soon", "title": "...",
+              "body": "<at most 200 characters>", "urgency": 1, "age_minutes": 7}]}
+```
+
+At most 20 signals (newest first). The answer:
+`{"actions": [{"action": "notify|speak|run_routine|none", "signal": "<dedupe_key>",
+"routine"?: "<name>", "text"?: "<one sentence>"}]}`, at most 5, one per signal, only keys
+from the request. With Gemini alone there is no structured output and the check is skipped.
+
+**Applying.** Always through the engine, never around it:
+
+| Action | Effect |
+| --- | --- |
+| `notify` | `consider(item, judged=True, speak=False)`: a card, overlay card or balloon; held for the digest while away, gaming or in quiet hours. |
+| `speak` | `consider(item, judged=True)` with the model's sentence as the line: spoken if a voice session runs and the spoken rate limit allows, else a card like any other. |
+| `run_routine` | `app.routines.fire(id, "heartbeat", item)` (the routine's approvals apply). No routines service or no such enabled routine: `notify`, with a note. |
+| `none` | The signal is acknowledged (`SignalHub.ack`). |
+
+`judged=True` skips only the score threshold; mutes, quiet hours, gaming mode, presence and
+rate limits apply as for any signal. A failed call is tried once more at the next check, then
+that batch is left alone.
+
+**HEARTBEAT.md.** `<data>\HEARTBEAT.md`, beside the database (the folder the memory mirror
+uses), created on first read with:
+
+```
+# Standing instructions
+- Tell me about VIP calls right away.
+- Batch job notices unless one failed.
+- Rain alerts only on weekdays before 9 am.
+```
+
+Plain text, at most 4,000 characters (`\n` line ends; control characters rejected); empty
+means the default is used. Edited in Preferences > Assistant > "Standing instructions"
+(below Quiet hours), which also shows "Last check: 14:30 · told you 1 thing".
+
+**Routes** (owner-only, authenticated and unlocked renderer): `heartbeat_get {}` →
+`{ok, text, last_run, last_actions: [{action, signal, kind, outcome, note?}]}`;
+`heartbeat_save {text}` → `{ok, text}`. The last check is kept in memory only.
+
+**Logs** carry counts, kinds and codes (`heartbeat done signals=2 actions=1 invalid=0
+told=1`), never a title, a body or the instructions.
+
 ## Not built yet
 
 - Telegram (S8): `remote_hooks` is the delivery hook for away.
-- The heartbeat and routines (S7.3+).

@@ -1,5 +1,6 @@
 import { createRpcScope, RpcError } from '../../transport/rpc.ts';
 import { normalizeItem, normalizeMute } from './proactiveModel.js';
+import { normalizeHeartbeat } from './heartbeatModel.js';
 
 /**
  * Owner-only proactive engine RPCs (backend/transport/proactive.py) and its events:
@@ -27,5 +28,16 @@ export function createProactiveClient(socket) {
     async unmute(id) { await scope.call('proactive_unmute', { id }); },
     async dismissDigest() { await scope.call('proactive_digest_dismiss', {}); },
     async focus(focused) { await scope.call('proactive_focus', { focused }); },
+    // The heartbeat (S7.3, backend/transport/heartbeat.py).
+    async heartbeat() {
+      const value = normalizeHeartbeat(await scope.call('heartbeat_get', {}));
+      if (!value) throw new RpcError('The core returned an incomplete answer.', 'invalid_response');
+      return value;
+    },
+    async saveHeartbeat(text) {
+      const response = await scope.call('heartbeat_save', { text });
+      if (typeof response.text !== 'string') throw new RpcError('The core returned an incomplete answer.', 'invalid_response');
+      return response.text;
+    },
   };
 }

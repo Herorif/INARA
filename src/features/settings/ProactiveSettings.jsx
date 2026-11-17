@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Switch from './Switch';
 import SegmentedControl from './SegmentedControl';
 import { ResultMessage } from './SecretKeyRow';
+import HeartbeatSettings from './HeartbeatSettings';
 import {
   CHATTY_LABEL, CHATTY_OPTIONS, QUIET_HELP, QUIET_LABEL, QUIET_OFF_HELP,
   chattinessPatch, chattyHelp, proactiveChoice, quietHoursPatch, quietSwitchPatch,
@@ -15,8 +16,8 @@ const TIME_LABEL = 'flex items-center gap-2 text-[0.75rem] text-ink-2';
 
 /**
  * Preferences > Assistant (S7.2, docs/PROACTIVE.md): "How chatty" (assistant.chattiness) and
- * "Quiet hours" (assistant.quiet_hours, null when off). `patch(settings)` resolves to '' or a
- * failure message.
+ * "Quiet hours" (assistant.quiet_hours, null when off), then the heartbeat's "Standing
+ * instructions" (S7.3). `patch(settings)` resolves to '' or a failure message.
  */
 export default function ProactiveSettings({ assistant, patch }) {
   const choice = proactiveChoice(assistant);
@@ -64,5 +65,6 @@ export default function ProactiveSettings({ assistant, patch }) {
       </div>}
       <ResultMessage id="assistant-quiet-result" result={results.quiet} />
     </div>
+    <HeartbeatSettings />
   </>;
 }
