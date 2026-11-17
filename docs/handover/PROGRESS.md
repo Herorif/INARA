@@ -58,7 +58,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [ ] **S7.3** Heartbeat and `HEARTBEAT.md` · S7 · M · needs S7.2
 - [x] **S7.4** Routines: store, triggers, `routine_run`, `routine_save`, the Routines page · S7 · C · needs S7.1 — see the commit "Add routines" (captures `.runtime/ui-qa/routines/`; schedules are daily/weekdays/weekly times, no cron; open: Tasks/Routines tabs would make the page easier to find)
 - [x] **S7.5** Screen help with consent: one screenshot per approval ("What's this error?") · roadmap M9 A6 · M — see the commit "Let JARVIS look at the screen when asked" (open: the old Pillow-based `take_screenshot` local action is still model-visible and fails without Pillow; no "You · screenshot" chat label)
-- [ ] **S5.1** Tool search with deferred loading and a core set (Claude); local tool index (Gemini) · S5 · C · read the `claude-api` skill first
+- [x] **S5.1** Tool search with deferred loading and a core set (Claude); local tool index (Gemini) · S5 · C · read the `claude-api` skill first — see the commit "Load a core set of tools and let Claude search for the rest" (51 model-visible tools today; Haiku 5.5 supports tool search)
 - [ ] **S5.2** Skills: `SKILL.md` folders, `load_skill`, the "Teach JARVIS" approval flow · S5 · C
 - [ ] **W2** Wave check
 

@@ -160,7 +160,9 @@ class Tools:
 
 
 class Script:
-    """Plays one scripted response per call and keeps the declared tool names."""
+    """Plays one scripted response per call and keeps the declared tool names that load:
+    a Claude tool sent with ``defer_loading`` (tool search, S5.1) is declared but not loaded
+    until Claude searches for it, so it is not counted."""
 
     def __init__(self, steps, name=None):
         self.name, self._model = name, "fake-model" if name else None
@@ -170,7 +172,7 @@ class Script:
     async def generate(self, messages, **kwargs):
         tools = kwargs.get("tools") or []
         if self.name == "claude":
-            names = [item["name"] for item in tools]
+            names = [item["name"] for item in tools if not item.get("defer_loading")]
         else:
             names = [item["name"] for item in tools[0]["function_declarations"]] if tools else []
         self.declared.append(names)

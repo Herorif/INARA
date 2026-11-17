@@ -15,6 +15,9 @@ Request rules for Claude Sonnet 5.5 / Haiku 5.5 (see docs/AI_PROVIDERS.md):
   (``server_tool_use``, ``web_search_tool_result``, ``web_fetch_tool_result``, cited text)
   stay in the turn verbatim; only ``tool_use`` blocks are client calls. A turn that stops
   with ``pause_turn`` is resumed here, so callers see one finished turn.
+- tool search (``with_tool_search``): past 25 client tools the core set stays loaded, the rest
+  go out with ``defer_loading: true`` behind ``tool_search_tool_bm25_20251119``, and the
+  whole list is sorted by name; its blocks stay in the turn verbatim like the web ones.
 
 No SDK import, client or key access happens until the first request.
 """
@@ -22,6 +25,7 @@ No SDK import, client or key access happens until the first request.
 import json
 from typing import Any, Optional
 
+from services.tool_groups import core_names, uses_tool_search
 from services.tools import ServiceError
 
 from .base import (
@@ -53,6 +57,11 @@ PROGRESS_EVENTS = frozenset(
 # filter results with code execution under the hood, so code execution is never declared.
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 3}
 WEB_FETCH_TOOL = {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 3}
+# Tool search (docs/AI_PROVIDERS.md "Tool search", S5.1): past TOOL_SEARCH_THRESHOLD client
+# tools, the non-core ones are sent with ``defer_loading: true`` and Claude finds them with
+# this server tool. The search tool itself is never deferred, and neither are the web tools.
+TOOL_SEARCH_TOOL = {"type": "tool_search_tool_bm25_20251119", "name": "tool_search_tool_bm25"}
+TOOL_SEARCH_NAMES = frozenset({"tool_search_tool_bm25", "tool_search_tool_regex"})
 # Requests resumed after ``pause_turn`` before the turn is given up.
 MAX_CONTINUATIONS = 3
 INCOMPLETE_MESSAGE = "Claude's web search didn't finish in time. Try again."
@@ -79,16 +88,81 @@ def is_server_block(block):
     )
 
 
-def has_server_blocks(messages):
-    """True when an assistant message in ``messages`` carries server tool blocks; such a
-    history only replays with the web tools declared."""
+def is_tool_search_block(block):
+    """A tool search call or result (``tool_search_tool_bm25``): JARVIS's own tool catalog,
+    never web content."""
+    if not isinstance(block, dict):
+        return False
+    kind = block.get("type")
+    return kind == "tool_search_tool_result" or (
+        kind == "server_tool_use" and block.get("name") in TOOL_SEARCH_NAMES
+    )
+
+
+def _assistant_blocks(messages, test):
     return any(
         message.get("role") == "assistant"
         and isinstance(message.get("content"), list)
-        and any(is_server_block(block) for block in message["content"])
+        and any(test(block) for block in message["content"])
         for message in messages
         if isinstance(message, dict)
     )
+
+
+def has_server_blocks(messages):
+    """True when an assistant message in ``messages`` carries web server tool blocks; such a
+    history only replays with the web tools declared (tool search blocks don't count)."""
+    return _assistant_blocks(
+        messages, lambda block: is_server_block(block) and not is_tool_search_block(block)
+    )
+
+
+def has_tool_search_blocks(messages):
+    """True when the history used tool search; it only replays with tool search on."""
+    return _assistant_blocks(messages, is_tool_search_block)
+
+
+def is_client_tool(tool):
+    """A JARVIS tool definition (no ``type``, or ``custom``), not a server tool."""
+    return isinstance(tool, dict) and tool.get("type", "custom") == "custom"
+
+
+def defer_tools(tools, loaded=None):
+    """Copies of ``tools`` with ``defer_loading: true`` on every client tool not in ``loaded``
+    (default: the core set, world tools deferred). Server tools are never deferred."""
+    if loaded is None:
+        loaded = core_names([tool.get("name") for tool in tools if is_client_tool(tool)],
+                            world=False)
+    result = []
+    for tool in tools:
+        tool = {key: value for key, value in tool.items() if key != "defer_loading"}
+        if is_client_tool(tool) and tool.get("name") not in loaded:
+            tool["defer_loading"] = True
+        result.append(tool)
+    return result
+
+
+def with_tool_search(tools, force=False):
+    """``tools`` as sent: unchanged at or below the threshold; past it (or with ``force``, a
+    history that already used tool search) the non-core client tools deferred unless the
+    caller marked them already (``defer_tools``), the BM25 search tool added, and the whole
+    list sorted by name so the cached prefix stays byte-stable."""
+    tools = list(tools or [])
+    client = [tool for tool in tools if is_client_tool(tool)]
+    marked = any("defer_loading" in tool for tool in client)
+    if not (marked or force or uses_tool_search(len(client))):
+        return tools
+    if not marked:
+        tools = defer_tools(tools)
+    if not any(tool.get("name") in TOOL_SEARCH_NAMES for tool in tools):
+        tools.append(dict(TOOL_SEARCH_TOOL))
+    return sorted(tools, key=lambda tool: str(tool.get("name")))
+
+
+def tool_counts(tools):
+    """``(declared, deferred)`` client tools in a tool list, for the turn_timing line."""
+    client = [tool for tool in tools or () if is_client_tool(tool)]
+    return len(client), sum(1 for tool in client if tool.get("defer_loading") is True)
 
 
 def answer_text(blocks):
@@ -442,6 +516,9 @@ class ClaudeProvider(BaseLLMProvider):
         # tools declared to replay, so they stay on for it even when search is off here.
         if (tools and self.web_search) or has_server_blocks(api_messages):
             tools = [*(tools or []), *web_tools(self._model)]
+        if tools or has_tool_search_blocks(api_messages):
+            # Past the threshold: core loaded, the rest deferred behind the search tool.
+            tools = with_tool_search(tools, force=has_tool_search_blocks(api_messages))
         params = {
             "model": self._model,
             "max_tokens": min(MAX_TOKENS, max_output_tokens) if max_output_tokens else MAX_TOKENS,
@@ -512,8 +589,11 @@ class ClaudeProvider(BaseLLMProvider):
                             block_type = getattr(block, "type", None)
                             if block_type != "text" and emitted:
                                 separated = True
-                            if block_type == "server_tool_use" and on_tool is not None:
-                                on_tool(str(getattr(block, "name", None) or ""))
+                            tool_name = str(getattr(block, "name", None) or "")
+                            if (block_type == "server_tool_use" and on_tool is not None
+                                    and tool_name not in TOOL_SEARCH_NAMES):
+                                # A tool search is bookkeeping, not a step worth announcing.
+                                on_tool(tool_name)
                         if kind == "text" and event.text:
                             delta = event.text
                             if (separated and not emitted[-1:].isspace()

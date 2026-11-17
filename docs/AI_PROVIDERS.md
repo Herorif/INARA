@@ -88,6 +88,27 @@ With `assistant.web_search` on (the default), `backend/llm/router.py` builds the
 - Queries, URLs and results are never logged.
 - CAD planning (`services/cad.py`, `services/cad_changes.py`, through `create_text_provider()`) builds the chat route with `web_search=False`: planning never searches the web. `TaskRouter.provider(task, web_search=False)` forces it off whatever the setting.
 
+## Tool search
+
+JARVIS has more brain tools (about 50) than a model picks well from at once. Past **25 client tools** (`TOOL_SEARCH_THRESHOLD`, `backend/services/tool_groups.py`) a turn stops loading every definition. At or below it nothing changes.
+
+**Claude** (`ClaudeProvider.request()`, `with_tool_search` in `backend/llm/claude.py`; Sonnet 5.5 and Haiku 5.5 both support it, per the Anthropic tool search page's model table):
+
+```json
+{"type": "tool_search_tool_bm25_20251119", "name": "tool_search_tool_bm25"}
+```
+
+- Every tool is still declared on every request (the API needs the definitions to search and to expand what it finds). The core set loads; every other client tool is sent with `"defer_loading": true` and loads only when Claude's search returns it as a `tool_reference`. No beta header is needed.
+- Core set (`CORE_TOOLS`; names that are not registered are skipped): `weather`, `memory_search`, `memory_remember`, `list_reminders`, `create_reminder`, `calendar_events`, `home_devices`, `home_control`, `start_live_design`, `look_through_camera`, `look_at_screen`, `routine_run`, `load_skill`.
+- Never deferred: the search tool itself, and the server tools `web_search` and `web_fetch`. At least one tool is always loaded, so the API's "all tools deferred" 400 can't happen. No deferred tool carries `cache_control` (also a 400).
+- The whole list (client tools, search tool, web tools) is sorted by name, so the cached tools + system prefix is byte-stable from turn to turn; deferred definitions sit outside the cached prefix.
+- The world gate (S1.3, "When the brain is offered the globe" in [WORLD_VIEW.md](WORLD_VIEW.md)) changes from "leave out" to "defer": `world_show`, `world_tour` and `mcp__gev__*` are always declared but deferred, and load as core only on a turn the gate allows (a globe request, the World page open, a follow-up to a world turn). A weather turn never loads them: `weather` is core.
+- The search's blocks (`server_tool_use` named `tool_search_tool_bm25`, `tool_search_tool_result`) stay in the stored turn verbatim like the web ones; a history that holds them always replays with tool search on. A tool search result is not web content, so it never taints the turn, and it is not announced as a progress step.
+
+**Gemini** (and any other non-Claude brain) has no server-side search. `backend/services/tool_index.py` keeps a small BM25 index over the model-visible tools' names (counted twice), descriptions and argument names and descriptions, lower-cased, split on non-letters (`print_stl` → `print`, `stl`) with a light suffix strip ("printer", "printing" → "print"). It is cached and rebuilt when the dispatcher's tool set changes. Each step declares the core set, then the world group if the gate allows it, then the top 8 matches for the owner's request, never more than 30 tools; a call to a tool left out gets `tool_unavailable`. Nothing is logged from the index.
+
+The `turn_timing` line (below) carries `tools_declared=<n> deferred=<n>`: the client tools the turn's last model step declared, and how many of them were deferred (always 0 on Gemini, which narrows instead).
+
 ## Streamed replies (typed chat)
 
 Typed desktop chat (the workspace and the Quick assistant) streams the answer as the model writes it, for both providers. Live voice (`ask_brain`) and phone chat call the same service without a stream and still get the final text only.
@@ -192,7 +213,7 @@ A simple question used to hang for minutes. Five causes lined up (docs/handover/
 Every brain turn (desktop chat, the Quick assistant, phone chat and reviewed voice) ends with one content-free INFO line from `services.conversation`, whatever its outcome:
 
 ```
-turn_timing request_id=6f0c… origin=voice provider=claude model=claude-sonnet-5-5 effort=medium first_token_ms=1430 total_ms=4210 outcome=ok steps=[model:1610,weather:380,model:2190] input_tokens=10520 output_tokens=212
+turn_timing request_id=6f0c… origin=voice provider=claude model=claude-sonnet-5-5 effort=medium first_token_ms=1430 total_ms=4210 outcome=ok steps=[model:1610,weather:380,model:2190] input_tokens=10520 output_tokens=212 tools_declared=51 deferred=39 memory_facts=0
 ```
 
 - `origin`: `voice` for a voice brain turn (usage feature `voice_brain`), else `chat`.
@@ -202,6 +223,7 @@ turn_timing request_id=6f0c… origin=voice provider=claude model=claude-sonnet-
 - `outcome`: `ok`, `budget` (the turn budget ran out and JARVIS answered with what finished), `error` (any failure, including no provider configured) or `cancelled`.
 - `steps`: every model step and tool in order with its ms (`?` if it never recorded one). Tool names only; a name that is not a plain identifier reads `tool`. Claude's server-side web search runs inside a model step.
 - `input_tokens`, `output_tokens`: summed over the turn's model steps (Claude's cached prompt tokens included in input).
+- `tools_declared`, `deferred`: client tools declared to the brain and how many were deferred ([Tool search](#tool-search)); server tools are not counted.
 - Never message text, places, tool arguments or results. The service keeps the last one as `ConversationService.last_turn_timing` (a dict with the same fields; `steps` as `[{name, ms}]`).
 - The older lines stay: `AI provider request: …` (per request, with the failure code and the first streamed text time) and, on a budget stop, `Brain turn stopped: … outcome=budget` (with the budget and the unheld time used).
 

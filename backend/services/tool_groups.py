@@ -13,6 +13,11 @@ The **world group** is ``world_show``, ``world_tour`` and every God's Eye View t
 A plain weather question ("what's the weather in KL", "cuaca hari ini") never brings it in:
 the weather tool answers those. Tools outside the group are always declared. Everything here
 is pure: no I/O, no logging (the request text is never logged).
+
+With tool search on (more than ``TOOL_SEARCH_THRESHOLD`` tools, S5.1) the gate changes from
+"leave out" to "defer" on Claude: the world group is always declared but deferred, and loads
+only on a turn the gate allows (``core_names``). The weather tool is core, so a weather turn
+still never loads a world tool.
 """
 
 import re
@@ -127,6 +132,35 @@ def select_tools(schemas, *, world):
         else:
             kept.append(schema)
     return kept, frozenset(hidden)
+
+
+# --- tool search (S5.1, docs/AI_PROVIDERS.md "Tool search") ----------------------------------
+# Past this many client tools a turn stops loading every definition: Claude declares them all
+# and defers the rest behind its BM25 tool search tool; Gemini gets the core set plus the
+# best local matches (services/tool_index.py). At or below it, every tool loads as before.
+TOOL_SEARCH_THRESHOLD = 25
+# The tools a turn always loads when tool search is on (names that are not registered are
+# skipped). World tools are never core by name: the world gate above decides, per turn,
+# whether the whole world group loads (a globe turn) or stays deferred (everything else).
+CORE_TOOLS = frozenset({
+    "weather", "memory_search", "memory_remember", "list_reminders", "create_reminder",
+    "calendar_events", "home_devices", "home_control", "start_live_design",
+    "look_through_camera", "look_at_screen", "routine_run", "load_skill",
+})
+
+
+def uses_tool_search(count):
+    """True when a turn with ``count`` client tools defers or narrows them."""
+    return isinstance(count, int) and count > TOOL_SEARCH_THRESHOLD
+
+
+def core_names(names, *, world):
+    """The names among ``names`` a tool-search turn loads: the core set (never a world tool)
+    and, when ``world`` (the gate above), the whole world group."""
+    return frozenset(
+        name for name in names
+        if (world and in_world_group(name)) or (name in CORE_TOOLS and not in_world_group(name))
+    )
 
 
 def groups_used(tool_names):

@@ -31,7 +31,14 @@ from llm.base import Message, MessageRole
 from llm.router import TaskRouter
 from services.log import get_logger
 from services.memory_contracts import MemorySource
-from services.tool_groups import groups_used, offer_world, select_tools
+from services.tool_groups import (
+    core_names,
+    groups_used,
+    offer_world,
+    select_tools,
+    uses_tool_search,
+)
+from services.tool_index import select_for_request
 from services.tools import ServiceError, untrusted_source, wrap_untrusted
 from services.usage import metered_generate, usage_counts
 
@@ -147,12 +154,13 @@ def channel_taint(channel):
 
 
 def reads_web(blocks):
-    """True when a Claude response carries a server tool result (web search or fetch)."""
+    """True when a Claude response carries a server tool result (web search or fetch). A tool
+    search result lists JARVIS's own tools, so it is not web content."""
     return any(
         isinstance(block, dict)
         and isinstance(block.get("type"), str)
         and block["type"].endswith("_tool_result")
-        and block["type"] != "tool_result"
+        and block["type"] not in ("tool_result", "tool_search_tool_result")
         for block in blocks or ()
     )
 
@@ -297,6 +305,8 @@ def turn_timing(request_id, origin, provider, model, effort, budget, total_ms, o
         ],
         "input_tokens": budget.tokens["input"] if budget else 0,
         "output_tokens": budget.tokens["output"] if budget else 0,
+        "tools_declared": budget.tool_counts[0] if budget else 0,
+        "deferred": budget.tool_counts[1] if budget else 0,
         "memory_facts": int(memory_facts or 0),
     }
 
@@ -307,11 +317,13 @@ def log_turn_timing(timing, budget):
 
     logger.info(
         "turn_timing request_id=%s origin=%s provider=%s model=%s effort=%s first_token_ms=%s "
-        "total_ms=%s outcome=%s steps=%s input_tokens=%s output_tokens=%s memory_facts=%s",
+        "total_ms=%s outcome=%s steps=%s input_tokens=%s output_tokens=%s tools_declared=%s "
+        "deferred=%s memory_facts=%s",
         field(timing["request_id"]), timing["origin"], field(timing["provider"]),
         field(timing["model"]), field(timing["effort"]), field(timing["first_token_ms"]),
         timing["total_ms"], timing["outcome"], timing_steps(budget.steps if budget else []),
-        timing["input_tokens"], timing["output_tokens"], timing.get("memory_facts", 0),
+        timing["input_tokens"], timing["output_tokens"], timing.get("tools_declared", 0),
+        timing.get("deferred", 0), timing.get("memory_facts", 0),
     )
 
 
@@ -389,6 +401,8 @@ class TurnBudget:
         # List-price estimate summed over priced model steps (llm/pricing.py), for the
         # flight recorder (services/trace.py); None while no step was priced.
         self.cost_microusd = None
+        # (tools declared, of them deferred) on the turn's last model step (S5.1 tool search).
+        self.tool_counts = (0, 0)
         self._holds = 0
         self._held_at = None
         self._held_total = 0.0
@@ -1506,12 +1520,20 @@ class ConversationService:
             {"role": "system", "content": turn_context(project.name, attached, self.clock)},
         ]
         prefix = claude_messages(history)
-        from llm.claude import anthropic_tools, tool_result_content
+        from llm.claude import anthropic_tools, defer_tools, tool_counts, tool_result_content
 
-        schemas, hidden = select_tools(
-            self.dispatcher.schemas(), world=self._offer_world(owner, request, history)
-        )
-        tools = anthropic_tools(schemas) or None
+        schemas = self.dispatcher.schemas()
+        world = self._offer_world(owner, request, history)
+        if uses_tool_search(len(schemas)):
+            # Tool search (S5.1): every tool declared, the core set loaded and the rest
+            # deferred; the world gate decides whether the world group loads this turn.
+            hidden = frozenset()
+            loaded = core_names([item["name"] for item in schemas], world=world)
+            tools = defer_tools(anthropic_tools(schemas), loaded) or None
+        else:
+            schemas, hidden = select_tools(schemas, world=world)
+            tools = anthropic_tools(schemas) or None
+        budget.tool_counts = tool_counts(tools)
         system = self.system_prompt()
         context = {
             "owner": owner, "project": project, "origin_sid": origin_sid, "authorize": authorize,
@@ -1621,7 +1643,15 @@ class ConversationService:
                     f"{owner_memory}\n\n{content}" if owner_memory else content,
                     attachments=list(photo),
                 )
-            schemas, context["hidden"] = select_tools(self.dispatcher.schemas(), world=world)
+            schemas = self.dispatcher.schemas()
+            if uses_tool_search(len(schemas)):
+                # No server-side search here: the core set plus the best local matches.
+                schemas, context["hidden"] = select_for_request(
+                    schemas, request.text, world=world
+                )
+            else:
+                schemas, context["hidden"] = select_tools(schemas, world=world)
+            budget.tool_counts = (len(schemas), 0)
 
             def generate(target, extra, provider_messages=provider_messages, schemas=schemas,
                          attached=attached):
