@@ -64,7 +64,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 
 ## Wave 3 — reach and home (S8, S12)
 
-- [ ] **S8.1** Channels package: `Channel` protocol, `InboundMessage`, gateway to the conversation and to Signals · S8 · C · needs S7.1, S15.1
+- [x] **S8.1** Channels package: `Channel` protocol, `InboundMessage`, gateway to the conversation and to Signals · S8 · C · needs S7.1, S15.1 — see the commit "Add the channel gateway" (physical-security cards go deny-only to the remote chat; remote turns trace as "chat")
 - [ ] **S8.2** Telegram channel, pairing code, approval buttons, remote-approval classes, Preferences · S8a · C · O (bot token, pairing)
 - [ ] **S8.3** WhatsApp sidecar: bridge, encrypted auth through the core, built-in MCP server `wa` · S8b · C · D (Baileys)
 - [ ] **S8.4** WhatsApp channel: rules, caps, typing delay, consent screen, QR screen, kill switch · S8b · C · needs S8.3 · O (consent, QR)

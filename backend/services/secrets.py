@@ -301,6 +301,17 @@ REGISTRY = {
             ),
             internal=True,
         ),
+        # Channels (docs/CHANNELS.md): the per-install HMAC key that signs the approval ids
+        # sent to a paired remote channel. Generated on first use; never user-entered.
+        SecretSpec(
+            name="channel_approval_key",
+            label="Remote approval signing key",
+            provider="JARVIS",
+            env="JARVIS_CHANNEL_APPROVAL_KEY",
+            pattern=r"[A-Za-z0-9_\-]{43,128}",
+            format_message="JARVIS creates this key itself.",
+            internal=True,
+        ),
     )
 }
 # Names the owner manages (Preferences, Connections, scripts/jarvis-secrets.py).

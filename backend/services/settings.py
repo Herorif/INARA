@@ -926,6 +926,44 @@ def sound_settings(settings):
     return values
 
 
+# --- Channels (docs/CHANNELS.md) -------------------------------------------------------------
+# Remote approvals over Telegram and WhatsApp (S8). The physical-security class (unlock, open,
+# disarm, homelab power, computer use) is never approved remotely unless the owner says so.
+
+
+class ChannelsSettings(EmptyRequest):
+    """``channels.*``: ``remote_approval_physical`` lets the owner approve the
+    physical-security class from a paired remote channel (off by default)."""
+
+    remote_approval_physical: StrictBool | None = None
+
+    @field_validator("remote_approval_physical", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged settings instead of sending null.")
+        return value
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Choose a channels setting to update.")
+        return self
+
+
+CHANNELS_DEFAULTS = {"remote_approval_physical": False}
+
+
+def channels_settings(settings):
+    """The saved ``channels`` block over its defaults; a non-bool reads as the default."""
+    saved = (settings or {}).get("channels") if isinstance(settings, dict) else None
+    saved = saved if isinstance(saved, dict) else {}
+    return {
+        key: saved[key] if type(saved.get(key)) is type(default) else default
+        for key, default in CHANNELS_DEFAULTS.items()
+    }
+
+
 class SettingsPatch(EmptyRequest):
     tool_permissions: dict[StrictStr, PermissionValue] | None = Field(default=None, max_length=128)
     face_auth_enabled: StrictBool | None = None
@@ -940,6 +978,7 @@ class SettingsPatch(EmptyRequest):
     mcp: McpSettings | None = None
     diagnostics: DiagnosticsSettings | None = None
     sound: SoundSettings | None = None
+    channels: ChannelsSettings | None = None
 
     @field_validator(
         "tool_permissions",
@@ -955,6 +994,7 @@ class SettingsPatch(EmptyRequest):
         "mcp",
         "diagnostics",
         "sound",
+        "channels",
         mode="before",
     )
     @classmethod
@@ -1037,6 +1077,7 @@ class SettingsService:
             ("world", WORLD_DEFAULTS),
             ("diagnostics", DIAGNOSTICS_DEFAULTS),
             ("sound", SOUND_DEFAULTS),
+            ("channels", CHANNELS_DEFAULTS),
         ):
             if section in patch:
                 current = candidate.get(section)
@@ -1056,7 +1097,7 @@ class SettingsService:
                 raise ServiceError("invalid_arguments", BRIEFING_WINDOW_ORDER)
         sections = (
             "tool_permissions", "assistant", "voice", "calls", "calendar", "briefing",
-            "home_assistant", "world", "diagnostics", "sound",
+            "home_assistant", "world", "diagnostics", "sound", "channels",
         )
         candidate.update({key: value for key, value in patch.items() if key not in sections})
         try:

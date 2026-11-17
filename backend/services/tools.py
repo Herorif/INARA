@@ -183,6 +183,10 @@ class ToolDispatcher:
         self.timeout = timeout
         self.tools = {}
         self.pending = {}
+        # Observers of approval cards (the channels' remote approval bridge, S8.1): each has
+        # ``approval_offered(principal, payload, timeout)`` and ``approval_settled(request_id)``,
+        # both sync and never allowed to break a dispatch.
+        self.approval_observers = []
 
     def register(self, spec: ToolSpec):
         self.tools[spec.name] = spec
@@ -212,6 +216,13 @@ class ToolDispatcher:
         for owner, future in list(self.pending.values()):
             if owner == principal and not future.done():
                 future.set_result(False)
+
+    def _observe(self, method, *args):
+        for observer in tuple(self.approval_observers):
+            try:
+                getattr(observer, method)(*args)
+            except Exception as exc:
+                logger.warning("An approval observer failed (%s)", type(exc).__name__)
 
     async def dispatch(
         self, principal, name, arguments, context, request_approval=None, *, authorize=None,
@@ -268,6 +279,7 @@ class ToolDispatcher:
             request_id = payload["id"]
             future = asyncio.get_running_loop().create_future()
             self.pending[request_id] = (principal, future)
+            self._observe("approval_offered", principal, payload, self.timeout)
             try:
                 await request_approval(payload)
                 approved = await asyncio.wait_for(future, self.timeout)
@@ -275,6 +287,7 @@ class ToolDispatcher:
                 raise ServiceError("approval_expired", "The approval request expired.") from exc
             finally:
                 self.pending.pop(request_id, None)
+                self._observe("approval_settled", request_id)
             if not approved:
                 raise ServiceError("permission_denied", "The action was declined.")
         # Recheck authentication and disablement after waiting, before side effects.

@@ -396,6 +396,15 @@ class Application:
 
         self.heartbeat = Heartbeat(self)
         self.heartbeat_transport = HeartbeatTransport(self)
+        # S8.1 channels (docs/CHANNELS.md): the remote channel gateway (owner messages ->
+        # brain turns, everyone else -> Signals and the channel inbox), remote approvals
+        # (a dispatcher approval observer) and the proactive away hook; owner-only
+        # channels_status / channel_messages_list. Telegram and WhatsApp register later.
+        from services.channels import ChannelGateway
+        from transport.channels import ChannelsTransport
+
+        self.channels = ChannelGateway(self)
+        self.channels_transport = ChannelsTransport(self)
         self.lifecycle = LifecycleTransport(
             sio,
             self.sessions,
@@ -546,6 +555,7 @@ class Application:
         self.proactive.start()  # proactive.close() owns its tick task
         self.routines.start_triggers()  # routines.close() cancels its timers and runs
         self.heartbeat.start()  # heartbeat.close() owns its task
+        await self.channels.start()  # channels.close() stops them; never raises
         # A legacy calls.briefing_pin moves into the encrypted secret store (never raises).
         migrate_briefing_pin(self)
         await self.wake.begin()  # no-op outside the native resident
@@ -594,6 +604,7 @@ class Application:
             await _isolated("proactive", self.proactive.close)
             await _isolated("routines", self.routines.close)
             await _isolated("heartbeat", self.heartbeat.close)
+            await _isolated("channels", self.channels.close)
             await _isolated("briefing", self.briefing.close)
             await _isolated("mcp", self.mcp.close)
             await _isolated("call_orchestrator", self.call_orchestrator.close)

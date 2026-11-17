@@ -2002,6 +2002,28 @@
       "lifetime": "Durable until saved again",
       "replacement": "Heartbeat / HeartbeatTransport (backend/services/heartbeat.py, backend/transport/heartbeat.py)",
       "status": "implemented"
+    },
+    "channels_status": {
+      "schema": "EmptyRequest",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The channel gateway's registered remote channels (none until Telegram S8.2 / WhatsApp S8.3 register)",
+      "effects": "Read only: no network, no files",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; chat ids never listed or logged",
+      "response": "Origin ACK {ok: true, channels: [{name, paired, state}]} in registration order; invalid_arguments as a plain message",
+      "lifetime": "Request-only snapshot",
+      "replacement": "ChannelGateway / ChannelsTransport (backend/services/channels/gateway.py, backend/transport/channels.py)",
+      "status": "implemented"
+    },
+    "channel_messages_list": {
+      "schema": "MessagesRequest ({limit?: 1-200}, default 50; extra fields forbidden)",
+      "caller": "Authenticated unlocked owner renderer",
+      "context": "The channel inbox: messages from other people on a paired channel (kind channel_messages, DPAPI-encrypted, newest 500 kept)",
+      "effects": "Read only",
+      "policy": "Independent owner/role/unlock gate; not a dispatcher tool and not model-visible; message text, senders and chat ids never logged; chat ids never listed",
+      "response": "Origin ACK {ok: true, messages: [{id, channel, sender, sender_name, person_id, person_name, text, media, at, received_at}]} newest first; invalid_arguments as a plain message",
+      "lifetime": "One synchronous read",
+      "replacement": "ChannelMessages / ChannelsTransport (backend/services/channels/store.py, backend/transport/channels.py)",
+      "status": "implemented"
     }
   },
   "http_routes": {
