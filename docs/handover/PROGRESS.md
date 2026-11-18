@@ -12,6 +12,19 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 
 ---
 
+## In flight (update before every stop)
+
+As of 18 Nov 2026, three Wave 3 workers were building, with uncommitted work in the tree:
+- **S8.2** Telegram channel — `backend/services/channels/telegram.py`, a Telegram card in Preferences/Connections, `tests/test_telegram.py`.
+- **S12.1** Home Assistant WebSocket events — `backend/services/home_assistant*.py`, the Home view, `tests/test_home_assistant_ws.py`.
+- **S12.4** Homelab presets, "Add a system", the Systems page — `backend/services/homelab/presets.py`, `src/features/systems/`, `tests/test_homelab_presets.py`.
+
+To resume after a stop: `git status --short`; for each task above, review its files against its
+spec section, run its tests, then commit it (shared files: stage only that task's lines) or
+`git restore` it and rebuild it. Then continue with the first unticked line below.
+Shared-file staging helpers used so far are in the session scratchpad, not the repo; plain
+`git add -p` style partial staging works too.
+
 ## Wave 0 — it must answer (S1, S2, S4)
 
 
@@ -60,7 +73,7 @@ Last verified baseline: `a6233db`, full pytest 3301 passed. Checkpoint commit `1
 - [x] **S7.5** Screen help with consent: one screenshot per approval ("What's this error?") · roadmap M9 A6 · M — see the commit "Let JARVIS look at the screen when asked" (open: the old Pillow-based `take_screenshot` local action is still model-visible and fails without Pillow; no "You · screenshot" chat label)
 - [x] **S5.1** Tool search with deferred loading and a core set (Claude); local tool index (Gemini) · S5 · C · read the `claude-api` skill first — see the commit "Load a core set of tools and let Claude search for the rest" (51 model-visible tools today; Haiku 5.5 supports tool search)
 - [x] **S5.2** Skills: `SKILL.md` folders, `load_skill`, the "Teach JARVIS" approval flow · S5 · C — see the commit "Let JARVIS load skills" (the strict front-matter parser skips nested blocks like `metadata:`)
-- [ ] **W2** Wave check
+- [x] **W2** Wave check — at 6393b26: pytest 4227 passed, 44 skipped (Avast TLS test deselected), all green; build passed; client 538 passed; eslint and tsc clean.
 
 ## Wave 3 — reach and home (S8, S12)
 
