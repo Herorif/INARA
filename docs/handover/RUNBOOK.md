@@ -139,6 +139,12 @@ session was not started that way, build inline with the same loop.
 A break can happen at any time. That is why the ledger is ticked after every commit. On
 return the owner says "continue finishing jarvis" again; start at section 2.
 
+The owner's rule (18 Nov 2026): when the credit is nearly used up, stop and save the
+progress so someone else can pick it up. So keep the "In flight" section at the top of
+`PROGRESS.md` current whenever work is uncommitted; on a usage-limit warning start no new
+task, stop workers if needed, commit the ledger with that section filled in, and tell the
+owner what is done and what is left.
+
 ## 10. The final report
 
 When no unticked, unblocked task is left:
